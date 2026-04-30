@@ -1,0 +1,67 @@
+.menuPage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--background-color);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ownerTabs {
+  flex-shrink: 0;
+}
+
+.mainContent {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.treePanel {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.resizeHandle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--primary-color);
+    opacity: 0.3;
+  }
+}
+
+.detailPanel {
+  flex: 1;
+  min-width: 0;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+
+  &Icon {
+    font-size: 48px;
+    color: var(--text-secondary-color);
+  }
+
+  &Text {
+    font-size: 14px;
+    color: var(--text-secondary-color);
+  }
+}

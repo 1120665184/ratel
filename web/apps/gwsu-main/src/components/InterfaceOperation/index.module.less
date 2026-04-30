@@ -1,0 +1,155 @@
+/* 界面操作能力组件样式 - 金融科技风格 */
+
+/* ============================================
+   设计理念：精致高端、品质感、专业可信
+   - 更大的留白和呼吸感
+   - 精致的阴影和圆角
+   - 优雅的过渡动画
+   ============================================ */
+
+.interfaceOperation {
+  flex: 1;
+  display: flex;
+  height: 100%;
+  background: var(--background-color);
+  min-width: 0;
+}
+
+/* ============================================
+   操作区侧边栏 - 更精致的导航
+   ============================================ */
+.operationSider {
+  min-height: 100%;
+  background: var(--surface-color);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.menuWrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 12px;
+
+  /* 自定义滚动条 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: oklch(85% 0.01 var(--brand-hue, 220));
+    border-radius: 2px;
+
+    &:hover {
+      background: oklch(75% 0.02 var(--brand-hue, 220));
+    }
+  }
+}
+
+/* 菜单样式 */
+.menu {
+  background: transparent !important;
+  border-right: none !important;
+
+  :global {
+    .ant-menu-item {
+      margin: 4px 0;
+      padding: 0 16px !important;
+      height: 44px;
+      line-height: 44px;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.01em;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        background: oklch(96% 0.015 var(--brand-hue, 220));
+        color: var(--primary-color);
+      }
+
+      &.ant-menu-item-selected {
+        background: linear-gradient(
+          135deg,
+          oklch(94% 0.03 var(--brand-hue, 220)) 0%,
+          oklch(96% 0.02 var(--brand-hue, 220)) 100%
+        );
+        color: var(--primary-color);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+        &::after {
+          display: none;
+        }
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+/* ============================================
+   折叠按钮 - 更精致的交互
+   ============================================ */
+.collapseBtn {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary-color);
+  border-top: 1px solid var(--border-color);
+  font-size: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--primary-color);
+    background: oklch(97% 0.01 var(--brand-hue, 220));
+  }
+}
+
+/* ============================================
+   操作区内容 - 更宽松的布局
+   ============================================ */
+.operationContent {
+  flex: 1;
+  overflow: auto;
+  background: var(--background-color);
+  min-width: 0;
+
+  /* 自定义滚动条 */
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: oklch(85% 0.01 var(--brand-hue, 220));
+    border-radius: 4px;
+
+    &:hover {
+      background: oklch(75% 0.02 var(--brand-hue, 220));
+    }
+  }
+}
+
+.microAppContainer {
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+}

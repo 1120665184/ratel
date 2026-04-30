@@ -1,0 +1,46 @@
+.buttonFormModal {
+  :global {
+    .ant-modal-body {
+      padding: 16px 24px;
+    }
+  }
+}
+
+.buttonKeyField {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.buttonKeyPrefix {
+  padding: 4px 11px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  color: var(--text-secondary-color);
+  font-size: 13px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.buttonKeyInput {
+  :global {
+    .ant-input {
+      border-radius: 0 6px 6px 0 !important;
+    }
+  }
+}
+
+.permissionField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.permissionTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}

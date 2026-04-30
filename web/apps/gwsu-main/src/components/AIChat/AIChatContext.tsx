@@ -1,0 +1,113 @@
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import type { AIChatPanelMode, AIChatPanelPosition, AIChatPanelState, AIChatViewMode } from './types';
+
+const STORAGE_KEY_PANEL_STATE = 'gwsu-ai-chat-panel-state';
+
+const DEFAULT_PANEL_STATE: AIChatPanelState = {
+  mode: 'fixed',
+  position: { x: 20, y: 80 },
+  width: 420,
+  height: 520,
+};
+
+/**
+ * 面板状态上下文值
+ * 注意：消息管理已由 CopilotKit 处理，此上下文仅管理面板状态
+ */
+interface PanelContextValue {
+  /** 面板状态 */
+  panelState: AIChatPanelState;
+  /** 设置面板模式 */
+  setPanelMode: (mode: AIChatPanelMode) => void;
+  /** 设置面板位置 */
+  setPanelPosition: (position: AIChatPanelPosition) => void;
+  /** 切换面板显示/隐藏 */
+  togglePanel: () => void;
+  /** 当前视图模式 */
+  viewMode: AIChatViewMode;
+  /** 设置视图模式 */
+  setViewMode: (mode: AIChatViewMode) => void;
+  /** 当前会话ID */
+  currentThreadId: string | null;
+  /** 设置当前会话ID */
+  setCurrentThreadId: (threadId: string | null) => void;
+}
+
+const PanelContext = createContext<PanelContextValue | undefined>(undefined);
+
+export const usePanelContext = (): PanelContextValue => {
+  const context = useContext(PanelContext);
+  if (!context) {
+    throw new Error('usePanelContext must be used within PanelProvider');
+  }
+  return context;
+};
+
+interface PanelProviderProps {
+  children: ReactNode;
+}
+
+/**
+ * 面板状态管理 Provider
+ * 仅管理面板的显示模式、位置、尺寸等 UI 状态
+ * 消息管理由 CopilotKit 处理
+ */
+export const PanelProvider: React.FC<PanelProviderProps> = ({ children }) => {
+  const [panelState, setPanelState] = useState<AIChatPanelState>(() => {
+    // 从 localStorage 恢复面板状态
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PANEL_STATE);
+      if (saved) {
+        return { ...DEFAULT_PANEL_STATE, ...JSON.parse(saved) };
+      }
+    } catch {
+      // ignore
+    }
+    return DEFAULT_PANEL_STATE;
+  });
+
+  // 视图模式状态
+  const [viewMode, setViewMode] = useState<AIChatViewMode>('chat');
+  // 当前会话ID
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+
+  // 保存面板状态到 localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PANEL_STATE, JSON.stringify(panelState));
+  }, [panelState]);
+
+  // 设置面板模式
+  const setPanelMode = useCallback((mode: AIChatPanelMode) => {
+    setPanelState((prev) => ({ ...prev, mode }));
+  }, []);
+
+  // 设置面板位置
+  const setPanelPosition = useCallback((position: AIChatPanelPosition) => {
+    setPanelState((prev) => ({ ...prev, position }));
+  }, []);
+
+  // 切换面板显示/隐藏
+  const togglePanel = useCallback(() => {
+    setPanelState((prev) => ({
+      ...prev,
+      mode: prev.mode === 'hidden' ? 'fixed' : 'hidden',
+    }));
+  }, []);
+
+  const contextValue: PanelContextValue = {
+    panelState,
+    setPanelMode,
+    setPanelPosition,
+    togglePanel,
+    viewMode,
+    setViewMode,
+    currentThreadId,
+    setCurrentThreadId,
+  };
+
+  return <PanelContext.Provider value={contextValue}>{children}</PanelContext.Provider>;
+};
+
+// 保持向后兼容的导出
+export const AIChatProvider = PanelProvider;
+export const useAIChatContext = usePanelContext;

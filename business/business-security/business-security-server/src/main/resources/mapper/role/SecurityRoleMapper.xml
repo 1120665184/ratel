@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.security.role.mapper.SecurityRoleMapper">
+
+    <!-- 根据主体ID查询角色列表 -->
+    <select id="selectRolesBySubjectId" resultType="org.quyq.gwsu.security.role.domain.SecurityRole">
+        SELECT r.*
+        FROM security_role r
+        INNER JOIN security_role_subject sr ON r.id = sr.role_id
+        WHERE sr.subject_id = #{subjectId}
+          AND r.deleted = 0
+          AND r.status = 1
+        ORDER BY r.sort ASC
+    </select>
+
+</mapper>

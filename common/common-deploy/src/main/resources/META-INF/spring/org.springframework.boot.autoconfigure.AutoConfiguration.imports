@@ -1,0 +1,2 @@
+org.quyq.gwsu.common.deploy.config.DeploySingleConfiguration
+org.quyq.gwsu.common.deploy.config.DeployDistributedConfiguration

@@ -1,0 +1,29 @@
+server:
+  port: 8802
+
+spring:
+  application:
+    name: gwsu-system
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      group: DEFAULT_GROUP
+      username: nacos
+      password: nacos
+      namespace: gwsu
+      config:
+        enabled: true
+        namespace: ${spring.cloud.nacos.namespace}
+        group: ${spring.cloud.nacos.group}
+      discovery:
+        enabled: true
+        namespace: ${spring.cloud.nacos.namespace}
+        group: ${spring.cloud.nacos.group}
+  config:
+    import:
+      - nacos:common.yaml
+      - nacos:common-redis.yaml
+      - nacos:common-database.yaml
+      - nacos:${spring.application.name}.yaml

@@ -1,0 +1,106 @@
+.pickerModal {
+  :global {
+    .ant-modal-body {
+      padding: 16px 24px;
+    }
+  }
+}
+
+.searchBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.searchSelect {
+  width: 200px;
+}
+
+.searchInput {
+  flex: 1;
+}
+
+.tableWrapper {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.selectedArea {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.selectedAreaLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary-color);
+  margin-bottom: 6px;
+}
+
+.selectedTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.selectedEmpty {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+}
+
+.permissionPreview {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+
+  &Label {
+    font-size: 12px;
+    color: var(--text-secondary-color);
+    margin-bottom: 4px;
+  }
+
+  &Text {
+    font-size: 13px;
+    color: var(--text-color);
+    word-break: break-all;
+  }
+}
+
+.mainApiSection {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.mainApiLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.mainApiRadioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mainApiRadio {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mainApiHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary-color);
+}

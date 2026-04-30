@@ -1,0 +1,165 @@
+/* Dashboard 页面样式 - 金融科技风格 */
+
+/* ============================================
+   设计理念：精致高端、品质感、专业可信
+   ============================================ */
+
+.dashboard {
+  padding: 0;
+  min-height: 100%;
+}
+
+/* 页面标题区域 */
+.pageHeader {
+  margin-bottom: 28px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-color, #1a1a2e);
+}
+
+.pageSubtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary-color, #6b7280);
+  letter-spacing: 0.01em;
+}
+
+/* 统计卡片 */
+.statCard {
+  border-radius: 14px !important;
+  border: none !important;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      0 2px 4px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  :global {
+    .ant-statistic-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary-color, #6b7280);
+      letter-spacing: 0.02em;
+    }
+
+    .ant-statistic-content {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+  }
+}
+
+.trendTag {
+  margin-top: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 内容卡片 */
+.contentCard {
+  border-radius: 14px !important;
+  border: none !important;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02) !important;
+
+  :global {
+    .ant-card-head {
+      border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+      padding: 16px 20px;
+      min-height: auto;
+
+      .ant-card-head-title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        padding: 0;
+      }
+    }
+
+    .ant-card-body {
+      padding: 20px;
+    }
+  }
+}
+
+/* 快速操作按钮 */
+.quickActionButton {
+  width: 100%;
+  height: 88px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  background: var(--surface-color, #ffffff);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--primary-color, #1a5fb4);
+    color: var(--primary-color, #1a5fb4);
+    background: oklch(98% 0.015 var(--brand-hue, 220));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 95, 180, 0.1);
+  }
+
+  .actionIcon {
+    font-size: 26px;
+    opacity: 0.85;
+  }
+
+  .actionLabel {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+}
+
+/* 表格样式 */
+.activityTable {
+  :global {
+    .ant-table-thead > tr > th {
+      background: var(--background-color, #f8fafc);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary-color, #6b7280);
+      border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+      padding: 12px 16px;
+    }
+
+    .ant-table-tbody > tr > td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.04));
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background: oklch(98% 0.005 var(--brand-hue, 220));
+    }
+  }
+}
+
+/* 状态标签 */
+.statusTag {
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+}

@@ -1,0 +1,85 @@
+/* 主题切换器样式 - 金融科技风格 */
+
+.switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-right: 4px;
+
+  &:hover {
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  .icon {
+    font-size: 18px;
+    color: var(--text-secondary-color, #6b7280);
+    transition: color 0.2s ease;
+  }
+
+  &:hover .icon {
+    color: var(--primary-color, #1a5fb4);
+  }
+}
+
+.themeItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.colorPreview {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+}
+
+.checkIcon {
+  color: #fff;
+  font-size: 12px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.themeName {
+  font-size: 14px;
+  color: var(--text-color, #1a1a2e);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.dropdown {
+  :global {
+    .ant-dropdown-menu {
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.05),
+        0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    }
+
+    .ant-dropdown-menu-item {
+      border-radius: 8px;
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: oklch(97% 0.01 var(--brand-hue, 220));
+      }
+    }
+  }
+}

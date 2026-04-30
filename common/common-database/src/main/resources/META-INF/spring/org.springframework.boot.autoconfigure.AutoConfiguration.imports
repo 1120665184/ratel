@@ -1,0 +1,3 @@
+org.quyq.gwsu.common.database.config.DatabaseConfiguration
+org.quyq.gwsu.common.database.config.SqlSessionConfiguration
+org.quyq.gwsu.common.database.config.DatabaseMetadataConfiguration

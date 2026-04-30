@@ -1,0 +1,3 @@
+org.quyq.gwsu.common.core.config.CoreConfiguration
+org.quyq.gwsu.common.core.config.GlobalExceptionConfiguration
+org.quyq.gwsu.common.core.config.GsonConfiguration

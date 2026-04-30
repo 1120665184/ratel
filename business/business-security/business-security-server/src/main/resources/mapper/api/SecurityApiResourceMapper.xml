@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.security.apiresource.mapper.SecurityApiResourceMapper">
+
+    <select id="selectPageVo" resultType="org.quyq.gwsu.security.api.vo.ApiResourceVO">
+        SELECT
+            id,
+            module_prefix,
+            tag_name,
+            req_path,
+            req_method,
+            summary,
+            request_class,
+            response_class,
+            create_op,
+            create_time,
+            modify_op,
+            modify_time
+        FROM security_api_resource
+        WHERE deleted = 0
+        <if test="query.modulePrefix != null and query.modulePrefix != ''">
+            AND module_prefix = #{query.modulePrefix}
+        </if>
+        <if test="query.tagName != null and query.tagName != ''">
+            AND tag_name = #{query.tagName}
+        </if>
+        <if test="query.reqPath != null and query.reqPath != ''">
+            AND req_path LIKE CONCAT('%', #{query.reqPath}, '%')
+        </if>
+        <if test="query.reqMethod != null and query.reqMethod != ''">
+            AND req_method = #{query.reqMethod}
+        </if>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (
+                tag_name LIKE CONCAT('%', #{query.keyword}, '%')
+                OR req_path LIKE CONCAT('%', #{query.keyword}, '%')
+                OR summary LIKE CONCAT('%', #{query.keyword}, '%')
+            )
+        </if>
+        <if test="query.orderByColumn != null and query.orderByColumn != ''">
+            ORDER BY ${query.orderByColumn}
+            <if test="query.asc != null and query.asc == 'desc'">
+                DESC
+            </if>
+            <if test="query.asc == null or query.asc == 'asc'">
+                ASC
+            </if>
+        </if>
+    </select>
+
+</mapper>

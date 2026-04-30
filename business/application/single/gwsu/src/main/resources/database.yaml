@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:postgresql://localhost:5432/gwsu
+          username: root
+          password: root
+          driver-class-name: org.postgresql.Driver
+#        mysql:
+#          driver-class-name: com.mysql.cj.jdbc.Driver
+#          url: jdbc:mysql://127.0.0.1:3306/gwsu?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+#          username: root
+#          password: root

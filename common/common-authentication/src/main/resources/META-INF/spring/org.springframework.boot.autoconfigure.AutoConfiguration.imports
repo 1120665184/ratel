@@ -1,0 +1,3 @@
+org.quyq.gwsu.common.authentication.config.AuthenticationConfiguration
+org.quyq.gwsu.common.authentication.config.LoginWebConfiguration
+org.quyq.gwsu.common.authentication.config.DataResourceConfiguration

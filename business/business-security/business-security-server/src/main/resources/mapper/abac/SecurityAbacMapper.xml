@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.security.abac.mapper.SecurityAbacMapper">
+
+    <resultMap id="abacFieldResult" type="org.quyq.gwsu.security.api.abac.vo.AbacFieldVO" autoMapping="true">
+        <result column="fields" property="fields"
+                typeHandler="org.quyq.gwsu.security.api.typehandler.StringListTypeHandler"/>
+    </resultMap>
+
+    <select id="allAbacPermissions" resultType="AbacPermissionVo">
+        select sap.id, sap.abac_id, sap.resource_type, sap.action, sap.url_pattern, sap.effect, sa.expression
+        from security_abac_permission sap
+                 left join security_abac sa on sa.id = sap.abac_id
+        where sap.status = 1
+          AND sa.status = 1
+            AND sap.deleted = 0 AND sa.deleted = 0
+
+    </select>
+
+    <select id="allAbacFields" resultMap="abacFieldResult">
+        select saf.id,
+               saf.abac_id,
+               saf.resource_type,
+               saf.action,
+               saf.url_pattern,
+               saf.field_mode,
+               saf.fields,
+               sa.expression
+        from security_abac_field saf
+                 left join security_abac sa on sa.id = saf.abac_id
+        where saf.status = 1
+          and sa.status = 1
+          AND saf.deleted = 0 AND sa.deleted = 0
+    </select>
+
+
+</mapper>

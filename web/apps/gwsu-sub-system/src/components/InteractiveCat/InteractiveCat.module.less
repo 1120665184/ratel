@@ -1,0 +1,287 @@
+/* 容器 */
+.catContainer {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.12));
+}
+
+.catSvg {
+  display: block;
+  overflow: visible;
+}
+
+/* ===== 头部动画 ===== */
+.head {
+  transform-origin: 100px 100px;
+  animation: headTilt 5s ease-in-out infinite;
+}
+
+@keyframes headTilt {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(2deg) translateY(-2px);
+  }
+  75% {
+    transform: rotate(-2deg) translateY(-2px);
+  }
+}
+
+/* ===== 耳朵动画 ===== */
+.leftEar {
+  transform-origin: 62px 60px;
+  animation: earTwitch 6s ease-in-out infinite;
+}
+
+.rightEar {
+  transform-origin: 138px 60px;
+  animation: earTwitch 6s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+@keyframes earTwitch {
+  0%, 88%, 100% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(-5deg);
+  }
+  94% {
+    transform: rotate(0deg);
+  }
+}
+
+/* ===== 眼睛动画 ===== */
+.leftEye {
+  transform-origin: 78px 95px;
+  animation: eyeBlink 4s ease-in-out infinite;
+}
+
+.rightEye {
+  transform-origin: 122px 95px;
+  animation: eyeBlink 4s ease-in-out infinite;
+}
+
+@keyframes eyeBlink {
+  0%, 46%, 54%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* ===== 尾巴动画 ===== */
+.tail {
+  transform-origin: 155px 140px;
+  animation: tailWag 2.5s ease-in-out infinite;
+}
+
+@keyframes tailWag {
+  0%, 100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(15deg);
+  }
+}
+
+/* ===== 身体动画 ===== */
+.body {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.02);
+  }
+}
+
+/* ===== 遮眼爪子 ===== */
+.peekPaws {
+  opacity: 0;
+}
+
+.peekPawsActive {
+  opacity: 1;
+}
+
+.peekLeftPaw {
+  transform-origin: 65px 98px;
+  transform: translateX(-25px) translateY(15px);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.peekRightPaw {
+  transform-origin: 135px 98px;
+  transform: translateX(25px) translateY(15px);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-delay: 0.08s;
+}
+
+.peekPawsActive .peekLeftPaw {
+  transform: translateX(0) translateY(0);
+  animation: pawWiggle 0.6s ease-in-out infinite;
+}
+
+.peekPawsActive .peekRightPaw {
+  transform: translateX(0) translateY(0);
+  animation: pawWiggle 0.6s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+@keyframes pawWiggle {
+  0%, 100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+/* ===== 鼻子动画 ===== */
+.nose {
+  animation: noseWiggle 2.5s ease-in-out infinite;
+}
+
+@keyframes noseWiggle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(1px);
+  }
+}
+
+/* ===== 嘴巴动画 ===== */
+.mouth {
+  animation: mouthMove 3s ease-in-out infinite;
+}
+
+@keyframes mouthMove {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(0.5px);
+  }
+}
+
+/* ===== 胡须动画 ===== */
+.whiskers {
+  animation: whiskerTwitch 2.5s ease-in-out infinite;
+}
+
+@keyframes whiskerTwitch {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(1px);
+  }
+}
+
+/* ===== 前爪动画 ===== */
+.frontPaws {
+  animation: pawsBounce 2s ease-in-out infinite;
+}
+
+@keyframes pawsBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* ===== 对话气泡 ===== */
+.speechBubble {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+  color: #666;
+  padding: 8px 14px;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 9px solid #FFFFFF;
+  }
+}
+
+.speechBubbleVisible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.speechText {
+  color: #888;
+  font-size: 12px;
+}
+
+/* ===== 减少动画偏好 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .head,
+  .leftEar,
+  .rightEar,
+  .leftEye,
+  .rightEye,
+  .tail,
+  .body,
+  .nose,
+  .mouth,
+  .whiskers,
+  .frontPaws,
+  .peekLeftPaw,
+  .peekRightPaw {
+    animation: none !important;
+  }
+
+  .peekLeftPaw,
+  .peekRightPaw {
+    transform: translateX(0) translateY(0) !important;
+    transition: opacity 0.2s ease !important;
+  }
+
+  .speechBubble {
+    transition: opacity 0.2s ease !important;
+  }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 480px) {
+  .speechBubble {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
+  .speechText {
+    font-size: 11px;
+  }
+}

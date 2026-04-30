@@ -1,0 +1,3 @@
+org.quyq.gwsu.common.api.config.ApiClientAutoConfiguration
+org.quyq.gwsu.common.api.config.InterceptorAutoConfiguration
+

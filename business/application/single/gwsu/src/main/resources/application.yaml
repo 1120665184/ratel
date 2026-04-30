@@ -1,0 +1,45 @@
+server:
+  port: 8888
+
+spring:
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  application:
+    name: gwsu-application
+  threads:
+    virtual:
+      enabled: true
+  config:
+    import:
+      - classpath:database.yaml
+      - classpath:redis.yaml
+
+# mybatis配置
+mybatis-plus:
+  # 搜索指定包别名
+  typeAliasesPackage: org.quyq.gwsu.**.domain,org.quyq.gwsu.**.vo
+  # 配置mapper的扫描，找到所有的mapper.xml映射文件
+  mapperLocations: classpath*:mapper/**/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  type-handlers-package: org.quyq.gwsu.common.database.typehandler
+
+org.quyq:
+  security:
+    ignore-urls:
+      - /system/auth/**
+  agent:
+    enabled: true
+    model:
+      provider: openai
+    openai:
+#      api-key: a8d0f33c274435643ca2ea47baac367c:NTBjOGE3OTkzNzJmZGFhNzNmZTRhNmU0
+#      base-url: https://maas-coding-api.cn-huabei-1.xf-yun.com/v2
+#      model-name: astron-code-latest
+      api-key: sk-1IhNkXlU5JiiIZyuaiyxyvFFMp3D4ywMw2Yeexp7ILwE7ogF
+      base-url: http://192.168.101.200:3000/v1
+      model-name: Qwen3.6
+logging:
+  level:
+    org.quyq: DEBUG
