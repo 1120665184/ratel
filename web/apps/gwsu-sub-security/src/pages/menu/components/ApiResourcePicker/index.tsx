@@ -248,9 +248,13 @@ const ApiResourcePicker: React.FC<ApiResourcePickerProps> = ({
   ];
 
   const handleConfirm = useCallback(() => {
+    if (selectedCount > 1 && !mainApiKey) {
+      message.warning('请选择主接口');
+      return;
+    }
     onConfirm(permissionPreview);
     onClose();
-  }, [permissionPreview, onConfirm, onClose]);
+  }, [permissionPreview, onConfirm, onClose, selectedCount, mainApiKey]);
 
   return (
     <Modal

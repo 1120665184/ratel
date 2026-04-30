@@ -9,9 +9,10 @@ interface AccountBindSectionProps {
     userId: string;
     accounts: SysAccountVO[];
     onRefresh: () => void;
+    readOnly?: boolean;
 }
 
-const AccountBindSection: React.FC<AccountBindSectionProps> = ({userId, accounts, onRefresh}) => {
+const AccountBindSection: React.FC<AccountBindSectionProps> = ({userId, accounts, onRefresh, readOnly = false}) => {
     const [expandedType, setExpandedType] = useState<string | null>(null);
 
     const allTypes = ['password', 'phone', 'wechat'];
@@ -76,13 +77,15 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({userId, accounts
                                     {account ? (
                                         <>
                                             <Tag color="success">已绑定</Tag>
-                                            <a style={{color: '#ff4d4f', fontSize: 11}}
-                                               onClick={() => handleUnbind(account.id)}>
-                                                解绑
-                                            </a>
+                                            {!readOnly && (
+                                                <a style={{color: '#ff4d4f', fontSize: 11}}
+                                                   onClick={() => handleUnbind(account.id)}>
+                                                    解绑
+                                                </a>
+                                            )}
                                         </>
                                     ) : (
-                                        <a onClick={() => setExpandedType(type)}>绑定</a>
+                                        !readOnly && <a onClick={() => setExpandedType(type)}>绑定</a>
                                     )}
                                 </div>
                             </div>

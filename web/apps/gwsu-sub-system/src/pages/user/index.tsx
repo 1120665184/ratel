@@ -25,6 +25,7 @@ const UserPage: React.FC = () => {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [drawerUserId, setDrawerUserId] = useState<string | null>(null);
+  const [drawerMode, setDrawerMode] = useState<'detail' | 'edit'>('detail');
   const [formVisible, setFormVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
@@ -99,12 +100,14 @@ const UserPage: React.FC = () => {
   // 查看详情
   const handleDetail = useCallback((userId: string) => {
     setDrawerUserId(userId);
+    setDrawerMode('detail');
     setDrawerVisible(true);
   }, []);
 
-  // 编辑（打开详情抽屉）
+  // 编辑（打开详情抽屉，编辑模式）
   const handleEdit = useCallback((userId: string) => {
     setDrawerUserId(userId);
+    setDrawerMode('edit');
     setDrawerVisible(true);
   }, []);
 
@@ -205,6 +208,7 @@ const UserPage: React.FC = () => {
         userId={drawerUserId}
         treeData={treeData}
         onClose={handleDrawerClose}
+        mode={drawerMode}
       />
       <UserForm
         visible={formVisible}

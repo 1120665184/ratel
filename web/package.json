@@ -4,13 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev:main": "pnpm --filter gwsu-main dev",
-    "dev:sub-system": "pnpm --filter gwsu-sub-system dev",
-    "dev:sub-security": "pnpm --filter gwsu-sub-security dev",
     "dev:all": "pnpm -r --parallel dev",
     "build:core": "pnpm --filter @gwsu/core build",
-    "build:main": "pnpm --filter gwsu-main build",
-    "build:sub-system": "pnpm --filter gwsu-sub-system build",
-    "build:sub-security": "pnpm --filter gwsu-sub-security build",
     "build:all": "pnpm build:core && pnpm -r build",
     "clean": "pnpm -r exec rm -rf node_modules dist .umi"
   },

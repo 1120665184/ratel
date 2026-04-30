@@ -68,7 +68,7 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
     }
   }, [visible, data, form, menuType, parentId, owner, position]);
 
-  const convertToTreeSelectData = (nodes: MenuTreeNode[]) => {
+  const convertToTreeSelectData = (nodes: MenuTreeNode[]):any => {
     return nodes
       .filter((n) => n.menuType === 1)
       .map((node) => ({
@@ -108,7 +108,7 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
       onCancel={onClose}
       confirmLoading={loading}
       className={styles.formModal}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Form.Item name="menuName" label="菜单名称" rules={[{ required: true, message: '请输入菜单名称' }]}>
@@ -138,9 +138,11 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
             </Form.Item>
           </>
         )}
-        <Form.Item name="icon" label="菜单图标">
-          <IconPicker />
-        </Form.Item>
+        {currentMenuType === 1 && (
+          <Form.Item name="icon" label="菜单图标">
+            <IconPicker />
+          </Form.Item>
+        )}
         <Form.Item name="sort" label="排序号">
           <InputNumber min={0} style={{ width: '100%' }} />
         </Form.Item>

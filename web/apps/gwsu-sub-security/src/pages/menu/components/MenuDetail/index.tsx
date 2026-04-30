@@ -237,10 +237,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
             <span className={styles.infoLabel}>排序号</span>
             <span className={styles.infoValue}>{menu.sort}</span>
           </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>图标</span>
-            <span className={styles.infoValue}>{menu.icon || '-'}</span>
-          </div>
+          {menu.menuType === 1 && (
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>图标</span>
+              <span className={styles.infoValue}>{menu.icon || '-'}</span>
+            </div>
+          )}
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>状态</span>
             <span className={styles.infoValue}>{menu.status ? '启用' : '禁用'}</span>
@@ -256,11 +258,11 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         </div>
       </div>
 
-      {/* 查看权限（仅菜单类型显示） */}
+      {/* 界面接口权限（仅菜单类型显示） */}
       {isMenuType && (
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTitle}>查看权限</span>
+            <span className={styles.sectionTitle}>界面接口权限</span>
             <Button
               icon={<SelectOutlined />}
               onClick={() => setPickerVisible(true)}

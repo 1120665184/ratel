@@ -120,7 +120,7 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
       onCancel={onClose}
       confirmLoading={loading}
       className={styles.buttonFormModal}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Form.Item

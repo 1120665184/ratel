@@ -26,7 +26,7 @@ public class SecurityMenu extends BaseDO {
 
     public static final String ROOT_MENU_PARENT_ID = "0";
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.INPUT)
     @Schema(description = "主键ID")
     private String id;
 

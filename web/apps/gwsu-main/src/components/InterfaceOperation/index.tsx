@@ -1,7 +1,7 @@
 import { MenuFoldOutlined, MenuUnfoldOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Menu, Spin } from 'antd';
-import { useThemeContext, useMenuStore, transformToMenuItems } from '@gwsu/core';
-import { useState, useEffect, useMemo } from 'react';
+import { useThemeContext, useMenuStore, transformToMenuItems, findOpenKeys } from '@gwsu/core';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { history, MicroApp, useLocation } from 'umi';
 import styles from './index.module.less';
 
@@ -14,6 +14,27 @@ const InterfaceOperation: React.FC = () => {
   const { currentTheme } = useThemeContext();
   const { menus, loading, loadMenus, currentMenuRoute, updateCurrentMenuRouteByPath } = useMenuStore();
   const [collapsed, setCollapsed] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+
+  // 根据当前路径计算需要展开的目录
+  const defaultOpenKeys = useMemo(() => findOpenKeys(menus, location.pathname), [menus, location.pathname]);
+
+  // 菜单首次加载或路径变化时，同步 openKeys（仅在 openKeys 为空时自动设置）
+  useEffect(() => {
+    if (defaultOpenKeys.length > 0) {
+      setOpenKeys((prev) => {
+        if (prev.length === 0 || !prev.every((k) => defaultOpenKeys.includes(k))) {
+          return defaultOpenKeys;
+        }
+        return prev;
+      });
+    }
+  }, [defaultOpenKeys]);
+
+  // 手动展开/收起目录
+  const handleOpenChange = useCallback((keys: string[]) => {
+    setOpenKeys(keys);
+  }, []);
 
   // 初始化加载菜单
   useEffect(() => {
@@ -48,7 +69,7 @@ const InterfaceOperation: React.FC = () => {
           background: currentTheme.colors.surface,
         }}
       >
-        <div className={styles.menuWrapper}>
+        <div className={`${styles.menuWrapper} ${collapsed ? styles.menuWrapperCollapsed : ''}`}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               <Spin indicator={<LoadingOutlined spin />} />
@@ -58,6 +79,8 @@ const InterfaceOperation: React.FC = () => {
               mode="inline"
               inlineCollapsed={collapsed}
               selectedKeys={[location.pathname]}
+              openKeys={collapsed ? [] : openKeys}
+              onOpenChange={handleOpenChange}
               items={menuItems}
               onClick={({ key }) => history.push(key)}
               className={styles.menu}

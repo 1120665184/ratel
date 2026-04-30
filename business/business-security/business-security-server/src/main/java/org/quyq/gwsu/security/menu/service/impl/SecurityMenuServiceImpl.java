@@ -3,6 +3,7 @@ package org.quyq.gwsu.security.menu.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.cache.utils.IDGenerationUtils;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.menu.dto.MenuQueryDTO;
@@ -15,6 +16,7 @@ import org.quyq.gwsu.security.menu.service.ISecurityMenuService;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,8 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
 
     private final SecurityRoleMenuMapper roleMenuMapper;
     private final SecurityUtils securityUtils;
+
+    private final IDGenerationUtils idGenerationUtils;
 
     @Override
     public MenuVO getById(String id) {
@@ -93,8 +97,8 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
         // 再过滤出指定owner的菜单ID
         LambdaQueryWrapper<SecurityMenu> menuWrapper = new LambdaQueryWrapper<>();
         menuWrapper.in(SecurityMenu::getId, menuIds)
-                   .eq(SecurityMenu::getOwner, owner)
-                   .eq(SecurityMenu::getDeleted, false);
+                .eq(SecurityMenu::getOwner, owner)
+                .eq(SecurityMenu::getDeleted, false);
         List<SecurityMenu> menus = list(menuWrapper);
 
         return menus.stream()
@@ -102,9 +106,14 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public Boolean saveOrUpdateMenu(SecurityMenu menu) {
-        return saveOrUpdate(menu);
+        if (StringUtils.hasText(menu.getId())) {
+            return super.updateById(menu);
+        }
+        menu.setId(idGenerationUtils.generateNextIdStr(3));
+        return super.save(menu);
     }
 
     @Override
@@ -155,10 +164,10 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
     public List<MenuVO> listButtonsByParentId(String parentId, MenuOwner owner) {
         LambdaQueryWrapper<SecurityMenu> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SecurityMenu::getDeleted, false)
-               .eq(SecurityMenu::getParentId, parentId)
-               .eq(SecurityMenu::getMenuType, 3)
-               .eq(SecurityMenu::getOwner, owner)
-               .orderByAsc(SecurityMenu::getSort);
+                .eq(SecurityMenu::getParentId, parentId)
+                .eq(SecurityMenu::getMenuType, 3)
+                .eq(SecurityMenu::getOwner, owner)
+                .orderByAsc(SecurityMenu::getSort);
         return list(wrapper).stream()
                 .map(SecurityMenu::toVo)
                 .toList();

@@ -17,6 +17,7 @@ interface DeptAssignSectionProps {
   depts: SysUserDeptVO[];
   treeData: DeptTreeNode[];
   onRefresh: () => void;
+  readOnly?: boolean;
 }
 
 const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
@@ -24,6 +25,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
   depts,
   treeData,
   onRefresh,
+  readOnly = false,
 }) => {
   const [showTree, setShowTree] = useState(false);
 
@@ -103,7 +105,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>部门关联</span>
-        <a onClick={() => setShowTree(!showTree)}>{showTree ? '收起' : '+ 添加部门'}</a>
+        {!readOnly && <a onClick={() => setShowTree(!showTree)}>{showTree ? '收起' : '+ 添加部门'}</a>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
         {depts.map((dept) => (
@@ -137,17 +139,19 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {!dept.isPrimary && (
+              {!readOnly && !dept.isPrimary && (
                 <a onClick={() => handleSetPrimary(dept.deptId)} style={{ fontSize: 11 }}>
                   设为主部门
                 </a>
               )}
-              <a
-                style={{ color: '#ff4d4f', fontSize: 11 }}
-                onClick={() => handleRemove(dept.deptId)}
-              >
-                移除
-              </a>
+              {!readOnly && (
+                <a
+                  style={{ color: '#ff4d4f', fontSize: 11 }}
+                  onClick={() => handleRemove(dept.deptId)}
+                >
+                  移除
+                </a>
+              )}
             </div>
           </div>
         ))}

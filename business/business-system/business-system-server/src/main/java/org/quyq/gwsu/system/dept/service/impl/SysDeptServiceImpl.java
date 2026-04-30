@@ -145,7 +145,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
     public DeptVO getDeptDetail(String id) {
         SysDept dept = getById(id);
         if (dept == null) {
-            throw new BusinessException(SystemErrorCode.E01001);
+            return null;
         }
         DeptVO vo = dept.toVo();
 
@@ -274,9 +274,9 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
         if (parent.getPath() != null) {
             String targetIdStr = String.valueOf(deptId);
             if (parent.getPath().equals(targetIdStr) ||
-                parent.getPath().startsWith(targetIdStr + "/") ||
-                parent.getPath().contains("/" + targetIdStr + "/") ||
-                parent.getPath().endsWith("/" + targetIdStr)) {
+                    parent.getPath().startsWith(targetIdStr + "/") ||
+                    parent.getPath().contains("/" + targetIdStr + "/") ||
+                    parent.getPath().endsWith("/" + targetIdStr)) {
                 throw new BusinessException(SystemErrorCode.E01007);
             }
         }

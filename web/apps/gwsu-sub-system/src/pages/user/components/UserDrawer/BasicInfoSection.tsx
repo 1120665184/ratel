@@ -7,9 +7,10 @@ import { saveOrUpdateUser } from '@/services/user';
 interface BasicInfoSectionProps {
   user: SysUserDetailVO;
   onRefresh: () => void;
+  readOnly?: boolean;
 }
 
-const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh }) => {
+const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, readOnly = false }) => {
   const [editing, setEditing] = useState(false);
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
@@ -72,7 +73,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh }) 
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>基本信息</span>
-        <a onClick={handleEdit}>编辑</a>
+        {!readOnly && <a onClick={handleEdit}>编辑</a>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12 }}>
         <div style={{ background: '#fafafa', padding: '8px 12px', borderRadius: 4 }}>

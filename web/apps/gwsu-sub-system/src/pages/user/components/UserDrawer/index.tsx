@@ -14,9 +14,12 @@ interface UserDrawerProps {
   userId: string | null;
   treeData: DeptTreeNode[];
   onClose: () => void;
+  /** 模式：detail=只读详情，edit=可编辑 */
+  mode?: 'detail' | 'edit';
 }
 
-const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onClose }) => {
+const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onClose, mode = 'detail' }) => {
+  const isReadOnly = mode === 'detail';
   const [user, setUser] = useState<SysUserDetailVO | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -64,13 +67,15 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onCl
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button onClick={onClose}>关闭</Button>
-          <Button
-            danger={user.status === 1}
-            type={user.status === 0 ? 'primary' : 'default'}
-            onClick={handleStatusToggle}
-          >
-            {user.status === 1 ? '禁用用户' : '启用用户'}
-          </Button>
+          {!isReadOnly && (
+            <Button
+              danger={user.status === 1}
+              type={user.status === 0 ? 'primary' : 'default'}
+              onClick={handleStatusToggle}
+            >
+              {user.status === 1 ? '禁用用户' : '启用用户'}
+            </Button>
+          )}
         </div>
       }
     >
@@ -89,11 +94,11 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onCl
         </div>
 
         <div className={styles.section}>
-          <BasicInfoSection user={user} onRefresh={loadDetail} />
+          <BasicInfoSection user={user} onRefresh={loadDetail} readOnly={isReadOnly} />
         </div>
 
         <div className={styles.section}>
-          <AccountBindSection userId={user.userId} accounts={user.accounts || []} onRefresh={loadDetail} />
+          <AccountBindSection userId={user.userId} accounts={user.accounts || []} onRefresh={loadDetail} readOnly={isReadOnly} />
         </div>
 
         <div className={styles.section}>
@@ -102,6 +107,7 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onCl
             depts={user.depts || []}
             treeData={treeData}
             onRefresh={loadDetail}
+            readOnly={isReadOnly}
           />
         </div>
       </div>
