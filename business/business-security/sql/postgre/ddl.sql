@@ -77,6 +77,8 @@ CREATE TABLE security_role
     sort        INT         NOT NULL DEFAULT 0,
     description VARCHAR(200)         DEFAULT NULL,
     status      SMALLINT    NOT NULL DEFAULT 1,
+    role_type   INT2        NOT NULL DEFAULT 2,
+    data_scope  INT2        NOT NULL DEFAULT 1,
     tenant_id   VARCHAR(50)          DEFAULT NULL,
     create_op   VARCHAR(50)          DEFAULT NULL,
     create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
@@ -95,6 +97,8 @@ COMMENT ON COLUMN security_role.role_code IS '角色编码';
 COMMENT ON COLUMN security_role.sort IS '排序号';
 COMMENT ON COLUMN security_role.description IS '角色描述';
 COMMENT ON COLUMN security_role.status IS '状态：0-禁用 1-正常';
+COMMENT ON COLUMN security_role.role_type IS '角色类型：1-系统角色 2-业务角色';
+COMMENT ON COLUMN security_role.data_scope IS '数据范围：0-自定义 1-全部数据 2-本部门及以下 3-本部门 4-仅本人';
 COMMENT ON COLUMN security_role.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_role.create_op IS '创建人';
 COMMENT ON COLUMN security_role.create_time IS '创建时间';
@@ -116,9 +120,14 @@ CREATE TABLE security_role_subject
     id          VARCHAR(24) PRIMARY KEY,
     subject_id  VARCHAR(24) NOT NULL,
     role_id     VARCHAR(24) NOT NULL,
-    tenant_id   VARCHAR(50) DEFAULT NULL,
-    create_op   VARCHAR(50) DEFAULT NULL,
-    create_time TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    tenant_id   VARCHAR(50)          DEFAULT NULL,
+    create_op   VARCHAR(50)          DEFAULT NULL,
+    create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    modify_op   VARCHAR(50)          DEFAULT NULL,
+    modify_time TIMESTAMP            DEFAULT NULL,
+    deleted     INT2        NOT NULL DEFAULT 0,
+    delete_op   VARCHAR(50)          DEFAULT NULL,
+    delete_time TIMESTAMP            DEFAULT NULL
 );
 
 -- 表和字段注释
@@ -129,6 +138,12 @@ COMMENT ON COLUMN security_role_subject.role_id IS '角色ID';
 COMMENT ON COLUMN security_role_subject.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_role_subject.create_op IS '创建人';
 COMMENT ON COLUMN security_role_subject.create_time IS '创建时间';
+COMMENT ON COLUMN security_role_subject.modify_op IS '修改人';
+COMMENT ON COLUMN security_role_subject.modify_time IS '修改时间';
+COMMENT ON COLUMN security_role_subject.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_role_subject.delete_op IS '删除人';
+COMMENT ON COLUMN security_role_subject.delete_time IS '删除时间';
+
 
 -- 索引
 CREATE UNIQUE INDEX uk_security_role_subject ON security_role_subject (subject_id, role_id);
@@ -140,13 +155,24 @@ CREATE INDEX idx_security_role_subject_id ON security_role_subject (role_id);
 -- =============================================
 CREATE TABLE security_role_menu
 (
-    id                 VARCHAR(24) PRIMARY KEY,
-    role_id            VARCHAR(24) NOT NULL,
-    menu_id            VARCHAR(24) NOT NULL,
-    abac_permission_id VARCHAR(24)      DEFAULT NULL,
-    tenant_id          VARCHAR(50) DEFAULT NULL,
-    create_op          VARCHAR(50) DEFAULT NULL,
-    create_time        TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    id               VARCHAR(24) PRIMARY KEY,
+    role_id          VARCHAR(24) NOT NULL,
+    menu_id          VARCHAR(24) NOT NULL,
+    valid_type       INT2        NOT NULL DEFAULT 1,
+    valid_start      TIMESTAMP            DEFAULT NULL,
+    valid_end        TIMESTAMP            DEFAULT NULL,
+    cycle_type       INT2                 DEFAULT NULL,
+    cycle_value      VARCHAR(100)         DEFAULT NULL,
+    cycle_start_time TIMESTAMP            DEFAULT NULL,
+    cycle_end_time   TIMESTAMP            DEFAULT NULL,
+    tenant_id   VARCHAR(50)          DEFAULT NULL,
+    create_op   VARCHAR(50)          DEFAULT NULL,
+    create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    modify_op   VARCHAR(50)          DEFAULT NULL,
+    modify_time TIMESTAMP            DEFAULT NULL,
+    deleted     INT2        NOT NULL DEFAULT 0,
+    delete_op   VARCHAR(50)          DEFAULT NULL,
+    delete_time TIMESTAMP            DEFAULT NULL
 );
 
 -- 表和字段注释
@@ -154,15 +180,26 @@ COMMENT ON TABLE security_role_menu IS '角色菜单关联表';
 COMMENT ON COLUMN security_role_menu.id IS '主键ID';
 COMMENT ON COLUMN security_role_menu.role_id IS '角色ID';
 COMMENT ON COLUMN security_role_menu.menu_id IS '菜单ID';
-COMMENT ON COLUMN security_role_menu.abac_permission_id IS 'ABAC接口权限ID，关联security_abac_permission表';
+COMMENT ON COLUMN security_role_menu.valid_type IS '时效类型：1-永久 2-绝对时间范围 3-周期性';
+COMMENT ON COLUMN security_role_menu.valid_start IS '绝对时间-开始时间';
+COMMENT ON COLUMN security_role_menu.valid_end IS '绝对时间-结束时间';
+COMMENT ON COLUMN security_role_menu.cycle_type IS '周期类型：1-按周 2-按月';
+COMMENT ON COLUMN security_role_menu.cycle_value IS '周期值：按周存1,2,3,4,5 按月存1,15';
+COMMENT ON COLUMN security_role_menu.cycle_start_time IS '周期-每日开始时间';
+COMMENT ON COLUMN security_role_menu.cycle_end_time IS '周期-每日结束时间';
 COMMENT ON COLUMN security_role_menu.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_role_menu.create_op IS '创建人';
 COMMENT ON COLUMN security_role_menu.create_time IS '创建时间';
+COMMENT ON COLUMN security_role_menu.modify_op IS '修改人';
+COMMENT ON COLUMN security_role_menu.modify_time IS '修改时间';
+COMMENT ON COLUMN security_role_menu.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_role_menu.delete_op IS '删除人';
+COMMENT ON COLUMN security_role_menu.delete_time IS '删除时间';
+
 
 -- 索引
 CREATE UNIQUE INDEX uk_security_role_menu ON security_role_menu (role_id, menu_id);
 CREATE INDEX idx_security_role_menu_id ON security_role_menu (menu_id);
-CREATE INDEX idx_security_role_menu_abac ON security_role_menu (abac_permission_id);
 
 -- =============================================
 -- 表名：security_abac
@@ -465,4 +502,41 @@ COMMENT ON COLUMN security_brain_sessions.state_data IS '序列化后的状态�
 COMMENT ON COLUMN security_brain_sessions.user_id IS '关联的用户ID';
 COMMENT ON COLUMN security_brain_sessions.created_at IS '记录创建时间，默认为当前时间戳';
 COMMENT ON COLUMN security_brain_sessions.updated_at IS '记录最后更新时间，默认与创建时间相同，建议通过触发器或应用层自动更新';
+
+-- =============================================
+-- 表名：security_role_menu_permission
+-- 说明：角色菜单权限关联表
+-- =============================================
+CREATE TABLE security_role_menu_permission
+(
+    id                  VARCHAR(24) PRIMARY KEY,
+    role_menu_id        VARCHAR(24) NOT NULL,
+    abac_permission_id  VARCHAR(24) NOT NULL,
+    tenant_id   VARCHAR(50)          DEFAULT NULL,
+    create_op   VARCHAR(50)          DEFAULT NULL,
+    create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    modify_op   VARCHAR(50)          DEFAULT NULL,
+    modify_time TIMESTAMP            DEFAULT NULL,
+    deleted     INT2        NOT NULL DEFAULT 0,
+    delete_op   VARCHAR(50)          DEFAULT NULL,
+    delete_time TIMESTAMP            DEFAULT NULL
+);
+
+-- 表和字段注释
+COMMENT ON TABLE security_role_menu_permission IS '角色菜单权限关联表';
+COMMENT ON COLUMN security_role_menu_permission.id IS '主键ID';
+COMMENT ON COLUMN security_role_menu_permission.role_menu_id IS '角色菜单关联ID，关联security_role_menu表';
+COMMENT ON COLUMN security_role_menu_permission.abac_permission_id IS 'ABAC接口权限ID，关联security_abac_permission表';
+COMMENT ON COLUMN security_role_menu_permission.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_role_menu_permission.create_op IS '创建人';
+COMMENT ON COLUMN security_role_menu_permission.create_time IS '创建时间';
+COMMENT ON COLUMN security_role_menu_permission.modify_op IS '修改人';
+COMMENT ON COLUMN security_role_menu_permission.modify_time IS '修改时间';
+COMMENT ON COLUMN security_role_menu_permission.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_role_menu_permission.delete_op IS '删除人';
+COMMENT ON COLUMN security_role_menu_permission.delete_time IS '删除时间';
+
+-- 索引
+CREATE INDEX idx_security_role_menu_permission_role_menu_id ON security_role_menu_permission (role_menu_id);
+CREATE INDEX idx_security_role_menu_permission_abac_permission_id ON security_role_menu_permission (abac_permission_id);
 

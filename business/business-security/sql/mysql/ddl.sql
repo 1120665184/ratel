@@ -51,6 +51,8 @@ CREATE TABLE security_role
     sort        INT         NOT NULL DEFAULT 0 COMMENT '排序号',
     description VARCHAR(200)         DEFAULT NULL COMMENT '角色描述',
     status      SMALLINT    NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-正常',
+    role_type   SMALLINT    NOT NULL DEFAULT 2 COMMENT '角色类型：1-系统角色 2-业务角色',
+    data_scope  SMALLINT    NOT NULL DEFAULT 1 COMMENT '数据范围：0-自定义 1-全部数据 2-本部门及以下 3-本部门 4-仅本人',
     tenant_id   VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
     create_op   VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
     create_time DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -73,9 +75,14 @@ CREATE TABLE security_subject_role
     id          VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     subject_id  VARCHAR(24) NOT NULL COMMENT '主体ID（用户ID）',
     role_id     VARCHAR(24) NOT NULL COMMENT '角色ID',
-    tenant_id   VARCHAR(50) DEFAULT NULL COMMENT '租户ID',
-    create_op   VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    create_time DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    tenant_id   VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op   VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op   VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time DATETIME             DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted     SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op   VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time DATETIME             DEFAULT NULL COMMENT '删除时间',
     UNIQUE INDEX uk_subject_role (subject_id, role_id),
     INDEX idx_role_id (role_id)
 ) ENGINE = InnoDB
@@ -88,16 +95,26 @@ CREATE TABLE security_subject_role
 -- =============================================
 CREATE TABLE security_role_menu
 (
-    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    role_id            VARCHAR(24) NOT NULL COMMENT '角色ID',
-    menu_id            VARCHAR(24) NOT NULL COMMENT '菜单ID',
-    abac_permission_id VARCHAR(24)      DEFAULT NULL COMMENT 'ABAC接口权限ID，关联security_abac_permission表',
-    tenant_id          VARCHAR(50) DEFAULT NULL COMMENT '租户ID',
-    create_op          VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    create_time        DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    id               VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    role_id          VARCHAR(24) NOT NULL COMMENT '角色ID',
+    menu_id          VARCHAR(24) NOT NULL COMMENT '菜单ID',
+    valid_type       SMALLINT    NOT NULL DEFAULT 1 COMMENT '时效类型：1-永久 2-绝对时间范围 3-周期性',
+    valid_start      DATETIME             DEFAULT NULL COMMENT '绝对时间-开始时间',
+    valid_end        DATETIME             DEFAULT NULL COMMENT '绝对时间-结束时间',
+    cycle_type       SMALLINT             DEFAULT NULL COMMENT '周期类型：1-按周 2-按月',
+    cycle_value      VARCHAR(100)         DEFAULT NULL COMMENT '周期值：按周存1,2,3,4,5 按月存1,15',
+    cycle_start_time DATETIME             DEFAULT NULL COMMENT '周期-每日开始时间',
+    cycle_end_time   DATETIME             DEFAULT NULL COMMENT '周期-每日结束时间',
+    tenant_id        VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op        VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time      DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op        VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time      DATETIME             DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted          SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op        VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time      DATETIME             DEFAULT NULL COMMENT '删除时间',
     UNIQUE INDEX uk_role_menu (role_id, menu_id),
-    INDEX idx_menu_id (menu_id),
-    INDEX idx_abac_permission_id (abac_permission_id)
+    INDEX idx_menu_id (menu_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='角色菜单关联表';
@@ -282,4 +299,27 @@ CREATE TABLE IF NOT EXISTS security_brain_sessions
     PRIMARY KEY (`session_id`, `state_key`, `item_index`)
 ) DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci COMMENT = '存储智能大脑会话（Session）状态数据，支持单值状态和列表状态';
+
+-- =============================================
+-- 表名：security_role_menu_permission
+-- 说明：角色菜单权限关联表
+-- =============================================
+CREATE TABLE security_role_menu_permission
+(
+    id                  VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    role_menu_id        VARCHAR(24) NOT NULL COMMENT '角色菜单关联ID，关联security_role_menu表',
+    abac_permission_id  VARCHAR(24) NOT NULL COMMENT 'ABAC接口权限ID，关联security_abac_permission表',
+    tenant_id   VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op   VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op   VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time DATETIME             DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted     SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op   VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time DATETIME             DEFAULT NULL COMMENT '删除时间',
+    INDEX idx_role_menu_id (role_menu_id),
+    INDEX idx_abac_permission_id (abac_permission_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='角色菜单权限关联表';
 
