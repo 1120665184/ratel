@@ -6,8 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
+import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.RoleClientApi;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
+import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
+import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
+import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
@@ -35,12 +39,6 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
         return R.ok(roleService.getById(id));
     }
 
-    @Operation(summary = "根据角色编码查询")
-    @GetMapping("/code/{roleCode}")
-    @Override
-    public R<RoleVO> getByCode(@PathVariable String roleCode) {
-        return R.ok(roleService.getByCode(roleCode));
-    }
 
     @Operation(summary = "分页查询角色")
     @PostMapping("/page")
@@ -48,18 +46,6 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
         return R.ok(roleService.pageByCondition(query));
     }
 
-    @Operation(summary = "查询角色列表")
-    @GetMapping("/list")
-    public R<List<RoleVO>> list(RoleQueryDTO query) {
-        return R.ok(roleService.listByCondition(query));
-    }
-
-    @Operation(summary = "根据主体ID查询角色列表")
-    @GetMapping("/by-subject/{subjectId}")
-    @Override
-    public R<List<RoleVO>> listBySubjectId(@PathVariable String subjectId) {
-        return R.ok(roleService.listBySubjectId(subjectId));
-    }
 
     @Operation(summary = "根据主体ID查询角色标识列表")
     @GetMapping("list/{subjectId}")
@@ -72,8 +58,8 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
 
     @Operation(summary = "新增或更新角色")
     @PostMapping
-    public R<Boolean> saveOrUpdate(@RequestBody SecurityRole role) {
-        return R.ok(roleService.saveOrUpdateRole(role));
+    public R<Boolean> saveOrUpdate(@RequestBody RoleVO vo) {
+        return R.ok(roleService.saveOrUpdateRole(SecurityRole.toDo(vo)));
     }
 
     @Operation(summary = "批量删除角色")
@@ -84,9 +70,47 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
 
     @Operation(summary = "分配角色菜单")
     @PostMapping("/{roleId}/menus")
-    @Override
     public R<Boolean> assignMenus(@PathVariable String roleId, @RequestBody List<String> menuIds) {
         return R.ok(roleService.assignMenus(roleId, menuIds));
+    }
+
+    @Operation(summary = "启用/禁用角色")
+    @PutMapping("/status")
+    public R<Boolean> updateStatus(@RequestParam String id, @RequestParam Integer status) {
+        return R.ok(roleService.updateStatus(id, status));
+    }
+
+    @Operation(summary = "获取角色时效分组列表")
+    @GetMapping("/valid-groups/{roleId}")
+    public R<List<RoleValidGroupVO>> listValidGroups(@PathVariable String roleId) {
+        return R.ok(roleService.listValidGroups(roleId));
+    }
+
+    @Operation(summary = "获取完整菜单树（含角色关联状态）")
+    @GetMapping("/menu-tree")
+    public R<List<MenuTreeNodeVO>> getMenuTree(@RequestParam String roleId,
+                                                @RequestParam(required = false) MenuOwner owner) {
+        return R.ok(roleService.getMenuTreeWithRoleBinding(roleId, owner));
+    }
+
+    @Operation(summary = "新增或更新时效组")
+    @PostMapping("/valid-group")
+    public R<Boolean> saveOrUpdateValidGroup(@RequestBody RoleValidGroupDTO dto) {
+        return R.ok(roleService.saveOrUpdateValidGroup(dto));
+    }
+
+    @Operation(summary = "删除时效组")
+    @DeleteMapping("/valid-group/{roleMenuId}")
+    public R<Boolean> deleteValidGroup(@PathVariable String roleMenuId) {
+        return R.ok(roleService.deleteValidGroup(roleMenuId));
+    }
+
+    @Operation(summary = "查询角色全量列表")
+    @GetMapping("/list")
+    public R<List<RoleVO>> list(@RequestParam(required = false) Integer status) {
+        RoleQueryDTO query = new RoleQueryDTO();
+        query.setStatus(status != null ? status != 0 : null);
+        return R.ok(roleService.listByCondition(query));
     }
 
 }

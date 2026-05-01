@@ -50,6 +50,25 @@ public class SecurityRole extends BaseDO {
     private Boolean status;
 
     /**
+     * VO 转 DO
+     *
+     * @param vo 角色VO
+     * @return SecurityRole
+     */
+    public static SecurityRole toDo(RoleVO vo) {
+        SecurityRole entity = new SecurityRole();
+        entity.setId(vo.getId());
+        entity.setRoleName(vo.getRoleName());
+        entity.setRoleCode(vo.getRoleCode());
+        entity.setSort(vo.getSort());
+        entity.setDescription(vo.getDescription());
+        entity.setRoleType(vo.getRoleType());
+        entity.setDataScope(vo.getDataScope());
+        entity.setStatus(vo.getStatus());
+        return entity;
+    }
+
+    /**
      * DO 转 VO
      *
      * @return RoleVO
