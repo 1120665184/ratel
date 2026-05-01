@@ -18,6 +18,13 @@ public enum SecurityErrorCode implements ReturnCode {
     E01003("菜单名称不能为空"),
     E01004("按钮标识不能为空"),
     E01005("功能描述不能为空"),
+
+
+    E02001("角色不存在"),
+    E02002("角色编码已存在"),
+    E02003("系统角色不可删除"),
+    E02004("角色已禁用"),
+    E02005("时效配置无效"),
     ;
 
     private final String msg;
