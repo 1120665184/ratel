@@ -1,0 +1,317 @@
+/* ========================================
+ * MenuPermissionModal 样式
+ * 左右分栏布局：左侧时效分组列表，右侧菜单树面板
+ * ======================================== */
+
+.modal {
+  :global {
+    .ant-modal-body {
+      padding: 0;
+    }
+    .ant-modal-content {
+      overflow: hidden;
+    }
+  }
+}
+
+/* 主体容器 - 左右分栏 */
+.container {
+  display: flex;
+  height: 600px;
+  min-height: 600px;
+}
+
+/* ==================== 左侧面板 ==================== */
+.leftPanel {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.leftHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leftTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* 时效分组列表 */
+.groupList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.groupItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 4px;
+
+  &:hover {
+    background: var(--hover-color);
+  }
+}
+
+.groupItemActive {
+  background: var(--selected-color);
+
+  &:hover {
+    background: var(--selected-color);
+  }
+}
+
+.groupInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupCount {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  margin-top: 2px;
+}
+
+.groupDeleteBtn {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .groupItem:hover & {
+    opacity: 1;
+  }
+}
+
+/* 左侧空状态 */
+.leftEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+}
+
+.leftEmptyIcon {
+  font-size: 36px;
+  color: var(--text-secondary-color);
+}
+
+.leftEmptyText {
+  font-size: 13px;
+  color: var(--text-secondary-color);
+}
+
+/* ==================== 右侧面板 ==================== */
+.rightPanel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-color);
+}
+
+/* 右侧顶部 Tab + 删除按钮 */
+.rightHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  min-height: 46px;
+}
+
+.ownerTabs {
+  flex-shrink: 0;
+
+  :global {
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 时效信息区 */
+.validInfoSection {
+  padding: 12px 16px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.validInfoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.validInfoTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.validInfoContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.validInfoTag {
+  font-size: 12px;
+}
+
+.validInfoText {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+}
+
+/* 菜单树区域 */
+.treeSection {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.treeNode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.nodeName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.nodeNameDisabled {
+  color: var(--text-secondary-color);
+}
+
+.positionTag {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.boundTag {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary-color);
+}
+
+/* 右侧空状态 */
+.rightEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+}
+
+.rightEmptyIcon {
+  font-size: 48px;
+  color: var(--text-secondary-color);
+}
+
+.rightEmptyText {
+  font-size: 14px;
+  color: var(--text-secondary-color);
+}
+
+/* ==================== 底部按钮区 ==================== */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+/* ==================== 时效配置表单 ==================== */
+.validForm {
+  .formSection {
+    margin-bottom: 12px;
+  }
+
+  .formSectionTitle {
+    font-size: 12px;
+    color: var(--text-secondary-color);
+    margin-bottom: 8px;
+  }
+
+  .formRow {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .formRowItem {
+    flex: 1;
+  }
+
+  .cycleValueGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .formHelpText {
+    font-size: 11px;
+    color: var(--text-secondary-color);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+}
+
+/* ==================== 时效描述工具 ==================== */
+.validDescInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary-color);
+}

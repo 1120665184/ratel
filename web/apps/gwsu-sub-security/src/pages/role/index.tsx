@@ -26,6 +26,7 @@ import {
 import styles from './index.module.less';
 import RoleDetail from './components/RoleDetail';
 import RoleFormModal from './components/RoleFormModal';
+import MenuPermissionModal from './components/MenuPermissionModal';
 import { useRole } from './hooks/useRole';
 import type { RoleInfo, RoleQuery } from './types';
 import { ROLE_TYPE_OPTIONS, DATA_SCOPE_OPTIONS } from './types';
@@ -60,6 +61,11 @@ const RolePage: React.FC = () => {
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [formModalMode, setFormModalMode] = useState<'create' | 'edit'>('create');
   const [formModalData, setFormModalData] = useState<RoleInfo | null>(null);
+
+  // 菜单权限弹窗
+  const [menuPermVisible, setMenuPermVisible] = useState(false);
+  const [menuPermRoleId, setMenuPermRoleId] = useState<string | null>(null);
+  const [menuPermRoleName, setMenuPermRoleName] = useState<string>('');
 
   /** 初始化加载 */
   useEffect(() => {
@@ -120,6 +126,13 @@ const RolePage: React.FC = () => {
       title,
       content: '功能开发中，敬请期待',
     });
+  }, []);
+
+  /** 菜单权限配置 */
+  const handleMenuPermission = useCallback((role: RoleInfo) => {
+    setMenuPermRoleId(role.id ?? null);
+    setMenuPermRoleName(role.roleName);
+    setMenuPermVisible(true);
   }, []);
 
   /** 获取数据范围的文字描述 */
@@ -205,7 +218,7 @@ const RolePage: React.FC = () => {
                   key: 'menuPermission',
                   icon: <MenuOutlined />,
                   label: '菜单权限',
-                  onClick: () => handlePlaceholder('菜单权限'),
+                  onClick: () => handleMenuPermission(record),
                 },
                 {
                   key: 'fieldPermission',
@@ -337,6 +350,14 @@ const RolePage: React.FC = () => {
         onSave={handleSave}
         onClose={() => setFormModalVisible(false)}
         onSuccess={() => setFormModalVisible(false)}
+      />
+
+      {/* 菜单权限配置弹窗 */}
+      <MenuPermissionModal
+        visible={menuPermVisible}
+        roleId={menuPermRoleId}
+        roleName={menuPermRoleName}
+        onClose={() => setMenuPermVisible(false)}
       />
     </div>
   );
