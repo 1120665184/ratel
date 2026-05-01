@@ -13,7 +13,10 @@ import org.quyq.gwsu.common.security.casbin.RedisAdapter;
 import org.quyq.gwsu.common.security.casbin.RedisWatcher;
 import org.quyq.gwsu.common.security.casbin.field.FieldEnforcer;
 import org.quyq.gwsu.common.security.casbin.function.ContainsFunction;
+import org.quyq.gwsu.common.security.casbin.function.CycleMonthlyFunction;
+import org.quyq.gwsu.common.security.casbin.function.CycleWeeklyFunction;
 import org.quyq.gwsu.common.security.casbin.function.IsUserLoginFunction;
+import org.quyq.gwsu.common.security.casbin.function.TimeInRangeFunction;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.filter.AuthenticationFilter;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -96,6 +99,21 @@ public class CasbinConfiguration {
     @Bean
     public IsUserLoginFunction isLoginFunction() {
         return new IsUserLoginFunction();
+    }
+
+    @Bean
+    public TimeInRangeFunction timeInRangeFunction() {
+        return new TimeInRangeFunction();
+    }
+
+    @Bean
+    public CycleWeeklyFunction cycleWeeklyFunction() {
+        return new CycleWeeklyFunction();
+    }
+
+    @Bean
+    public CycleMonthlyFunction cycleMonthlyFunction() {
+        return new CycleMonthlyFunction();
     }
 
 
