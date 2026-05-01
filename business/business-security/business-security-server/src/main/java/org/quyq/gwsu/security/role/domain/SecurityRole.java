@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
+import org.quyq.gwsu.security.api.role.enums.DataScope;
+import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
 
 /**
@@ -38,6 +40,12 @@ public class SecurityRole extends BaseDO {
     @Schema(description = "角色描述")
     private String description;
 
+    @Schema(description = "角色类型：1-系统角色 2-业务角色")
+    private RoleType roleType;
+
+    @Schema(description = "数据范围：0-自定义 1-全部数据 2-本部门及以下 3-本部门 4-仅本人")
+    private DataScope dataScope;
+
     @Schema(description = "状态：true-正常 false-禁用")
     private Boolean status;
 
@@ -53,6 +61,8 @@ public class SecurityRole extends BaseDO {
         vo.setRoleCode(this.roleCode);
         vo.setSort(this.sort);
         vo.setDescription(this.description);
+        vo.setRoleType(this.roleType);
+        vo.setDataScope(this.dataScope);
         vo.setStatus(this.status);
         vo.copyBaseProperties(this);
         return vo;
