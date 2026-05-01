@@ -11,6 +11,10 @@ export default [
         path: '/menu',
         component: '@/pages/menu',
       },
+      {
+        path: '/role',
+        component: '@/pages/role',
+      },
     ],
   },
 ];
