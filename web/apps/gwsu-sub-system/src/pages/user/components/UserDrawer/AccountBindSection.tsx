@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {message, Tag} from 'antd';
+import {App, Tag} from 'antd';
 import type {SysAccountBindDTO, SysAccountVO} from '../../types';
 import {IDENTITY_TYPE_MAP} from '../../types';
 import {bindAccount, unbindAccount} from '@/services/user';
@@ -13,6 +13,7 @@ interface AccountBindSectionProps {
 }
 
 const AccountBindSection: React.FC<AccountBindSectionProps> = ({userId, accounts, onRefresh, readOnly = false}) => {
+    const { message } = App.useApp();
     const [expandedType, setExpandedType] = useState<string | null>(null);
 
     const allTypes = ['password', 'phone', 'wechat'];

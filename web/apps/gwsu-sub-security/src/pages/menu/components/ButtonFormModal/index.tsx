@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Tag, message } from 'antd';
+import { Modal, Form, Input, Button, Tag, App } from 'antd';
 const { TextArea } = Input;
 import { SelectOutlined } from '@ant-design/icons';
 import styles from './index.module.less';
@@ -36,6 +36,7 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);

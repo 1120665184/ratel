@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input, Button, Tree, message, Spin } from 'antd';
+import { Input, Button, Tree, App, Spin } from 'antd';
 import type { TreeProps } from 'antd';
 import {
   SearchOutlined,
@@ -30,6 +30,7 @@ const DeptTreePanel: React.FC<DeptTreePanelProps> = ({
   onCreateRoot,
   onCreateChild,
 }) => {
+  const { message } = App.useApp();
   const {
     searchValue,
     setSearchValue,

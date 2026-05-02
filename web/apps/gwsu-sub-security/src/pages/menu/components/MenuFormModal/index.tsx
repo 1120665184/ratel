@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Switch, TreeSelect, Select, message } from 'antd';
+import { Modal, Form, Input, InputNumber, Switch, TreeSelect, Select, App } from 'antd';
 const { TextArea } = Input;
 import styles from './index.module.less';
 import { saveOrUpdateMenu, getMenuTree } from '../../services/menu';
@@ -34,6 +34,7 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [treeData, setTreeData] = useState<MenuTreeNode[]>([]);

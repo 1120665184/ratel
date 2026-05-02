@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import cn.hutool.core.util.IdUtil;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
@@ -14,31 +13,27 @@ import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
-import org.quyq.gwsu.security.api.role.enums.CycleType;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.enums.ValidType;
 import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
-import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
+import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.menu.domain.SecurityMenu;
 import org.quyq.gwsu.security.menu.mapper.SecurityMenuMapper;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
-import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
+import org.quyq.gwsu.security.role.domain.SecurityRoleSubject;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMapper;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleSubjectMapper;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -52,11 +47,11 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
 
     private final SecurityRoleMenuMapper roleMenuMapper;
 
+    private final SecurityRoleSubjectMapper roleSubjectMapper;
+
     private final SecurityMenuMapper menuMapper;
 
     private final PermissionAlterationManager permissionAlterationManager;
-
-    private final RoleBindingMenuAbacLoading roleBindingMenuAbacLoading;
 
     @Override
     public RoleVO getById(String id) {
@@ -136,10 +131,10 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
                 SecurityRole role = baseMapper.selectById(roleId);
                 if (role != null) {
                     // 按 validGroupKey 分组，每组构建表达式并删除
-                    java.util.Map<String, List<SecurityRoleMenu>> grouped = roleMenus.stream()
+                    Map<String, List<SecurityRoleMenu>> grouped = roleMenus.stream()
                             .collect(Collectors.groupingBy(this::buildValidGroupKey));
                     for (List<SecurityRoleMenu> group : grouped.values()) {
-                        SecurityRoleMenu first = group.get(0);
+                        SecurityRoleMenu first = group.getFirst();
                         ExpressionContext ctx = buildExpressionContext(role, first);
                         // 传入空菜单列表，alterationUrlPermission 内部会先删旧数据（role_menu + role_menu_permission + abac_permission），不插入新数据
                         ctx.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, Collections.emptyList());
@@ -308,6 +303,43 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
         permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, context);
 
         return true;
+    }
+
+    @Override
+    public void allocationRoleToSubject(String subjectId, List<String> roleIds) {
+        roleSubjectMapper.delete(new LambdaQueryWrapper<SecurityRoleSubject>()
+                .eq(SecurityRoleSubject::getSubjectId, subjectId));
+
+        if(CollectionUtils.isEmpty(roleIds)) {
+            return;
+        }
+
+        Set<SecurityRoleSubject> rs = roleIds.stream().map(roleId ->
+                new SecurityRoleSubject()
+                        .setRoleId(roleId)
+                        .setSubjectId(subjectId)
+        ).collect(Collectors.toSet());
+
+        roleSubjectMapper.insert(rs);
+    }
+
+    @Override
+    public void allocationSubjectToRole(String roleId, List<String> subjectIds) {
+        roleSubjectMapper.delete(new LambdaQueryWrapper<SecurityRoleSubject>()
+                .eq(SecurityRoleSubject::getRoleId, roleId));
+
+        if(CollectionUtils.isEmpty(subjectIds)) {
+            return;
+        }
+
+        Set<SecurityRoleSubject> rs = subjectIds.stream().map(subjectId ->
+                new SecurityRoleSubject()
+                        .setRoleId(roleId)
+                        .setSubjectId(subjectId)
+        ).collect(Collectors.toSet());
+
+        roleSubjectMapper.insert(rs);
+
     }
 
     // ==================== 私有方法 ====================

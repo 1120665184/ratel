@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Drawer, Tag, Button, message } from 'antd';
+import { Drawer, Tag, Button, App } from 'antd';
 import styles from './index.module.less';
 import BasicInfoSection from './BasicInfoSection';
 import AccountBindSection from './AccountBindSection';
@@ -19,6 +19,7 @@ interface UserDrawerProps {
 }
 
 const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onClose, mode = 'detail' }) => {
+  const { message } = App.useApp();
   const isReadOnly = mode === 'detail';
   const [user, setUser] = useState<SysUserDetailVO | null>(null);
   const [loading, setLoading] = useState(false);

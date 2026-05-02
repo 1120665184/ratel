@@ -1,13 +1,14 @@
 import React, {useState, useEffect} from 'react';
 // @ts-ignore
 import {history} from 'umi';
-import {message} from 'antd';
+import {App} from 'antd';
 import InteractiveCat from '../components/InteractiveCat';
 import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo} from '@gwsu/core';
 import {login, TerminalType} from '../services/login';
 import styles from './login.module.less';
 
 export default function Login() {
+    const {message} = App.useApp();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);

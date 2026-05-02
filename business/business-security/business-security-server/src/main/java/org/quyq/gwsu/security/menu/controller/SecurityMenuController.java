@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
+import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.security.api.menu.MenuClientApi;
 import org.quyq.gwsu.security.api.menu.dto.MenuQueryDTO;
 import org.quyq.gwsu.security.api.menu.dto.MenuSortDTO;
@@ -86,6 +87,7 @@ public class SecurityMenuController implements MenuClientApi {
     }
 
     @Operation(summary = "获取当前用户路由菜单")
+    @LoginAllowAccess
     @GetMapping("/routes/{owner}")
     public R<List<MenuVO>> listUserRoutes(@PathVariable Integer owner) {
         MenuOwner menuOwner = AssertUtils.notNull(MenuOwner.of(owner), SecurityErrorCode.E01002);

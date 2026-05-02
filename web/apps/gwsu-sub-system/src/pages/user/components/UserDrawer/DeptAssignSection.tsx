@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tree, message } from 'antd';
+import { Tree, App } from 'antd';
 import type { TreeProps } from 'antd';
 import {
   BankOutlined,
@@ -27,6 +27,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
   onRefresh,
   readOnly = false,
 }) => {
+  const { message } = App.useApp();
   const [showTree, setShowTree] = useState(false);
 
   const deptIdSet = new Set(depts.map((d) => d.deptId));

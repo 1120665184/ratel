@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, Switch, message } from 'antd';
+import { Modal, Form, Input, Select, InputNumber, Switch, App } from 'antd';
 import { saveDept, getDeptTree } from '@/services/dept';
 import type { DeptDetail, DeptTypeOption, DeptTreeNode } from '../../types';
 
@@ -22,6 +22,7 @@ const DeptFormModal: React.FC<DeptFormModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [deptTree, setDeptTree] = useState<DeptTreeNode[]>([]);

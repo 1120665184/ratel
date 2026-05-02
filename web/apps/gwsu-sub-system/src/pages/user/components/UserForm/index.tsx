@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, Drawer, Form, Input, message, Select, TreeSelect} from 'antd';
+import {Button, Drawer, Form, Input, App, Select, TreeSelect} from 'antd';
 import styles from './index.module.less';
 import type {SysUserVO} from '../../types';
 import type {DeptTreeNode} from '../../../dept/types';
@@ -14,6 +14,7 @@ interface UserFormProps {
 }
 
 const UserForm: React.FC<UserFormProps> = ({visible, onClose, onSuccess, treeData = [], defaultDeptId}) => {
+    const { message } = App.useApp();
     const [form] = Form.useForm();
     const [loading, setLoading] = React.useState(false);
 

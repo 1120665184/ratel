@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Input, Button, Tree, Spin, Space, message } from 'antd';
+import { Input, Button, Tree, Spin, Space, App } from 'antd';
 import type { TreeProps } from 'antd';
 import {
   SearchOutlined,
@@ -40,6 +40,7 @@ const MenuTree: React.FC<MenuTreeProps> = ({
   onCreateChild,
   onRefresh,
 }) => {
+  const { message } = App.useApp();
   const { searchValue, setSearchValue, expandedKeys, setExpandedKeys, filteredTreeData } =
     useMenuTree(treeData);
 

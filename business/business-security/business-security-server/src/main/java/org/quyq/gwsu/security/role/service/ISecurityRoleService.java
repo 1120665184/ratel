@@ -125,4 +125,16 @@ public interface ISecurityRoleService extends IService<SecurityRole> {
      * @return 是否成功
      */
     Boolean deleteValidGroup(String roleMenuId);
+
+    /**
+     * 给主体分配角色
+     */
+    void allocationRoleToSubject(String subjectId , List<String> roleIds);
+
+    /**
+     * 给角色分配主体
+     * @param roleId
+     * @param subjectIds
+     */
+    void allocationSubjectToRole(String roleId , List<String> subjectIds);
 }

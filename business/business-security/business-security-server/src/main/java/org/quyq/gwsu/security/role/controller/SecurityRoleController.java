@@ -14,8 +14,8 @@ import org.quyq.gwsu.security.api.role.enums.DataScope;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.vo.EnumOptionVO;
 import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
-import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
+import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.web.bind.annotation.*;
@@ -83,7 +83,7 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
         return R.ok(roleService.updateStatus(id, status));
     }
 
-    @Operation(summary = "获取角色时效分组列表")
+    @Operation(summary = "获取角色菜单权限时效分组列表")
     @GetMapping("/valid-groups/{roleId}")
     public R<List<RoleValidGroupVO>> listValidGroups(@PathVariable String roleId) {
         return R.ok(roleService.listValidGroups(roleId));
@@ -92,17 +92,17 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
     @Operation(summary = "获取完整菜单树（含角色关联状态）")
     @GetMapping("/menu-tree")
     public R<List<MenuTreeNodeVO>> getMenuTree(@RequestParam String roleId,
-                                                @RequestParam(required = false) MenuOwner owner) {
+                                               @RequestParam(required = false) MenuOwner owner) {
         return R.ok(roleService.getMenuTreeWithRoleBinding(roleId, owner));
     }
 
-    @Operation(summary = "新增或更新时效组")
+    @Operation(summary = "新增或更新菜单权限时效组")
     @PostMapping("/valid-group")
     public R<Boolean> saveOrUpdateValidGroup(@RequestBody RoleValidGroupDTO dto) {
         return R.ok(roleService.saveOrUpdateValidGroup(dto));
     }
 
-    @Operation(summary = "删除时效组")
+    @Operation(summary = "删除菜单权限时效组")
     @DeleteMapping("/valid-group/{roleMenuId}")
     public R<Boolean> deleteValidGroup(@PathVariable String roleMenuId) {
         return R.ok(roleService.deleteValidGroup(roleMenuId));
@@ -130,6 +130,21 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
         return R.ok(java.util.Arrays.stream(DataScope.values())
                 .map(e -> new EnumOptionVO(e.getDescription(), e.getCode()))
                 .toList());
+    }
+
+
+    @Operation(summary = "给主体分配角色")
+    @PutMapping("/allocationRole/{subjectId}")
+    public R<Void> allocationRoleToSubject(@PathVariable String subjectId, @RequestBody List<String> roleIds) {
+        roleService.allocationRoleToSubject(subjectId, roleIds);
+        return R.ok();
+    }
+
+    @Operation(summary = "给角色分配主体")
+    @PutMapping("/allocationSubject/{roleId}")
+    public R<Void> allocationSubjectToRole(@PathVariable String roleId, @RequestBody List<String> subjectIds) {
+        roleService.allocationSubjectToRole(roleId, subjectIds);
+        return R.ok();
     }
 
 }

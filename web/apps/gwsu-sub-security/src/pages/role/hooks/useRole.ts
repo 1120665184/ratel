@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import {
   getRolePage,
   saveOrUpdateRole,
@@ -13,6 +13,7 @@ import type { RoleInfo, RoleQuery } from '../types';
  * 封装角色列表查询、删除、状态切换等常用逻辑
  */
 export function useRole() {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<RoleInfo[]>([]);
   const [total, setTotal] = useState(0);

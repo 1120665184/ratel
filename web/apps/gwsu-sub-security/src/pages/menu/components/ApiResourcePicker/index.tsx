@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Modal, Table, Input, Select, Tag, Button, Radio, Tooltip, message } from 'antd';
+import { Modal, Table, Input, Select, Tag, Button, Radio, Tooltip, App } from 'antd';
 import type { TableProps } from 'antd';
 import { SearchOutlined, QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import styles from './index.module.less';
@@ -65,6 +65,7 @@ const ApiResourcePicker: React.FC<ApiResourcePickerProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<ApiResourceItem[]>([]);
   const [total, setTotal] = useState(0);

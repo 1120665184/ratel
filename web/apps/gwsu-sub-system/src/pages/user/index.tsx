@@ -1,17 +1,19 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import styles from './index.module.less';
 import DeptTreeSelector from '../dept/components/DeptTreeSelector';
 import UserTable from './components/UserTable';
 import UserDrawer from './components/UserDrawer';
 import UserForm from './components/UserForm';
 import PasswordDrawer from './components/PasswordDrawer';
+import AssignRoleModal from './components/AssignRoleModal';
 import { getDeptTree } from '@/services/dept';
 import { getUserPage, getDeptUserCount } from '@/services/user';
 import type { DeptTreeNode } from '../dept/types';
 import type { SysUserVO, SysUserQueryDTO, DeptUserCountMap } from './types';
 
 const UserPage: React.FC = () => {
+  const { message } = App.useApp();
   const [treeData, setTreeData] = useState<DeptTreeNode[]>([]);
   const [treeLoading, setTreeLoading] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
@@ -30,6 +32,10 @@ const UserPage: React.FC = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
   const [passwordNickname, setPasswordNickname] = useState<string>('');
+
+  const [assignRoleVisible, setAssignRoleVisible] = useState(false);
+  const [assignRoleUserId, setAssignRoleUserId] = useState<string | null>(null);
+  const [assignRoleNickname, setAssignRoleNickname] = useState<string>('');
 
   const [treeWidth, setTreeWidth] = useState(280);
   const isResizing = useRef(false);
@@ -150,6 +156,27 @@ const UserPage: React.FC = () => {
     setPasswordNickname('');
   }, []);
 
+  // 分配角色
+  const handleAssignRole = useCallback((userId: string, nickname: string) => {
+    setAssignRoleUserId(userId);
+    setAssignRoleNickname(nickname);
+    setAssignRoleVisible(true);
+  }, []);
+
+  // 分配角色成功回调
+  const handleAssignRoleSuccess = useCallback(() => {
+    setAssignRoleVisible(false);
+    setAssignRoleUserId(null);
+    setAssignRoleNickname('');
+  }, []);
+
+  // 分配角色弹窗关闭
+  const handleAssignRoleClose = useCallback(() => {
+    setAssignRoleVisible(false);
+    setAssignRoleUserId(null);
+    setAssignRoleNickname('');
+  }, []);
+
   // 拖拽分割线
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isResizing.current = true;
@@ -200,6 +227,7 @@ const UserPage: React.FC = () => {
           onEdit={handleEdit}
           onCreate={handleCreate}
           onResetPassword={handleResetPassword}
+          onAssignRole={handleAssignRole}
           onRefresh={loadUsers}
         />
       </div>
@@ -223,6 +251,13 @@ const UserPage: React.FC = () => {
         nickname={passwordNickname}
         onClose={handlePasswordClose}
         onSuccess={handlePasswordSuccess}
+      />
+      <AssignRoleModal
+        visible={assignRoleVisible}
+        userId={assignRoleUserId}
+        nickname={assignRoleNickname}
+        onClose={handleAssignRoleClose}
+        onSuccess={handleAssignRoleSuccess}
       />
     </div>
   );

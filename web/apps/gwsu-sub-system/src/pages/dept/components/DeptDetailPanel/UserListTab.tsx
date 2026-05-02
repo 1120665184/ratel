@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, Popconfirm, message, Space, Spin } from 'antd';
+import { Table, Button, Tag, Popconfirm, App, Space, Spin } from 'antd';
 import { DeleteOutlined, StarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getDeptUsers, removeUserDept, setPrimaryDept } from '@/services/dept';
@@ -12,6 +12,7 @@ interface UserListTabProps {
 }
 
 const UserListTab: React.FC<UserListTabProps> = ({ deptId, onRefresh }) => {
+  const { message } = App.useApp();
   const [users, setUsers] = useState<UserDeptDetail[]>([]);
   const [loading, setLoading] = useState(false);
 

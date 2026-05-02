@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Button,
   Table,
@@ -10,10 +10,12 @@ import {
   Modal,
   Form,
   Space,
-} from 'antd';
-import type { TableProps } from 'antd';
+  Popconfirm,
+} from "antd";
+import type { TableProps } from "antd";
 import {
   PlusOutlined,
+  DeleteOutlined,
   SearchOutlined,
   ReloadOutlined,
   MoreOutlined,
@@ -22,18 +24,18 @@ import {
   MenuOutlined,
   LockOutlined,
   TableOutlined,
-} from '@ant-design/icons';
-import styles from './index.module.less';
-import RoleDetail from './components/RoleDetail';
-import RoleFormModal from './components/RoleFormModal';
-import MenuPermissionModal from './components/MenuPermissionModal';
-import { useRole } from './hooks/useRole';
-import type { RoleInfo, RoleQuery, EnumOption } from './types';
-import { getRoleTypeOptions, getDataScopeOptions } from './services/role';
+} from "@ant-design/icons";
+import styles from "./index.module.less";
+import RoleDetail from "./components/RoleDetail";
+import RoleFormModal from "./components/RoleFormModal";
+import MenuPermissionModal from "./components/MenuPermissionModal";
+import { useRole } from "./hooks/useRole";
+import type { RoleInfo, RoleQuery, EnumOption } from "./types";
+import { getRoleTypeOptions, getDataScopeOptions } from "./services/role";
 
 const STATUS_OPTIONS = [
-  { label: '启用', value: true },
-  { label: '禁用', value: false },
+  { label: "启用", value: true },
+  { label: "禁用", value: false },
 ];
 
 const RolePage: React.FC = () => {
@@ -68,13 +70,18 @@ const RolePage: React.FC = () => {
 
   // 新增/编辑弹窗
   const [formModalVisible, setFormModalVisible] = useState(false);
-  const [formModalMode, setFormModalMode] = useState<'create' | 'edit'>('create');
+  const [formModalMode, setFormModalMode] = useState<"create" | "edit">(
+    "create"
+  );
   const [formModalData, setFormModalData] = useState<RoleInfo | null>(null);
 
   // 菜单权限弹窗
   const [menuPermVisible, setMenuPermVisible] = useState(false);
   const [menuPermRoleId, setMenuPermRoleId] = useState<string | null>(null);
-  const [menuPermRoleName, setMenuPermRoleName] = useState<string>('');
+  const [menuPermRoleName, setMenuPermRoleName] = useState<string>("");
+
+  // 表格选中行
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   /** 初始化加载 */
   useEffect(() => {
@@ -101,14 +108,14 @@ const RolePage: React.FC = () => {
 
   /** 新增角色 */
   const handleCreate = useCallback(() => {
-    setFormModalMode('create');
+    setFormModalMode("create");
     setFormModalData(null);
     setFormModalVisible(true);
   }, []);
 
   /** 编辑角色 */
   const handleEdit = useCallback((role: RoleInfo) => {
-    setFormModalMode('edit');
+    setFormModalMode("edit");
     setFormModalData(role);
     setFormModalVisible(true);
   }, []);
@@ -118,7 +125,7 @@ const RolePage: React.FC = () => {
     async (data: RoleInfo): Promise<boolean> => {
       return handleSaveOrUpdate(data);
     },
-    [handleSaveOrUpdate],
+    [handleSaveOrUpdate]
   );
 
   /** 状态切换 */
@@ -126,14 +133,14 @@ const RolePage: React.FC = () => {
     async (role: RoleInfo, checked: boolean) => {
       await handleToggleStatus(role.id!, checked);
     },
-    [handleToggleStatus],
+    [handleToggleStatus]
   );
 
   /** 占位功能提示 */
   const handlePlaceholder = useCallback((title: string) => {
     Modal.warning({
       title,
-      content: '功能开发中，敬请期待',
+      content: "功能开发中，敬请期待",
     });
   }, []);
 
@@ -144,50 +151,60 @@ const RolePage: React.FC = () => {
     setMenuPermVisible(true);
   }, []);
 
+  /** 批量删除 */
+  const handleBatchDelete = useCallback(async () => {
+    const ids = selectedRowKeys as string[];
+    const success = await handleDelete(ids);
+    if (success) {
+      setSelectedRowKeys([]);
+    }
+  }, [selectedRowKeys, handleDelete]);
+
   /** 获取数据范围的文字描述 */
   const getDataScopeLabel = (value: number): string => {
-    return dataScopeOptions.find((o) => o.value === value)?.label ?? '未知';
+    return dataScopeOptions.find((o) => o.value === value)?.label ?? "未知";
   };
 
   /** 表格列定义 */
-  const columns: TableProps<RoleInfo>['columns'] = [
+  const columns: TableProps<RoleInfo>["columns"] = [
+    Table.SELECTION_COLUMN,
     {
-      title: '序号',
+      title: "序号",
       width: 60,
-      align: 'center',
+      align: "center",
       render: (_: unknown, __: RoleInfo, index: number) =>
         (currentPage - 1) * pageSize + index + 1,
     },
     {
-      title: '角色编码',
-      dataIndex: 'roleCode',
+      title: "角色编码",
+      dataIndex: "roleCode",
       width: 160,
       render: (val: string) => <code>{val}</code>,
     },
     {
-      title: '角色名称',
-      dataIndex: 'roleName',
+      title: "角色名称",
+      dataIndex: "roleName",
       width: 160,
     },
     {
-      title: '角色类型',
-      dataIndex: 'roleType',
+      title: "角色类型",
+      dataIndex: "roleType",
       width: 120,
       render: (val: number) => (
-        <Tag color={val === 1 ? 'blue' : 'orange'}>
-          {roleTypeOptions.find((o) => o.value === val)?.label ?? '未知'}
+        <Tag color={val === 1 ? "blue" : "orange"}>
+          {roleTypeOptions.find((o) => o.value === val)?.label ?? "未知"}
         </Tag>
       ),
     },
     {
-      title: '数据范围',
-      dataIndex: 'dataScope',
+      title: "数据范围",
+      dataIndex: "dataScope",
       width: 140,
       render: (val: number) => getDataScopeLabel(val),
     },
     {
-      title: '状态',
-      dataIndex: 'status',
+      title: "状态",
+      dataIndex: "status",
       width: 120,
       render: (val: boolean, record: RoleInfo) => (
         <Space>
@@ -196,14 +213,14 @@ const RolePage: React.FC = () => {
             checked={val}
             onChange={(checked) => handleStatusChange(record, checked)}
           />
-          <Tag color={val ? 'green' : 'red'}>{val ? '启用' : '禁用'}</Tag>
+          <Tag color={val ? "green" : "red"}>{val ? "启用" : "禁用"}</Tag>
         </Space>
       ),
     },
     {
-      title: '操作',
+      title: "操作",
       width: 200,
-      fixed: 'right',
+      fixed: "right",
       render: (_: unknown, record: RoleInfo) => (
         <div className={styles.actionColumn}>
           <Button
@@ -218,33 +235,39 @@ const RolePage: React.FC = () => {
             menu={{
               items: [
                 {
-                  key: 'edit',
+                  key: "edit",
                   icon: <EditOutlined />,
-                  label: '编辑',
+                  label: "编辑",
                   onClick: () => handleEdit(record),
                 },
                 {
-                  key: 'menuPermission',
+                  key: "menuPermission",
                   icon: <MenuOutlined />,
-                  label: '菜单权限',
+                  label: "菜单权限",
                   onClick: () => handleMenuPermission(record),
                 },
                 {
-                  key: 'fieldPermission',
+                  key: "fieldPermission",
                   icon: <LockOutlined />,
-                  label: '字段权限',
-                  onClick: () => handlePlaceholder('字段权限'),
+                  label: "字段权限",
+                  onClick: () => handlePlaceholder("字段权限"),
                 },
                 {
-                  key: 'tablePermission',
+                  key: "tablePermission",
                   icon: <TableOutlined />,
-                  label: '表模型权限',
-                  onClick: () => handlePlaceholder('表模型权限'),
+                  label: "表模型权限",
+                  onClick: () => handlePlaceholder("表模型权限"),
                 },
               ],
             }}
+            disabled={record.roleCode === "super_admin"}
           >
-            <Button type="link" size="small" icon={<MoreOutlined />}>
+            <Button
+              type="link"
+              size="small"
+              icon={<MoreOutlined />}
+              disabled={record.roleCode === "super_admin"}
+            >
               更多
             </Button>
           </Dropdown>
@@ -321,12 +344,38 @@ const RolePage: React.FC = () => {
       <div className={styles.tableWrapper}>
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>角色列表</span>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新增角色
-          </Button>
+          <Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+            >
+              新增角色
+            </Button>
+            <Popconfirm
+              title="批量删除"
+              description={`确定删除选中的 ${selectedRowKeys.length} 个角色？`}
+              onConfirm={handleBatchDelete}
+              okText="确定"
+              cancelText="取消"
+              disabled={selectedRowKeys.length === 0}
+            >
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                disabled={selectedRowKeys.length === 0}
+              >
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
         </div>
         <Table<RoleInfo>
           rowKey="id"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
           columns={columns}
           dataSource={dataSource}
           loading={loading}

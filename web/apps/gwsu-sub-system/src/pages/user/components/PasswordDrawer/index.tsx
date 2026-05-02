@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drawer, Form, Input, Button, message } from 'antd';
+import { Drawer, Form, Input, Button, App } from 'antd';
 import styles from './index.module.less';
 import { resetPassword } from '@/services/user';
 
@@ -18,6 +18,7 @@ const PasswordDrawer: React.FC<PasswordDrawerProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = React.useState(false);
 

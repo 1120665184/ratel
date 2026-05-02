@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Modal, Form, message } from 'antd';
+import { Modal, Form, App } from 'antd';
 import styles from './index.module.less';
 import ValidGroupList from './ValidGroupList';
 import MenuTreePanel from './MenuTreePanel';
@@ -28,6 +28,7 @@ const MenuPermissionModal: React.FC<MenuPermissionModalProps> = ({
   roleName,
   onClose,
 }) => {
+  const { message } = App.useApp();
   /** 时效分组列表 */
   const [groups, setGroups] = useState<ValidGroup[]>([]);
   /** 当前选中的时效组 ID */

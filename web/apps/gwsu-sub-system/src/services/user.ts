@@ -58,3 +58,28 @@ export async function batchDeleteUsers(ids: string[]): Promise<void> {
 export async function resetPassword(userId: string, newPassword: string): Promise<void> {
   await put<void>(`/system/manager/${userId}/password`, { newPassword });
 }
+
+/** 给用户分配角色 */
+export async function allocateRoles(userId: string, roleIds: string[]): Promise<void> {
+  await put<void>(`/security/role/allocationRole/${userId}`, roleIds);
+}
+
+/** 查询用户已分配的角色编码列表 */
+export async function getUserRoleCodes(subjectId: string): Promise<string[]> {
+  const res = await get<string[]>(`/security/role/list/${subjectId}`);
+  return res.data;
+}
+
+/** 查询角色全量列表（启用状态） */
+export async function getEnabledRoleList(): Promise<RoleOption[]> {
+  const res = await get<RoleOption[]>('/security/role/list', { status: 1 });
+  return res.data ?? [];
+}
+
+/** 角色选项（用于用户分配角色） */
+export interface RoleOption {
+  id: string;
+  roleName: string;
+  roleCode: string;
+  status: boolean;
+}

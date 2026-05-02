@@ -1,5 +1,5 @@
 import React from 'react';
-import { Descriptions, Tag, Button, Space, Popconfirm, message } from 'antd';
+import { Descriptions, Tag, Button, Space, Popconfirm, App } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
@@ -25,6 +25,7 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({
   onRefresh,
   onAddParent,
 }) => {
+  const { message } = App.useApp();
   const getTypeName = (type: number) => {
     const found = deptTypes.find((t) => t.code === type);
     return found?.name || '未知';

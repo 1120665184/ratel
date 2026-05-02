@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Select, Button, message } from 'antd';
+import { Form, Input, Select, Button, App } from 'antd';
 import { GENDER_MAP } from '../../types';
 import type { SysUserDetailVO } from '../../types';
 import { saveOrUpdateUser } from '@/services/user';
@@ -11,6 +11,7 @@ interface BasicInfoSectionProps {
 }
 
 const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, readOnly = false }) => {
+  const { message } = App.useApp();
   const [editing, setEditing] = useState(false);
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Input, Select, Button, Tag, Modal, Dropdown, message } from 'antd';
+import { Table, Input, Select, Button, Tag, Modal, Dropdown, App } from 'antd';
 import { PlusOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import styles from './index.module.less';
@@ -19,6 +19,7 @@ interface UserTableProps {
   onEdit: (userId: string) => void;
   onCreate: () => void;
   onResetPassword: (userId: string, nickname: string) => void;
+  onAssignRole: (userId: string, nickname: string) => void;
   onRefresh: () => void;
 }
 
@@ -34,8 +35,10 @@ const UserTable: React.FC<UserTableProps> = ({
   onEdit,
   onCreate,
   onResetPassword,
+  onAssignRole,
   onRefresh,
 }) => {
+  const { message } = App.useApp();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const handleBatchDelete = () => {
@@ -61,6 +64,11 @@ const UserTable: React.FC<UserTableProps> = ({
       key: 'edit',
       label: '编辑',
       onClick: () => onEdit(record.userId),
+    },
+    {
+      key: 'assignRole',
+      label: '分配角色',
+      onClick: () => onAssignRole(record.userId, record.nickname),
     },
     {
       key: 'resetPassword',

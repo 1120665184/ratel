@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Tag, Table, Popconfirm, message } from 'antd';
+import { Button, Tag, Table, Popconfirm, App } from 'antd';
 import type { TableProps } from 'antd';
 import {
   EditOutlined,
@@ -39,6 +39,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
   onDeleteSuccess,
   onRefresh,
 }) => {
+  const { message } = App.useApp();
   const [buttons, setButtons] = useState<ButtonItem[]>([]);
   const [buttonsLoading, setButtonsLoading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);

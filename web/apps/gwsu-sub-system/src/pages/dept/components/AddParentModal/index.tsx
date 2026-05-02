@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Tree, message } from 'antd';
+import { Modal, Tree, App } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { addParentDept, getDeptTree } from '@/services/dept';
 import type { DeptTreeNode } from '../../types';
@@ -19,6 +19,7 @@ const AddParentModal: React.FC<AddParentModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { message } = App.useApp();
   const [treeData, setTreeData] = useState<DeptTreeNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

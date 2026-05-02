@@ -2,7 +2,7 @@ import { CopilotChat } from '@copilotkit/react-ui';
 import { useCopilotChat } from '@copilotkit/react-core';
 import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-ui/styles.css';
-import { Button, Tooltip, message } from 'antd';
+import { App, Button, Tooltip } from 'antd';
 import { RobotOutlined, CompressOutlined, DragOutlined, CloseOutlined, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRef, useState, useCallback } from 'react';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
@@ -47,6 +47,7 @@ export function CopilotChatPanel({
   const { viewMode, setViewMode, panelState, setPanelPosition, setCurrentThreadId } = usePanelContext();
   const { reset } = useCopilotChat();
   const { agent } = useAgent({ agentId: 'brain' });
+  const { message } = App.useApp();
 
   // 拖拽相关状态
   const nodeRef = useRef<HTMLDivElement>(null);

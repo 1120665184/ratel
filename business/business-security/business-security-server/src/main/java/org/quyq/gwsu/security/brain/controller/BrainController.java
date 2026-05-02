@@ -12,6 +12,7 @@ import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
@@ -34,6 +35,7 @@ import java.util.List;
  * @author Quyq
  * @date 2026/4/22
  */
+@LoginAllowAccess
 @RestController
 @RequestMapping("brain")
 @Tag(name = "智能助手模块")

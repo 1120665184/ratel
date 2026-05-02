@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import { ApartmentOutlined } from '@ant-design/icons';
 import styles from './index.module.less';
 import DeptTreePanel from './components/DeptTreePanel';
@@ -9,6 +9,7 @@ import { getDeptTree, getDeptTypes, getDeptDetail } from '@/services/dept';
 import type { DeptTreeNode, DeptDetail, DeptTypeOption } from './types';
 
 const DeptPage: React.FC = () => {
+  const { message } = App.useApp();
   const [treeData, setTreeData] = useState<DeptTreeNode[]>([]);
   const [deptTypes, setDeptTypes] = useState<DeptTypeOption[]>([]);
   const [selectedDept, setSelectedDept] = useState<DeptDetail | null>(null);

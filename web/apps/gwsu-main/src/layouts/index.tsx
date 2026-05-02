@@ -4,8 +4,8 @@ import AssistantOperationArea from '@/components/AssistantOperationArea';
 import { PanelProvider, usePanelContext } from '@/components/AIChat/AIChatContext';
 import { GwsuCopilotKitProvider } from '@/providers/CopilotKitProvider';
 import { LogoutOutlined, RobotOutlined, UserOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { Button, message, Modal } from 'antd';
-import { EventType, onEvent, ThemeLayout, useThemeContext } from '@gwsu/core';
+import { App , Button } from 'antd';
+import { EventType, onEvent, ThemeLayout, useThemeContext ,useUserStore } from '@gwsu/core';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { history, MicroApp, useLocation } from 'umi';
 import { logout } from '@/services/auth';
@@ -14,50 +14,87 @@ import styles from './index.module.less';
 export default function LayoutComponent() {
   return (
     <ThemeLayout>
-      <GwsuCopilotKitProvider>
-        <PanelProvider>
-          <LayoutComponentInner />
-        </PanelProvider>
-      </GwsuCopilotKitProvider>
+      <LayoutRouter />
     </ThemeLayout>
   );
 }
 
-function LayoutComponentInner() {
+/** 路由层：根据是否登录页决定是否初始化 CopilotKit */
+function LayoutRouter() {
   const location = useLocation();
   const { currentTheme } = useThemeContext();
-  const { panelState, setPanelMode, togglePanel } = usePanelContext();
+  // 访问根路径时自动跳转首页 + 登录事件监听
+  useEffect(() => {
+    const homePath = process.env.UMI_APP_HOME_PATH as string;
+    const loginPath = process.env.UMI_APP_LOGIN_PATH as string;
+    if (location.pathname === '/') {
+      history.replace(homePath);
+    }
 
+    const successEvent = onEvent(EventType.LOGIN_SUCCESS, () => {
+      console.log('登录成功');
+      history.push(homePath);
+    });
+
+    const expireEvent = onEvent(EventType.TOKEN_EXPIRED, () => {
+      console.log('登录失效');
+      history.push(loginPath);
+    });
+
+    return () => {
+      successEvent();
+      expireEvent();
+    };
+  }, [location.pathname]);
+
+  // 判断当前应用
+  const currentApp = location.pathname.startsWith('/sub-security')
+    ? 'gwsu-sub-security'
+    : 'gwsu-sub-system';
+
+  // 判断是否是登录页面
+  const isLoginPage = location.pathname.includes('/login');
+
+  // 登录页面：不初始化 CopilotKit，使用简单布局
+  if (isLoginPage) {
+    return (
+      <div className={`${styles.mainLayout} ${styles.loginMode}`}>
+        <div className={styles.loginContent}>
+          <MicroApp name={currentApp} />
+        </div>
+      </div>
+    );
+  }
+
+  // 非登录页面：初始化 CopilotKit
+  return (
+    <GwsuCopilotKitProvider>
+      <PanelProvider>
+        <MainLayoutContent
+          currentTheme={currentTheme}
+          currentApp={currentApp}
+        />
+      </PanelProvider>
+    </GwsuCopilotKitProvider>
+  );
+}
+
+/** 主布局内容（在 CopilotKit 和 PanelProvider 上下文内） */
+function MainLayoutContent({
+  currentTheme,
+}: {
+  currentTheme: ReturnType<typeof useThemeContext>['currentTheme'];
+  currentApp: string;
+}) {
+  const { panelState, setPanelMode, togglePanel } = usePanelContext();
   // 悬浮提示相关状态
   const [showGuide, setShowGuide] = useState(false);
   const guideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const robotBtnRef = useRef<HTMLDivElement>(null);
-
-  // 切换到固定模式
-  const handleFixed = useCallback(() => {
-    setPanelMode('fixed');
-  }, [setPanelMode]);
-
-  // 切换到拖拽模式
-  const handleDraggable = useCallback(() => {
-    setPanelMode('draggable');
-  }, [setPanelMode]);
-
-  // 隐藏面板
-  const handleHide = useCallback(() => {
-    setPanelMode('hidden');
-  }, [setPanelMode]);
-
-  // 点击机器人图标
-  const handleRobotClick = useCallback(() => {
-    setShowGuide(false);
-    togglePanel();
-  }, [togglePanel]);
-
+  const { message,modal } = App.useApp();
   // 当面板收起时，显示引导提示
   useEffect(() => {
     if (panelState.mode === 'hidden') {
-      // 延迟显示提示，让用户先看到收起动画
       guideTimerRef.current = setTimeout(() => {
         setShowGuide(true);
       }, 300);
@@ -72,35 +109,18 @@ function LayoutComponentInner() {
     };
   }, [panelState.mode]);
 
-  // 访问根路径时自动跳转首页
-  useEffect(() => {
-    const homePath = process.env.UMI_APP_HOME_PATH as string;
-    const loginPath = process.env.UMI_APP_LOGIN_PATH as string;
-    if (location.pathname === '/') {
-      history.replace(homePath);
-    }
-
-    // 登录成功事件监听
-    let successEvent = onEvent(EventType.LOGIN_SUCCESS, () => {
-      console.log('登录成功');
-      history.push(homePath);
-    });
-
-    // 登录失败事件监听
-    let expireEvent = onEvent(EventType.TOKEN_EXPIRED, () => {
-      console.log('登录失效');
-      history.push(loginPath);
-    });
-
-    return () => {
-      successEvent();
-      expireEvent();
-    };
-  }, [location.pathname]);
+  // 面板操作
+  const handleFixed = useCallback(() => setPanelMode('fixed'), [setPanelMode]);
+  const handleDraggable = useCallback(() => setPanelMode('draggable'), [setPanelMode]);
+  const handleHide = useCallback(() => setPanelMode('hidden'), [setPanelMode]);
+  const handleRobotClick = useCallback(() => {
+    setShowGuide(false);
+    togglePanel();
+  }, [togglePanel]);
 
   // 处理退出登录
   const handleLogout = () => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认退出',
       content: '确定要退出登录吗？',
       okText: '确定',
@@ -108,16 +128,13 @@ function LayoutComponentInner() {
       onOk: async () => {
         try {
           await logout();
-          // 清除本地存储的认证信息
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
-          localStorage.removeItem('isLoggedIn');
-          localStorage.removeItem('tokenExpireTime');
+          // 通过 userStore 清除认证数据
+          useUserStore.getState().logout();
 
           message.success('退出成功');
 
-          // 跳转到登录页
-          const loginPath = process.env.UMI_APP_LOGIN_PATH || '/sub-system/login';
+          const loginPath =
+            process.env.UMI_APP_LOGIN_PATH || '/sub-system/login';
           history.push(loginPath);
         } catch (error) {
           // 错误提示已在 request.ts 中统一处理
@@ -125,25 +142,6 @@ function LayoutComponentInner() {
       },
     });
   };
-
-  // 判断当前应用
-  const currentApp = location.pathname.startsWith('/sub-security')
-    ? 'gwsu-sub-security'
-    : 'gwsu-sub-system';
-
-  // 判断是否是登录页面
-  const isLoginPage = location.pathname.includes('/login');
-
-  // 如果是登录页面，使用简单的布局
-  if (isLoginPage) {
-    return (
-      <div className={`${styles.mainLayout} ${styles.loginMode}`}>
-        <div className={styles.loginContent}>
-          <MicroApp name={currentApp} />
-        </div>
-      </div>
-    );
-  }
 
   // 判断显示模式
   const isHidden = panelState.mode === 'hidden';
