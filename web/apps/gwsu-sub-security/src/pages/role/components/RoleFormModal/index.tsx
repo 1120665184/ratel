@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Switch, Select } from 'antd';
 import styles from './index.module.less';
-import type { RoleInfo } from '../../types';
-import { ROLE_TYPE_OPTIONS, DATA_SCOPE_OPTIONS } from '../../types';
+import type { RoleInfo, EnumOption } from '../../types';
 
 const { TextArea } = Input;
 
@@ -10,6 +9,8 @@ interface RoleFormModalProps {
   visible: boolean;
   mode: 'create' | 'edit';
   data?: RoleInfo | null;
+  roleTypeOptions: EnumOption[];
+  dataScopeOptions: EnumOption[];
   onSave: (data: RoleInfo) => Promise<boolean>;
   onClose: () => void;
   onSuccess: () => void;
@@ -19,6 +20,8 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
   visible,
   mode,
   data,
+  roleTypeOptions,
+  dataScopeOptions,
   onSave,
   onClose,
   onSuccess,
@@ -114,7 +117,7 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
           label="角色类型"
           rules={[{ required: true, message: '请选择角色类型' }]}
         >
-          <Select options={ROLE_TYPE_OPTIONS} placeholder="请选择角色类型" />
+          <Select options={roleTypeOptions} placeholder="请选择角色类型" disabled />
         </Form.Item>
         <Form.Item
           name="dataScope"
@@ -122,7 +125,7 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
           rules={[{ required: true, message: '请选择数据范围' }]}
         >
           <Select
-            options={DATA_SCOPE_OPTIONS}
+            options={dataScopeOptions}
             placeholder="请选择数据范围"
           />
         </Form.Item>

@@ -6,6 +6,7 @@ import org.quyq.gwsu.security.abac.domain.SecurityAbac;
 import org.quyq.gwsu.security.abac.domain.SecurityAbacPermission;
 import org.quyq.gwsu.security.abac.mapper.SecurityAbacMapper;
 import org.quyq.gwsu.security.abac.mapper.SecurityAbacPermissionMapper;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -96,7 +97,9 @@ public class AbacPermissionUrlWrapper {
      * @param permissions
      */
     public void addPermissions(List<SecurityAbacPermission> permissions) {
-
+        if(CollectionUtils.isEmpty(permissions)) {
+            return;
+        }
         SecurityAbac abac = abac().orElseGet(this::buildAbac);
         permissions.forEach(permission -> permission.setAbacId(abac.getId()));
 
@@ -119,9 +122,12 @@ public class AbacPermissionUrlWrapper {
      * @param permissions
      */
     public void replacePermission(List<SecurityAbacPermission> permissions) {
+        removeAll();
+        if(CollectionUtils.isEmpty(permissions)) {
+            return;
+        }
         SecurityAbac abac = abac().orElseGet(this::buildAbac);
         permissions.forEach(permission -> permission.setAbacId(abac.getId()));
-        removeAll();
         permissionMapper.insert(permissions);
     }
 

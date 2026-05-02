@@ -8,15 +8,6 @@ import {
 } from '../services/role';
 import type { RoleInfo, RoleQuery } from '../types';
 
-/** 分页结果 */
-interface PageResult {
-  records: RoleInfo[];
-  total: number;
-  size: number;
-  current: number;
-  pages: number;
-}
-
 /**
  * 角色管理相关 hooks
  * 封装角色列表查询、删除、状态切换等常用逻辑
@@ -46,12 +37,11 @@ export function useRole() {
           pageNum: query?.pageNum ?? currentPage,
           pageSize: query?.pageSize ?? pageSize,
         };
-        const result = await getRolePage(params);
-        const page = result as unknown as PageResult;
-        setDataSource(page.records ?? []);
-        setTotal(page.total ?? 0);
-        setCurrentPage(page.current ?? 1);
-        setPageSize(page.size ?? 10);
+        const page = await getRolePage(params);
+        setDataSource(page?.records ?? []);
+        setTotal(page?.total ?? 0);
+        setCurrentPage(page?.current ?? 1);
+        setPageSize(page?.size ?? 10);
       } catch {
         // request 层已自动提示
       } finally {

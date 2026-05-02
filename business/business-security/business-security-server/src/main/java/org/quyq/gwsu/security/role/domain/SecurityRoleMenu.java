@@ -13,7 +13,6 @@ import org.quyq.gwsu.security.api.role.enums.ValidType;
 import org.quyq.gwsu.security.api.role.vo.RoleMenuVO;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 /**
  * 角色菜单关联表
@@ -52,11 +51,11 @@ public class SecurityRoleMenu extends BaseDO {
     @Schema(description = "周期值：按周存1,2,3,4,5 按月存1,15")
     private String cycleValue;
 
-    @Schema(description = "周期-每日开始时间")
-    private LocalTime cycleStartTime;
+    @Schema(description = "周期-每日开始时间，格式HH:mm")
+    private String cycleStartTime;
 
-    @Schema(description = "周期-每日结束时间")
-    private LocalTime cycleEndTime;
+    @Schema(description = "周期-每日结束时间，格式HH:mm")
+    private String cycleEndTime;
 
     /**
      * DO 转 VO

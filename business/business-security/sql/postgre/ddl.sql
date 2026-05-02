@@ -163,8 +163,8 @@ CREATE TABLE security_role_menu
     valid_end        TIMESTAMP            DEFAULT NULL,
     cycle_type       INT2                 DEFAULT NULL,
     cycle_value      VARCHAR(100)         DEFAULT NULL,
-    cycle_start_time TIMESTAMP            DEFAULT NULL,
-    cycle_end_time   TIMESTAMP            DEFAULT NULL,
+    cycle_start_time VARCHAR(10)           DEFAULT NULL,
+    cycle_end_time   VARCHAR(10)           DEFAULT NULL,
     tenant_id   VARCHAR(50)          DEFAULT NULL,
     create_op   VARCHAR(50)          DEFAULT NULL,
     create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
@@ -198,7 +198,6 @@ COMMENT ON COLUMN security_role_menu.delete_time IS '删除时间';
 
 
 -- 索引
-CREATE UNIQUE INDEX uk_security_role_menu ON security_role_menu (role_id, menu_id);
 CREATE INDEX idx_security_role_menu_id ON security_role_menu (menu_id);
 
 -- =============================================

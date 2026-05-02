@@ -64,35 +64,26 @@ export interface ValidGroupSaveRequest {
   menuIds: string[];
 }
 
-/** 数据范围选项 */
-export const DATA_SCOPE_OPTIONS = [
-  { label: '自定义', value: 0 },
-  { label: '全部数据', value: 1 },
-  { label: '本部门及以下', value: 2 },
-  { label: '本部门', value: 3 },
-  { label: '仅本人', value: 4 },
-];
+/** 枚举选项（从后端获取） */
+export interface EnumOption {
+  label: string;
+  value: number;
+}
 
-/** 角色类型选项 */
-export const ROLE_TYPE_OPTIONS = [
-  { label: '系统角色', value: 1 },
-  { label: '业务角色', value: 2 },
-];
-
-/** 时效类型选项 */
+/** 时效类型选项（前端固定，不依赖后端） */
 export const VALID_TYPE_OPTIONS = [
   { label: '永久', value: 1 },
   { label: '绝对时间范围', value: 2 },
   { label: '周期性', value: 3 },
 ];
 
-/** 周期类型选项 */
+/** 周期类型选项（前端固定，不依赖后端） */
 export const CYCLE_TYPE_OPTIONS = [
   { label: '按周', value: 1 },
   { label: '按月', value: 2 },
 ];
 
-/** 星期选项 */
+/** 星期选项（前端固定，不依赖后端） */
 export const WEEK_DAY_OPTIONS = [
   { label: '周一', value: '1' },
   { label: '周二', value: '2' },

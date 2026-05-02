@@ -325,6 +325,7 @@ public class AuthenticationFilter implements RequestResponseProcessor {
     private Map<String, Object> buildEnv() {
         LocalDateTime now = LocalDateTime.now();
         return Map.of(
+                "datatime",now,
                 "data", now.toLocalDate(),
                 "time", now.toLocalTime());
     }

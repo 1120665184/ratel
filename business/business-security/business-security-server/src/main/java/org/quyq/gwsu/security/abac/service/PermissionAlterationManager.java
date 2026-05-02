@@ -1,10 +1,14 @@
 package org.quyq.gwsu.security.abac.service;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
+import org.quyq.gwsu.security.abac.domain.SecurityAbac;
+import org.quyq.gwsu.security.abac.domain.SecurityAbacField;
+import org.quyq.gwsu.security.abac.domain.SecurityAbacPermission;
 import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.mapper.SecurityAbacFieldMapper;
 import org.quyq.gwsu.security.abac.mapper.SecurityAbacMapper;
@@ -53,13 +57,15 @@ public class PermissionAlterationManager {
 
         providerss.stream().filter(v -> type == v.abacType()).findFirst()
                 .ifPresent(provider -> {
-                    AbacPermissionUrlWrapper wrapper = AbacPermissionUrlWrapper.builder(provider.buildExpression(context))
+                    String expression = provider.buildExpression(context);
+                    AbacPermissionUrlWrapper wrapper = AbacPermissionUrlWrapper.builder(expression)
                             .abacMapper(abacMapper)
                             .urlPermissionMapper(urlPermissionMapper)
                             .build();
                     provider.alterationUrlPermission(context, wrapper);
                     //重新加载url权限策略
                     abacService.syncPolicies();
+                    removeAbacIfNoPermission(expression);
                 });
 
     }
@@ -80,14 +86,40 @@ public class PermissionAlterationManager {
 
         providerss.stream().filter(v -> type == v.abacType()).findFirst()
                 .ifPresent(provider -> {
-                    AbacPermissionFieldWrapper wrapper = AbacPermissionFieldWrapper.builder(provider.buildExpression(context))
+                    String expression = provider.buildExpression(context);
+                    AbacPermissionFieldWrapper wrapper = AbacPermissionFieldWrapper.builder(expression)
                             .abacMapper(abacMapper)
                             .fieldPermissionMapper(fieldPermissionMapper)
                             .build();
                     provider.alterationFieldPermission(context, wrapper);
                     //重新加载字段权限策略
                     abacService.syncFieldPolicies();
+                    removeAbacIfNoPermission(expression);
                 });
 
     }
+
+
+    private void removeAbacIfNoPermission(String expression){
+        SecurityAbac securityAbac = abacMapper.selectOne(new LambdaQueryWrapper<SecurityAbac>()
+                .eq(SecurityAbac::getExpression, expression));
+
+        if(Objects.isNull(securityAbac)){
+            return;
+        }
+
+        String id = securityAbac.getId();
+
+        Long urlPCount = urlPermissionMapper.selectCount(new LambdaQueryWrapper<SecurityAbacPermission>()
+                .eq(SecurityAbacPermission::getAbacId, id));
+
+        Long fieldPCount = fieldPermissionMapper.selectCount(new LambdaQueryWrapper<SecurityAbacField>()
+                .eq(SecurityAbacField::getAbacId, id));
+
+        if(urlPCount == 0 && fieldPCount == 0){
+            abacMapper.deleteById(id);
+        }
+
+    }
+
 }

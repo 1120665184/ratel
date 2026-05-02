@@ -8,7 +8,7 @@ package org.quyq.gwsu.security.abac.enums;
  */
  public enum AbacPerType {
 
-   ROLE , API_RESOURCE
+   ROLE_BINDING_MENU , API_RESOURCE
  ;
 
 }

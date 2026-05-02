@@ -25,6 +25,7 @@ public enum SecurityErrorCode implements ReturnCode {
     E02003("系统角色不可删除"),
     E02004("角色已禁用"),
     E02005("时效配置无效"),
+    E02006("该时效分组已存在，请编辑已有配置"),
     ;
 
     private final String msg;

@@ -3,7 +3,7 @@ import { Modal, Form, message } from 'antd';
 import styles from './index.module.less';
 import ValidGroupList from './ValidGroupList';
 import MenuTreePanel from './MenuTreePanel';
-import { getValidGroups, getMenuTree, saveOrUpdateValidGroup, deleteValidGroup } from '../../services/role';
+import { getValidGroups, getMenuTree, saveOrUpdateValidGroup, deleteValidGroup, getMenuOwnerOptions, getMenuPositionOptions } from '../../services/role';
 import type { ValidGroup, MenuTreeNode, ValidGroupSaveRequest } from '../../types';
 import { validGroupToFormValues, formValuesToValidFields } from './ValidConfigForm';
 
@@ -47,6 +47,10 @@ const MenuPermissionModal: React.FC<MenuPermissionModalProps> = ({
   /** 保存中 */
   const [, setSaving] = useState(false);
 
+  /** 菜单所属/位置枚举 */
+  const [ownerOptions, setOwnerOptions] = useState<{ code: number; description: string }[]>([]);
+  const [positionOptions, setPositionOptions] = useState<{ code: number; description: string }[]>([]);
+
   /** 时效配置表单 */
   const [validForm] = Form.useForm();
 
@@ -68,6 +72,10 @@ const MenuPermissionModal: React.FC<MenuPermissionModalProps> = ({
     try {
       const data = await getValidGroups(roleId);
       setGroups(data);
+      // 默认选中第一个
+      if (data.length > 0) {
+        setSelectedGroupId(data[0].roleMenuId);
+      }
     } catch {
       // request 层已自动提示
     }
@@ -92,10 +100,12 @@ const MenuPermissionModal: React.FC<MenuPermissionModalProps> = ({
     if (visible && roleId) {
       loadGroups();
       loadMenuTree();
-      setSelectedGroupId(null);
       setEditing(false);
       setIsCreating(false);
       setCurrentOwner(1);
+      // 加载菜单枚举
+      getMenuOwnerOptions().then(setOwnerOptions);
+      getMenuPositionOptions().then(setPositionOptions);
     }
   }, [visible, roleId, loadGroups, loadMenuTree]);
 
@@ -261,11 +271,10 @@ const MenuPermissionModal: React.FC<MenuPermissionModalProps> = ({
       title={`菜单权限配置 - ${roleName ?? ''}`}
       open={visible}
       onCancel={editing ? handleCancelEdit : onClose}
-      width={960}
+      width={1120}
       className={styles.modal}
       footer={null}
       destroyOnHidden
-      maskClosable={!editing}
       closable={!editing}
     >
       <div className={styles.container}>
@@ -294,6 +303,8 @@ const MenuPermissionModal: React.FC<MenuPermissionModalProps> = ({
           onDeleteGroup={handleDeleteCurrentGroup}
           loading={loading}
           validForm={validForm}
+          ownerOptions={ownerOptions}
+          positionOptions={positionOptions}
         />
       </div>
     </Modal>

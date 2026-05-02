@@ -10,6 +10,9 @@ import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.RoleClientApi;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
+import org.quyq.gwsu.security.api.role.enums.DataScope;
+import org.quyq.gwsu.security.api.role.enums.RoleType;
+import org.quyq.gwsu.security.api.role.vo.EnumOptionVO;
 import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
 import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
@@ -111,6 +114,22 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
         RoleQueryDTO query = new RoleQueryDTO();
         query.setStatus(status != null ? status != 0 : null);
         return R.ok(roleService.listByCondition(query));
+    }
+
+    @Operation(summary = "获取角色类型枚举选项")
+    @GetMapping("/enums/role-type")
+    public R<List<EnumOptionVO>> roleTypeOptions() {
+        return R.ok(java.util.Arrays.stream(RoleType.values())
+                .map(e -> new EnumOptionVO(e.getDescription(), e.getCode()))
+                .toList());
+    }
+
+    @Operation(summary = "获取数据范围枚举选项")
+    @GetMapping("/enums/data-scope")
+    public R<List<EnumOptionVO>> dataScopeOptions() {
+        return R.ok(java.util.Arrays.stream(DataScope.values())
+                .map(e -> new EnumOptionVO(e.getDescription(), e.getCode()))
+                .toList());
     }
 
 }

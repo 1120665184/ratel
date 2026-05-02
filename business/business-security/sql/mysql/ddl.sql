@@ -103,8 +103,8 @@ CREATE TABLE security_role_menu
     valid_end        DATETIME             DEFAULT NULL COMMENT '绝对时间-结束时间',
     cycle_type       SMALLINT             DEFAULT NULL COMMENT '周期类型：1-按周 2-按月',
     cycle_value      VARCHAR(100)         DEFAULT NULL COMMENT '周期值：按周存1,2,3,4,5 按月存1,15',
-    cycle_start_time DATETIME             DEFAULT NULL COMMENT '周期-每日开始时间',
-    cycle_end_time   DATETIME             DEFAULT NULL COMMENT '周期-每日结束时间',
+    cycle_start_time VARCHAR(10)          DEFAULT NULL COMMENT '周期-每日开始时间',
+    cycle_end_time   VARCHAR(10)          DEFAULT NULL COMMENT '周期-每日结束时间',
     tenant_id        VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
     create_op        VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
     create_time      DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -113,7 +113,6 @@ CREATE TABLE security_role_menu
     deleted          SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
     delete_op        VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
     delete_time      DATETIME             DEFAULT NULL COMMENT '删除时间',
-    UNIQUE INDEX uk_role_menu (role_id, menu_id),
     INDEX idx_menu_id (menu_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4

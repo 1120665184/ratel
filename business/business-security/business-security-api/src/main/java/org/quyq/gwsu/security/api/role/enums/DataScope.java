@@ -12,8 +12,8 @@ import lombok.Getter;
 @Getter
 public enum DataScope {
 
-    CUSTOM(0, "自定义"),
-    ALL(1, "全部数据"),
+    ALL(0, "全部数据"),
+    CUSTOM(1, "自定义"),
     DEPT_AND_BELOW(2, "本部门及以下"),
     DEPT_ONLY(3, "本部门"),
     SELF_ONLY(4, "仅本人");

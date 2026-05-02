@@ -17,9 +17,10 @@ import java.util.stream.Collectors;
  * @author Quyq
  * @date 2026/5/1
  * @description 表达式：判断当前时间是否在每周指定日期的指定时间段内
- * 参数：arg1 - 星期几，逗号分隔（1-7，1=周一，7=周日）
- *      arg2 - 开始时间，格式 HH:mm
- *      arg3 - 结束时间，格式 HH:mm
+ * 参数：arg1 - 当前时间（r.env.datatime），支持毫秒值/LocalDateTime/Date
+ *      arg2 - 星期几，逗号分隔（1-7，1=周一，7=周日）
+ *      arg3 - 开始时间，格式 HH:mm（为空表示00:00:00）
+ *      arg4 - 结束时间，格式 HH:mm（为空表示23:59:59）
  */
 public class CycleWeeklyFunction extends CustomFunction {
 
@@ -33,13 +34,14 @@ public class CycleWeeklyFunction extends CustomFunction {
     }
 
     @Override
-    public AviatorObject call(Map<String, Object> env, AviatorObject arg1, AviatorObject arg2, AviatorObject arg3) {
-        String weekDaysStr = (String) arg1.getValue(env);
-        String startTimeStr = (String) arg2.getValue(env);
-        String endTimeStr = (String) arg3.getValue(env);
+    public AviatorObject call(Map<String, Object> env, AviatorObject arg1, AviatorObject arg2, AviatorObject arg3, AviatorObject arg4) {
+        Object datatimeValue = arg1.getValue(env);
+        String weekDaysStr = (String) arg2.getValue(env);
+        String startTimeStr = (String) arg3.getValue(env);
+        String endTimeStr = (String) arg4.getValue(env);
 
         try {
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = TimeInRangeFunction.parseDateTime(datatimeValue);
 
             Set<Integer> weekDays = Arrays.stream(weekDaysStr.split(","))
                     .map(String::trim)

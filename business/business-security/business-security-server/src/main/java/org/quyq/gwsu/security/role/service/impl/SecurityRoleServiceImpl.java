@@ -8,14 +8,13 @@ import cn.hutool.core.util.IdUtil;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
-import org.quyq.gwsu.security.abac.domain.SecurityAbacPermission;
 import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.loading.RoleBindingMenuAbacLoading;
 import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
-import org.quyq.gwsu.security.api.abac.enums.AbacEffect;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
+import org.quyq.gwsu.security.api.role.enums.CycleType;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.enums.ValidType;
 import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
@@ -26,21 +25,20 @@ import org.quyq.gwsu.security.menu.domain.SecurityMenu;
 import org.quyq.gwsu.security.menu.mapper.SecurityMenuMapper;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
-import org.quyq.gwsu.security.role.domain.SecurityRoleMenuPermission;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
-import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuPermissionMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMapper;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -54,11 +52,11 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
 
     private final SecurityRoleMenuMapper roleMenuMapper;
 
-    private final SecurityRoleMenuPermissionMapper roleMenuPermissionMapper;
-
     private final SecurityMenuMapper menuMapper;
 
     private final PermissionAlterationManager permissionAlterationManager;
+
+    private final RoleBindingMenuAbacLoading roleBindingMenuAbacLoading;
 
     @Override
     public RoleVO getById(String id) {
@@ -128,19 +126,28 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
             }
         }
 
-        // 删除角色菜单权限关联
-        List<SecurityRoleMenu> roleMenus = roleMenuMapper.selectList(
-                new LambdaQueryWrapper<SecurityRoleMenu>()
-                        .in(SecurityRoleMenu::getRoleId, ids));
-        List<String> roleMenuIds = roleMenus.stream().map(SecurityRoleMenu::getId).toList();
-        if (!roleMenuIds.isEmpty()) {
-            roleMenuPermissionMapper.delete(new LambdaQueryWrapper<SecurityRoleMenuPermission>()
-                    .in(SecurityRoleMenuPermission::getRoleMenuId, roleMenuIds));
-        }
+        // 先删除每个角色关联的ABAC表达式权限（需要先查后删，因为wrapper按表达式隔离）
+        for (String roleId : ids) {
+            List<SecurityRoleMenu> roleMenus = roleMenuMapper.selectList(
+                    new LambdaQueryWrapper<SecurityRoleMenu>()
+                            .eq(SecurityRoleMenu::getRoleId, roleId));
 
-        // 删除角色菜单关联
-        roleMenuMapper.delete(new LambdaQueryWrapper<SecurityRoleMenu>()
-                .in(SecurityRoleMenu::getRoleId, ids));
+            if (!CollectionUtils.isEmpty(roleMenus)) {
+                SecurityRole role = baseMapper.selectById(roleId);
+                if (role != null) {
+                    // 按 validGroupKey 分组，每组构建表达式并删除
+                    java.util.Map<String, List<SecurityRoleMenu>> grouped = roleMenus.stream()
+                            .collect(Collectors.groupingBy(this::buildValidGroupKey));
+                    for (List<SecurityRoleMenu> group : grouped.values()) {
+                        SecurityRoleMenu first = group.get(0);
+                        ExpressionContext ctx = buildExpressionContext(role, first);
+                        // 传入空菜单列表，alterationUrlPermission 内部会先删旧数据（role_menu + role_menu_permission + abac_permission），不插入新数据
+                        ctx.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, Collections.emptyList());
+                        permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, ctx);
+                    }
+                }
+            }
+        }
 
         // 删除角色
         return removeBatchByIds(ids);
@@ -154,17 +161,21 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
             throw new BusinessException(SecurityErrorCode.E02001);
         }
 
+        // 补充父节点菜单ID
+        List<String> allMenuIds = collectWithParentIds(menuIds);
+
         ExpressionContext context = new ExpressionContext();
         context.setValue(role.getRoleCode());
         context.putExtraParam(RoleBindingMenuAbacLoading.ROLE_INFO_KEY, role);
+        context.putExtraParam(RoleBindingMenuAbacLoading.VALID_TYPE_KEY, ValidType.PERMANENT);
 
         List<SecurityMenu> menus = Collections.emptyList();
-        if (!CollectionUtils.isEmpty(menuIds)) {
-            menus = menuMapper.selectByIds(menuIds);
+        if (!CollectionUtils.isEmpty(allMenuIds)) {
+            menus = menuMapper.selectByIds(allMenuIds);
         }
         context.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, menus);
 
-        // 处理权限
+        // 通过 PermissionAlterationManager 处理权限
         permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, context);
 
         return true;
@@ -284,22 +295,17 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
             return true;
         }
 
-        // 查找相同时效组的所有记录
-        List<SecurityRoleMenu> sameGroupRms = roleMenuMapper.selectList(
-                        new LambdaQueryWrapper<SecurityRoleMenu>()
-                                .eq(SecurityRoleMenu::getRoleId, rm.getRoleId()))
-                .stream()
-                .filter(r -> buildValidGroupKey(r).equals(buildValidGroupKey(rm)))
-                .toList();
+        SecurityRole role = baseMapper.selectById(rm.getRoleId());
+        if (role == null) {
+            return true;
+        }
 
-        List<String> rmIds = sameGroupRms.stream().map(SecurityRoleMenu::getId).toList();
+        // 构建 context 传入时效信息，通过 PermissionAlterationManager 删除
+        // 传入空的菜单列表，alterationUrlPermission 会先删旧数据，发现新数据为空就只删不增
+        ExpressionContext context = buildExpressionContext(role, rm);
+        context.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, Collections.emptyList());
 
-        // 删除权限关联
-        roleMenuPermissionMapper.delete(new LambdaQueryWrapper<SecurityRoleMenuPermission>()
-                .in(SecurityRoleMenuPermission::getRoleMenuId, rmIds));
-
-        // 删除角色菜单关联
-        sameGroupRms.forEach(r -> roleMenuMapper.deleteById(r.getId()));
+        permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, context);
 
         return true;
     }
@@ -316,6 +322,55 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
                 rm.getCycleStartTime() != null ? rm.getCycleStartTime().toString() : "",
                 rm.getCycleEndTime() != null ? rm.getCycleEndTime().toString() : ""
         );
+    }
+
+    /**
+     * 根据 SecurityRoleMenu 的时效信息构建 ExpressionContext
+     */
+    private ExpressionContext buildExpressionContext(SecurityRole role, SecurityRoleMenu rm) {
+        ExpressionContext context = new ExpressionContext();
+        context.setValue(role.getRoleCode());
+        context.putExtraParam(RoleBindingMenuAbacLoading.ROLE_INFO_KEY, role);
+        context.putExtraParam(RoleBindingMenuAbacLoading.VALID_TYPE_KEY,
+                rm.getValidType() != null ? rm.getValidType() : ValidType.PERMANENT);
+
+        if (rm.getValidType() == ValidType.ABSOLUTE) {
+            context.putExtraParam(RoleBindingMenuAbacLoading.VALID_START_KEY,
+                    rm.getValidStart() != null ? rm.getValidStart().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null);
+            context.putExtraParam(RoleBindingMenuAbacLoading.VALID_END_KEY,
+                    rm.getValidEnd() != null ? rm.getValidEnd().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null);
+        } else if (rm.getValidType() == ValidType.CYCLE) {
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_TYPE_KEY, rm.getCycleType());
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_VALUE_KEY, rm.getCycleValue());
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_START_TIME_KEY, rm.getCycleStartTime());
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_END_TIME_KEY, rm.getCycleEndTime());
+        }
+        return context;
+    }
+
+    /**
+     * 根据 RoleValidGroupDTO 的时效信息构建 ExpressionContext
+     */
+    private ExpressionContext buildExpressionContext(SecurityRole role, RoleValidGroupDTO dto, List<SecurityMenu> menus) {
+        ExpressionContext context = new ExpressionContext();
+        context.setValue(role.getRoleCode());
+        context.putExtraParam(RoleBindingMenuAbacLoading.ROLE_INFO_KEY, role);
+        context.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, menus);
+        context.putExtraParam(RoleBindingMenuAbacLoading.VALID_TYPE_KEY,
+                dto.getValidType() != null ? dto.getValidType() : ValidType.PERMANENT);
+
+        if (dto.getValidType() == ValidType.ABSOLUTE) {
+            context.putExtraParam(RoleBindingMenuAbacLoading.VALID_START_KEY,
+                    dto.getValidStart() != null ? dto.getValidStart().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null);
+            context.putExtraParam(RoleBindingMenuAbacLoading.VALID_END_KEY,
+                    dto.getValidEnd() != null ? dto.getValidEnd().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null);
+        } else if (dto.getValidType() == ValidType.CYCLE) {
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_TYPE_KEY, dto.getCycleType());
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_VALUE_KEY, dto.getCycleValue());
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_START_TIME_KEY, dto.getCycleStartTime());
+            context.putExtraParam(RoleBindingMenuAbacLoading.CYCLE_END_TIME_KEY, dto.getCycleEndTime());
+        }
+        return context;
     }
 
     private List<MenuTreeNodeVO> buildTree(List<MenuTreeNodeVO> nodes) {
@@ -355,150 +410,130 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
         }
     }
 
+    /**
+     * 校验新增时效组是否与已有时效组重复
+     */
+    private void validateValidGroupDuplicate(String roleId, RoleValidGroupDTO dto) {
+        List<SecurityRoleMenu> existingRoleMenus = roleMenuMapper.selectList(
+                new LambdaQueryWrapper<SecurityRoleMenu>()
+                        .eq(SecurityRoleMenu::getRoleId, roleId));
+
+        // 构建新时效组的 key
+        String newGroupKey = buildValidGroupKeyFromDto(dto);
+
+        for (SecurityRoleMenu rm : existingRoleMenus) {
+            String existingKey = buildValidGroupKey(rm);
+            if (newGroupKey.equals(existingKey)) {
+                throw new BusinessException(SecurityErrorCode.E02006);
+            }
+        }
+    }
+
+    /**
+     * 根据 DTO 构建时效组 key
+     */
+    private String buildValidGroupKeyFromDto(RoleValidGroupDTO dto) {
+        return "%s_%s_%s_%s_%s_%s_%s".formatted(
+                dto.getValidType() != null ? dto.getValidType().getCode() : "",
+                dto.getValidStart() != null ? dto.getValidStart().toString() : "",
+                dto.getValidEnd() != null ? dto.getValidEnd().toString() : "",
+                dto.getCycleType() != null ? dto.getCycleType().getCode() : "",
+                dto.getCycleValue() != null ? dto.getCycleValue() : "",
+                dto.getCycleStartTime() != null ? dto.getCycleStartTime() : "",
+                dto.getCycleEndTime() != null ? dto.getCycleEndTime() : ""
+        );
+    }
+
     private Boolean createValidGroup(RoleValidGroupDTO dto, SecurityRole role) {
         List<String> menuIds = dto.getMenuIds();
         if (CollectionUtils.isEmpty(menuIds)) {
             return true;
         }
 
-        List<SecurityMenu> menus = menuMapper.selectByIds(menuIds);
+        // 校验时效组是否重复
+        validateValidGroupDuplicate(role.getId(), dto);
 
-        // 构建ExpressionContext
-        ExpressionContext context = new ExpressionContext();
-        context.setValue(role.getRoleCode());
-        context.putExtraParam(RoleBindingMenuAbacLoading.ROLE_INFO_KEY, role);
-        context.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, menus);
-        context.putExtraParam("validType", dto.getValidType().getCode());
+        // 补充父节点菜单ID
+        List<String> allMenuIds = collectWithParentIds(menuIds);
+        List<SecurityMenu> menus = menuMapper.selectByIds(allMenuIds);
 
-        if (dto.getValidType() == ValidType.ABSOLUTE) {
-            context.putExtraParam("validStart", dto.getValidStart().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-            context.putExtraParam("validEnd", dto.getValidEnd().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        }
-        if (dto.getValidType() == ValidType.CYCLE) {
-            context.putExtraParam("cycleType", dto.getCycleType().getCode());
-            context.putExtraParam("cycleValue", dto.getCycleValue());
-            context.putExtraParam("cycleStartTime", dto.getCycleStartTime() != null ? dto.getCycleStartTime().format(DateTimeFormatter.ofPattern("HH:mm")) : "");
-            context.putExtraParam("cycleEndTime", dto.getCycleEndTime() != null ? dto.getCycleEndTime().format(DateTimeFormatter.ofPattern("HH:mm")) : "");
-        }
-
-        // 处理权限
+        // 构建 ExpressionContext 并通过 PermissionAlterationManager 统一处理
+        ExpressionContext context = buildExpressionContext(role, dto, menus);
         permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, context);
-
-        // 更新security_role_menu的时效字段
-        List<SecurityRoleMenu> roleMenus = roleMenuMapper.selectList(
-                new LambdaQueryWrapper<SecurityRoleMenu>()
-                        .eq(SecurityRoleMenu::getRoleId, role.getId())
-                        .in(SecurityRoleMenu::getMenuId, menuIds));
-
-        for (SecurityRoleMenu rm : roleMenus) {
-            rm.setValidType(dto.getValidType());
-            rm.setValidStart(dto.getValidStart());
-            rm.setValidEnd(dto.getValidEnd());
-            rm.setCycleType(dto.getCycleType());
-            rm.setCycleValue(dto.getCycleValue());
-            rm.setCycleStartTime(dto.getCycleStartTime());
-            rm.setCycleEndTime(dto.getCycleEndTime());
-            roleMenuMapper.updateById(rm);
-        }
 
         return true;
     }
 
     private Boolean updateValidGroup(RoleValidGroupDTO dto, SecurityRole role) {
-        // 获取此时效组关联的所有roleMenu记录（同一validGroupKey的记录）
+        // 更新时效组：先删旧数据，再插新数据，全部通过 PermissionAlterationManager 处理
+
+        // 补充父节点菜单ID
+        List<String> rawMenuIds = dto.getMenuIds() != null ? dto.getMenuIds() : Collections.emptyList();
+        List<String> allMenuIds = collectWithParentIds(rawMenuIds);
+        List<SecurityMenu> menus = menuMapper.selectByIds(allMenuIds);
+
+        // 构建 ExpressionContext（新时效配置）
+        ExpressionContext context = buildExpressionContext(role, dto, menus);
+
+        // 如果时效配置发生了变化，需要先删除旧时效组的数据
         SecurityRoleMenu existingRm = roleMenuMapper.selectById(dto.getRoleMenuId());
-        if (existingRm == null) {
-            throw new BusinessException(SecurityErrorCode.E02001);
+        if (existingRm != null) {
+            String oldGroupKey = buildValidGroupKey(existingRm);
+            String newGroupKey = buildValidGroupKeyFromDto(dto);
+            if (!oldGroupKey.equals(newGroupKey)) {
+                // 时效配置变更，需要校验新时效组是否与已有其他组重复
+                validateValidGroupDuplicate(role.getId(), dto);
+
+                // 先删除旧时效组的ABAC表达式权限
+                ExpressionContext oldContext = buildExpressionContext(role, existingRm);
+                oldContext.putExtraParam(RoleBindingMenuAbacLoading.MENUS_INFO_KEY, Collections.emptyList());
+                permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, oldContext);
+            }
         }
 
-        // 查找相同时效组的所有记录
-        List<SecurityRoleMenu> sameGroupRms = roleMenuMapper.selectList(
-                        new LambdaQueryWrapper<SecurityRoleMenu>()
-                                .eq(SecurityRoleMenu::getRoleId, dto.getRoleId()))
-                .stream()
-                .filter(rm -> buildValidGroupKey(rm).equals(buildValidGroupKey(existingRm)))
-                .toList();
+        // 通过 PermissionAlterationManager 保存新数据（内部先删后插）
+        permissionAlterationManager.alterationUrlPermission(AbacPerType.ROLE_BINDING_MENU, context);
 
-        // 更新时效配置
-        for (SecurityRoleMenu rm : sameGroupRms) {
-            rm.setValidType(dto.getValidType());
-            rm.setValidStart(dto.getValidStart());
-            rm.setValidEnd(dto.getValidEnd());
-            rm.setCycleType(dto.getCycleType());
-            rm.setCycleValue(dto.getCycleValue());
-            rm.setCycleStartTime(dto.getCycleStartTime());
-            rm.setCycleEndTime(dto.getCycleEndTime());
-            roleMenuMapper.updateById(rm);
+        return true;
+    }
+
+    /**
+     * 补充父节点菜单ID
+     * 根据传入的菜单ID列表，自动查找所有父级菜单ID并合并返回
+     *
+     * @param menuIds 原始菜单ID列表
+     * @return 包含所有父节点的完整菜单ID列表
+     */
+    private List<String> collectWithParentIds(List<String> menuIds) {
+        if (CollectionUtils.isEmpty(menuIds)) {
+            return menuIds;
         }
-
-        // 处理菜单关联变更（如果menuIds有变化）
-        List<String> newMenuIds = dto.getMenuIds() != null ? dto.getMenuIds() : Collections.emptyList();
-        List<String> existingMenuIds = sameGroupRms.stream().map(SecurityRoleMenu::getMenuId).toList();
-
-        // 需要新增的菜单
-        List<String> toAdd = newMenuIds.stream()
-                .filter(id -> !existingMenuIds.contains(id))
-                .toList();
-        // 需要移除的菜单
-        List<String> toRemove = existingMenuIds.stream()
-                .filter(id -> !newMenuIds.contains(id))
-                .toList();
-
-        // 移除菜单关联
-        if (!toRemove.isEmpty()) {
-            List<SecurityRoleMenu> removeRms = sameGroupRms.stream()
-                    .filter(rm -> toRemove.contains(rm.getMenuId()))
-                    .toList();
-            List<String> removeRmIds = removeRms.stream().map(SecurityRoleMenu::getId).toList();
-
-            // 删除权限关联
-            roleMenuPermissionMapper.delete(new LambdaQueryWrapper<SecurityRoleMenuPermission>()
-                    .in(SecurityRoleMenuPermission::getRoleMenuId, removeRmIds));
-            // 删除角色菜单关联
-            removeRms.forEach(rm -> roleMenuMapper.deleteById(rm.getId()));
+        Set<String> result = new HashSet<>(menuIds);
+        // 查询传入的菜单，获取其 parentId
+        List<SecurityMenu> menus = menuMapper.selectByIds(menuIds);
+        Set<String> needLookup = new HashSet<>();
+        for (SecurityMenu menu : menus) {
+            String parentId = menu.getParentId();
+            if (parentId != null && !parentId.isEmpty() && !SecurityMenu.ROOT_MENU_PARENT_ID.equals(parentId)) {
+                needLookup.add(parentId);
+            }
         }
-
-        // 新增菜单关联
-        if (!toAdd.isEmpty()) {
-            List<SecurityMenu> addMenus = menuMapper.selectByIds(toAdd);
-            for (SecurityMenu menu : addMenus) {
-                SecurityRoleMenu newRm = new SecurityRoleMenu()
-                        .setRoleId(dto.getRoleId())
-                        .setMenuId(menu.getId())
-                        .setValidType(dto.getValidType())
-                        .setValidStart(dto.getValidStart())
-                        .setValidEnd(dto.getValidEnd())
-                        .setCycleType(dto.getCycleType())
-                        .setCycleValue(dto.getCycleValue())
-                        .setCycleStartTime(dto.getCycleStartTime())
-                        .setCycleEndTime(dto.getCycleEndTime());
-                roleMenuMapper.insert(newRm);
-
-                // 创建权限关联
-                String permission = menu.getPermission();
-                if (StringUtils.hasText(permission)) {
-                    String[] urlPermissions = permission.split(";");
-                    for (String urlPerm : urlPermissions) {
-                        String p = urlPerm.trim().replace("(main)", "");
-                        String[] tmp = p.split(":");
-                        SecurityAbacPermission abacP = new SecurityAbacPermission()
-                                .setId(IdUtil.getSnowflakeNextIdStr())
-                                .setEffect(AbacEffect.PERMIT)
-                                .setAction(tmp[0])
-                                .setResourceType(tmp[1])
-                                .setUrlPattern(tmp[2])
-                                .setStatus(true);
-
-                        SecurityRoleMenuPermission rmp = new SecurityRoleMenuPermission()
-                                .setRoleMenuId(newRm.getId())
-                                .setAbacPermissionId(abacP.getId());
-                        roleMenuPermissionMapper.insert(rmp);
+        // 逐层向上查找父节点，直到到达根节点
+        while (!needLookup.isEmpty()) {
+            List<SecurityMenu> parentMenus = menuMapper.selectByIds(new ArrayList<>(needLookup));
+            needLookup.clear();
+            for (SecurityMenu parent : parentMenus) {
+                if (result.add(parent.getId())) {
+                    // 新加入的父节点，继续向上查找
+                    String grandParentId = parent.getParentId();
+                    if (grandParentId != null && !grandParentId.isEmpty()
+                            && !SecurityMenu.ROOT_MENU_PARENT_ID.equals(grandParentId)) {
+                        needLookup.add(grandParentId);
                     }
                 }
             }
         }
-
-        return true;
+        return new ArrayList<>(result);
     }
 
     /**

@@ -11,7 +11,14 @@ const BASE = '/security/role';
 
 /** 分页查询角色 */
 export async function getRolePage(query: RoleQuery) {
-  return post(`${BASE}/page`, query);
+  const res = await post<{
+    records: RoleInfo[];
+    total: number;
+    size: number;
+    current: number;
+    pages: number;
+  }>(`${BASE}/page`, query);
+  return res.data;
 }
 
 /** 根据ID查询角色 */
@@ -84,4 +91,42 @@ export async function saveOrUpdateValidGroup(
 export async function deleteValidGroup(roleMenuId: string): Promise<boolean> {
   const res = await del<boolean>(`${BASE}/valid-group/${roleMenuId}`);
   return res.data;
+}
+
+/** 枚举选项 */
+interface EnumOption {
+  label: string;
+  value: number;
+}
+
+/** 获取角色类型枚举选项 */
+export async function getRoleTypeOptions(): Promise<EnumOption[]> {
+  const res = await get<EnumOption[]>(`${BASE}/enums/role-type`);
+  return res.data ?? [];
+}
+
+/** 获取数据范围枚举选项 */
+export async function getDataScopeOptions(): Promise<EnumOption[]> {
+  const res = await get<EnumOption[]>(`${BASE}/enums/data-scope`);
+  return res.data ?? [];
+}
+
+const MENU_BASE = '/security/menu';
+
+/** 菜单枚举选项（code + description） */
+interface MenuEnumOption {
+  code: number;
+  description: string;
+}
+
+/** 获取菜单所属类型枚举 */
+export async function getMenuOwnerOptions(): Promise<MenuEnumOption[]> {
+  const res = await get<MenuEnumOption[]>(`${MENU_BASE}/enums/owners`);
+  return res.data ?? [];
+}
+
+/** 获取菜单位置类型枚举 */
+export async function getMenuPositionOptions(): Promise<MenuEnumOption[]> {
+  const res = await get<MenuEnumOption[]>(`${MENU_BASE}/enums/positions`);
+  return res.data ?? [];
 }

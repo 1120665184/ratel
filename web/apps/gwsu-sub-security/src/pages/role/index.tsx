@@ -28,8 +28,8 @@ import RoleDetail from './components/RoleDetail';
 import RoleFormModal from './components/RoleFormModal';
 import MenuPermissionModal from './components/MenuPermissionModal';
 import { useRole } from './hooks/useRole';
-import type { RoleInfo, RoleQuery } from './types';
-import { ROLE_TYPE_OPTIONS, DATA_SCOPE_OPTIONS } from './types';
+import type { RoleInfo, RoleQuery, EnumOption } from './types';
+import { getRoleTypeOptions, getDataScopeOptions } from './services/role';
 
 const STATUS_OPTIONS = [
   { label: '启用', value: true },
@@ -52,6 +52,15 @@ const RolePage: React.FC = () => {
   } = useRole();
 
   const [searchForm] = Form.useForm<RoleQuery>();
+
+  // 从后端加载枚举选项
+  const [roleTypeOptions, setRoleTypeOptions] = useState<EnumOption[]>([]);
+  const [dataScopeOptions, setDataScopeOptions] = useState<EnumOption[]>([]);
+
+  useEffect(() => {
+    getRoleTypeOptions().then(setRoleTypeOptions);
+    getDataScopeOptions().then(setDataScopeOptions);
+  }, []);
 
   // 详情抽屉
   const [detailVisible, setDetailVisible] = useState(false);
@@ -137,7 +146,7 @@ const RolePage: React.FC = () => {
 
   /** 获取数据范围的文字描述 */
   const getDataScopeLabel = (value: number): string => {
-    return DATA_SCOPE_OPTIONS.find((o) => o.value === value)?.label ?? '未知';
+    return dataScopeOptions.find((o) => o.value === value)?.label ?? '未知';
   };
 
   /** 表格列定义 */
@@ -166,7 +175,7 @@ const RolePage: React.FC = () => {
       width: 120,
       render: (val: number) => (
         <Tag color={val === 1 ? 'blue' : 'orange'}>
-          {ROLE_TYPE_OPTIONS.find((o) => o.value === val)?.label ?? '未知'}
+          {roleTypeOptions.find((o) => o.value === val)?.label ?? '未知'}
         </Tag>
       ),
     },
@@ -267,7 +276,7 @@ const RolePage: React.FC = () => {
                 placeholder="全部"
                 allowClear
                 style={{ width: 140 }}
-                options={ROLE_TYPE_OPTIONS}
+                options={roleTypeOptions}
               />
             </Form.Item>
           </div>
@@ -278,7 +287,7 @@ const RolePage: React.FC = () => {
                 placeholder="全部"
                 allowClear
                 style={{ width: 140 }}
-                options={DATA_SCOPE_OPTIONS}
+                options={dataScopeOptions}
               />
             </Form.Item>
           </div>
@@ -339,6 +348,8 @@ const RolePage: React.FC = () => {
       <RoleDetail
         visible={detailVisible}
         role={detailRole}
+        roleTypeOptions={roleTypeOptions}
+        dataScopeOptions={dataScopeOptions}
         onClose={() => setDetailVisible(false)}
       />
 
@@ -347,6 +358,8 @@ const RolePage: React.FC = () => {
         visible={formModalVisible}
         mode={formModalMode}
         data={formModalData}
+        roleTypeOptions={roleTypeOptions}
+        dataScopeOptions={dataScopeOptions}
         onSave={handleSave}
         onClose={() => setFormModalVisible(false)}
         onSuccess={() => setFormModalVisible(false)}

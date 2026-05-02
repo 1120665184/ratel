@@ -17,22 +17,17 @@ import {
   DeleteOutlined,
   FolderOutlined,
   FileOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import styles from './index.module.less';
 import type { MenuTreeNode, ValidGroup } from '../../types';
 import { getValidGroupLabel } from './ValidConfigForm';
 import ValidConfigForm from './ValidConfigForm';
 
-/** MenuOwner 选项 */
-const MENU_OWNER_OPTIONS = [
-  { key: '1', label: '后端管理' },
-  { key: '2', label: '移动端APP' },
-];
-
-/** MenuPosition 映射 */
-const POSITION_TAG_MAP: Record<number, { label: string; color: string }> = {
-  1: { label: '侧边栏', color: 'blue' },
-  2: { label: '顶部栏', color: 'orange' },
+/** MenuPosition Tag 颜色映射（颜色是前端展示逻辑，不属于后端枚举） */
+const POSITION_TAG_COLORS: Record<number, string> = {
+  1: 'blue',
+  2: 'orange',
 };
 
 interface MenuTreePanelProps {
@@ -62,6 +57,10 @@ interface MenuTreePanelProps {
   loading: boolean;
   /** 时效配置表单实例 */
   validForm: ReturnType<typeof Form.useForm>[0];
+  /** 菜单所属类型枚举（从后端获取） */
+  ownerOptions: { code: number; description: string }[];
+  /** 菜单位置类型枚举（从后端获取） */
+  positionOptions: { code: number; description: string }[];
 }
 
 /** 右侧 - 菜单树面板组件 */
@@ -79,6 +78,8 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
   onDeleteGroup,
   loading,
   validForm,
+  ownerOptions,
+  positionOptions,
 }) => {
   /** 按当前 owner 过滤菜单树 */
   const filteredTreeData = useMemo(() => {
@@ -90,7 +91,6 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
           children: node.children ? filterByOwner(node.children) : undefined,
         }))
         .filter((node) => {
-          // 如果节点没有子节点，保留它自身；如果有子节点，保留有内容的
           if (node.children && node.children.length === 0) {
             return node.owner === currentOwner || node.owner === undefined;
           }
@@ -100,17 +100,12 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
     return filterByOwner(menuTreeData);
   }, [menuTreeData, currentOwner]);
 
-  /** 收集所有被其他时效组占用的菜单 ID */
-  const boundMenuIds = useMemo(() => {
-    if (!selectedGroup) return new Set<string>();
+  /** 收集所有已被任何时效组关联的菜单 ID（用于非编辑模式下显示对勾标记） */
+  const allBoundMenuIds = useMemo(() => {
     const ids = new Set<string>();
     const collect = (nodes: MenuTreeNode[]) => {
       for (const node of nodes) {
-        if (
-          node.disabled &&
-          node.boundRoleMenuId &&
-          node.boundRoleMenuId !== selectedGroup.roleMenuId
-        ) {
+        if (node.boundRoleMenuId) {
           ids.add(node.id);
         }
         if (node.children) {
@@ -120,52 +115,204 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
     };
     collect(menuTreeData);
     return ids;
-  }, [menuTreeData, selectedGroup]);
+  }, [menuTreeData]);
 
-  /** 将 MenuTreeNode 转换为 Ant Design Tree 所需的 treeData 格式 */
+  /** 收集当前选中时效组关联的菜单 ID（用于查看模式下回显勾选） */
+  const currentGroupMenuIds = useMemo(() => {
+    if (!selectedGroup || editing) return new Set<string>();
+    return new Set(selectedGroup.menuIds ?? []);
+  }, [selectedGroup, editing]);
+
+  /** 构建 子节点ID -> 父节点ID 的映射（基于过滤后的菜单树，包含按钮节点） */
+  const parentMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const buildMap = (nodes: MenuTreeNode[], parentId?: string) => {
+      for (const node of nodes) {
+        if (parentId) {
+          map.set(node.id, parentId);
+        }
+        if (node.children) {
+          buildMap(node.children, node.id);
+        }
+      }
+    };
+    buildMap(filteredTreeData);
+    return map;
+  }, [filteredTreeData]);
+
+  /** 提取每个菜单/目录节点的按钮子节点（menuType === 3），用于内联 Tag 渲染 */
+  const buttonMap = useMemo(() => {
+    const map = new Map<string, MenuTreeNode[]>();
+    const collect = (nodes: MenuTreeNode[]) => {
+      for (const node of nodes) {
+        if (node.children) {
+          const buttons = node.children.filter((c) => c.menuType === 3);
+          if (buttons.length > 0) {
+            map.set(node.id, buttons);
+          }
+          collect(node.children);
+        }
+      }
+    };
+    collect(filteredTreeData);
+    return map;
+  }, [filteredTreeData]);
+
+  /** 判断节点是否已被勾选（编辑模式用 checkedMenuIds，查看模式用 currentGroupMenuIds） */
+  const isChecked = useCallback(
+    (id: string) => {
+      if (editing) {
+        return checkedMenuIds.includes(id);
+      }
+      return currentGroupMenuIds.has(id);
+    },
+    [editing, checkedMenuIds, currentGroupMenuIds],
+  );
+
+  /** 处理按钮 Tag 点击：切换勾选状态，并自动补选父节点 */
+  const handleButtonTagClick = useCallback(
+    (btnId: string, parentId: string) => {
+      if (!editing) return;
+      const newChecked = new Set(checkedMenuIds);
+      if (newChecked.has(btnId)) {
+        newChecked.delete(btnId);
+      } else {
+        newChecked.add(btnId);
+        // 补选父节点
+        newChecked.add(parentId);
+        let ancestor = parentMap.get(parentId);
+        while (ancestor) {
+          newChecked.add(ancestor);
+          ancestor = parentMap.get(ancestor);
+        }
+      }
+      onCheckedChange(Array.from(newChecked));
+    },
+    [editing, checkedMenuIds, onCheckedChange, parentMap],
+  );
+
+  /** 将 MenuTreeNode 转换为 Ant Design Tree 所需的 treeData 格式
+   *  按钮节点(menuType === 3)从 children 中剥离，以 Tag 形式内联到父节点 title 中
+   *  目录(1)和菜单(2)保留为树节点 */
   const treeData = useMemo<TreeProps['treeData']>(() => {
     const convert = (nodes: MenuTreeNode[]): TreeProps['treeData'] => {
-      return nodes.map((node) => {
-        const isBound = boundMenuIds.has(node.id);
-        const positionTag = POSITION_TAG_MAP[node.position ?? 0];
+      return nodes
+        .filter((node) => node.menuType !== 3)
+        .map((node) => {
+          const positionEnum = positionOptions.find((p) => p.code === node.position);
+          const isBoundByOther = allBoundMenuIds.has(node.id) &&
+            (!selectedGroup || !currentGroupMenuIds.has(node.id));
+          const buttons = buttonMap.get(node.id) ?? [];
 
-        return {
-          key: node.id,
-          title: (
-            <div className={styles.treeNode}>
-              <span>
-                {node.menuType === 1 ? <FolderOutlined /> : <FileOutlined />}
-              </span>
-              <span
-                className={`${styles.nodeName} ${isBound ? styles.nodeNameDisabled : ''}`}
-              >
-                {node.menuName}
-              </span>
-              {positionTag && (
-                <Tag color={positionTag.color} className={styles.positionTag}>
-                  {positionTag.label}
-                </Tag>
-              )}
-              {isBound && (
-                <span className={styles.boundTag}>已配置</span>
-              )}
-            </div>
-          ),
-          disabled: isBound,
-          children: node.children ? convert(node.children) : undefined,
-        };
-      });
+          return {
+            key: node.id,
+            title: (
+              <div className={styles.treeNodeRow}>
+                <div className={styles.treeNode}>
+                  {isBoundByOther && (
+                    <CheckCircleOutlined className={styles.boundIcon} />
+                  )}
+                  <span>{node.menuType === 1 ? <FolderOutlined /> : <FileOutlined />}</span>
+                  <span className={styles.nodeName}>{node.menuName}</span>
+                  {positionEnum && (
+                    <Tag color={POSITION_TAG_COLORS[node.position ?? 0] ?? 'default'} className={styles.positionTag}>
+                      {positionEnum.description}
+                    </Tag>
+                  )}
+                </div>
+                {buttons.length > 0 && (
+                  <div className={styles.buttonTags}>
+                    {buttons.map((btn) => {
+                      const checked = isChecked(btn.id);
+                      const boundByOther = allBoundMenuIds.has(btn.id) &&
+                        (!selectedGroup || !currentGroupMenuIds.has(btn.id));
+                      return (
+                        <Tag
+                          key={btn.id}
+                          className={`${styles.buttonTag} ${checked ? styles.buttonTagChecked : ''}`}
+                          color={checked ? 'blue' : undefined}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleButtonTagClick(btn.id, node.id);
+                          }}
+                          style={{ cursor: editing ? 'pointer' : 'default' }}
+                        >
+                          {boundByOther && !checked && (
+                            <CheckCircleOutlined style={{ fontSize: 10, marginRight: 2, color: '#52c41a' }} />
+                          )}
+                          {btn.menuName}
+                        </Tag>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ),
+            children: node.children ? convert(node.children) : undefined,
+          };
+        });
     };
     return convert(filteredTreeData);
-  }, [filteredTreeData, boundMenuIds, checkedMenuIds]);
+  }, [filteredTreeData, allBoundMenuIds, currentGroupMenuIds, selectedGroup, positionOptions, buttonMap, isChecked, handleButtonTagClick]);
 
-  /** 处理勾选变更 */
+  /** 收集所有非按钮节点的 ID，用于受控展开 */
+  const expandedKeys = useMemo(() => {
+    const keys: string[] = [];
+    const collect = (nodes: MenuTreeNode[]) => {
+      for (const node of nodes) {
+        if (node.menuType !== 3) {
+          keys.push(node.id);
+        }
+        if (node.children) {
+          collect(node.children);
+        }
+      }
+    };
+    collect(filteredTreeData);
+    return keys;
+  }, [filteredTreeData]);
+
+  /** 查看模式下的勾选 key（仅当前选中时效组的菜单） */
+  const displayCheckedKeys = useMemo(() => {
+    if (editing || !selectedGroup) return [];
+    return selectedGroup.menuIds ?? [];
+  }, [editing, selectedGroup]);
+
+  /** 处理勾选变更 - checkStrictly 模式下：
+   *  选中父节点不选中子节点，选中子节点自动补选父节点
+   *  取消勾选菜单节点时，同步取消其下所有按钮节点的勾选 */
   const handleCheck: TreeProps['onCheck'] = useCallback(
     (checkedKeys: React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }) => {
       const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
-      onCheckedChange(keys as string[]);
+      const newChecked = new Set(keys as string[]);
+      const prevChecked = new Set(checkedMenuIds);
+
+      // 找出新增勾选的节点
+      const addedKeys = keys.filter((k) => !prevChecked.has(k as string)) as string[];
+
+      // 对新增的节点，向上补选所有祖先节点
+      for (const key of addedKeys) {
+        let current = parentMap.get(key);
+        while (current) {
+          newChecked.add(current);
+          current = parentMap.get(current);
+        }
+      }
+
+      // 找出被取消勾选的节点，如果是菜单节点则同步取消其下所有按钮
+      const removedKeys = checkedMenuIds.filter((k) => !newChecked.has(k));
+      for (const key of removedKeys) {
+        const buttons = buttonMap.get(key);
+        if (buttons) {
+          for (const btn of buttons) {
+            newChecked.delete(btn.id);
+          }
+        }
+      }
+
+      onCheckedChange(Array.from(newChecked));
     },
-    [onCheckedChange],
+    [onCheckedChange, checkedMenuIds, parentMap, buttonMap],
   );
 
   /** 没有选中时效组时的空状态 */
@@ -188,9 +335,9 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
           className={styles.ownerTabs}
           activeKey={String(currentOwner)}
           onChange={(key) => onOwnerChange(Number(key))}
-          items={MENU_OWNER_OPTIONS.map((opt) => ({
-            key: opt.key,
-            label: opt.label,
+          items={ownerOptions.map((opt) => ({
+            key: String(opt.code),
+            label: opt.description,
           }))}
         />
         <div className={styles.headerActions}>
@@ -206,7 +353,7 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
           ) : (
             <>
               <Button size="small" icon={<EditOutlined />} onClick={onEdit}>
-                编辑时效
+                编辑权限
               </Button>
               <Popconfirm
                 title="确定删除此时效组？"
@@ -244,15 +391,15 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
       </div>
 
       {/* 菜单树 */}
-      <Spin spinning={loading}>
+      <Spin spinning={loading} className={styles.treeSpinWrapper}>
         <div className={styles.treeSection}>
           <Tree
-            checkable={editing}
+            checkable
             checkStrictly
-            checkedKeys={checkedMenuIds}
-            onCheck={handleCheck}
+            checkedKeys={editing ? checkedMenuIds : displayCheckedKeys}
+            onCheck={editing ? handleCheck : undefined}
             treeData={treeData}
-            defaultExpandAll
+            expandedKeys={expandedKeys}
             selectable={false}
             blockNode
           />
