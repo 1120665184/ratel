@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  App,
   Modal,
   Form,
   Input,
@@ -54,6 +55,7 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [conditions, setConditions] = useState<DataResourceCondition[]>([]);
@@ -109,6 +111,16 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      // 校验条件行：存在条件时，字段名不能为空
+      if (conditions.length > 0) {
+        const hasEmptyFieldName = conditions.some(
+          (c) => !c.fieldName.trim(),
+        );
+        if (hasEmptyFieldName) {
+          message.warning('请填写所有条件行的字段名');
+          return;
+        }
+      }
       setLoading(true);
       const reqData: DataResourceInfo = {
         ...values,
@@ -116,7 +128,7 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
         conditions: conditions.map((c, i) => ({
           ...c,
           sort: i + 1,
-          relationship: i === 0 ? undefined : c.relationship,
+          relationship: i === 0 ? undefined : (c.relationship || 'AND'),
         })),
       };
       const success = await onSave(reqData);

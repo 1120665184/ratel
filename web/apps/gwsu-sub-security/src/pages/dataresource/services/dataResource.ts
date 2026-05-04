@@ -52,7 +52,10 @@ export async function getConditionTypeOptions(): Promise<StringEnumOption[]> {
   return res.data ?? [];
 }
 
-/** 获取用户数据资源属性列表（从 business-system 服务获取） */
+/**
+ * 获取用户数据资源属性列表
+ * 注意：此接口来自 business-system 服务（BasicController），非本服务接口
+ */
 export async function getResourceAttributes(): Promise<ResourceAttribute[]> {
   const res = await get<ResourceAttribute[]>('/basic/dataResourceAttribute');
   return res.data ?? [];
