@@ -1,29 +1,49 @@
-import { MenuFoldOutlined, MenuUnfoldOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  LoadingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from '@ant-design/icons';
 import { Menu, Spin } from 'antd';
-import { useThemeContext, useMenuStore, transformToMenuItems, findOpenKeys } from '@gwsu/core';
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { history, MicroApp, useLocation } from 'umi';
+import {
+  findOpenKeys,
+  transformToMenuItems,
+  useMenuStore,
+  useThemeContext,
+} from '@gwsu/core';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { history, Outlet, useLocation } from 'umi';
 import styles from './index.module.less';
+
+interface InterfaceOperationProps {
+  children?: React.ReactNode;
+}
 
 /**
  * 界面操作能力组件
  * 包含菜单栏和微应用界面展示
  */
-const InterfaceOperation: React.FC = () => {
+const InterfaceOperation: React.FC<InterfaceOperationProps> = () => {
   const location = useLocation();
   const { currentTheme } = useThemeContext();
-  const { menus, loading, loadMenus, currentMenuRoute, updateCurrentMenuRouteByPath } = useMenuStore();
+  const { menus, loading, loadMenus, updateCurrentMenuRouteByPath } =
+    useMenuStore();
   const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   // 根据当前路径计算需要展开的目录
-  const defaultOpenKeys = useMemo(() => findOpenKeys(menus, location.pathname), [menus, location.pathname]);
+  const defaultOpenKeys = useMemo(
+    () => findOpenKeys(menus, location.pathname),
+    [menus, location.pathname],
+  );
 
   // 菜单首次加载或路径变化时，同步 openKeys（仅在 openKeys 为空时自动设置）
   useEffect(() => {
     if (defaultOpenKeys.length > 0) {
       setOpenKeys((prev) => {
-        if (prev.length === 0 || !prev.every((k) => defaultOpenKeys.includes(k))) {
+        if (
+          prev.length === 0 ||
+          !prev.every((k) => defaultOpenKeys.includes(k))
+        ) {
           return defaultOpenKeys;
         }
         return prev;
@@ -51,13 +71,10 @@ const InterfaceOperation: React.FC = () => {
   }, [location.pathname, menus, updateCurrentMenuRouteByPath]);
 
   // 转换菜单数据
-  const menuItems = useMemo(() =>
-    menus.length > 0 ? transformToMenuItems(menus) : [],
-    [menus]
+  const menuItems = useMemo(
+    () => (menus.length > 0 ? transformToMenuItems(menus) : []),
+    [menus],
   );
-
-  // 从当前菜单路由中获取微应用名称
-  const currentApp = currentMenuRoute?.microApp || 'gwsu-sub-system';
 
   return (
     <div className={styles.interfaceOperation}>
@@ -69,9 +86,20 @@ const InterfaceOperation: React.FC = () => {
           background: currentTheme.colors.surface,
         }}
       >
-        <div className={`${styles.menuWrapper} ${collapsed ? styles.menuWrapperCollapsed : ''}`}>
+        <div
+          className={`${styles.menuWrapper} ${
+            collapsed ? styles.menuWrapperCollapsed : ''
+          }`}
+        >
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+              }}
+            >
               <Spin indicator={<LoadingOutlined spin />} />
             </div>
           ) : (
@@ -102,7 +130,7 @@ const InterfaceOperation: React.FC = () => {
         style={{ background: currentTheme.colors.background }}
       >
         <div className={styles.microAppContainer}>
-          <MicroApp name={currentApp} />
+          <Outlet />
         </div>
       </main>
     </div>

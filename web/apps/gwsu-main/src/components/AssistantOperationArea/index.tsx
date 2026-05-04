@@ -1,12 +1,16 @@
 import InterfaceOperation from '@/components/InterfaceOperation';
 import styles from './index.module.less';
 
+interface AssistantOperationAreaProps {
+  children?: React.ReactNode;
+}
+
 /**
  * 助手操作区组件
  * 作为能力容器，可承载多种操作能力
  * 当前包含：界面操作能力
  */
-const AssistantOperationArea: React.FC = () => {
+const AssistantOperationArea: React.FC<AssistantOperationAreaProps> = () => {
   return (
     <div className={styles.operationArea}>
       {/* 界面操作能力 */}

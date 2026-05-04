@@ -1,13 +1,28 @@
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { CopilotChatPanel } from '@/components/AIChat/CopilotChatPanel';
 import AssistantOperationArea from '@/components/AssistantOperationArea';
-import { PanelProvider, usePanelContext } from '@/components/AIChat/AIChatContext';
+import {
+  PanelProvider,
+  usePanelContext,
+} from '@/components/AIChat/AIChatContext';
 import { GwsuCopilotKitProvider } from '@/providers/CopilotKitProvider';
-import { LogoutOutlined, RobotOutlined, UserOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { App , Button } from 'antd';
-import { EventType, onEvent, ThemeLayout, useThemeContext ,useUserStore } from '@gwsu/core';
-import { useCallback, useEffect, useState, useRef } from 'react';
-import { history, MicroApp, useLocation } from 'umi';
+import {
+  ArrowDownOutlined,
+  LogoutOutlined,
+  RobotOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import { App, Button } from 'antd';
+import {
+  EventType,
+  onEvent,
+  ThemeLayout,
+  useThemeContext,
+  useUserStore,
+  useMenuStore,
+} from '@gwsu/core';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { history, Outlet, useLocation } from 'umi';
 import { logout } from '@/services/auth';
 import styles from './index.module.less';
 
@@ -47,11 +62,6 @@ function LayoutRouter() {
     };
   }, [location.pathname]);
 
-  // 判断当前应用
-  const currentApp = location.pathname.startsWith('/sub-security')
-    ? 'gwsu-sub-security'
-    : 'gwsu-sub-system';
-
   // 判断是否是登录页面
   const isLoginPage = location.pathname.includes('/login');
 
@@ -60,7 +70,7 @@ function LayoutRouter() {
     return (
       <div className={`${styles.mainLayout} ${styles.loginMode}`}>
         <div className={styles.loginContent}>
-          <MicroApp name={currentApp} />
+          <Outlet />
         </div>
       </div>
     );
@@ -70,10 +80,7 @@ function LayoutRouter() {
   return (
     <GwsuCopilotKitProvider>
       <PanelProvider>
-        <MainLayoutContent
-          currentTheme={currentTheme}
-          currentApp={currentApp}
-        />
+        <MainLayoutContent currentTheme={currentTheme} />
       </PanelProvider>
     </GwsuCopilotKitProvider>
   );
@@ -84,14 +91,13 @@ function MainLayoutContent({
   currentTheme,
 }: {
   currentTheme: ReturnType<typeof useThemeContext>['currentTheme'];
-  currentApp: string;
 }) {
   const { panelState, setPanelMode, togglePanel } = usePanelContext();
   // 悬浮提示相关状态
   const [showGuide, setShowGuide] = useState(false);
   const guideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const robotBtnRef = useRef<HTMLDivElement>(null);
-  const { message,modal } = App.useApp();
+  const { message, modal } = App.useApp();
   // 当面板收起时，显示引导提示
   useEffect(() => {
     if (panelState.mode === 'hidden') {
@@ -111,7 +117,10 @@ function MainLayoutContent({
 
   // 面板操作
   const handleFixed = useCallback(() => setPanelMode('fixed'), [setPanelMode]);
-  const handleDraggable = useCallback(() => setPanelMode('draggable'), [setPanelMode]);
+  const handleDraggable = useCallback(
+    () => setPanelMode('draggable'),
+    [setPanelMode],
+  );
   const handleHide = useCallback(() => setPanelMode('hidden'), [setPanelMode]);
   const handleRobotClick = useCallback(() => {
     setShowGuide(false);
@@ -130,6 +139,7 @@ function MainLayoutContent({
           await logout();
           // 通过 userStore 清除认证数据
           useUserStore.getState().logout();
+          useMenuStore.getState().clearMenus();
 
           message.success('退出成功');
 
@@ -150,7 +160,10 @@ function MainLayoutContent({
   return (
     <div className={styles.mainLayout}>
       {/* 顶部导航栏 - 固定不变 */}
-      <header className={styles.mainHeader} style={{ background: currentTheme.colors.surface }}>
+      <header
+        className={styles.mainHeader}
+        style={{ background: currentTheme.colors.surface }}
+      >
         <div className={styles.headerLeft}>
           <div className={styles.logo}>
             <img
@@ -186,7 +199,10 @@ function MainLayoutContent({
             <UserOutlined />
             管理员
           </span>
-          <a onClick={handleLogout} className={`${styles.actionItem} ${styles.logoutBtn}`}>
+          <a
+            onClick={handleLogout}
+            className={`${styles.actionItem} ${styles.logoutBtn}`}
+          >
             <LogoutOutlined />
             退出登录
           </a>
@@ -196,10 +212,12 @@ function MainLayoutContent({
       {/* 下方内容区域 */}
       <div className={styles.contentLayout}>
         {/* AI 聊天区占位 - 固定模式下保留空间 */}
-        {!isHidden && !isDraggableMode && <div className={styles.aiChatFixedPlaceholder} />}
+        {!isHidden && !isDraggableMode && (
+          <div className={styles.aiChatFixedPlaceholder} />
+        )}
 
         {/* 智能助手操作区 - 能力容器 */}
-        <AssistantOperationArea />
+        <AssistantOperationArea/>
       </div>
 
       {/* AI 聊天面板 - 始终渲染，通过 mode 属性控制显示模式，避免重新初始化 */}
