@@ -5,10 +5,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.enums.DataResourceAssertType;
+import org.quyq.gwsu.common.security.enums.DataResourceFieldConditionType;
 import org.quyq.gwsu.security.api.dataresource.DataResourceClientApi;
 import org.quyq.gwsu.security.api.dataresource.dto.DataResourceQueryDTO;
 import org.quyq.gwsu.security.api.dataresource.dto.DataResourceSaveDTO;
 import org.quyq.gwsu.security.api.dataresource.vo.DataResourceVO;
+import org.quyq.gwsu.security.api.dataresource.vo.StringEnumOptionVO;
 import org.quyq.gwsu.security.dataresource.service.ISecurityDataResourceService;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,6 +70,22 @@ public class SecurityDataResourceController implements DataResourceClientApi {
     @Override
     public R<Boolean> syncToRedis() {
         return R.ok(dataResourceService.syncToRedis());
+    }
+
+    @Operation(summary = "获取断言类型枚举选项")
+    @GetMapping("/enums/assert-type")
+    public R<List<StringEnumOptionVO>> assertTypeOptions() {
+        return R.ok(java.util.Arrays.stream(DataResourceAssertType.values())
+                .map(e -> new StringEnumOptionVO(e.getDescription(), e.name()))
+                .toList());
+    }
+
+    @Operation(summary = "获取条件关联关系枚举选项")
+    @GetMapping("/enums/condition-type")
+    public R<List<StringEnumOptionVO>> conditionTypeOptions() {
+        return R.ok(java.util.Arrays.stream(DataResourceFieldConditionType.values())
+                .map(e -> new StringEnumOptionVO(e.getDescription(), e.name()))
+                .toList());
     }
 
 }
