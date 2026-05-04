@@ -1,33 +1,23 @@
 package org.quyq.gwsu.common.security.enums;
 
-
 import lombok.Getter;
 
 /**
+ * 数据资源断言类型
+ *
  * @author Quyq
  * @date 2026/4/13
- * @description
  */
 @Getter
 public enum DataResourceAssertType {
 
-    /**
-     * 权限数据单条时 = 查询，多条时 IN查询
-     */
-    EQ,
+    EQ("等于"),
+    LIKE("模糊匹配");
 
-    /**
-     * LIKE查询
-     */
-    LIKE,
-//    /**
-//     * 如果字段中是,分隔的字符串的值，可以使用该模式
-//     * mysql会使用 find_in_set函数进行查询
-//     */
-//    SET
+    private final String description;
 
-
-    ;
-
+    DataResourceAssertType(String description) {
+        this.description = description;
+    }
 
 }
