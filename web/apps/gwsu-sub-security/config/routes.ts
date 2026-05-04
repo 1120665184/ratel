@@ -11,4 +11,8 @@ export default [
     path: '/role',
     component: '@/pages/role',
   },
+  {
+    path: '/dataresource',
+    component: '@/pages/dataresource',
+  },
 ];
