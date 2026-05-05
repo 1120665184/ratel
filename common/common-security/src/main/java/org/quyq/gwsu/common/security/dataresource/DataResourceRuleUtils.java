@@ -28,11 +28,11 @@ public class DataResourceRuleUtils {
      * @return 数据资源规则列表
      */
     public List<DataResoureRule> getAllRules() {
-        List<DataResoureRule> rules = cacheUtils.withRebel(() ->
+        DataResourceRuleList rules = cacheUtils.withRebel(() ->
                 cacheUtils.get(SecurityConstants.DataResource.DATA_RESOURCE_RULES_CACHE_KEY)
         );
 
-        return rules != null ? rules : Collections.emptyList();
+        return rules != null ? rules.rules : Collections.emptyList();
     }
 
     /**
@@ -69,6 +69,11 @@ public class DataResourceRuleUtils {
                         databaseName == null ||
                         databaseName.equals(rule.getDatabaseName()))
                 .toList();
+    }
+
+    public record DataResourceRuleList(
+            List<DataResoureRule> rules
+    ) {
     }
 
 }

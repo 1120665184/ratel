@@ -7,13 +7,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
+import org.quyq.gwsu.common.security.dataresource.DataResourceRuleUtils;
 import org.quyq.gwsu.common.security.domain.DataResoureRule;
 import org.quyq.gwsu.common.security.enums.DataResourceAssertType;
 import org.quyq.gwsu.common.security.enums.DataResourceFieldConditionType;
 import org.quyq.gwsu.security.api.dataresource.dto.DataResourceConditionSaveDTO;
 import org.quyq.gwsu.security.api.dataresource.dto.DataResourceQueryDTO;
 import org.quyq.gwsu.security.api.dataresource.dto.DataResourceSaveDTO;
-import org.quyq.gwsu.security.api.dataresource.vo.DataResourceConditionVO;
 import org.quyq.gwsu.security.api.dataresource.vo.DataResourceVO;
 import org.quyq.gwsu.security.dataresource.domain.SecurityDataResource;
 import org.quyq.gwsu.security.dataresource.domain.SecurityDataResourceCondition;
@@ -24,9 +24,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 数据资源配置服务实现
@@ -135,19 +136,19 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean removeByIds(List<Long> ids) {
-        if (CollectionUtils.isEmpty(ids)) {
+    public boolean removeByIds(Collection<?> list) {
+        if (CollectionUtils.isEmpty(list)) {
             return false;
         }
 
         // 删除条件
         conditionMapper.delete(
                 new LambdaQueryWrapper<SecurityDataResourceCondition>()
-                        .in(SecurityDataResourceCondition::getDataResourceId, ids)
+                        .in(SecurityDataResourceCondition::getDataResourceId, list)
         );
 
         // 删除主表
-        removeByIds(ids);
+        super.removeByIds(list);
 
         // 同步到 Redis
         syncToRedis();
@@ -180,7 +181,7 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
 
         // 按数据资源ID分组
         var conditionMap = allConditions.stream()
-                .collect(java.util.stream.Collectors.groupingBy(SecurityDataResourceCondition::getDataResourceId));
+                .collect(Collectors.groupingBy(SecurityDataResourceCondition::getDataResourceId));
 
         // 转换为 DataResoureRule
         return dataResources.stream()
@@ -204,7 +205,7 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
     public Boolean syncToRedis() {
         List<DataResoureRule> rules = getAllEnabledRules();
         cacheUtils.withRebel(() -> {
-            cacheUtils.set(SecurityConstants.DataResource.DATA_RESOURCE_RULES_CACHE_KEY, rules);
+            cacheUtils.set(SecurityConstants.DataResource.DATA_RESOURCE_RULES_CACHE_KEY, new DataResourceRuleUtils.DataResourceRuleList(rules));
             return null;
         });
         return true;

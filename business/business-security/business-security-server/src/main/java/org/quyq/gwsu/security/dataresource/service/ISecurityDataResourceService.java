@@ -50,13 +50,6 @@ public interface ISecurityDataResourceService extends IService<SecurityDataResou
      */
     Boolean saveOrUpdate(DataResourceSaveDTO dto);
 
-    /**
-     * 批量删除数据资源配置
-     *
-     * @param ids ID列表
-     * @return 是否成功
-     */
-    Boolean removeByIds(List<Long> ids);
 
     /**
      * 获取所有启用的数据资源规则（用于Redis同步）

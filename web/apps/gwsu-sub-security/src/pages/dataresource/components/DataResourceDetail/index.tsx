@@ -100,7 +100,7 @@ const DataResourceDetail: React.FC<DataResourceDetailProps> = ({
     <Drawer
       title="数据资源详情"
       placement="right"
-      width={640}
+      size={640}
       open={visible}
       onClose={onClose}
       className={styles.drawerBody}

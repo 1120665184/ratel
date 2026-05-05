@@ -30,28 +30,5 @@ public interface DataResourceClientApi {
     @GetExchange("/{id}")
     R<DataResourceVO> getById(@PathVariable("id") Long id);
 
-    /**
-     * 根据表名查询数据资源配置列表
-     */
-    @GetExchange("/by-table/{tableName}")
-    R<List<DataResourceVO>> listByTableName(@PathVariable("tableName") String tableName);
-
-    /**
-     * 新增或更新数据资源配置
-     */
-    @PostExchange
-    R<Boolean> saveOrUpdate(@RequestBody DataResourceSaveDTO dto);
-
-    /**
-     * 批量删除数据资源配置
-     */
-    @PostExchange("/delete")
-    R<Boolean> removeByIds(@RequestBody List<Long> ids);
-
-    /**
-     * 同步数据资源规则到Redis
-     */
-    @PostExchange("/sync")
-    R<Boolean> syncToRedis();
 
 }

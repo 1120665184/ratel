@@ -160,10 +160,15 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
     {
       title: '接口权限',
       dataIndex: 'permission',
+      className: styles.permissionCol,
       render: (val: string | null) => {
         if (!val) return '-';
-        return val.split(';').filter(Boolean).map((tag, idx) =>
-          renderPermissionTag(tag, idx)
+        return (
+          <div className={styles.permissionTagsInCell}>
+            {val.split(';').filter(Boolean).map((tag, idx) =>
+              renderPermissionTag(tag, idx)
+            )}
+          </div>
         );
       },
     },

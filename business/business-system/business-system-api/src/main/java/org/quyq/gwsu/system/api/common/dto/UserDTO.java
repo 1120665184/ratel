@@ -4,7 +4,12 @@ package org.quyq.gwsu.system.api.common.dto;
 /**
  * @author Quyq
  * @date 2026/5/4
- * @description 
+ * @description
  */
- public class UserDTO {
+
+public record UserDTO(
+        String search
+) {
+
+
 }

@@ -26,25 +26,6 @@ public class DataResourceClientApiFallbackFactory implements FallbackFactory<Dat
                 return R.fail("数据资源配置服务暂时不可用: " + cause.getMessage());
             }
 
-            @Override
-            public R<List<DataResourceVO>> listByTableName(String tableName) {
-                return R.fail("数据资源配置服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<Boolean> saveOrUpdate(DataResourceSaveDTO dto) {
-                return R.fail("数据资源配置服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<Boolean> removeByIds(List<Long> ids) {
-                return R.fail("数据资源配置服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<Boolean> syncToRedis() {
-                return R.fail("数据资源配置服务暂时不可用: " + cause.getMessage());
-            }
         };
     }
 }

@@ -25,7 +25,7 @@ import java.util.List;
  */
 @Tag(name = "数据资源配置")
 @RestController
-@RequestMapping("/security/data-resource")
+@RequestMapping("data-resource")
 @RequiredArgsConstructor
 public class SecurityDataResourceController implements DataResourceClientApi {
 
@@ -40,7 +40,6 @@ public class SecurityDataResourceController implements DataResourceClientApi {
 
     @Operation(summary = "根据表名查询数据资源配置列表")
     @GetMapping("/by-table/{tableName}")
-    @Override
     public R<List<DataResourceVO>> listByTableName(@PathVariable String tableName) {
         return R.ok(dataResourceService.listByTableName(tableName));
     }
@@ -53,21 +52,18 @@ public class SecurityDataResourceController implements DataResourceClientApi {
 
     @Operation(summary = "新增或更新数据资源配置")
     @PostMapping
-    @Override
     public R<Boolean> saveOrUpdate(@RequestBody DataResourceSaveDTO dto) {
         return R.ok(dataResourceService.saveOrUpdate(dto));
     }
 
     @Operation(summary = "批量删除数据资源配置")
     @PostMapping("/delete")
-    @Override
-    public R<Boolean> removeByIds(@RequestBody List<Long> ids) {
+    public R<Boolean> removeByIds(@RequestBody List<String> ids) {
         return R.ok(dataResourceService.removeByIds(ids));
     }
 
     @Operation(summary = "同步数据资源规则到Redis")
     @PostMapping("/sync")
-    @Override
     public R<Boolean> syncToRedis() {
         return R.ok(dataResourceService.syncToRedis());
     }
