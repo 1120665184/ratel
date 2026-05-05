@@ -14,12 +14,14 @@ import org.quyq.gwsu.common.authentication.login.domain.ThreePlatformLoginDTO;
 import org.quyq.gwsu.common.cache.utils.IDGenerationUtils;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.exception.ArgumentException;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.exception.handler.GlobalExceptionFunctionHandler;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
+import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.AccountType;
 import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -182,8 +184,10 @@ public class LoginWebConfiguration {
     private ServerResponse switchWorkspace(ServerRequest request) {
         //工作区ID
         String workspaceId = AssertUtils.hasText(request.pathVariable("workspaceId"), CommonErrorCode.E04006);
-
-        Optional<UserInfo> userInfo = securityUtils.userInfo();
+        Optional<Subject<Visitor>> subjectOpt = securityUtils.getSubject();
+        AssertUtils.isTrue(subjectOpt.isPresent(), CommonErrorCode.E03002);
+        Subject<Visitor> subject = subjectOpt.get();
+        Optional<UserInfo> userInfo = subject.userInfo();
         AssertUtils.isTrue(userInfo.isPresent(), CommonErrorCode.E03002);
 
         Optional<WorkspaceInfo> workspaceInfo = DataResourceScopeManager.workspaceList(userInfo.get())
@@ -194,7 +198,7 @@ public class LoginWebConfiguration {
         }
 
         sessionUtils.putValue(SecurityConstants.Session.SESSION_CURR_WORKSPACE, workspaceInfo.get());
-        Map<String, List<?>> dataedResource = DataResourceScopeManager.dataResource(workspaceInfo.get(), userInfo.get());
+        Map<String, List<?>> dataedResource = DataResourceScopeManager.dataResource(workspaceInfo.get(), userInfo.get() ,subject.getDataScope());
         sessionUtils.putValue(SecurityConstants.Session.SESSION_CURR_DATA_RESOURCE, dataedResource);
         log.info("====>工作区【{}】切换成功 ,当前资源数据：{}", workspaceInfo.get().name(), gson.toJson(dataedResource));
 
