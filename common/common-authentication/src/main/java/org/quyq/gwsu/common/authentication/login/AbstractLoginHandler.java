@@ -20,11 +20,15 @@ import org.quyq.gwsu.common.core.exception.ExceptionMsgHandler;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
+import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Quyq
@@ -112,20 +116,24 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
         // tokensession 存储当前工作空间和数据资源信息
         tokenSession.set(SecurityConstants.Session.SESSION_CURR_WORKSPACE, workspaceList.getFirst());
         tokenSession.set(SecurityConstants.Session.SESSION_CURR_DATA_RESOURCE,
-                DataResourceScopeManager.dataResource(workspaceList.getFirst(), auth));
+                DataResourceScopeManager.dataResource(workspaceList.getFirst(), auth, subject.getDataScope()));
     }
 
 
     private Subject<U> buildSubject(U user, VisitorType visitorType) {
         Subject<U> subject = new Subject<>(visitorType, user, loginType());
 
-        // 加载角色信息
+        // 加载角色、作用域信息
         List<IRoleInfoClientApi> roleClientApi = SpringUtils.getBeansOfType(IRoleInfoClientApi.class);
         if (!CollectionUtils.isEmpty(roleClientApi)) {
-            List<String> roles = FeignUtils.data(roleClientApi.getFirst().getRoleListBySubject(user.getUserId()));
-            if (!CollectionUtils.isEmpty(roles)) {
-                subject.setRoles(roles);
+            UserRoleInfo roleInfo = FeignUtils.data(roleClientApi.getFirst().getRoleListBySubject(user.getUserId()));
+            if (Objects.nonNull(roleInfo)) {
+                if (!CollectionUtils.isEmpty(roleInfo.roles())) {
+                    subject.setRoles(roleInfo.roles());
+                }
+                subject.setDataScope(Optional.ofNullable(roleInfo.dataScope()).orElse(DataScope.SELF_ONLY));
             }
+
         }
 
         return subject;

@@ -5,12 +5,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
+import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.RoleClientApi;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
-import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.vo.EnumOptionVO;
 import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
@@ -20,6 +21,7 @@ import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -53,10 +55,19 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
     @Operation(summary = "根据主体ID查询角色标识列表")
     @GetMapping("list/{subjectId}")
     @Override
-    public R<List<String>> getRoleListBySubject(@PathVariable String subjectId) {
-        return R.ok(roleService.listBySubjectId(subjectId)
-                .stream().map(RoleVO::getRoleCode)
-                .toList());
+    public R<UserRoleInfo> getRoleListBySubject(@PathVariable String subjectId) {
+        List<RoleVO> roles = roleService.listBySubjectId(subjectId);
+        List<String> roleCodes = roles.stream().map(RoleVO::getRoleCode)
+                .toList();
+
+        DataScope dataScope = roles.stream()
+                .filter(role -> role.getDataScope() != null)   // 忽略 null 值
+                .min(Comparator.comparing(RoleVO::getDataScope))
+                .map(role -> DataScope.of(role.getDataScope()))
+                .orElse(null);
+
+
+        return R.ok(new UserRoleInfo(dataScope, roleCodes));
     }
 
     @Operation(summary = "新增或更新角色")

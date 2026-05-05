@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import org.quyq.gwsu.common.authentication.constants.AuthenticationConstants;
 import org.quyq.gwsu.common.authentication.domain.WorkspaceInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -34,7 +35,7 @@ public class DataResourceScopeManager {
      * @param workspaceInfo
      * @return
      */
-    public static Map<String, List<?>> dataResource(WorkspaceInfo workspaceInfo, UserInfo userInfo) {
+    public static Map<String, List<?>> dataResource(WorkspaceInfo workspaceInfo, UserInfo userInfo, DataScope scope) {
         if (CollectionUtils.isEmpty(attributeProviders)) {
             return Collections.emptyMap();
         }
@@ -42,7 +43,7 @@ public class DataResourceScopeManager {
         Map<String, List<?>> tmp = new HashMap<>();
         //加载所有当前用户在指定工作区的数据资源数据。
         attributeProviders.forEach(provider ->
-                tmp.put(provider.keyInfo().key(), provider.datas(workspaceInfo, userInfo))
+                tmp.put(provider.keyInfo().key(), provider.datas(workspaceInfo, userInfo, scope))
         );
 
 

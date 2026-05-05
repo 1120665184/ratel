@@ -13,6 +13,7 @@ import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.deserializer.VisitorDeserializer;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.springframework.util.CollectionUtils;
 
@@ -53,6 +54,11 @@ public class Subject<T extends Visitor> {
      * 角色信息
      */
     private List<String> roles = new ArrayList<>();
+
+    /**
+     * 数据权限作用域
+     */
+    private DataScope dataScope;
 
 
     /**

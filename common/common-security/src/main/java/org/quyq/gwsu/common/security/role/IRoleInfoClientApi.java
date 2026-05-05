@@ -4,6 +4,7 @@ package org.quyq.gwsu.common.security.role;
 import org.quyq.gwsu.common.api.annotation.ApiClient;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
 import org.quyq.gwsu.common.security.role.factory.RoleInfoClientApiFallbackFactory;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.service.annotation.GetExchange;
@@ -27,6 +28,6 @@ public interface IRoleInfoClientApi {
      * @return
      */
     @GetExchange("/list/{subjectId}")
-    R<List<String>> getRoleListBySubject(@PathVariable String subjectId);
+    R<UserRoleInfo> getRoleListBySubject(@PathVariable String subjectId);
 
 }
