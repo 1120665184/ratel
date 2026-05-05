@@ -10,7 +10,7 @@ import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.RoleClientApi;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
-import org.quyq.gwsu.security.api.role.enums.DataScope;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.vo.EnumOptionVO;
 import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;

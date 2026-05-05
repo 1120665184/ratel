@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.api.role.enums;
+package org.quyq.gwsu.common.security.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -12,8 +12,7 @@ import lombok.Getter;
 @Getter
 public enum DataScope {
 
-    ALL(0, "全部数据"),
-    CUSTOM(1, "自定义"),
+    ALL(1, "全部数据"),
     DEPT_AND_BELOW(2, "本部门及以下"),
     DEPT_ONLY(3, "本部门"),
     SELF_ONLY(4, "仅本人");

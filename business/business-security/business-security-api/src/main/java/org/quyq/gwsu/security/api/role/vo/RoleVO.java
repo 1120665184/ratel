@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.quyq.gwsu.common.core.domain.BaseVO;
-import org.quyq.gwsu.security.api.role.enums.DataScope;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 
 /**
@@ -36,7 +35,7 @@ public class RoleVO extends BaseVO {
     private RoleType roleType;
 
     @Schema(description = "数据范围")
-    private DataScope dataScope;
+    private Integer dataScope;
 
     @Schema(description = "状态：true-正常 false-禁用")
     private Boolean status;

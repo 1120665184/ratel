@@ -1,0 +1,55 @@
+.assignRoleModal {
+  .searchBar {
+    margin-bottom: 12px;
+  }
+
+  .roleList {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color, #f0f0f0);
+    border-radius: 8px;
+    padding: 8px 0;
+  }
+
+  .roleItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: var(--surface-color, #fafafa);
+    }
+
+    &Info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    &Name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+
+    &Code {
+      font-size: 12px;
+      color: var(--text-secondary-color, #999);
+    }
+  }
+
+  .emptyTip {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-secondary-color, #999);
+    font-size: 13px;
+  }
+
+  .footerInfo {
+    font-size: 12px;
+    color: var(--text-secondary-color, #999);
+  }
+}

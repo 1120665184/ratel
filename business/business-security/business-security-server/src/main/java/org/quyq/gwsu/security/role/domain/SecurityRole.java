@@ -8,9 +8,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
-import org.quyq.gwsu.security.api.role.enums.DataScope;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
+
+import java.util.Optional;
 
 /**
  * 角色表
@@ -63,7 +65,7 @@ public class SecurityRole extends BaseDO {
         entity.setSort(vo.getSort());
         entity.setDescription(vo.getDescription());
         entity.setRoleType(vo.getRoleType());
-        entity.setDataScope(vo.getDataScope());
+        entity.setDataScope(Optional.ofNullable(vo.getDataScope()).map(DataScope::of).orElse(null));
         entity.setStatus(vo.getStatus());
         return entity;
     }
@@ -81,7 +83,7 @@ public class SecurityRole extends BaseDO {
         vo.setSort(this.sort);
         vo.setDescription(this.description);
         vo.setRoleType(this.roleType);
-        vo.setDataScope(this.dataScope);
+        vo.setDataScope(Optional.ofNullable(this.dataScope).map(DataScope::getCode).orElse(null));
         vo.setStatus(this.status);
         vo.copyBaseProperties(this);
         return vo;
