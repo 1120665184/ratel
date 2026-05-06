@@ -21,6 +21,7 @@ import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.processor.AgentResolver;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
 import io.agentscope.core.session.Session;
+import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 
 import java.util.Objects;
@@ -96,13 +97,13 @@ public class DefaultAgentResolver implements AgentResolver {
         Agent agent = registry.getAgent(agentId)
                 .orElseThrow(() -> new AguiException.AgentNotFoundException(agentId));
         if (Objects.nonNull(session) && agent instanceof ReActAgent raa) {
+            raa.getHooks().add(new WebToolExecuteHook(threadId));
             String userId = null;
             if (Objects.nonNull(getUserId)) {
                 userId = getUserId.get();
             }
             raa.loadIfExists(session, CommonSessionKey.of(threadId, userId));
         }
-
         return agent;
 
     }

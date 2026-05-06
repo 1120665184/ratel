@@ -6,13 +6,14 @@ import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
-import io.agentscope.core.agui.processor.AguiRequestProcessor;
 import io.agentscope.core.session.Session;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.core.domain.R;
 import org.springframework.http.MediaType;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -45,10 +47,16 @@ public abstract class AguiController {
 
     private final AguiEventEncoder encoder = new AguiEventEncoder();
 
+    private final static Map<String, AIRunnerInstanceWrapper> CURR_EMITTER = new ConcurrentHashMap<>();
+
 
     @Setter
     private Session agentSession;
 
+
+    public static AIRunnerInstanceWrapper getCurrEmitter(String threadId) {
+        return CURR_EMITTER.get(threadId);
+    }
 
     /**
      * CopilotKit Single Endpoint 统一入口
@@ -158,7 +166,6 @@ public abstract class AguiController {
         SseEmitter emitter = new SseEmitter(sseTimeout);
         String threadId = input.getThreadId();
         String runId = input.getRunId();
-
         executorService.submit(
                 () -> {
                     Disposable subscription;
@@ -166,15 +173,19 @@ public abstract class AguiController {
                         // Process request - returns both agent and event stream
                         AguiRequestProcessor.ProcessResult result =
                                 processor.process(input, headerAgentId, pathAgentId);
-
+                        CURR_EMITTER.put(threadId, new AIRunnerInstanceWrapper(input, emitter));
                         // Set up callbacks for client disconnect handling
                         emitter.onCompletion(
-                                () -> log.debug("SSE connection completed for run {}", runId));
+                                () -> {
+                                    log.debug("SSE connection completed for run {}", runId);
+                                    CURR_EMITTER.remove(threadId);
+                                });
                         emitter.onTimeout(
                                 () -> {
                                     log.info(
                                             "SSE connection timed out for run {}, interrupting agent",
                                             runId);
+                                    CURR_EMITTER.remove(threadId);
                                     result.agent().interrupt();
                                 });
                         emitter.onError(
@@ -183,6 +194,7 @@ public abstract class AguiController {
                                             "SSE connection error for run {}: {}, interrupting agent",
                                             runId,
                                             ex.getMessage());
+                                    CURR_EMITTER.remove(threadId);
                                     result.agent().interrupt();
                                 });
 

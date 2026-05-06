@@ -4,7 +4,6 @@ package org.quyq.gwsu.security.brain.service.impl;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agui.adapter.AguiAdapterConfig;
-import io.agentscope.core.agui.processor.AguiRequestProcessor;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
 import io.agentscope.core.memory.Memory;
 import io.agentscope.core.model.Model;
@@ -13,9 +12,11 @@ import io.agentscope.core.tool.Toolkit;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.DefaultAgentResolver;
 import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
+import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.brain.service.IBrainService;
+import org.quyq.gwsu.security.brain.service.tool.WebTool;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +42,10 @@ public class BrainServiceImpl implements IBrainService {
 
     public Agent buildAgent() {
         Memory memory = memoryProvider.getIfAvailable();
-        Toolkit toolkit = toolkitProvider.getIfAvailable();
+        Toolkit toolkit = toolkitProvider.getIfAvailable(Toolkit::new);
+
+
+        toolkit.registerTool(new WebTool());
 
         return getAgent(memory, toolkit);
     }
