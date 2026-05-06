@@ -6,9 +6,11 @@ import io.agentscope.core.memory.InMemoryMemory;
 import io.agentscope.core.memory.Memory;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.tool.Toolkit;
+import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.config.properties.AgentProperties;
 import org.quyq.gwsu.common.ai.config.properties.AgentscopeProperties;
 import org.quyq.gwsu.common.ai.model.ModelProviderType;
+import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -65,6 +67,11 @@ public class AgentscopeConfiguraiton {
                 .toolkit(toolkit)
                 .maxIters(config.getMaxIters())
                 .build();
+    }
+
+    @Bean
+    public WebToolUtils webToolUtils(CacheUtils cacheUtils) {
+        return new WebToolUtils(cacheUtils);
     }
 
 

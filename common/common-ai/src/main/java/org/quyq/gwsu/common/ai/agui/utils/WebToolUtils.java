@@ -4,36 +4,148 @@ package org.quyq.gwsu.common.ai.agui.utils;
 import com.google.gson.Gson;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.tool.ToolEmitter;
-import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.web.WebToolInfo;
+import org.quyq.gwsu.common.ai.agui.web.WebToolStatus;
+import org.quyq.gwsu.common.ai.agui.web.WebToolTask;
+import org.quyq.gwsu.common.cache.utils.CacheUtils;
 
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
- * @author Quyq
- * @date 2026/5/6
- * @description
+ * Web工具执行服务
+ * 封装：生成toolCallId → 发送CUSTOM事件 → Redis存储 → 信号量等待 → 返回结果
+ * <p>
+ * 通过Spring注入使用，操作Redis统一使用CacheUtils
  */
+@Slf4j
+@RequiredArgsConstructor
 public class WebToolUtils {
-
-    private WebToolUtils() {
-    }
 
     public static final String WEB_TOOL_IDENTIFICATION = "NOTICE_WEB_TOOL:";
 
     /**
-     * 通知web端执行指定工具
-     *
-     * @param toolEmitter
-     * @param toolName
-     * @param params
+     * Redis key 前缀
      */
-    public static void webExecuteTool(ToolEmitter toolEmitter, String toolName, Map<String, Object> params) {
-        WebToolExecuteHook.WebToolInfo info = new WebToolExecuteHook.WebToolInfo(toolName, params);
-        Gson gson = new Gson();
-        toolEmitter.emit(
-                ToolResultBlock.text(WEB_TOOL_IDENTIFICATION + gson.toJson(info))
-        );
+    private static final String KEY_PREFIX = "web-tool:";
 
+    /**
+     * 信号量 key 前缀
+     */
+    private static final String SEMAPHORE_PREFIX = "web-tool:sem:";
+
+    /**
+     * 默认超时时间（秒）
+     */
+    private static final long DEFAULT_TIMEOUT_SECONDS = 60;
+
+    /**
+     * Redis TTL（秒），大于超时时间确保回调时数据仍存在
+     */
+    private static final long REDIS_TTL_SECONDS = 120;
+
+    private static final Gson gson = new Gson();
+
+    private final CacheUtils cacheUtils;
+
+    /**
+     * 通知web端执行指定工具，阻塞等待前端结果后返回
+     *
+     * @param toolEmitter 工具发射器
+     * @param toolName    工具名称
+     * @param params      工具参数
+     * @return 工具执行结果
+     */
+    public ToolResultBlock webExecuteTool(ToolEmitter toolEmitter, String toolName,
+                                          Map<String, Object> params) {
+        return webExecuteTool(toolEmitter, toolName, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
+    /**
+     * 通知web端执行指定工具，阻塞等待前端结果后返回
+     *
+     * @param toolEmitter    工具发射器
+     * @param toolName       工具名称
+     * @param params         工具参数
+     * @param timeoutSeconds 超时时间（秒）
+     * @return 工具执行结果
+     */
+    public ToolResultBlock webExecuteTool(ToolEmitter toolEmitter, String toolName,
+                                          Map<String, Object> params,
+                                          long timeoutSeconds) {
+        String toolCallId = UUID.randomUUID().toString();
+
+        // 1. 发送CUSTOM事件给前端（通过ToolEmitter → Hook → SSE）
+        WebToolInfo info = new WebToolInfo(toolCallId, toolName, params);
+        toolEmitter.emit(ToolResultBlock.text(WEB_TOOL_IDENTIFICATION + gson.toJson(info)));
+
+        // 2. Redis存储任务信息
+        String taskKey = KEY_PREFIX + toolCallId;
+        cacheUtils.set(taskKey, WebToolTask.pending(toolCallId, toolName, params), REDIS_TTL_SECONDS, TimeUnit.SECONDS);
+
+        // 3. 信号量等待前端结果
+        String semKey = SEMAPHORE_PREFIX + toolCallId;
+        boolean acquired = cacheUtils.tryAcquirePermit(semKey, 1, timeoutSeconds, TimeUnit.SECONDS);
+
+        if (!acquired) {
+            // 超时：更新Redis状态
+            WebToolTask task = cacheUtils.get(taskKey);
+            if (task != null) {
+                cacheUtils.set(taskKey, task.withResult(WebToolStatus.TIMEOUT, "执行超时"), 60, TimeUnit.SECONDS);
+            }
+            return ToolResultBlock.text("工具执行超时: " + toolName);
+        }
+
+        // 4. 获取并返回结果
+        WebToolTask task = cacheUtils.get(taskKey);
+        if (task == null) {
+            return ToolResultBlock.text("工具执行结果丢失: " + toolName);
+        }
+
+        if (task.status() == WebToolStatus.SUCCESS) {
+            return ToolResultBlock.text(task.result());
+        } else {
+            return ToolResultBlock.text("工具执行失败: " + task.result());
+        }
+    }
+
+    /**
+     * 处理前端工具执行结果回调
+     *
+     * @return 处理结果
+     */
+    public boolean handleCallback(String toolCallId, boolean success, String result) {
+        String taskKey = KEY_PREFIX + toolCallId;
+        WebToolTask task = cacheUtils.get(taskKey);
+
+        if (task == null) {
+            log.warn("无效的toolCallId: {}", toolCallId);
+            return false;
+        }
+
+        if (task.status() != WebToolStatus.PENDING) {
+            log.warn("工具任务已处理: {}", toolCallId);
+            return false;
+        }
+
+        // 更新状态和结果
+        WebToolStatus status = success ? WebToolStatus.SUCCESS : WebToolStatus.FAILED;
+        cacheUtils.set(taskKey, task.withResult(status, result), 60, TimeUnit.SECONDS);
+
+        // 释放信号量，唤醒等待的webExecuteTool()
+        String semKey = SEMAPHORE_PREFIX + toolCallId;
+        cacheUtils.releasePermit(semKey, 1);
+
+        return true;
+    }
+
+    /**
+     * 获取Redis key前缀
+     */
+    public static String getKeyPrefix() {
+        return KEY_PREFIX;
+    }
 }

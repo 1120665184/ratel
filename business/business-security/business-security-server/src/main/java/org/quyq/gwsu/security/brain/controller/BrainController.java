@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.AguiController;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
@@ -25,12 +27,6 @@ import java.util.List;
 
 /**
  * CopilotKit Runtime 端点控制器
- * <p>
- * 支持 CopilotKit Single Endpoint 模式的所有方法：
- * - info: 获取 runtime 信息
- * - agent/connect: 连接到 agent（SSE）
- * - agent/run: 运行 agent（SSE）
- * - agent/stop: 停止 agent
  *
  * @author Quyq
  * @date 2026/4/22
@@ -49,10 +45,10 @@ public class BrainController {
     private final SecurityUtils securityUtils;
 
 
-    public BrainController(IBrainService brainService, Session agentSession, SecurityUtils securityUtils, IBrainHistoryService brainHistoryService) {
+    public BrainController(IBrainService brainService, Session agentSession, SecurityUtils securityUtils, IBrainHistoryService brainHistoryService, WebToolUtils webToolUtils) {
         this.brainHistoryService = brainHistoryService;
         this.securityUtils = securityUtils;
-        this.aguiController = new AguiController(brainService.buildAguiProcessor(), 600000L) {
+        this.aguiController = new AguiController(brainService.buildAguiProcessor(), webToolUtils, 600000L) {
             @Override
             protected CopilotKitInfo handleInfo() {
                 return new CopilotKitInfo()
@@ -71,13 +67,11 @@ public class BrainController {
 
     /**
      * 中央大脑统一入口
-     *
-     * @param request
-     * @param headerAgentId
-     * @return
      */
     @Operation(summary = "中央大脑（智能助手）聊天入口")
-    @PostMapping(value = "run/copilotKit", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "run/copilotKit",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     public Object handleCopilotKitRequest(@RequestBody ChatDTO request,
                                           @RequestHeader(value = DEFAULT_AGENT_ID_HEADER, required = false) String headerAgentId) {
 
@@ -112,5 +106,11 @@ public class BrainController {
             return R.fail("用户未登录");
         }
         return R.ok(brainHistoryService.deleteSession(sessionId, userId));
+    }
+
+    @Operation(summary = "前端工具执行结果回调")
+    @PostMapping("tool/callback")
+    public R<Void> toolCallback(@RequestBody WebToolCallbackRequest request) {
+        return aguiController.handleToolCallback(request);
     }
 }

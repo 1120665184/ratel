@@ -19,19 +19,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 
 /**
- * @author Quyq
- * @date 2026/5/6
- * @description 监听是否有需要浏览器端执行的工具事件，有的话发送给浏览器
+ * 监听是否有需要浏览器端执行的工具事件，有的话发送给浏览器
  */
 @Slf4j
 public class WebToolExecuteHook implements Hook {
 
     private final String threadId;
-
 
     public WebToolExecuteHook(String threadId) {
         this.threadId = threadId;
@@ -44,8 +40,8 @@ public class WebToolExecuteHook implements Hook {
     @Override
     public <T extends HookEvent> Mono<T> onEvent(T event) {
         if (event instanceof ActingChunkEvent e && !CollectionUtils.isEmpty(e.getChunk().getOutput())) {
-            ContentBlock black = e.getChunk().getOutput().getFirst();
-            if (black instanceof TextBlock t && t.getText().startsWith(WebToolUtils.WEB_TOOL_IDENTIFICATION)) {
+            ContentBlock block = e.getChunk().getOutput().getFirst();
+            if (block instanceof TextBlock t && t.getText().startsWith(WebToolUtils.WEB_TOOL_IDENTIFICATION)) {
 
                 WebToolInfo info = gson.fromJson(
                         t.getText().replace(WebToolUtils.WEB_TOOL_IDENTIFICATION, ""),
@@ -74,12 +70,4 @@ public class WebToolExecuteHook implements Hook {
             log.debug("Failed to send SSE event: {}", e.getMessage());
         }
     }
-
-
-    public record WebToolInfo(
-            String toolName,
-            Map<String, Object> params
-    ) {
-    }
-
 }

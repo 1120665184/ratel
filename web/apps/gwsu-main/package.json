@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "dev": "PORT=8000 umi dev",
+    "dev": "PORT=8000 UMI_DEV_SERVER_COMPRESS=none umi dev",
     "start": "umi dev",
     "build": "umi build",
     "postinstall": "umi setup",

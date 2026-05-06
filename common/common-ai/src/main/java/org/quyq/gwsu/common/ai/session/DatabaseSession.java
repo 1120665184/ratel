@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * state_key  VARCHAR(255) NOT NULL,
  * item_index INT          NOT NULL DEFAULT 0,
  * state_data TEXT         NOT NULL,
- * user_id    BIGINT,                          -- 关联登录用户
+ * user_id    VARCHAR(24),                          -- 关联登录用户
  * created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
  * updated_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
  * PRIMARY KEY (session_id, state_key, item_index)

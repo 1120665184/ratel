@@ -14,6 +14,8 @@ import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
+import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.core.domain.R;
 import org.springframework.http.MediaType;
@@ -40,6 +42,8 @@ import java.util.concurrent.Executors;
 public abstract class AguiController {
 
     private final AguiRequestProcessor processor;
+
+    private final WebToolUtils webToolUtils;
 
     private final long sseTimeout;
 
@@ -85,6 +89,20 @@ public abstract class AguiController {
             default -> ResponseEntity.badRequest().body(R.fail("未知的方法：%s".formatted(request.method())));
         };
 
+    }
+
+    /**
+     * 处理前端工具执行结果回调
+     *
+     * @param request 回调请求
+     * @return 处理结果
+     */
+    public R<Void> handleToolCallback(WebToolCallbackRequest request) {
+        boolean success = webToolUtils.handleCallback(request.toolCallId(), request.success(), request.result());
+        if (!success) {
+            return R.fail("工具回调处理失败: " + request.toolCallId());
+        }
+        return R.ok();
     }
 
     /**

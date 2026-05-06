@@ -6,23 +6,20 @@ import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolEmitter;
 import io.agentscope.core.tool.ToolParam;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.core.utils.SpringUtils;
 
 import java.util.Map;
 
 /**
- * @author Quyq
- * @date 2026/5/6
- * @description
+ * Web端工具集合
+ * 通过SpringUtils获取WebToolUtils Bean，因为WebTool由AgentScope反射实例化，非Spring管理
  */
 public class WebTool {
-
 
     @Tool(description = "控制web界面跳转到指定路由")
     public ToolResultBlock routeNavigation(@ToolParam(name = "path", description = "跳转的路由地址") String path,
                                            ToolEmitter emitter) {
-        WebToolUtils.webExecuteTool(emitter, "routeNavigation", Map.of("path", path));
-        return ToolResultBlock.text("跳转成功");
-
+        return SpringUtils.getBean(WebToolUtils.class)
+                .webExecuteTool(emitter, "routeNavigation", Map.of("path", path));
     }
-
 }
