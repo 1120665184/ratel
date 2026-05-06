@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.AguiController;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -53,7 +54,9 @@ public class WebToolExecuteHook implements Hook {
                 }
 
                 //发送工具执行自定义事件
-                AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(threadId, sseEmitter.input().getRunId(), "TOOL_EXECUTE", info);
+                AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(threadId, sseEmitter.input().getRunId(),
+                        AIConstants.AguiCustomEvent.TOOL_EXECUTE
+                        , info);
                 sendEvent(sseEmitter.emitter(), customAguiEvent);
             }
 

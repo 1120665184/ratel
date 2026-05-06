@@ -2,6 +2,7 @@ package org.quyq.gwsu.common.ai.config;
 
 
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.AgentBase;
 import io.agentscope.core.memory.InMemoryMemory;
 import io.agentscope.core.memory.Memory;
 import io.agentscope.core.model.Model;
@@ -9,6 +10,7 @@ import io.agentscope.core.tool.Toolkit;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.config.properties.AgentProperties;
 import org.quyq.gwsu.common.ai.config.properties.AgentscopeProperties;
+import org.quyq.gwsu.common.ai.loop.HumanInTheLoopHook;
 import org.quyq.gwsu.common.ai.model.ModelProviderType;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
@@ -71,6 +73,7 @@ public class AgentscopeConfiguraiton {
 
     @Bean
     public WebToolUtils webToolUtils(CacheUtils cacheUtils) {
+        AgentBase.addSystemHook(new HumanInTheLoopHook());
         return new WebToolUtils(cacheUtils);
     }
 
