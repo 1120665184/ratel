@@ -11,6 +11,7 @@ import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfi
 import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
 // 确保 route-navigation 工具被注册
 import '@/services/web-tool/tools/route-navigation';
+import { AgentSubscriber } from '@ag-ui/client';
 
 interface GwsuCopilotKitProviderProps {
   children: ReactNode;
@@ -22,9 +23,10 @@ interface GwsuCopilotKitProviderProps {
  * 必须在 CopilotKit 内部使用
  */
 function ToolCallRendererRegistration() {
+  // @ts-ignore
   useRenderToolCall({
     name: '*',
-    render: (props) => <ToolCallItem {...props} />,
+    render: (props: any) => <ToolCallItem {...props} />,
   });
   return null;
 }
@@ -45,11 +47,14 @@ function WebToolEventListener() {
       subscriptionRef.current.unsubscribe();
     }
 
-    const subscriber = {
-      onCustomEvent: ({ event }: { event: { name: string; value: unknown } }) => {
+    const subscriber: AgentSubscriber = {
+      onCustomEvent: ({ event }):void => {
+        //web工具调用
         if (event.name === 'TOOL_EXECUTE') {
           dispatchWebTool(event.value as WebToolExecutePayload);
-        } else if (event.name === 'HUMAN_APPROVAL') {
+        }
+        //人工干预审批
+        else if (event.name === 'HUMAN_APPROVAL') {
           dispatchHumanApproval(event.value as HumanApprovalPayload);
         }
       },

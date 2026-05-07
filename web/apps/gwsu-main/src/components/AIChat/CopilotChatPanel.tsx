@@ -12,7 +12,7 @@ import { usePanelContext } from './AIChatContext';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { HumanApprovalBar } from './HumanApprovalBar';
 import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
-import { dispatchHumanApproval } from '@/services/human-approval';
+import { dispatchHumanApproval, clearHumanApproval } from '@/services/human-approval';
 import styles from './copilot-override.module.less';
 
 interface CopilotChatPanelProps {
@@ -90,6 +90,7 @@ export function CopilotChatPanel({
   // 新建会话
   const handleNewSession = () => {
     reset();
+    clearHumanApproval();
     // 生成新的 threadId，让后端创建新的会话
     const newThreadId = crypto.randomUUID();
     setCurrentThreadId(newThreadId);
@@ -98,6 +99,8 @@ export function CopilotChatPanel({
 
   const handleLoadSession = async (sessionId: string) => {
     try {
+      // 先清除旧的审批状态，避免切换会话后旧审批弹框残留
+      clearHumanApproval();
       const messages = await getSessionMessages(sessionId);
       reset();
       agent.threadId = sessionId;
@@ -119,19 +122,14 @@ export function CopilotChatPanel({
       });
       agent.setMessages(formattedMessages);
 
-      // 检查是否需要恢复审批状态
-      const lastAssistantMsg = [...messages].reverse().find(
-        (msg: BrainMessage) => msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0
-      );
-      if (lastAssistantMsg) {
-        try {
-          const approvalStatus = await getApprovalStatus(sessionId);
-          if (approvalStatus.stage) {
-            dispatchHumanApproval(approvalStatus as any);
-          }
-        } catch (e) {
-          console.warn('[HumanApproval] 查询审批状态失败:', e);
+      // 根据后端实际审批状态决定是否恢复审批弹框
+      try {
+        const approvalStatus = await getApprovalStatus(sessionId);
+        if (approvalStatus.stage) {
+          dispatchHumanApproval(approvalStatus as any);
         }
+      } catch (e) {
+        console.warn('[HumanApproval] 查询审批状态失败:', e);
       }
     } catch (error) {
       console.error('加载会话消息失败:', error);

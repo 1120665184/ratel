@@ -7,17 +7,27 @@ package org.quyq.gwsu.common.ai.loop.domain;
  * @param rejectReason 拒绝原因，可选，仅在 POST_REASONING 阶段填写
  */
 public record ApprovalResult(
-        String result,
+        ApprovalEnum result,
         String rejectReason
 ) {
-
-    public static final String APPROVED = "APPROVED";
-    public static final String REJECTED = "REJECTED";
 
     /**
      * 判断是否为同意
      */
     public boolean isApproved() {
-        return APPROVED.equals(result);
+        return ApprovalEnum.APPROVED.equals(result);
     }
+
+
+    public enum ApprovalEnum {
+        /**
+         * 同意
+         */
+        APPROVED ,
+        /**
+         * 拒绝
+         */
+        REJECTED;
+    }
+
 }

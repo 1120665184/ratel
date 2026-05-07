@@ -2,8 +2,8 @@ import { Button, Input } from 'antd';
 import { SafetyCertificateOutlined, CheckOutlined, CloseOutlined, SendOutlined } from '@ant-design/icons';
 import { useState, useEffect, useCallback } from 'react';
 import { useAgent } from '@copilotkit/react-core/v2';
-import { onHumanApproval, clearHumanApproval, getPendingApproval } from '@/services/human-approval';
-import type { HumanApprovalPayload, ApprovalResultType, ApprovalStage } from '@/services/human-approval';
+import { onHumanApproval, clearHumanApproval } from '@/services/human-approval';
+import type { HumanApprovalPayload, ApprovalResultType } from '@/services/human-approval';
 import styles from './HumanApprovalBar.module.less';
 
 /**
@@ -21,7 +21,7 @@ export function HumanApprovalBar() {
   const [submitting, setSubmitting] = useState(false);
   const { agent } = useAgent({ agentId: 'brain' });
 
-  // 监听审批事件
+  // 监听审批事件（payload 为 null 时清除审批状态）
   useEffect(() => {
     const unsubscribe = onHumanApproval((payload) => {
       setApprovalPayload(payload);
@@ -29,14 +29,6 @@ export function HumanApprovalBar() {
       setRejectReason('');
     });
     return unsubscribe;
-  }, []);
-
-  // 初始化时检查是否有待审批事件
-  useEffect(() => {
-    const pending = getPendingApproval();
-    if (pending) {
-      setApprovalPayload(pending);
-    }
   }, []);
 
   /**

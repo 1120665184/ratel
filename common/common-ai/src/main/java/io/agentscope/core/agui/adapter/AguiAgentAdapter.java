@@ -16,6 +16,7 @@
 package io.agentscope.core.agui.adapter;
 
 import cn.hutool.core.collection.CollUtil;
+import com.google.gson.Gson;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.Event;
@@ -23,6 +24,7 @@ import io.agentscope.core.agent.EventType;
 import io.agentscope.core.agent.StreamOptions;
 import io.agentscope.core.agui.converter.AguiMessageConverter;
 import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.agui.model.AguiMessage;
 import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.message.*;
 import io.agentscope.core.util.JsonException;
@@ -67,6 +69,8 @@ public class AguiAgentAdapter {
     private final AguiAdapterConfig config;
     private final AguiMessageConverter messageConverter;
 
+    private final Gson gson = new Gson();
+
     /**
      * Creates a new AguiAgentAdapter.
      *
@@ -86,12 +90,20 @@ public class AguiAgentAdapter {
      * and emits AG-UI protocol events.
      *
      * @param input The AG-UI run input
-     * @param approvalResult The approval result for human-in-the-loop resume, or null for normal flow
      * @return A Flux of AG-UI events
      */
-    public Flux<AguiEvent> run(RunAgentInput input, ApprovalResult approvalResult) {
+    public Flux<AguiEvent> run(RunAgentInput input) {
         String threadId = input.getThreadId();
         String runId = input.getRunId();
+
+        // 1. 检查 approval 消息
+        ApprovalResult approvalResult = null;
+        AguiMessage approvalMsg = extractApprovalMessage(input);
+        if (approvalMsg != null) {
+            approvalResult = parseApprovalResult(approvalMsg);
+            input = removeApprovalMessage(input);
+            logger.debug("Approval message found for thread {}: result={}", threadId, approvalResult.result());
+        }
 
         // Create stream options - use incremental mode for true streaming
         StreamOptions options =
@@ -100,14 +112,16 @@ public class AguiAgentAdapter {
         // Track state for event conversion
         EventConversionState state = new EventConversionState(threadId, runId);
 
+        // Normal flow: convert AG-UI messages to AgentScope messages
+        List<Msg> msgs = messageConverter.toMsgList(input.getMessages());
+        Flux<Event> startFlux = buildMsgFromApproval(approvalResult, msgs);
+
         // Determine the event stream based on whether this is an approval resume
         Flux<Event> agentEvents;
-        if (approvalResult != null) {
-            agentEvents = resumeFromApproval(approvalResult, options);
-        } else {
-            // Normal flow: convert AG-UI messages to AgentScope messages
-            List<Msg> msgs = messageConverter.toMsgList(input.getMessages());
+        if (Objects.isNull(startFlux)) {
             agentEvents = agent.stream(msgs, options);
+        } else {
+            agentEvents = Flux.concat(startFlux, agent.stream(msgs, options));
         }
 
         return Flux.concat(
@@ -130,34 +144,76 @@ public class AguiAgentAdapter {
                         });
     }
 
+
     /**
-     * Resume agent execution from a human-in-the-loop pause.
-     *
-     * <p>Based on the approval result:
-     * <ul>
-     *   <li>APPROVED: Continue execution (stream with no message)</li>
-     *   <li>REJECTED + POST_REASONING: Send cancel ToolResultBlock to skip tool execution</li>
-     *   <li>REJECTED + POST_ACTING: Send user message to stop further reasoning</li>
-     * </ul>
+     * 从输入消息中提取 approval 消息。
+     * approval 消息的 role 为 "approval"，content 为 JSON 格式的审批结果。
      */
-    private Flux<Event> resumeFromApproval(ApprovalResult approvalResult, StreamOptions options) {
+    private AguiMessage extractApprovalMessage(RunAgentInput input) {
+        List<AguiMessage> messages = input.getMessages();
+        if (messages == null || messages.isEmpty()) {
+            return null;
+        }
+        AguiMessage last = messages.getLast();
+        if ("approval".equalsIgnoreCase(last.getRole())) {
+            return last;
+        }
+        return null;
+    }
+
+    /**
+     * 解析 approval 消息的 content，构建 ApprovalResult。
+     */
+    private ApprovalResult parseApprovalResult(AguiMessage approvalMsg) {
+        String content = approvalMsg.getContent();
+        if (content == null || content.isEmpty()) {
+            logger.warn("Approval message has empty content, defaulting to REJECTED");
+            return new ApprovalResult(ApprovalResult.ApprovalEnum.REJECTED, null);
+        }
+
+        return gson.fromJson(content, ApprovalResult.class);
+    }
+
+    /**
+     * 从输入消息中移除 approval 消息，返回新的 RunAgentInput。
+     * approval 消息不进入上下文历史，处理完后必须移除。
+     */
+    private RunAgentInput removeApprovalMessage(RunAgentInput input) {
+        List<AguiMessage> messages = input.getMessages();
+        List<AguiMessage> filtered = messages.stream()
+                .filter(msg -> !"approval".equalsIgnoreCase(msg.getRole()))
+                .toList();
+        return RunAgentInput.builder()
+                .threadId(input.getThreadId())
+                .runId(input.getRunId())
+                .messages(filtered)
+                .tools(input.getTools())
+                .context(input.getContext())
+                .forwardedProps(input.getForwardedProps())
+                .build();
+    }
+
+
+    private Flux<Event> buildMsgFromApproval(ApprovalResult approvalResult, List<Msg> msgs) {
+        if (Objects.isNull(approvalResult)) {
+            return null;
+        }
         if (approvalResult.isApproved()) {
-            logger.debug("Resuming agent after approval");
-            return agent.stream(options);
+            return null;
         }
 
         // User rejected: build cancel message based on pause stage
         Msg lastResult = findLastAssistantMsg();
-        GenerateReason reason = lastResult != null ? lastResult.getGenerateReason() : null;
 
-        if (GenerateReason.REASONING_STOP_REQUESTED == reason) {
+        if (MsgRole.ASSISTANT.equals(Optional.ofNullable(lastResult).map(Msg::getRole).orElse(null))
+                && lastResult.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)) {
             // POST_REASONING: tool not yet executed, build cancel ToolResultBlock
             List<ToolUseBlock> pendingTools = lastResult.getContentBlocks(ToolUseBlock.class);
             String cancelText = approvalResult.rejectReason() != null
-                    ? "操作已拒绝，原因：" + approvalResult.rejectReason()
-                    : "操作已拒绝";
+                    ? "操作被用户拒绝，原因：" + approvalResult.rejectReason()
+                    : "操作被用户拒绝";
 
-            Msg cancelMsg = Msg.builder()
+            Msg msg = Msg.builder()
                     .role(MsgRole.TOOL)
                     .content(pendingTools.stream()
                             .map(t -> ToolResultBlock.of(t.getId(), t.getName(),
@@ -165,21 +221,23 @@ public class AguiAgentAdapter {
                             .toArray(ToolResultBlock[]::new))
                     .build();
 
+            msgs.add(msg);
+
             logger.debug("Resuming agent after rejection (POST_REASONING): {}", cancelText);
-            return agent.stream(cancelMsg, options);
-        } else if (GenerateReason.ACTING_STOP_REQUESTED == reason) {
+            return Flux.just(new Event(EventType.TOOL_RESULT, msg, true));
+        } else if (MsgRole.TOOL.equals(Optional.ofNullable(lastResult).map(Msg::getRole).orElse(null))
+                && lastResult.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)) {
             // POST_ACTING: tool already executed, reject means stop further reasoning
-            Msg cancelMsg = Msg.builder()
+            msgs.add(Msg.builder()
                     .role(MsgRole.USER)
                     .content(TextBlock.builder().text("用户拒绝继续，终止本轮操作").build())
-                    .build();
+                    .build());
 
             logger.debug("Resuming agent after rejection (POST_ACTING)");
-            return agent.stream(cancelMsg, options);
-        } else {
-            logger.warn("Cannot determine HITL pause stage, continuing execution");
-            return agent.stream(options);
+
         }
+
+        return null;
     }
 
     /**
@@ -322,15 +380,15 @@ public class AguiAgentAdapter {
                     String result = extractToolResultText(toolResult);
 
                     boolean hasStarted = state.hasStartedToolCall(toolCallId);
-                    if (!hasStarted) {
-                        events.add(
-                                new AguiEvent.ToolCallStart(
-                                        state.threadId, state.runId, toolCallId, "unknown"));
-                        state.startToolCall(toolCallId);
+                    if (hasStarted) {
+//                        events.add(
+//                                new AguiEvent.ToolCallStart(
+//                                        state.threadId, state.runId, toolCallId, "unknown"));
+//                        state.startToolCall(toolCallId);
+                        // Ensure ToolCallEnd is emitted to close arguments phase
+                        events.add(new AguiEvent.ToolCallEnd(state.threadId, state.runId, toolCallId));
                     }
 
-                    // Ensure ToolCallEnd is emitted to close arguments phase
-                    events.add(new AguiEvent.ToolCallEnd(state.threadId, state.runId, toolCallId));
 
                     events.add(
                             new AguiEvent.ToolCallResult(

@@ -1,13 +1,14 @@
 package org.quyq.gwsu.common.ai.agui;
 
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.agui.processor.AguiRequestProcessor;
-import io.agentscope.core.message.GenerateReason;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolResultBlock;
@@ -34,11 +35,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -63,6 +60,8 @@ public abstract class AguiController {
     private final AguiEventEncoder encoder = new AguiEventEncoder();
 
     private final static Map<String, AIRunnerInstanceWrapper> CURR_EMITTER = new ConcurrentHashMap<>();
+
+    private final Gson gson = new Gson();
 
 
     @Setter
@@ -139,13 +138,16 @@ public abstract class AguiController {
                 return R.ok(new HumanApprovalInfo(null, null, null));
             }
 
-            GenerateReason reason = lastResult.getGenerateReason();
-            if (GenerateReason.REASONING_STOP_REQUESTED == reason) {
+
+            if (MsgRole.ASSISTANT.equals(lastResult.getRole())
+                    && lastResult.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)) {
                 List<ToolUseBlock> contentBlocks = lastResult.getContentBlocks(ToolUseBlock.class);
-                @SuppressWarnings("unchecked")
+
                 List<ApprovalTips> approvalToolNames = Optional.ofNullable(
-                        (List<ApprovalTips>) lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
-                ).orElse(Collections.emptyList());
+                                lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
+                        ).map(v -> gson.fromJson(gson.toJson(v), new TypeToken<List<ApprovalTips>>() {
+                        }))
+                        .orElse(Collections.emptyList());
 
                 List<HumanApprovalInfo.ReasoningStateInfo> reasoningInfo = approvalToolNames.stream()
                         .map(t -> {
@@ -157,12 +159,14 @@ public abstract class AguiController {
                         .toList();
 
                 return R.ok(new HumanApprovalInfo(ApprovalStage.POST_REASONING, reasoningInfo, null));
-            } else if (GenerateReason.ACTING_STOP_REQUESTED == reason) {
+            } else if (MsgRole.TOOL.equals(lastResult.getRole())
+                    && lastResult.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)) {
                 List<ToolResultBlock> contentBlocks = lastResult.getContentBlocks(ToolResultBlock.class);
-                @SuppressWarnings("unchecked")
+
                 List<ApprovalTips> approvalToolNames = Optional.ofNullable(
-                        (List<ApprovalTips>) lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
-                ).orElse(Collections.emptyList());
+                        lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
+                ).map(v -> gson.fromJson(gson.toJson(v), new TypeToken<List<ApprovalTips>>() {}))
+                        .orElse(Collections.emptyList());
 
                 return approvalToolNames.stream()
                         .map(t -> {

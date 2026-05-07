@@ -6,6 +6,7 @@ import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolEmitter;
 import io.agentscope.core.tool.ToolParam;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 
 import java.util.Map;
@@ -16,9 +17,13 @@ import java.util.Map;
  */
 public class WebTool {
 
-    //@HumanInTheLoop(tip = "是否同意路由跳转？")
+    @HumanInTheLoop(tip = "是否同意路由跳转？")
     @Tool(description = "控制web界面跳转到指定路由")
-    public ToolResultBlock routeNavigation(@ToolParam(name = "path", description = "跳转的路由地址") String path,
+    public ToolResultBlock routeNavigation(@ToolParam(name = "path",
+                                                       description = """
+                                                               跳转的前端路由地址
+                                                               示例：/sub-system/user
+                                                               """) String path,
                                            ToolEmitter emitter) {
         return SpringUtils.getBean(WebToolUtils.class)
                 .webExecuteTool(emitter, "routeNavigation", Map.of("path", path));

@@ -21,13 +21,11 @@ import io.agentscope.core.agui.adapter.AguiAgentAdapter;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.AguiMessage;
 import io.agentscope.core.agui.model.RunAgentInput;
-import org.quyq.gwsu.common.ai.loop.domain.ApprovalResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -96,27 +94,18 @@ public class AguiRequestProcessor {
         // Resolve agent
         Agent agent = agentResolver.resolveAgent(agentId, threadId);
 
-        // 1. 检查 approval 消息（独立于 hasMemory 逻辑，在之前处理）
-        ApprovalResult approvalResult = null;
-        AguiMessage approvalMsg = extractApprovalMessage(input);
-        if (approvalMsg != null) {
-            approvalResult = parseApprovalResult(approvalMsg);
-            input = removeApprovalMessage(input);
-            logger.debug("Approval message found for thread {}: result={}", threadId, approvalResult.result());
-        }
-
-        // 2. 正常的 hasMemory 逻辑（仅在非审批恢复时执行）
+        // Determine effective input based on server-side memory
         RunAgentInput effectiveInput = input;
-        if (approvalResult == null && agentResolver.hasMemory(threadId)) {
+        if (agentResolver.hasMemory(threadId)) {
             logger.debug(
                     "Using server-side memory for thread {}, extracting latest user message",
                     threadId);
             effectiveInput = extractLatestUserMessage(input);
         }
 
-        // 3. 传给 adapter（包含审批结果）
+        // Create adapter and run
         AguiAgentAdapter adapter = new AguiAgentAdapter(agent, config);
-        Flux<AguiEvent> events = adapter.run(effectiveInput, approvalResult);
+        Flux<AguiEvent> events = adapter.run(effectiveInput);
 
         return new ProcessResult(agent, events);
     }
@@ -189,7 +178,7 @@ public class AguiRequestProcessor {
         AguiMessage lastUserMessage = null;
         for (int i = messages.size() - 1; i >= 0; i--) {
             AguiMessage msg = messages.get(i);
-            if ("user".equalsIgnoreCase(msg.getRole())) {
+            if ("user".equalsIgnoreCase(msg.getRole()) || "approval".equalsIgnoreCase(msg.getRole())) {
                 lastUserMessage = msg;
                 break;
             }
@@ -204,65 +193,6 @@ public class AguiRequestProcessor {
                 .threadId(input.getThreadId())
                 .runId(input.getRunId())
                 .messages(List.of(lastUserMessage))
-                .tools(input.getTools())
-                .context(input.getContext())
-                .forwardedProps(input.getForwardedProps())
-                .build();
-    }
-
-    /**
-     * 从输入消息中提取 approval 消息。
-     * approval 消息的 role 为 "approval"，content 为 JSON 格式的审批结果。
-     */
-    private AguiMessage extractApprovalMessage(RunAgentInput input) {
-        List<AguiMessage> messages = input.getMessages();
-        if (messages == null || messages.isEmpty()) {
-            return null;
-        }
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            AguiMessage msg = messages.get(i);
-            if ("approval".equalsIgnoreCase(msg.getRole())) {
-                return msg;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 解析 approval 消息的 content，构建 ApprovalResult。
-     */
-    private ApprovalResult parseApprovalResult(AguiMessage approvalMsg) {
-        String content = approvalMsg.getContent();
-        if (content == null || content.isEmpty()) {
-            logger.warn("Approval message has empty content, defaulting to REJECTED");
-            return new ApprovalResult(ApprovalResult.REJECTED, null);
-        }
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = mapper.readValue(content, Map.class);
-            String result = (String) map.get("result");
-            String rejectReason = (String) map.get("rejectReason");
-            return new ApprovalResult(result, rejectReason);
-        } catch (Exception e) {
-            logger.error("Failed to parse approval message content: {}", content, e);
-            return new ApprovalResult(ApprovalResult.REJECTED, null);
-        }
-    }
-
-    /**
-     * 从输入消息中移除 approval 消息，返回新的 RunAgentInput。
-     * approval 消息不进入上下文历史，处理完后必须移除。
-     */
-    private RunAgentInput removeApprovalMessage(RunAgentInput input) {
-        List<AguiMessage> messages = input.getMessages();
-        List<AguiMessage> filtered = messages.stream()
-                .filter(msg -> !"approval".equalsIgnoreCase(msg.getRole()))
-                .toList();
-        return RunAgentInput.builder()
-                .threadId(input.getThreadId())
-                .runId(input.getRunId())
-                .messages(filtered)
                 .tools(input.getTools())
                 .context(input.getContext())
                 .forwardedProps(input.getForwardedProps())
