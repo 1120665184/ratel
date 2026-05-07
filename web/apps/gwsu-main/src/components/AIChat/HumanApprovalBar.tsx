@@ -41,7 +41,7 @@ export function HumanApprovalBar() {
 
   /**
    * 提交审批结果
-   * 将审批消息以 role: 'user' 的形式发送给 agent，触发后端继续处理
+   * 将审批消息以 role: 'approval' 的形式发送给 agent，后端识别后从 messages 中移除，不进入上下文历史
    */
   const submitApproval = useCallback(async (result: ApprovalResultType, reason?: string) => {
     if (!approvalPayload) return;
@@ -54,12 +54,12 @@ export function HumanApprovalBar() {
         : JSON.stringify({ result });
 
       // 将审批消息追加到 agent 消息列表
-      // role: 'user' — 后端识别 content 为 JSON 审批结果后从 messages 中移除，不进入上下文历史
+      // role: 'approval' — 后端 AguiRequestProcessor 识别后从 messages 中移除，不进入上下文历史
       agent.addMessage({
         id: crypto.randomUUID(),
-        role: 'user',
+        role: 'approval',
         content: approvalContent,
-      });
+      } as any);
 
       // 触发 agent 继续运行
       await agent.runAgent();
