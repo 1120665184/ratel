@@ -1,0 +1,108 @@
+/* 人工审批卡片 - 嵌入式展示在聊天输入框上方 */
+
+.approvalBar {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    oklch(97% 0.02 45) 0%,
+    oklch(98% 0.01 45) 100%
+  );
+  border-top: 1px solid oklch(88% 0.05 45);
+  border-bottom: 1px solid oklch(88% 0.05 45);
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.approvalContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.approvalIcon {
+  font-size: 16px;
+  color: oklch(65% 0.18 45);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.approvalInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.approvalTip {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color, #1a1a2e);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.approvalDetail {
+  font-size: 12px;
+  color: var(--text-secondary-color, #6b7280);
+  line-height: 1.5;
+}
+
+.toolName {
+  font-weight: 600;
+  color: oklch(55% 0.15 45);
+  margin-right: 4px;
+}
+
+.approvalActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.approveBtn {
+  font-size: 13px !important;
+  height: 28px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+}
+
+.rejectBtn {
+  font-size: 13px !important;
+  height: 28px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+}
+
+.rejectReasonArea {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed oklch(88% 0.04 45);
+  animation: slideDown 0.2s ease;
+}
+
+.rejectInput {
+  flex: 1;
+  font-size: 13px !important;
+}
+
+.rejectConfirmBtn {
+  font-size: 13px !important;
+  height: 32px !important;
+  flex-shrink: 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
