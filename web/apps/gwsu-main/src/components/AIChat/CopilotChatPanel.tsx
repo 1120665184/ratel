@@ -10,6 +10,7 @@ import type { CSSProperties } from 'react';
 import type { AIChatPanelMode } from './types';
 import { usePanelContext } from './AIChatContext';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
+import { HumanApprovalBar } from './HumanApprovalBar';
 import { getSessionMessages, type BrainMessage } from '@/services/brain';
 import styles from './copilot-override.module.less';
 
@@ -192,6 +193,8 @@ export function CopilotChatPanel({
           </Tooltip>
         </div>
       </div>
+      {/* 人工审批卡片 - 展示在聊天输入框上方 */}
+      <HumanApprovalBar />
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <CopilotChat
         labels={{
