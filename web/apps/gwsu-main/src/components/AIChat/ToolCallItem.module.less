@@ -1,0 +1,246 @@
+/* ============================================
+   工具/技能调用展示 - 折叠面板风格
+   设计：精致克制、信息层级清晰
+   ============================================ */
+
+.toolCallItem {
+  margin: 2px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+  transition: box-shadow 0.2s ease;
+}
+
+.toolCallItem:hover {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* 类型区分 */
+.skillItem {
+  background: oklch(97% 0.015 280);
+  border: 1px solid oklch(92% 0.02 280);
+}
+
+.toolItem {
+  background: oklch(98% 0.008 var(--brand-hue, 220));
+  border: 1px solid oklch(94% 0.01 var(--brand-hue, 220));
+}
+
+/* ============================================
+   摘要行
+   ============================================ */
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+/* ============================================
+   折叠箭头
+   ============================================ */
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+  color: oklch(60% 0.02 var(--brand-hue, 220));
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.arrowExpanded {
+  transform: rotate(90deg);
+}
+
+/* ============================================
+   类型图标
+   ============================================ */
+.typeIcon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.skillItem .typeIcon {
+  color: oklch(60% 0.15 280);
+}
+
+.toolItem .typeIcon {
+  color: oklch(55% 0.1 var(--brand-hue, 220));
+}
+
+/* ============================================
+   状态点
+   ============================================ */
+.statusDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.statusDotPending {
+  &::after {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: oklch(75% 0.02 var(--brand-hue, 220));
+  }
+}
+
+.statusDotExecuting {
+  color: var(--primary-color, #1a5fb4);
+}
+
+.statusDotComplete {
+  color: oklch(62% 0.19 145);
+}
+
+.statusDotError {
+  color: oklch(63% 0.2 25);
+}
+
+/* ============================================
+   标签 & 名称
+   ============================================ */
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.skillItem .label {
+  color: oklch(55% 0.12 280);
+}
+
+.toolItem .label {
+  color: oklch(55% 0.08 var(--brand-hue, 220));
+}
+
+.displayName {
+  font-weight: 500;
+  color: var(--text-color, #1a1a2e);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ============================================
+   折叠详情面板
+   使用 grid-template-rows 实现高度动画
+   ============================================ */
+.detailPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.detailPanelVisible {
+  grid-template-rows: 1fr;
+}
+
+.detailInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 详情内容区 */
+.detailSection {
+  padding: 0 10px 8px 32px;
+}
+
+.detailSection + .detailSection {
+  padding-top: 4px;
+  border-top: 1px solid oklch(94% 0.01 var(--brand-hue, 220));
+  margin-top: 2px;
+}
+
+.detailLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: oklch(60% 0.03 var(--brand-hue, 220));
+  margin-bottom: 4px;
+}
+
+.detailLabelError {
+  color: oklch(60% 0.15 25);
+}
+
+.detailValue {
+  font-size: 13px;
+  color: var(--text-color, #1a1a2e);
+  font-weight: 500;
+}
+
+.detailContent {
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--text-secondary-color, #6b7280);
+  word-break: break-all;
+  line-height: 1.6;
+  padding-right: 4px;
+
+  /* 自定义滚动条 */
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: oklch(82% 0.01 var(--brand-hue, 220));
+    border-radius: 2px;
+  }
+}
+
+.detailContentError {
+  color: oklch(50% 0.15 25);
+}
+
+/* ============================================
+   键值对行
+   ============================================ */
+.kvRow {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  align-items: baseline;
+}
+
+.kvKey {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: oklch(55% 0.05 var(--brand-hue, 220));
+  min-width: 40px;
+}
+
+.kvValue {
+  color: var(--text-color, #1a1a2e);
+  font-size: 12px;
+  word-break: break-all;
+}

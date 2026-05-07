@@ -4,7 +4,7 @@ import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-ui/styles.css';
 import { App, Button, Tooltip } from 'antd';
 import { RobotOutlined, CompressOutlined, DragOutlined, CloseOutlined, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
 import type { CSSProperties } from 'react';
 import type { AIChatPanelMode } from './types';
@@ -49,6 +49,26 @@ export function CopilotChatPanel({
   const { agent } = useAgent({ agentId: 'brain' });
   const { message } = App.useApp();
 
+  // 防止 Ant Design 弹框/抽屉的 focus trap 阻止面板内输入框获取焦点
+  // Ant Design 的 rc-dialog 在打开时会通过 focusin 全局事件将焦点拉回弹框内部
+  // 这里在捕获阶段拦截，允许面板内的元素正常获取焦点
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const handleFocusIn = (e: FocusEvent) => {
+      // 如果焦点目标是面板内的元素，阻止后续的 focus trap 处理
+      if (el.contains(e.target as Node)) {
+        e.stopPropagation();
+      }
+    };
+    // 在捕获阶段拦截，优先于 rc-dialog 的冒泡阶段 focusin 监听
+    el.addEventListener('focusin', handleFocusIn, true);
+    return () => {
+      el.removeEventListener('focusin', handleFocusIn, true);
+    };
+  }, []);
+
   // 拖拽相关状态
   const nodeRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -80,11 +100,21 @@ export function CopilotChatPanel({
       reset();
       agent.threadId = sessionId;
       setCurrentThreadId(sessionId);
-      const formattedMessages = messages.map((msg: BrainMessage) => ({
-        id: msg.id,
-        role: msg.role as 'user' | 'assistant',
-        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-      }));
+      const formattedMessages = messages.map((msg: BrainMessage) => {
+        const formatted: Record<string, unknown> = {
+          id: msg.id,
+          role: msg.role,
+          content: typeof msg.content === 'string' ? msg.content : (msg.content ? JSON.stringify(msg.content) : ''),
+        };
+        // 保留工具调用信息，使历史回显时工具调用也能正确渲染
+        if (msg.toolCalls && msg.toolCalls.length > 0) {
+          formatted.toolCalls = msg.toolCalls;
+        }
+        if (msg.toolCallId) {
+          formatted.toolCallId = msg.toolCallId;
+        }
+        return formatted;
+      });
       agent.setMessages(formattedMessages);
     } catch (error) {
       console.error('加载会话消息失败:', error);
@@ -197,7 +227,10 @@ export function CopilotChatPanel({
       disabled={!isDraggableMode}
     >
       <div
-        ref={nodeRef}
+        ref={(el) => {
+          (nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+          (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        }}
         className={`${styles.copilotChatWrapper} ${isHidden ? styles.hiddenWrapper : ''} ${isDraggableMode ? styles.draggableWrapper : ''} ${className || ''}`}
         style={isDraggableMode ? {
           width: panelState.width,

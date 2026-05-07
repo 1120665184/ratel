@@ -47,9 +47,12 @@
   height: 520px;
 }
 
-/* 隐藏状态 - 拖拽模式 */
+/* 隐藏状态 - 使用不可见+移出屏幕代替 display: none，避免 CopilotChat 输入框在 display:none 下无法正确初始化 */
 .hiddenWrapper {
-  display: none;
+  visibility: hidden;
+  pointer-events: none;
+  left: -9999px;
+  top: -9999px;
 }
 
 /* 自定义 Header 样式 */

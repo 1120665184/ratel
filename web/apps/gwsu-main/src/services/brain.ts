@@ -16,14 +16,26 @@ export interface BrainHistorySession {
 }
 
 /**
+ * 工具调用信息
+ */
+export interface BrainToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+/**
  * 消息信息（AG-UI Message 格式）
  */
 export interface BrainMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string | object[];
-  toolCalls?: object;
-  toolCallId?: string;
+  content: string | object[] | null;
+  toolCalls?: BrainToolCall[];
+  toolCallId?: string | null;
 }
 
 /**

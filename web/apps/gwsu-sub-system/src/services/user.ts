@@ -66,8 +66,8 @@ export async function allocateRoles(userId: string, roleIds: string[]): Promise<
 
 /** 查询用户已分配的角色编码列表 */
 export async function getUserRoleCodes(subjectId: string): Promise<string[]> {
-  const res = await get<string[]>(`/security/role/list/${subjectId}`);
-  return res.data;
+  const res = await get<{ dataScope: unknown; roles: string[] }>(`/security/role/list/${subjectId}`);
+  return res.data?.roles ?? [];
 }
 
 /** 查询角色全量列表（启用状态） */

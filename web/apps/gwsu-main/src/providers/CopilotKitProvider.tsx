@@ -1,4 +1,4 @@
-import { CopilotKit } from '@copilotkit/react-core';
+import { CopilotKit, useRenderToolCall } from '@copilotkit/react-core';
 import { useAgent } from '@copilotkit/react-core/v2';
 import { useUserStore } from '@gwsu/core';
 import type { ReactNode } from 'react';
@@ -6,11 +6,25 @@ import { useEffect, useRef } from 'react';
 import { dispatchWebTool } from '@/services/web-tool';
 import type { WebToolExecutePayload } from '@/services/web-tool';
 import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfirmModal';
+import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
 // 确保 route-navigation 工具被注册
 import '@/services/web-tool/tools/route-navigation';
 
 interface GwsuCopilotKitProviderProps {
   children: ReactNode;
+}
+
+/**
+ * 工具调用渲染注册组件
+ * 注册通配符(*)渲染器，使所有工具调用在聊天面板中展示
+ * 必须在 CopilotKit 内部使用
+ */
+function ToolCallRendererRegistration() {
+  useRenderToolCall({
+    name: '*',
+    render: (props) => <ToolCallItem {...props} />,
+  });
+  return null;
 }
 
 /**
@@ -72,6 +86,7 @@ export function GwsuCopilotKitProvider({ children }: GwsuCopilotKitProviderProps
       agent="brain"
       enableInspector={false}
     >
+      <ToolCallRendererRegistration />
       <WebToolEventListener />
       <WebToolConfirmModal />
       {children}
