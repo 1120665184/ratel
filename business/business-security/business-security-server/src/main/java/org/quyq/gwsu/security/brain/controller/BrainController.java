@@ -12,6 +12,7 @@ import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
+import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
@@ -112,5 +113,11 @@ public class BrainController {
     @PostMapping("tool/callback")
     public R<Void> toolCallback(@RequestBody WebToolCallbackRequest request) {
         return aguiController.handleToolCallback(request);
+    }
+
+    @Operation(summary = "查询会话审批状态")
+    @GetMapping("approval/status/{threadId}")
+    public R<HumanApprovalInfo> getApprovalStatus(@PathVariable String threadId) {
+        return aguiController.handleApprovalStatus(threadId);
     }
 }

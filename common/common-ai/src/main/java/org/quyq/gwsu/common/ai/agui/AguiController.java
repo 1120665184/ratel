@@ -7,6 +7,11 @@ import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.agui.processor.AguiRequestProcessor;
+import io.agentscope.core.message.GenerateReason;
+import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.MsgRole;
+import io.agentscope.core.message.ToolResultBlock;
+import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.session.Session;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -16,6 +21,10 @@ import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
+import org.quyq.gwsu.common.ai.loop.ApprovalStage;
+import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
+import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.core.domain.R;
 import org.springframework.http.MediaType;
@@ -25,6 +34,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -103,6 +114,89 @@ public abstract class AguiController {
             return R.fail("工具回调处理失败: " + request.toolCallId());
         }
         return R.ok();
+    }
+
+    /**
+     * 处理审批状态查询
+     * 从 Session 中加载 Agent，检查是否处于 STOP_REQUESTED 状态
+     *
+     * @param threadId 会话ID
+     * @return 审批状态信息
+     */
+    public R<HumanApprovalInfo> handleApprovalStatus(String threadId) {
+        if (agentSession == null) {
+            return R.ok(new HumanApprovalInfo(null, null, null));
+        }
+
+        try {
+            String userId = getCurrUserId();
+            CommonSessionKey sessionKey = CommonSessionKey.of(threadId, userId);
+
+            // 从 Session 中直接加载 Memory 消息，判断暂停阶段
+            List<Msg> messages = agentSession.getList(sessionKey, "memory_messages", Msg.class);
+            Msg lastResult = findLastAssistantMsg(messages);
+            if (lastResult == null) {
+                return R.ok(new HumanApprovalInfo(null, null, null));
+            }
+
+            GenerateReason reason = lastResult.getGenerateReason();
+            if (GenerateReason.REASONING_STOP_REQUESTED == reason) {
+                List<ToolUseBlock> contentBlocks = lastResult.getContentBlocks(ToolUseBlock.class);
+                @SuppressWarnings("unchecked")
+                List<ApprovalTips> approvalToolNames = Optional.ofNullable(
+                        (List<ApprovalTips>) lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
+                ).orElse(Collections.emptyList());
+
+                List<HumanApprovalInfo.ReasoningStateInfo> reasoningInfo = approvalToolNames.stream()
+                        .map(t -> {
+                            Optional<ToolUseBlock> toolUseBlock = contentBlocks.stream()
+                                    .filter(c -> c.getName().equals(t.toolName()))
+                                    .findFirst();
+                            return new HumanApprovalInfo.ReasoningStateInfo(t.tip(), toolUseBlock.orElse(null));
+                        })
+                        .toList();
+
+                return R.ok(new HumanApprovalInfo(ApprovalStage.POST_REASONING, reasoningInfo, null));
+            } else if (GenerateReason.ACTING_STOP_REQUESTED == reason) {
+                List<ToolResultBlock> contentBlocks = lastResult.getContentBlocks(ToolResultBlock.class);
+                @SuppressWarnings("unchecked")
+                List<ApprovalTips> approvalToolNames = Optional.ofNullable(
+                        (List<ApprovalTips>) lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
+                ).orElse(Collections.emptyList());
+
+                return approvalToolNames.stream()
+                        .map(t -> {
+                            Optional<ToolResultBlock> resultBlock = contentBlocks.stream()
+                                    .filter(c -> c.getName().equals(t.toolName()))
+                                    .findFirst();
+                            return new HumanApprovalInfo.ActingStageInfo(t.tip(), resultBlock.orElse(null));
+                        })
+                        .findFirst()
+                        .map(stageInfo -> R.ok(new HumanApprovalInfo(ApprovalStage.POST_ACTING, null, stageInfo)))
+                        .orElse(R.ok(new HumanApprovalInfo(null, null, null)));
+            }
+
+            return R.ok(new HumanApprovalInfo(null, null, null));
+        } catch (Exception e) {
+            log.error("Failed to query approval status for thread {}: {}", threadId, e.getMessage());
+            return R.ok(new HumanApprovalInfo(null, null, null));
+        }
+    }
+
+    /**
+     * 从消息列表中获取最后一条助手消息
+     */
+    private Msg findLastAssistantMsg(List<Msg> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return null;
+        }
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            Msg msg = messages.get(i);
+            if (msg.getRole() == MsgRole.ASSISTANT) {
+                return msg;
+            }
+        }
+        return null;
     }
 
     /**
