@@ -16,6 +16,7 @@
 package io.agentscope.core.agui.adapter;
 
 import cn.hutool.core.collection.CollUtil;
+import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.Event;
 import io.agentscope.core.agent.EventType;
@@ -28,8 +29,11 @@ import io.agentscope.core.util.JsonException;
 import io.agentscope.core.util.JsonUtils;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.ai.loop.ApprovalStage;
+import org.quyq.gwsu.common.ai.loop.domain.ApprovalResult;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
 import java.util.*;
@@ -57,6 +61,8 @@ import java.util.*;
  */
 public class AguiAgentAdapter {
 
+    private static final Logger logger = LoggerFactory.getLogger(AguiAgentAdapter.class);
+
     private final Agent agent;
     private final AguiAdapterConfig config;
     private final AguiMessageConverter messageConverter;
@@ -80,14 +86,12 @@ public class AguiAgentAdapter {
      * and emits AG-UI protocol events.
      *
      * @param input The AG-UI run input
+     * @param approvalResult The approval result for human-in-the-loop resume, or null for normal flow
      * @return A Flux of AG-UI events
      */
-    public Flux<AguiEvent> run(RunAgentInput input) {
+    public Flux<AguiEvent> run(RunAgentInput input, ApprovalResult approvalResult) {
         String threadId = input.getThreadId();
         String runId = input.getRunId();
-
-        // Convert AG-UI messages to AgentScope messages
-        List<Msg> msgs = messageConverter.toMsgList(input.getMessages());
 
         // Create stream options - use incremental mode for true streaming
         StreamOptions options =
@@ -96,18 +100,25 @@ public class AguiAgentAdapter {
         // Track state for event conversion
         EventConversionState state = new EventConversionState(threadId, runId);
 
+        // Determine the event stream based on whether this is an approval resume
+        Flux<Event> agentEvents;
+        if (approvalResult != null) {
+            agentEvents = resumeFromApproval(approvalResult, options);
+        } else {
+            // Normal flow: convert AG-UI messages to AgentScope messages
+            List<Msg> msgs = messageConverter.toMsgList(input.getMessages());
+            agentEvents = agent.stream(msgs, options);
+        }
+
         return Flux.concat(
                         // Emit RUN_STARTED
                         Flux.just(new AguiEvent.RunStarted(threadId, runId)),
                         // Stream agent events and convert to AG-UI events
-                        // Use concatMapIterable to preserve strict event ordering
-                        agent.stream(msgs, options)
-                                .concatMapIterable(event -> convertEvent(event, state)),
+                        agentEvents.concatMapIterable(event -> convertEvent(event, state)),
                         // Emit any pending end events and RUN_FINISHED
                         Flux.defer(() -> finishRun(state)))
                 .onErrorResume(
                         error -> {
-                            // On error, emit RawEvent with error info followed by RunFinished
                             String errorMessage =
                                     error.getMessage() != null
                                             ? error.getMessage()
@@ -117,6 +128,75 @@ public class AguiAgentAdapter {
                                             threadId, runId, Map.of("error", errorMessage)),
                                     new AguiEvent.RunFinished(threadId, runId));
                         });
+    }
+
+    /**
+     * Resume agent execution from a human-in-the-loop pause.
+     *
+     * <p>Based on the approval result:
+     * <ul>
+     *   <li>APPROVED: Continue execution (stream with no message)</li>
+     *   <li>REJECTED + POST_REASONING: Send cancel ToolResultBlock to skip tool execution</li>
+     *   <li>REJECTED + POST_ACTING: Send user message to stop further reasoning</li>
+     * </ul>
+     */
+    private Flux<Event> resumeFromApproval(ApprovalResult approvalResult, StreamOptions options) {
+        if (approvalResult.isApproved()) {
+            logger.debug("Resuming agent after approval");
+            return agent.stream(options);
+        }
+
+        // User rejected: build cancel message based on pause stage
+        Msg lastResult = findLastAssistantMsg();
+        GenerateReason reason = lastResult != null ? lastResult.getGenerateReason() : null;
+
+        if (GenerateReason.REASONING_STOP_REQUESTED == reason) {
+            // POST_REASONING: tool not yet executed, build cancel ToolResultBlock
+            List<ToolUseBlock> pendingTools = lastResult.getContentBlocks(ToolUseBlock.class);
+            String cancelText = approvalResult.rejectReason() != null
+                    ? "操作已拒绝，原因：" + approvalResult.rejectReason()
+                    : "操作已拒绝";
+
+            Msg cancelMsg = Msg.builder()
+                    .role(MsgRole.TOOL)
+                    .content(pendingTools.stream()
+                            .map(t -> ToolResultBlock.of(t.getId(), t.getName(),
+                                    TextBlock.builder().text(cancelText).build()))
+                            .toArray(ToolResultBlock[]::new))
+                    .build();
+
+            logger.debug("Resuming agent after rejection (POST_REASONING): {}", cancelText);
+            return agent.stream(cancelMsg, options);
+        } else if (GenerateReason.ACTING_STOP_REQUESTED == reason) {
+            // POST_ACTING: tool already executed, reject means stop further reasoning
+            Msg cancelMsg = Msg.builder()
+                    .role(MsgRole.USER)
+                    .content(TextBlock.builder().text("用户拒绝继续，终止本轮操作").build())
+                    .build();
+
+            logger.debug("Resuming agent after rejection (POST_ACTING)");
+            return agent.stream(cancelMsg, options);
+        } else {
+            logger.warn("Cannot determine HITL pause stage, continuing execution");
+            return agent.stream(options);
+        }
+    }
+
+    /**
+     * 从 Agent 的 Memory 中获取最后一条助手消息。
+     * 仅支持 ReActAgent 类型。
+     */
+    private Msg findLastAssistantMsg() {
+        if (agent instanceof ReActAgent reactAgent) {
+            List<Msg> messages = reactAgent.getMemory().getMessages();
+            for (int i = messages.size() - 1; i >= 0; i--) {
+                Msg msg = messages.get(i);
+                if (msg.getRole() == MsgRole.ASSISTANT) {
+                    return msg;
+                }
+            }
+        }
+        return null;
     }
 
     /**
