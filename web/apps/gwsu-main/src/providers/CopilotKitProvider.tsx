@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { dispatchWebTool } from '@/services/web-tool';
 import type { WebToolExecutePayload } from '@/services/web-tool';
+import { dispatchHumanApproval } from '@/services/human-approval';
+import type { HumanApprovalPayload } from '@/services/human-approval';
 import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfirmModal';
 import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
 // 确保 route-navigation 工具被注册
@@ -47,6 +49,8 @@ function WebToolEventListener() {
       onCustomEvent: ({ event }: { event: { name: string; value: unknown } }) => {
         if (event.name === 'TOOL_EXECUTE') {
           dispatchWebTool(event.value as WebToolExecutePayload);
+        } else if (event.name === 'HUMAN_APPROVAL') {
+          dispatchHumanApproval(event.value as HumanApprovalPayload);
         }
       },
     };
