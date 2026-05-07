@@ -78,3 +78,43 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
   const response = await del<boolean>(`/security/brain/history/sessions/${sessionId}`);
   return response.data;
 }
+
+/**
+ * 审批状态信息
+ */
+export interface ApprovalStatusInfo {
+  /** 审批阶段 */
+  stage: 'POST_REASONING' | 'POST_ACTING' | null;
+  /** 推理后暂停需要审批的信息 */
+  reasoningStageInfo: {
+    tip: string;
+    toolInfo: {
+      type: 'tool_use';
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+      content: string;
+    };
+  }[] | null;
+  /** 行动后暂停需要审批的信息 */
+  actingStageInfo: {
+    tip: string;
+    resultInfo: {
+      type: 'tool_result';
+      id: string;
+      name: string;
+      output: { type: string; text: string }[];
+    };
+  } | null;
+}
+
+/**
+ * 查询会话审批状态
+ * 用于页面刷新后恢复审批卡片
+ */
+export async function getApprovalStatus(threadId: string): Promise<ApprovalStatusInfo> {
+  const response = await get<ApprovalStatusInfo>(
+    `/security/brain/approval/status/${threadId}`
+  );
+  return response.data;
+}
