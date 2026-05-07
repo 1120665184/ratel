@@ -11,7 +11,8 @@ import type { AIChatPanelMode } from './types';
 import { usePanelContext } from './AIChatContext';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { HumanApprovalBar } from './HumanApprovalBar';
-import { getSessionMessages, type BrainMessage } from '@/services/brain';
+import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
+import { dispatchHumanApproval } from '@/services/human-approval';
 import styles from './copilot-override.module.less';
 
 interface CopilotChatPanelProps {
@@ -117,6 +118,21 @@ export function CopilotChatPanel({
         return formatted;
       });
       agent.setMessages(formattedMessages);
+
+      // 检查是否需要恢复审批状态
+      const lastAssistantMsg = [...messages].reverse().find(
+        (msg: BrainMessage) => msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0
+      );
+      if (lastAssistantMsg) {
+        try {
+          const approvalStatus = await getApprovalStatus(sessionId);
+          if (approvalStatus.stage) {
+            dispatchHumanApproval(approvalStatus as any);
+          }
+        } catch (e) {
+          console.warn('[HumanApproval] 查询审批状态失败:', e);
+        }
+      }
     } catch (error) {
       console.error('加载会话消息失败:', error);
       message.error('加载会话消息失败');
