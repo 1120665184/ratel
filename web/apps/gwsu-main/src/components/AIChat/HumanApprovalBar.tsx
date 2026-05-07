@@ -55,14 +55,24 @@ export function HumanApprovalBar() {
 
       // 将审批消息追加到 agent 消息列表
       // role: 'approval' — 后端 AguiRequestProcessor 识别后从 messages 中移除，不进入上下文历史
+      const approvalMsgId = crypto.randomUUID();
       agent.addMessage({
-        id: crypto.randomUUID(),
+        id: approvalMsgId,
         role: 'approval',
         content: approvalContent,
       } as any);
 
       // 触发 agent 继续运行
       await agent.runAgent();
+
+      // 从 agent 消息列表中移除 approval 消息，避免下次请求时带上
+      const currentMessages = agent.messages || [];
+      const filteredMessages = currentMessages.filter(
+        (msg: any) => msg.role !== 'approval'
+      );
+      if (filteredMessages.length !== currentMessages.length) {
+        agent.setMessages(filteredMessages);
+      }
 
       // 清除审批状态
       clearHumanApproval();
