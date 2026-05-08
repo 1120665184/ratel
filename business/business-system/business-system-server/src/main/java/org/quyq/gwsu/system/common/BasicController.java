@@ -34,7 +34,7 @@ public class BasicController {
 
     private final ISysUserService userService;
 
-    @Operation(summary = "获取数据资源属性列表")
+    @Operation(summary = "获取数据资源属性列表，用于数据权限配置的选项")
     @GetMapping("dataResourceAttribute")
     public R<List<ResourceRuleKeyProperties>> getDataResourceAttribute() {
         return R.ok(attributeProviders
@@ -46,7 +46,11 @@ public class BasicController {
     public R<IPage<UserVO>> userPage(@RequestBody UserDTO dto) {
         SysUserQueryDTO form = new SysUserQueryDTO();
         form.setStatus(1);
-        form.setKeyword(dto.search());
+        form.setKeyword(dto.getSearch());
+        form.setPageNum(dto.getPageNum());
+        form.setPageSize(dto.getPageSize());
+        form.setAsc(dto.getAsc());
+        form.setOrderByColumn(dto.getOrderByColumn());
         return R.ok(userService.pageByCondition(form));
     }
 
