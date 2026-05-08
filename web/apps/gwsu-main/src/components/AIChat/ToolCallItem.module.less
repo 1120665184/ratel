@@ -27,6 +27,11 @@
   border: 1px solid oklch(94% 0.01 var(--brand-hue, 220));
 }
 
+.questionItem {
+  background: oklch(97% 0.02 250);
+  border: 1px solid oklch(92% 0.03 250);
+}
+
 /* ============================================
    摘要行
    ============================================ */
@@ -77,6 +82,10 @@
 
 .toolItem .typeIcon {
   color: oklch(55% 0.1 var(--brand-hue, 220));
+}
+
+.questionItem .typeIcon {
+  color: oklch(55% 0.15 250);
 }
 
 /* ============================================
@@ -132,6 +141,10 @@
 
 .toolItem .label {
   color: oklch(55% 0.08 var(--brand-hue, 220));
+}
+
+.questionItem .label {
+  color: oklch(55% 0.12 250);
 }
 
 .displayName {
@@ -243,4 +256,56 @@
   color: var(--text-color, #1a1a2e);
   font-size: 12px;
   word-break: break-all;
+}
+
+/* ============================================
+   问题详情样式
+   ============================================ */
+
+.questionText {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color, #1a1a2e);
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+.questionOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.questionOption {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: oklch(95% 0.02 250);
+  color: oklch(50% 0.1 250);
+  border: 1px solid oklch(91% 0.02 250);
+}
+
+.questionAnswer {
+  font-size: 13px;
+  color: var(--text-color, #1a1a2e);
+  line-height: 1.5;
+  padding: 6px 10px;
+  background: oklch(96% 0.015 250);
+  border-radius: 6px;
+  border-left: 3px solid oklch(65% 0.15 250);
+}
+
+.questionAnswerLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: oklch(55% 0.1 250);
+  margin-right: 4px;
+}
+
+.questionAnswerNotes {
+  font-size: 12px;
+  color: var(--text-secondary-color, #6b7280);
+  margin-left: 4px;
 }

@@ -1,4 +1,4 @@
-import { LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined, RightOutlined, ThunderboltOutlined, ToolOutlined } from '@ant-design/icons';
+import { LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined, RightOutlined, ThunderboltOutlined, ToolOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { CatchAllActionRenderProps } from '@copilotkit/react-core';
 import { useState, useMemo } from 'react';
 import styles from './ToolCallItem.module.less';
@@ -10,6 +10,11 @@ import { Parameter } from '@copilotkit/shared';
  * 技能名称标识
  */
 const SKILL_TOOL_NAME = 'load_skill_through_path';
+
+/**
+ * 问题工具名称标识
+ */
+const QUESTION_TOOL_NAME = 'AskUserQuestion';
 
 /**
  * 工具调用展示组件
@@ -24,12 +29,27 @@ export function ToolCallItem(
   // 判断是否为技能
   const isSkill = name === SKILL_TOOL_NAME;
 
+  // 判断是否为问题
+  const isQuestion = name === QUESTION_TOOL_NAME;
+
   // 解析参数键值
   const argEntries = useMemo(() => Object.entries(args ?? {}), [args]);
 
   // 解析结果文本
   const resultText =
     typeof result === 'string' ? result : result ? JSON.stringify(result) : '';
+
+  // 解析问题的用户回答
+  const questionAnswer = useMemo(() => {
+    if (!isQuestion || !resultText) return null;
+    try {
+      const parsed = JSON.parse(resultText);
+      if (parsed.answers) return parsed;
+    } catch {
+      // result 非 JSON 格式
+    }
+    return null;
+  }, [isQuestion, resultText]);
 
   // 判断结果是否有错误
   const hasError =
@@ -65,7 +85,10 @@ export function ToolCallItem(
   // 技能展示名
   const skillId = isSkill ? (args?.skillId as string) ?? '' : '';
 
-  const displayName = isSkill ? skillId : name;
+  // 问题展示名：取第一个问题的 header
+  const questionHeader = isQuestion ? (args?.questions as Record<string, unknown>[])?.[0]?.header as string ?? '问题' : '';
+
+  const displayName = isSkill ? skillId : isQuestion ? questionHeader : name;
 
   // 折叠箭头
   const renderArrow = () => (
@@ -84,14 +107,19 @@ export function ToolCallItem(
   const renderTypeIcon = () =>
     isSkill ? (
       <ThunderboltOutlined className={styles.typeIcon} />
+    ) : isQuestion ? (
+      <QuestionCircleOutlined className={styles.typeIcon} />
     ) : (
       <ToolOutlined className={styles.typeIcon} />
     );
 
+  // 类型标签
+  const typeLabel = isSkill ? '技能' : isQuestion ? '问题' : '工具';
+
   return (
     <div
       className={`${styles.toolCallItem} ${
-        isSkill ? styles.skillItem : styles.toolItem
+        isSkill ? styles.skillItem : isQuestion ? styles.questionItem : styles.toolItem
       } ${expanded ? styles.expanded : ''}`}
     >
       {/* 摘要行：箭头 + 类型图标 + 状态 + 名称 */}
@@ -99,7 +127,7 @@ export function ToolCallItem(
         {renderArrow()}
         {renderTypeIcon()}
         {renderStatusDot()}
-        <span className={styles.label}>{isSkill ? '技能' : '工具'}</span>
+        <span className={styles.label}>{typeLabel}</span>
         <span className={styles.displayName}>{displayName}</span>
       </div>
 
@@ -118,8 +146,44 @@ export function ToolCallItem(
             </div>
           )}
 
+          {/* 问题：展示每个问题和用户回答 */}
+          {isQuestion && (
+            <>
+              {(args?.questions as Record<string, unknown>[])?.map((q: Record<string, unknown>, idx: number) => {
+                const questionText = q.question as string;
+                const options = q.options as Record<string, string>[];
+                const answer = questionAnswer?.answers?.[questionText];
+                const annotation = questionAnswer?.annotations?.[questionText];
+                return (
+                  <div key={idx} className={styles.detailSection}>
+                    <div className={styles.detailLabel}>问题 {args.questions.length > 1 ? `${idx + 1}` : ''}</div>
+                    <div className={styles.questionText}>{questionText}</div>
+                    {options && options.length > 0 && (
+                      <div className={styles.questionOptions}>
+                        {options.map((opt, optIdx) => (
+                          <span key={optIdx} className={styles.questionOption}>
+                            {opt.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {answer && (
+                      <div className={styles.questionAnswer}>
+                        <span className={styles.questionAnswerLabel}>回答：</span>
+                        <span>{answer}</span>
+                        {annotation?.notes && annotation.notes !== answer && (
+                          <span className={styles.questionAnswerNotes}>（{annotation.notes}）</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
+
           {/* 工具：展示输入 */}
-          {!isSkill && argEntries.length > 0 && (
+          {!isSkill && !isQuestion && argEntries.length > 0 && (
             <div className={styles.detailSection}>
               <div className={styles.detailLabel}>输入</div>
               <div className={styles.detailContent}>
@@ -138,7 +202,7 @@ export function ToolCallItem(
           )}
 
           {/* 工具：展示输出 */}
-          {!isSkill && status === 'complete' && resultText && (
+          {!isSkill && !isQuestion && status === 'complete' && resultText && (
             <div className={styles.detailSection}>
               <div
                 className={`${styles.detailLabel} ${
