@@ -378,3 +378,13 @@
     transform: scale(1);
   }
 }
+
+/* 互斥控制：弹框活跃时禁用输入区域 */
+.interactionActive {
+  :global(.copilot-chat-input-container) {
+    pointer-events: none;
+    opacity: 0.4;
+    filter: grayscale(0.3);
+    transition: opacity 0.2s ease, filter 0.2s ease;
+  }
+}

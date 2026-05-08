@@ -11,8 +11,10 @@ import type { AIChatPanelMode } from './types';
 import { usePanelContext } from './AIChatContext';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { HumanApprovalBar } from './HumanApprovalBar';
+import { AskUserQuestionBar } from './AskUserQuestionBar';
 import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
-import { dispatchHumanApproval, clearHumanApproval } from '@/services/human-approval';
+import { dispatchHumanApproval, clearHumanApproval, onHumanApproval } from '@/services/human-approval';
+import { dispatchAskUserQuestion, clearAskUserQuestion, onAskUserQuestion } from '@/services/ask-user-question';
 import styles from './copilot-override.module.less';
 
 interface CopilotChatPanelProps {
@@ -77,6 +79,21 @@ export function CopilotChatPanel({
   // 使用 ref 来跟踪当前模式，避免因模式变化导致重新渲染
   const isDraggableMode = mode === 'draggable';
 
+  // 弹框与输入框互斥控制
+  const [hasApproval, setHasApproval] = useState(false);
+  const [hasAskQuestion, setHasAskQuestion] = useState(false);
+
+  useEffect(() => {
+    const unsubApproval = onHumanApproval((payload) => setHasApproval(payload !== null));
+    const unsubAskQuestion = onAskUserQuestion((payload) => setHasAskQuestion(payload !== null));
+    return () => {
+      unsubApproval();
+      unsubAskQuestion();
+    };
+  }, []);
+
+  const isInteractionActive = hasApproval || hasAskQuestion;
+
   // 切换到历史视图
   const handleShowHistory = () => {
     setViewMode('history');
@@ -91,6 +108,7 @@ export function CopilotChatPanel({
   const handleNewSession = () => {
     reset();
     clearHumanApproval();
+    clearAskUserQuestion();
     // 生成新的 threadId，让后端创建新的会话
     const newThreadId = crypto.randomUUID();
     setCurrentThreadId(newThreadId);
@@ -99,8 +117,9 @@ export function CopilotChatPanel({
 
   const handleLoadSession = async (sessionId: string) => {
     try {
-      // 先清除旧的审批状态，避免切换会话后旧审批弹框残留
+      // 先清除旧的弹框状态，避免切换会话后旧弹框残留
       clearHumanApproval();
+      clearAskUserQuestion();
       const messages = await getSessionMessages(sessionId);
       reset();
       agent.threadId = sessionId;
@@ -121,6 +140,33 @@ export function CopilotChatPanel({
         return formatted;
       });
       agent.setMessages(formattedMessages);
+
+      // 检查是否需要恢复 AskUserQuestion 弹框
+      // 最新一条消息如果是 AskUserQuestion 工具调用且无对应结果，则恢复弹框
+      try {
+        const lastMsg = messages[messages.length - 1] as BrainMessage | undefined;
+        if (lastMsg?.role === 'assistant' && lastMsg.toolCalls?.length) {
+          const askQuestionToolCall = lastMsg.toolCalls.find(
+            (tc: Record<string, unknown>) => tc.name === 'AskUserQuestion' || tc.function?.name === 'AskUserQuestion'
+          );
+          if (askQuestionToolCall) {
+            const args = typeof askQuestionToolCall.function?.arguments === 'string'
+              ? JSON.parse(askQuestionToolCall.function.arguments)
+              : askQuestionToolCall.function?.arguments ?? askQuestionToolCall.args ?? {};
+            dispatchAskUserQuestion({
+              toolCallId: askQuestionToolCall.id as string,
+              questions: Array.isArray(args.questions) ? args.questions.map((q: Record<string, unknown>) => ({
+                question: String(q.question ?? ''),
+                header: String(q.header ?? ''),
+                options: Array.isArray(q.options) ? q.options : (q.options ? [q.options] : []),
+                multiSelect: Boolean(q.multiSelect),
+              })) : [],
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[AskUserQuestion] 历史会话恢复失败:', e);
+      }
 
       // 根据后端实际审批状态决定是否恢复审批弹框
       try {
@@ -209,6 +255,8 @@ export function CopilotChatPanel({
       </div>
       {/* 人工审批卡片 - 展示在聊天输入框上方 */}
       <HumanApprovalBar />
+      {/* AskUserQuestion 选择框 - 展示在审批卡片下方 */}
+      <AskUserQuestionBar />
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <CopilotChat
         labels={{
@@ -248,7 +296,7 @@ export function CopilotChatPanel({
           (nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
           (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
         }}
-        className={`${styles.copilotChatWrapper} ${isHidden ? styles.hiddenWrapper : ''} ${isDraggableMode ? styles.draggableWrapper : ''} ${className || ''}`}
+        className={`${styles.copilotChatWrapper} ${isHidden ? styles.hiddenWrapper : ''} ${isDraggableMode ? styles.draggableWrapper : ''} ${isInteractionActive ? styles.interactionActive : ''} ${className || ''}`}
         style={isDraggableMode ? {
           width: panelState.width,
           height: panelState.height,
