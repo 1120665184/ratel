@@ -33,7 +33,7 @@
 
 ### 1.2 历史会话恢复
 
-加载历史会话后，检查最新一条 assistant 消息是否包含 `AskUserQuestion` 的 ToolUseBlock（无对应 ToolResultBlock），如果有则通过审批状态查询接口 `GET /brain/approval/status/{threadId}` 恢复弹框。
+加载历史会话后，检查最新一条消息。如果最新消息是 `AskUserQuestion` 的工具执行消息（`role: 'assistant'` 且包含 `toolCalls`，其中某个 toolCall 的 name 为 `AskUserQuestion`，且无对应的 tool result 消息），则从该消息的 `toolCalls` 参数中提取 `questions` 和 `toolCallId`，直接 `dispatchAskUserQuestion` 恢复弹框。无需调用任何后端接口。
 
 ## 二、类型定义
 
@@ -86,25 +86,33 @@ export interface AskUserQuestionAnswer {
 
 ### 4.2 UI 结构
 
-每个问题一个卡片区域：
+支持同时展示多个问题（1-4个），每个问题一个卡片区域，垂直排列，底部统一一个提交按钮：
 
 ```
 ┌──────────────────────────────────────┐
-│ ❓ [header标签]                       │
+│ ❓ 问题1 [header1标签]                │
 │                                       │
-│ question 问题文本？                    │
+│ question1 问题文本？                   │
 │                                       │
 │ ○ 选项A (Recommended)                 │
 │   选项A的描述说明                      │
-│                                       │
 │ ○ 选项B                               │
 │   选项B的描述说明                      │
-│                                       │
 │ ○ Other                               │
 │ ┌─────────────────────────────────┐   │
 │ │ 自由输入...                       │   │
 │ └─────────────────────────────────┘   │
+└──────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│ ❓ 问题2 [header2标签]                │
 │                                       │
+│ question2 问题文本？                   │
+│                                       │
+│ ☑ 选项A                               │
+│   选项A的描述说明                      │
+│ ☑ 选项B                               │
+│   选项B的描述说明                      │
+│ ☐ Other                               │
 │ （multiSelect时 ○ 变 □）              │
 └──────────────────────────────────────┘
 
@@ -115,7 +123,8 @@ export interface AskUserQuestionAnswer {
 - `multiSelect: false` → Radio 单选
 - `multiSelect: true` → Checkbox 多选
 - 每个 "Other" 选项带自由输入框
-- 底部提交按钮，提交后禁用防重复点击
+- 所有问题必须作答后才能提交
+- 底部统一提交按钮，提交后禁用防重复点击
 
 ### 4.3 提交逻辑
 
