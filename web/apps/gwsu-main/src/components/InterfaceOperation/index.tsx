@@ -77,7 +77,7 @@ const InterfaceOperation: React.FC<InterfaceOperationProps> = () => {
   );
 
   return (
-    <div className={styles.interfaceOperation}>
+    <div className={styles.interfaceOperation} data-ai-scope="interface-operation">
       {/* 左侧菜单栏 */}
       <aside
         className={styles.operationSider}

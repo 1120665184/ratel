@@ -13,6 +13,12 @@ import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfi
 import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
 // 确保 route-navigation 工具被注册
 import '@/services/web-tool/tools/route-navigation';
+// 确保 AI 界面操作工具被注册
+import '@/services/web-tool/tools/get-page-state';
+import '@/services/web-tool/tools/click-element';
+import '@/services/web-tool/tools/input-text';
+import '@/services/web-tool/tools/select-option';
+import '@/services/web-tool/tools/scroll-page';
 import { AgentSubscriber } from '@ag-ui/client';
 
 interface GwsuCopilotKitProviderProps {
