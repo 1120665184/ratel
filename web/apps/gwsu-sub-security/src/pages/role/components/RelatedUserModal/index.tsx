@@ -54,7 +54,7 @@ const RelatedUserModal: React.FC<RelatedUserModalProps> = ({
   /** 穿梭框数据源 */
   const transferDataSource = useMemo(() => {
     return allUsers.map((user) => ({
-      key: user.id,
+      key: user.userId,
       title: user.nickname || user.userName,
     }));
   }, [allUsers]);

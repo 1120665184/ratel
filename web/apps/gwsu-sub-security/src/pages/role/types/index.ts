@@ -96,7 +96,7 @@ export const WEEK_DAY_OPTIONS = [
 
 /** 用户信息（穿梭框数据源） */
 export interface UserInfoItem {
-  id: string;
+  userId: string;
   userName: string;
   nickname: string;
 }
