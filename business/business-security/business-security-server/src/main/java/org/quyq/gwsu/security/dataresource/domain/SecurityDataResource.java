@@ -36,6 +36,12 @@ public class SecurityDataResource extends BaseDO {
     @Schema(description = "规则描述")
     private String description;
 
+    @Schema(description = "是否支持SELF_ONLY过滤")
+    private Boolean supportSelfOnly;
+
+    @Schema(description = "SELF_ONLY过滤时使用的字段名，即目标表中记录创建人的字段")
+    private String selfOnlyField;
+
     @Schema(description = "启用状态")
     private Boolean status;
 
@@ -48,6 +54,8 @@ public class SecurityDataResource extends BaseDO {
         vo.setDatabaseName(this.databaseName);
         vo.setTableName(this.tableName);
         vo.setDescription(this.description);
+        vo.setSupportSelfOnly(this.supportSelfOnly);
+        vo.setSelfOnlyField(this.selfOnlyField);
         vo.setStatus(this.status);
         vo.copyBaseProperties(this);
         return vo;

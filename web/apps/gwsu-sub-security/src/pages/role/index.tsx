@@ -255,16 +255,16 @@ const RolePage: React.FC = () => {
                   onClick: () => handleEdit(record),
                 },
                 {
-                  key: "menuPermission",
-                  icon: <MenuOutlined />,
-                  label: "菜单权限",
-                  onClick: () => handleMenuPermission(record),
-                },
-                {
                   key: "relatedUser",
                   icon: <UserOutlined />,
                   label: "关联用户",
                   onClick: () => handleRelatedUser(record),
+                },
+                {
+                  key: "menuPermission",
+                  icon: <MenuOutlined />,
+                  label: "菜单权限",
+                  onClick: () => handleMenuPermission(record),
                 },
                 {
                   key: "fieldPermission",

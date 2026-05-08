@@ -394,9 +394,11 @@ CREATE TABLE security_data_resource
 (
     id            VARCHAR(24) PRIMARY KEY,
     database_name VARCHAR(100)          DEFAULT NULL,
-    table_name    VARCHAR(100) NOT NULL,
-    description   VARCHAR(200)          DEFAULT NULL,
-    status        INT2         NOT NULL DEFAULT 1,
+    table_name      VARCHAR(100) NOT NULL,
+    description     VARCHAR(200)          DEFAULT NULL,
+    support_self_only INT2         NOT NULL DEFAULT 0,
+    self_only_field   VARCHAR(100)          DEFAULT NULL,
+    status          INT2         NOT NULL DEFAULT 1,
     tenant_id     VARCHAR(50)           DEFAULT NULL,
     create_op     VARCHAR(50)           DEFAULT NULL,
     create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -413,6 +415,8 @@ COMMENT ON COLUMN security_data_resource.id IS '主键ID';
 COMMENT ON COLUMN security_data_resource.database_name IS '库名，为空时匹配所有库';
 COMMENT ON COLUMN security_data_resource.table_name IS '表名';
 COMMENT ON COLUMN security_data_resource.description IS '规则描述';
+COMMENT ON COLUMN security_data_resource.support_self_only IS '是否支持SELF_ONLY过滤：0-不支持 1-支持';
+COMMENT ON COLUMN security_data_resource.self_only_field IS 'SELF_ONLY过滤时使用的字段名，即目标表中记录创建人的字段';
 COMMENT ON COLUMN security_data_resource.status IS '启用状态：0-禁用 1-启用';
 COMMENT ON COLUMN security_data_resource.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_data_resource.create_op IS '创建人';

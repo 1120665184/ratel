@@ -26,6 +26,16 @@ public class DataResoureRule {
     private String tableName;
 
     /**
+     * 是否支持SELF_ONLY过滤
+     */
+    private Boolean supportSelfOnly;
+
+    /**
+     * SELF_ONLY过滤时使用的字段名，即目标表中记录创建人的字段
+     */
+    private String selfOnlyField;
+
+    /**
      * 字段拼接条件
      */
     private List<FieldCondition> conditions;

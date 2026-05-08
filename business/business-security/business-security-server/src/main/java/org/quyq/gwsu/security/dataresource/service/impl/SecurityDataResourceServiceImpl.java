@@ -106,6 +106,8 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
         entity.setDatabaseName(dto.getDatabaseName());
         entity.setTableName(dto.getTableName());
         entity.setDescription(dto.getDescription());
+        entity.setSupportSelfOnly(dto.getSupportSelfOnly());
+        entity.setSelfOnlyField(dto.getSelfOnlyField());
         entity.setStatus(dto.getStatus() != null ? dto.getStatus() : Boolean.TRUE);
 
         // 保存或更新主表
@@ -189,6 +191,8 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
                     DataResoureRule rule = new DataResoureRule();
                     rule.setDatabaseName(dr.getDatabaseName());
                     rule.setTableName(dr.getTableName());
+                    rule.setSupportSelfOnly(dr.getSupportSelfOnly());
+                    rule.setSelfOnlyField(dr.getSelfOnlyField());
 
                     List<SecurityDataResourceCondition> conditions = conditionMap.getOrDefault(dr.getId(), Collections.emptyList());
                     List<DataResoureRule.FieldCondition> fieldConditions = conditions.stream()

@@ -16,17 +16,22 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
-import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.dataresource.database.DBDataResourceConditionBuilder;
+import org.quyq.gwsu.common.security.domain.DataPermissionInfo;
 import org.quyq.gwsu.common.security.domain.DataResoureRule;
+import org.quyq.gwsu.common.security.enums.DataResourceAssertType;
+import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.exception.SecurityException;
-import org.quyq.gwsu.common.security.utils.SessionUtils;
+import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.springframework.core.Ordered;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 数据权限拦截器
@@ -39,9 +44,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DataResourceInterceptor implements InnerInterceptor, Ordered {
 
-    private final SessionUtils sessionUtils;
     private final DataResourceRuleUtils ruleUtils;
+    private final DataPermissionUtils dataPermissionUtils;
     private final DataResourceConditionBuilder<Expression, Expression> conditionBuilder = new DBDataResourceConditionBuilder();
+
+    /**
+     * SELF_ONLY 模式下，用户资源字段固定为 username
+     */
+    private static final String SELF_ONLY_USER_RESOURCE_FIELD = "username";
 
     /**
      * BoundSql.sql 字段引用
@@ -66,19 +76,42 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
             return;
         }
 
-        // 获取当前用户数据资源
-        @SuppressWarnings("unchecked")
-        Map<String, List<?>> dataResource = (Map<String, List<?>>) sessionUtils.getValue(
-                SecurityConstants.Session.SESSION_CURR_DATA_RESOURCE
-        ).orElse(null);
-
-        if (dataResource == null || dataResource.isEmpty()) {
+        DataPermissionInfo userDataPermission = dataPermissionUtils.getUserDataPermission();
+        // 为空或拥有全部数据权限时不添加条件过滤
+        if (Objects.isNull(userDataPermission) || DataScope.ALL == userDataPermission.dataScope()) {
             return;
         }
 
+        Map<String, List<?>> dataResource = userDataPermission.permissions();
+        ;
+        Map<String, List<DataResoureRule>> rulesByTable;
 
-        // 按表名分组
-        Map<String, List<DataResoureRule>> rulesByTable = ruleUtils.getRulesGroupByTable();
+        if (DataScope.SELF_ONLY == userDataPermission.dataScope()) {
+            // SELF_ONLY 模式：过滤出支持 SELF_ONLY 的规则，重构 conditions 复用已有逻辑
+            String currentUsername = dataPermissionUtils.getCurrentUsername();
+            if (currentUsername == null) {
+                return;
+            }
+
+            List<DataResoureRule> allRules = ruleUtils.getAllRules();
+            // 过滤出 supportSelfOnly=true 且 selfOnlyField 非空的规则，重构 conditions
+            List<DataResoureRule> selfOnlyRules = allRules.stream()
+                    .filter(rule -> Boolean.TRUE.equals(rule.getSupportSelfOnly())
+                            && Objects.nonNull(rule.getSelfOnlyField())
+                            && !rule.getSelfOnlyField().isBlank())
+                    .map(this::buildSelfOnlyRule)
+                    .toList();
+
+            if (CollectionUtils.isEmpty(selfOnlyRules)) {
+                return;
+            }
+
+            rulesByTable = selfOnlyRules.stream()
+                    .collect(Collectors.groupingBy(DataResoureRule::getTableName));
+        } else {
+            rulesByTable = ruleUtils.getRulesGroupByTable();
+        }
+
         if (rulesByTable.isEmpty()) {
             return;
         }
@@ -92,7 +125,6 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
                 return;
             }
 
-            // 处理 SELECT 语句
             boolean modified = processSelect(select, rulesByTable, dataResource);
 
             if (modified) {
@@ -107,17 +139,46 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
     }
 
     /**
-     * 处理 SELECT 语句
+     * 构建 SELF_ONLY 模式的规则
+     * 在原有 conditions 基础上，固定追加一个 FieldCondition：
+     * - fieldName = selfOnlyField
+     * - showNull = false
+     * - assertType = EQ
+     * - userResourceFields = ['username']
      *
-     * @param select       SELECT 语句
-     * @param rulesByTable 按表名分组的规则
-     * @param dataResource 用户数据资源
-     * @return 是否有修改
+     * @param original 原始规则
+     * @return 追加了 SELF_ONLY 条件的规则副本
+     */
+    private DataResoureRule buildSelfOnlyRule(DataResoureRule original) {
+        DataResoureRule rule = new DataResoureRule();
+        rule.setDatabaseName(original.getDatabaseName());
+        rule.setTableName(original.getTableName());
+        rule.setSupportSelfOnly(original.getSupportSelfOnly());
+        rule.setSelfOnlyField(original.getSelfOnlyField());
+
+        // 复制原有 conditions
+        List<DataResoureRule.FieldCondition> conditions = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(original.getConditions())) {
+            conditions.addAll(original.getConditions());
+        }
+
+        // 固定追加 SELF_ONLY 条件
+        DataResoureRule.FieldCondition selfOnlyCondition = new DataResoureRule.FieldCondition();
+        selfOnlyCondition.setFieldName(original.getSelfOnlyField());
+        selfOnlyCondition.setShowNull(false);
+        selfOnlyCondition.setAssertType(DataResourceAssertType.EQ);
+        selfOnlyCondition.setUserResourceFields(List.of(SELF_ONLY_USER_RESOURCE_FIELD));
+        conditions.add(selfOnlyCondition);
+
+        rule.setConditions(conditions);
+        return rule;
+    }
+
+    /**
+     * 处理 SELECT 语句
      */
     private boolean processSelect(Select select, Map<String, List<DataResoureRule>> rulesByTable,
                                   Map<String, List<?>> dataResource) {
-        // 在 JSqlParser 5.2 中，Select 本身就是抽象类
-        // PlainSelect、SetOperationList、Values 都是 Select 的子类
         return processSelectStatement(select, rulesByTable, dataResource);
     }
 
@@ -135,7 +196,6 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
             }
             return modified;
         } else if (select instanceof Values) {
-            // VALUES 语句不需要处理
             return false;
         }
         return false;
@@ -148,13 +208,11 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
                                        Map<String, List<?>> dataResource) {
         boolean modified = false;
 
-        // 处理主表
         FromItem fromItem = plainSelect.getFromItem();
         if (fromItem != null) {
             modified = processFromItem(fromItem, plainSelect, null, rulesByTable, dataResource) || modified;
         }
 
-        // 处理 JOIN 表
         List<Join> joins = plainSelect.getJoins();
         if (joins != null) {
             for (Join join : joins) {
@@ -178,7 +236,6 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
         if (fromItem instanceof Table table) {
             return processTable(table, plainSelect, join, rulesByTable, dataResource);
         } else if (fromItem instanceof ParenthesedSelect parenthesedSelect) {
-            // 处理括号包裹的子查询（包括普通子查询）
             Select subSelectBody = parenthesedSelect.getSelect();
             if (subSelectBody != null) {
                 return processSelectStatement(subSelectBody, rulesByTable, dataResource);
@@ -202,10 +259,8 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
             return false;
         }
 
-        // 获取表别名
         String alias = table.getAlias() != null ? table.getAlias().getName() : tableName;
 
-        // 构建过滤条件
         Expression condition = buildCondition(rules, alias, dataResource);
 
         if (condition == null) {
@@ -213,7 +268,6 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
         }
 
         if (join == null) {
-            // 主表：添加到 WHERE 子句
             Expression where = plainSelect.getWhere();
             if (where == null) {
                 plainSelect.setWhere(condition);
@@ -221,7 +275,6 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
                 plainSelect.setWhere(new AndExpression(where, condition));
             }
         } else {
-            // JOIN 表：添加到 ON 子句
             Expression onExpression = join.getOnExpression();
             if (onExpression == null) {
                 join.setOnExpression(condition);
@@ -269,7 +322,6 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
 
     @Override
     public int getOrder() {
-        // 在分页拦截器之前执行
         return Ordered.HIGHEST_PRECEDENCE + 100;
     }
 

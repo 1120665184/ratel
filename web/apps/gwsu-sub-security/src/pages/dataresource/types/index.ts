@@ -4,6 +4,8 @@ export interface DataResourceInfo {
   databaseName?: string;
   tableName: string;
   description?: string;
+  supportSelfOnly?: boolean;
+  selfOnlyField?: string;
   status: boolean;
   conditions?: DataResourceCondition[];
   createTime?: string;

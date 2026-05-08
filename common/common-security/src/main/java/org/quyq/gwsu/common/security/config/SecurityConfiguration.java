@@ -7,6 +7,7 @@ import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.dataresource.DataResourceInterceptor;
 import org.quyq.gwsu.common.security.dataresource.DataResourceRuleUtils;
 import org.quyq.gwsu.common.security.filter.PropertiesSettingFilter;
+import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -60,9 +61,18 @@ public class SecurityConfiguration {
     }
 
     @Bean
+    public DataPermissionUtils dataPermissionUtils(SecurityUtils securityUtils,
+                                                   SessionUtils sessionUtils) {
+        return new DataPermissionUtils(securityUtils, sessionUtils);
+    }
+
+
+    @Bean
     @ConditionalOnClass(value = {RequestAttributes.class})
-    public PropertiesSettingFilter propertiesSettingFilter(SecurityUtils securityUtils) {
-        return new PropertiesSettingFilter(securityUtils);
+    public PropertiesSettingFilter propertiesSettingFilter(SecurityUtils securityUtils,
+                                                           SessionUtils sessionUtils,
+                                                           DataPermissionUtils dataPermissionUtils) {
+        return new PropertiesSettingFilter(securityUtils, sessionUtils, dataPermissionUtils);
     }
 
     @Bean
@@ -71,9 +81,10 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public DataResourceInterceptor dataResourceInterceptor(SessionUtils sessionUtils,
-                                                           DataResourceRuleUtils ruleUtils) {
-        return new DataResourceInterceptor(sessionUtils, ruleUtils);
+    public DataResourceInterceptor dataResourceInterceptor(
+                                                           DataResourceRuleUtils ruleUtils,
+                                                           DataPermissionUtils dataPermissionUtils) {
+        return new DataResourceInterceptor(ruleUtils, dataPermissionUtils);
     }
 
 }

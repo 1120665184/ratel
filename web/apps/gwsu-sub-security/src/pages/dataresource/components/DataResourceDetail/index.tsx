@@ -118,6 +118,14 @@ const DataResourceDetail: React.FC<DataResourceDetailProps> = ({
             <Descriptions.Item label="描述">
               {data.description || '-'}
             </Descriptions.Item>
+            <Descriptions.Item label="支持SELF_ONLY过滤">
+              {data.supportSelfOnly ? '是' : '否'}
+            </Descriptions.Item>
+            {data.supportSelfOnly && (
+              <Descriptions.Item label="SELF_ONLY过滤字段">
+                {data.selfOnlyField ? <code>{data.selfOnlyField}</code> : '-'}
+              </Descriptions.Item>
+            )}
             <Descriptions.Item label="状态">
               <Tag color={data.status ? 'green' : 'red'}>
                 {data.status ? '启用' : '禁用'}

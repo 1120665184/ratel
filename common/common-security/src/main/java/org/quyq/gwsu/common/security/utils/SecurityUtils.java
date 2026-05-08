@@ -10,13 +10,13 @@ import com.google.gson.reflect.TypeToken;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.config.GsonConfiguration;
+import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.domain.deserializer.JacksonCompatibleTypeAdapterFactory;
-import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
-import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
-import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -47,16 +47,18 @@ public class SecurityUtils {
 
     /**
      * 获取当前登录用户的username
+     *
      * @return
      */
     public String getUsername() {
         return Optional.ofNullable(ServletUtils.getHeaders())
-                .map(h ->h.get(SecurityConstants.Authentication.AUTHORIZATION_USER_NAME))
+                .map(h -> h.get(SecurityConstants.Authentication.AUTHORIZATION_USER_NAME))
                 .orElse(null);
     }
 
     /**
      * 获取Token
+     *
      * @return
      */
     public String getToken() {
@@ -159,5 +161,6 @@ public class SecurityUtils {
         );
 
     }
+
 
 }

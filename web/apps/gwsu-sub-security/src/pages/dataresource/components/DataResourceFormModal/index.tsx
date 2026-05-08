@@ -59,6 +59,7 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [conditions, setConditions] = useState<DataResourceCondition[]>([]);
+  const [supportSelfOnly, setSupportSelfOnly] = useState(false);
   const isEdit = mode === 'edit';
 
   useEffect(() => {
@@ -68,8 +69,11 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
           databaseName: data.databaseName,
           tableName: data.tableName,
           description: data.description,
+          supportSelfOnly: data.supportSelfOnly ?? false,
+          selfOnlyField: data.selfOnlyField,
           status: data.status,
         });
+        setSupportSelfOnly(data.supportSelfOnly ?? false);
         setConditions(
           data.conditions?.length
             ? data.conditions.map((c) => ({ ...c }))
@@ -77,7 +81,8 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
         );
       } else {
         form.resetFields();
-        form.setFieldsValue({ status: true });
+        form.setFieldsValue({ status: true, supportSelfOnly: false, selfOnlyField: 'create_op' });
+        setSupportSelfOnly(false);
         setConditions([]);
       }
     }
@@ -288,6 +293,22 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
             maxLength={256}
           />
         </Form.Item>
+        <Form.Item name="supportSelfOnly" label="支持SELF_ONLY过滤" valuePropName="checked">
+          <Switch
+            checkedChildren="是"
+            unCheckedChildren="否"
+            onChange={(val) => setSupportSelfOnly(val)}
+          />
+        </Form.Item>
+        {supportSelfOnly && (
+          <Form.Item
+            name="selfOnlyField"
+            label="SELF_ONLY过滤字段"
+            rules={[{ required: true, message: '请输入SELF_ONLY过滤字段名' }]}
+          >
+            <Input placeholder="SELF_ONLY过滤时使用的字段名，如 create_op" />
+          </Form.Item>
+        )}
         <Form.Item name="status" label="状态" valuePropName="checked">
           <Switch checkedChildren="启用" unCheckedChildren="禁用" />
         </Form.Item>
