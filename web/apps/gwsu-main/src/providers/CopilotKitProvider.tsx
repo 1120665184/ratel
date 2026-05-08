@@ -7,6 +7,8 @@ import { dispatchWebTool } from '@/services/web-tool';
 import type { WebToolExecutePayload } from '@/services/web-tool';
 import { dispatchHumanApproval } from '@/services/human-approval';
 import type { HumanApprovalPayload } from '@/services/human-approval';
+import { dispatchAskUserQuestion } from '@/services/ask-user-question';
+import type { QuestionParam, QuestionOption } from '@/services/ask-user-question';
 import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfirmModal';
 import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
 // 确保 route-navigation 工具被注册
@@ -39,6 +41,17 @@ function WebToolEventListener() {
   const { agent } = useAgent({ agentId: 'brain' });
   const subscriptionRef = useRef<ReturnType<typeof agent.subscribe> | null>(null);
 
+  /**
+   * 规范化 options 字段
+   * 后端 QuestionParam.options 类型为 QuestionOption（单对象），
+   * 但 LLM 根据 description 会生成数组，前端兼容两种情况
+   */
+  const normalizeOptions = (options: unknown): QuestionOption[] => {
+    if (Array.isArray(options)) return options as QuestionOption[];
+    if (options && typeof options === 'object') return [options as QuestionOption];
+    return [];
+  };
+
   useEffect(() => {
     if (!agent) return;
 
@@ -56,6 +69,23 @@ function WebToolEventListener() {
         //人工干预审批
         else if (event.name === 'HUMAN_APPROVAL') {
           dispatchHumanApproval(event.value as HumanApprovalPayload);
+        }
+      },
+      onToolCallEndEvent: ({ toolCallName, toolCallArgs, event }): void => {
+        if (toolCallName === 'AskUserQuestion') {
+          const rawQuestions = toolCallArgs?.questions;
+          if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
+            const questions: QuestionParam[] = rawQuestions.map((q: Record<string, unknown>) => ({
+              question: String(q.question ?? ''),
+              header: String(q.header ?? ''),
+              options: normalizeOptions(q.options),
+              multiSelect: Boolean(q.multiSelect),
+            }));
+            dispatchAskUserQuestion({
+              toolCallId: event.toolCallId,
+              questions,
+            });
+          }
         }
       },
     };
