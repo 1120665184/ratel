@@ -93,3 +93,27 @@ export const WEEK_DAY_OPTIONS = [
   { label: '周六', value: '6' },
   { label: '周日', value: '7' },
 ];
+
+/** 用户信息（穿梭框数据源） */
+export interface UserInfoItem {
+  id: string;
+  userName: string;
+  nickname: string;
+}
+
+/** 用户分页查询参数 */
+export interface UserPageQuery {
+  search?: string;
+  pageNum?: number;
+  pageSize?: number;
+  orderByColumn?: string;
+  asc?: string;
+}
+
+/** 用户分页响应 */
+export interface UserPageResult {
+  records: UserInfoItem[];
+  total: number;
+  current: number;
+  size: number;
+}

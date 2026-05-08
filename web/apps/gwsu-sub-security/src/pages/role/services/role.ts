@@ -5,6 +5,8 @@ import type {
   ValidGroup,
   MenuTreeNode,
   ValidGroupSaveRequest,
+  UserPageQuery,
+  UserPageResult,
 } from '../types';
 
 const BASE = '/security/role';
@@ -129,4 +131,26 @@ export async function getMenuOwnerOptions(): Promise<MenuEnumOption[]> {
 export async function getMenuPositionOptions(): Promise<MenuEnumOption[]> {
   const res = await get<MenuEnumOption[]>(`${MENU_BASE}/enums/positions`);
   return res.data ?? [];
+}
+
+/** 根据角色ID查询关联的主体ID列表 */
+export async function getSubjectIdsByRoleId(
+  roleId: string,
+): Promise<string[]> {
+  const res = await get<string[]>(`${BASE}/${roleId}/subjects`);
+  return res.data ?? [];
+}
+
+/** 给角色分配主体 */
+export async function allocateSubjectsToRole(
+  roleId: string,
+  subjectIds: string[],
+): Promise<void> {
+  await put<void>(`${BASE}/allocationSubject/${roleId}`, subjectIds);
+}
+
+/** 分页查询用户信息（用于穿梭框数据源，接口来自 business-system 模块，POST） */
+export async function getUserPage(query: UserPageQuery) {
+  const res = await post<UserPageResult>('/system/basic/page/userInfo', query);
+  return res.data;
 }
