@@ -342,6 +342,16 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
 
     }
 
+    @Override
+    public List<String> listSubjectIdsByRoleId(String roleId) {
+        List<SecurityRoleSubject> list = roleSubjectMapper.selectList(
+                new LambdaQueryWrapper<SecurityRoleSubject>()
+                        .eq(SecurityRoleSubject::getRoleId, roleId));
+        return list.stream()
+                .map(SecurityRoleSubject::getSubjectId)
+                .toList();
+    }
+
     // ==================== 私有方法 ====================
 
     private String buildValidGroupKey(SecurityRoleMenu rm) {

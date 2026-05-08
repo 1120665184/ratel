@@ -137,4 +137,12 @@ public interface ISecurityRoleService extends IService<SecurityRole> {
      * @param subjectIds
      */
     void allocationSubjectToRole(String roleId , List<String> subjectIds);
+
+    /**
+     * 根据角色ID查询关联的主体ID列表
+     *
+     * @param roleId 角色ID
+     * @return 主体ID列表
+     */
+    List<String> listSubjectIdsByRoleId(String roleId);
 }
