@@ -24,11 +24,13 @@ import {
   MenuOutlined,
   LockOutlined,
   TableOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import styles from "./index.module.less";
 import RoleDetail from "./components/RoleDetail";
 import RoleFormModal from "./components/RoleFormModal";
 import MenuPermissionModal from "./components/MenuPermissionModal";
+import RelatedUserModal from "./components/RelatedUserModal";
 import { useRole } from "./hooks/useRole";
 import type { RoleInfo, RoleQuery, EnumOption } from "./types";
 import { getRoleTypeOptions, getDataScopeOptions } from "./services/role";
@@ -79,6 +81,11 @@ const RolePage: React.FC = () => {
   const [menuPermVisible, setMenuPermVisible] = useState(false);
   const [menuPermRoleId, setMenuPermRoleId] = useState<string | null>(null);
   const [menuPermRoleName, setMenuPermRoleName] = useState<string>("");
+
+  // 关联用户弹窗
+  const [relatedUserVisible, setRelatedUserVisible] = useState(false);
+  const [relatedUserRoleId, setRelatedUserRoleId] = useState<string | null>(null);
+  const [relatedUserRoleName, setRelatedUserRoleName] = useState<string>("");
 
   // 表格选中行
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -149,6 +156,13 @@ const RolePage: React.FC = () => {
     setMenuPermRoleId(role.id ?? null);
     setMenuPermRoleName(role.roleName);
     setMenuPermVisible(true);
+  }, []);
+
+  /** 关联用户 */
+  const handleRelatedUser = useCallback((role: RoleInfo) => {
+    setRelatedUserRoleId(role.id ?? null);
+    setRelatedUserRoleName(role.roleName);
+    setRelatedUserVisible(true);
   }, []);
 
   /** 批量删除 */
@@ -245,6 +259,12 @@ const RolePage: React.FC = () => {
                   icon: <MenuOutlined />,
                   label: "菜单权限",
                   onClick: () => handleMenuPermission(record),
+                },
+                {
+                  key: "relatedUser",
+                  icon: <UserOutlined />,
+                  label: "关联用户",
+                  onClick: () => handleRelatedUser(record),
                 },
                 {
                   key: "fieldPermission",
@@ -420,6 +440,14 @@ const RolePage: React.FC = () => {
         roleId={menuPermRoleId}
         roleName={menuPermRoleName}
         onClose={() => setMenuPermVisible(false)}
+      />
+
+      {/* 关联用户弹窗 */}
+      <RelatedUserModal
+        visible={relatedUserVisible}
+        roleId={relatedUserRoleId}
+        roleName={relatedUserRoleName}
+        onClose={() => setRelatedUserVisible(false)}
       />
     </div>
   );
