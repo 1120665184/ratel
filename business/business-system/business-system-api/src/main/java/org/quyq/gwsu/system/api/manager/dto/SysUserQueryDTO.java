@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.quyq.gwsu.common.core.domain.BaseDTO;
 
+import java.util.List;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "用户查询条件")
@@ -18,4 +20,7 @@ public class SysUserQueryDTO extends BaseDTO {
 
     @Schema(description = "部门ID（查询该部门及下级部门的用户）")
     private String deptId;
+
+    @Schema(description = "用户列表")
+    private List<String> userIds;
 }

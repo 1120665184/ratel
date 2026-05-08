@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.quyq.gwsu.common.core.domain.BaseDTO;
 
+import java.util.List;
+
 /**
  * @author Quyq
  * @date 2026/5/4
@@ -18,5 +20,7 @@ public class UserDTO  extends BaseDTO {
 
     @Schema(description = "搜索内容（用户名/昵称/手机模糊搜索）")
     private String search;
+    @Schema(description = "用户列表")
+    private List<String> userIds;
 
 }

@@ -16,6 +16,10 @@
         u.last_login_time
         FROM sys_user u
         WHERE u.deleted = 0
+        <if test="query.userIds != null and query.userIds.size() > 0">
+            AND u.id IN
+            <foreach collection="query.userIds" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
         <if test="query.deptId != null and query.deptId != ''">
             AND u.id IN (
             SELECT ud.user_id FROM sys_user_dept ud
