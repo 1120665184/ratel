@@ -164,8 +164,9 @@ public abstract class AguiController {
                 List<ToolResultBlock> contentBlocks = lastResult.getContentBlocks(ToolResultBlock.class);
 
                 List<ApprovalTips> approvalToolNames = Optional.ofNullable(
-                        lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
-                ).map(v -> gson.fromJson(gson.toJson(v), new TypeToken<List<ApprovalTips>>() {}))
+                                lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
+                        ).map(v -> gson.fromJson(gson.toJson(v), new TypeToken<List<ApprovalTips>>() {
+                        }))
                         .orElse(Collections.emptyList());
 
                 return approvalToolNames.stream()
@@ -188,19 +189,13 @@ public abstract class AguiController {
     }
 
     /**
-     * 从消息列表中获取最后一条助手消息
+     * 从消息列表中获取最后一条消息
      */
     private Msg findLastAssistantMsg(List<Msg> messages) {
         if (messages == null || messages.isEmpty()) {
             return null;
         }
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            Msg msg = messages.get(i);
-            if (msg.getRole() == MsgRole.ASSISTANT) {
-                return msg;
-            }
-        }
-        return null;
+        return messages.getLast();
     }
 
     /**

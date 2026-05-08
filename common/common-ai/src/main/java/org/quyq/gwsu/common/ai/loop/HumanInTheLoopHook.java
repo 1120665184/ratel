@@ -51,13 +51,15 @@ public class HumanInTheLoopHook implements Hook {
             }
 
         } else if (event instanceof PostActingEvent e) {
+            Msg msg = e.getToolResultMsg();
             ToolResultBlock toolResult = e.getToolResult();
 
             HumanInTheLoop humanInTheLoop = agent.getToolkit().getTool(toolResult.getName()).needHumanInTheLoop();
             if (Objects.nonNull(humanInTheLoop) && ApprovalStage.POST_ACTING == humanInTheLoop.stage()) {
-                e.getToolResultMsg().getMetadata().put(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY,
+                msg.getMetadata().put(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY,
                         Collections.singletonList(new ApprovalTips(toolResult.getName(), humanInTheLoop.tip()))
                 );
+
                 e.stopAgent();
             }
 

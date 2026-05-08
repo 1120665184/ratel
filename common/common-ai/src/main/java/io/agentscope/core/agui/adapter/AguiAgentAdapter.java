@@ -36,6 +36,7 @@ import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 
 import java.util.*;
@@ -241,18 +242,16 @@ public class AguiAgentAdapter {
     }
 
     /**
-     * 从 Agent 的 Memory 中获取最后一条助手消息。
+     * 从 Agent 的 Memory 中获取最后一条消息。
      * 仅支持 ReActAgent 类型。
      */
     private Msg findLastAssistantMsg() {
         if (agent instanceof ReActAgent reactAgent) {
             List<Msg> messages = reactAgent.getMemory().getMessages();
-            for (int i = messages.size() - 1; i >= 0; i--) {
-                Msg msg = messages.get(i);
-                if (msg.getRole() == MsgRole.ASSISTANT) {
-                    return msg;
-                }
+            if (CollectionUtils.isEmpty(messages)) {
+                return null;
             }
+            return messages.getLast();
         }
         return null;
     }

@@ -6,6 +6,7 @@ import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.tool.ToolEmitter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.AgentException;
 import org.quyq.gwsu.common.ai.agui.web.WebToolInfo;
 import org.quyq.gwsu.common.ai.agui.web.WebToolStatus;
 import org.quyq.gwsu.common.ai.agui.web.WebToolTask;
@@ -14,6 +15,7 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Web工具执行服务
@@ -60,7 +62,7 @@ public class WebToolUtils {
      * @return 工具执行结果
      */
     public ToolResultBlock webExecuteTool(ToolEmitter toolEmitter, String toolName,
-                                          Map<String, Object> params) {
+                                          Map<String, Object> params) throws TimeoutException {
         return webExecuteTool(toolEmitter, toolName, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
@@ -75,7 +77,7 @@ public class WebToolUtils {
      */
     public ToolResultBlock webExecuteTool(ToolEmitter toolEmitter, String toolName,
                                           Map<String, Object> params,
-                                          long timeoutSeconds) {
+                                          long timeoutSeconds) throws TimeoutException {
         String toolCallId = UUID.randomUUID().toString();
 
         // 1. 发送CUSTOM事件给前端（通过ToolEmitter → Hook → SSE）
@@ -96,19 +98,19 @@ public class WebToolUtils {
             if (task != null) {
                 cacheUtils.set(taskKey, task.withResult(WebToolStatus.TIMEOUT, "执行超时"), 60, TimeUnit.SECONDS);
             }
-            return ToolResultBlock.text("工具执行超时: " + toolName);
+            throw new TimeoutException("执行超时");
         }
 
         // 4. 获取并返回结果
         WebToolTask task = cacheUtils.get(taskKey);
         if (task == null) {
-            return ToolResultBlock.text("工具执行结果丢失: " + toolName);
+            throw new AgentException("工具执行结果丢失");
         }
 
         if (task.status() == WebToolStatus.SUCCESS) {
             return ToolResultBlock.text(task.result());
         } else {
-            return ToolResultBlock.text("工具执行失败: " + task.result());
+            throw new AgentException(task.result());
         }
     }
 

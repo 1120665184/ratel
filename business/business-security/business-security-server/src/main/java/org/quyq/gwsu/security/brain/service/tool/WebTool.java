@@ -10,6 +10,7 @@ import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Web端工具集合
@@ -20,11 +21,12 @@ public class WebTool {
     @HumanInTheLoop(tip = "是否同意路由跳转？")
     @Tool(description = "控制web界面跳转到指定路由")
     public ToolResultBlock routeNavigation(@ToolParam(name = "path",
-                                                       description = """
-                                                               跳转的前端路由地址
-                                                               示例：/sub-system/user
-                                                               """) String path,
-                                           ToolEmitter emitter) {
+                                                   description = """
+                                                           跳转的前端路由地址
+                                                           示例：/sub-system/user
+                                                           """) String path,
+                                           ToolEmitter emitter) throws TimeoutException {
+
         return SpringUtils.getBean(WebToolUtils.class)
                 .webExecuteTool(emitter, "routeNavigation", Map.of("path", path));
     }

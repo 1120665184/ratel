@@ -34,11 +34,8 @@ export function ToolCallItem(
   // 判断结果是否有错误
   const hasError =
     status === 'complete' &&
-    resultText &&
-    (resultText.includes('失败') ||
-      resultText.includes('错误') ||
-      resultText.includes('异常') ||
-      resultText.includes('超时'));
+      resultText &&
+      resultText.includes('Error:');
 
   // 根据状态渲染状态点
   const renderStatusDot = () => {
