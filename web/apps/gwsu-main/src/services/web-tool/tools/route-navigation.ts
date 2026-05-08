@@ -24,4 +24,4 @@ const routeNavigationTool: WebToolExecutor = {
 };
 
 // 注册工具
-registerWebTool('routeNavigation', routeNavigationTool);
+registerWebTool('RouteNavigation', routeNavigationTool);

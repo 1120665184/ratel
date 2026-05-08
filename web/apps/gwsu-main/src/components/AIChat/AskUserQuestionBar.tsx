@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import  { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Input, Radio, Checkbox } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { useAgent } from '@copilotkit/react-core/v2';
@@ -60,8 +60,8 @@ export function AskUserQuestionBar() {
         toolCallId: payload.toolCallId,
       } as any);
 
-      await agent.runAgent();
       clearAskUserQuestion();
+      await agent.runAgent();
     } catch (error) {
       console.error('[AskUserQuestion] 提交答案失败:', error);
     } finally {

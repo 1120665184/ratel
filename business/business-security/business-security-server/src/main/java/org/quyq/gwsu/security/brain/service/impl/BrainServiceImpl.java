@@ -13,6 +13,8 @@ import io.agentscope.core.tool.Toolkit;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.DefaultAgentResolver;
 import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
+import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
+import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.brain.service.IBrainService;
@@ -39,13 +41,16 @@ public class BrainServiceImpl implements IBrainService {
 
     private final SecurityUtils securityUtils;
 
+    private final WebToolUtils webToolUtils;
+
 
     public Agent buildAgent() {
         Memory memory = memoryProvider.getIfAvailable();
         Toolkit toolkit = toolkitProvider.getIfAvailable(Toolkit::new);
 
 
-        toolkit.registerTool(new WebTool());
+        toolkit.registerTool(new WebTool(webToolUtils));
+        toolkit.registerTool(new AskUserQuestionTool());
 
         return getAgent(memory, toolkit);
     }

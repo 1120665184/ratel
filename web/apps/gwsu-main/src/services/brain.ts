@@ -25,6 +25,7 @@ export interface BrainToolCall {
     name: string;
     arguments: string;
   };
+  args: string;
 }
 
 /**

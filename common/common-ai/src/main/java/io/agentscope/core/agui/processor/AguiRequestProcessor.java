@@ -178,7 +178,9 @@ public class AguiRequestProcessor {
         AguiMessage lastUserMessage = null;
         for (int i = messages.size() - 1; i >= 0; i--) {
             AguiMessage msg = messages.get(i);
-            if ("user".equalsIgnoreCase(msg.getRole()) || "approval".equalsIgnoreCase(msg.getRole())) {
+            if ("user".equalsIgnoreCase(msg.getRole()) ||
+                    "approval".equalsIgnoreCase(msg.getRole()) ||
+                    "tool".equalsIgnoreCase(msg.getRole())) {
                 lastUserMessage = msg;
                 break;
             }

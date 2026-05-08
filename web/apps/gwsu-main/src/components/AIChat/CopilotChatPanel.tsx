@@ -41,7 +41,6 @@ interface CopilotChatPanelProps {
  */
 export function CopilotChatPanel({
   className,
-  fixedWidth = '100%',
   style,
   mode = 'fixed',
   onFixed,
@@ -52,6 +51,9 @@ export function CopilotChatPanel({
   const { reset } = useCopilotChat();
   const { agent } = useAgent({ agentId: 'brain' });
   const { message } = App.useApp();
+
+  // CopilotChat 组件容器 ref，用于精确控制其内部输入框
+  const copilotChatRef = useRef<HTMLDivElement>(null);
 
   // 防止 Ant Design 弹框/抽屉的 focus trap 阻止面板内输入框获取焦点
   // Ant Design 的 rc-dialog 在打开时会通过 focusin 全局事件将焦点拉回弹框内部
@@ -94,6 +96,43 @@ export function CopilotChatPanel({
 
   const isInteractionActive = hasApproval || hasAskQuestion;
 
+  // 互斥控制：弹框活跃时通过 DOM 直接禁用 CopilotChat 输入框
+  // 仅在 copilotChatRef 范围内查找，避免误禁用审批栏/问题栏的输入
+  useEffect(() => {
+    const chatEl = copilotChatRef.current;
+    if (!chatEl) return;
+
+    const applyState = (active: boolean) => {
+      // 仅查找 CopilotChat 内的 textarea（聊天消息输入框）
+      const textarea = chatEl.querySelector('textarea');
+      if (textarea) {
+        (textarea as HTMLTextAreaElement).disabled = active;
+        (textarea as HTMLElement).style.opacity = active ? '0.4' : '';
+        (textarea as HTMLElement).style.pointerEvents = active ? 'none' : '';
+      }
+
+      // 仅禁用 CopilotChat 内的发送按钮
+      chatEl.querySelectorAll('button').forEach((btn) => {
+        (btn as HTMLButtonElement).disabled = active;
+        (btn as HTMLElement).style.opacity = active ? '0.4' : '';
+        (btn as HTMLElement).style.pointerEvents = active ? 'none' : '';
+      });
+    };
+
+    applyState(isInteractionActive);
+
+    // 当弹框活跃时，监听 DOM 变化以应对 CopilotChat 重新渲染
+    let observer: MutationObserver | null = null;
+    if (isInteractionActive) {
+      observer = new MutationObserver(() => applyState(true));
+      observer.observe(chatEl, { childList: true, subtree: true });
+    }
+
+    return () => {
+      observer?.disconnect();
+    };
+  }, [isInteractionActive]);
+
   // 切换到历史视图
   const handleShowHistory = () => {
     setViewMode('history');
@@ -124,22 +163,14 @@ export function CopilotChatPanel({
       reset();
       agent.threadId = sessionId;
       setCurrentThreadId(sessionId);
-      const formattedMessages = messages.map((msg: BrainMessage) => {
-        const formatted: Record<string, unknown> = {
-          id: msg.id,
-          role: msg.role,
-          content: typeof msg.content === 'string' ? msg.content : (msg.content ? JSON.stringify(msg.content) : ''),
-        };
-        // 保留工具调用信息，使历史回显时工具调用也能正确渲染
-        if (msg.toolCalls && msg.toolCalls.length > 0) {
-          formatted.toolCalls = msg.toolCalls;
-        }
-        if (msg.toolCallId) {
-          formatted.toolCallId = msg.toolCallId;
-        }
-        return formatted;
-      });
-      agent.setMessages(formattedMessages);
+      const formattedMessages = messages.map((msg: BrainMessage) => ({
+        id: msg.id,
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content : (msg.content ? JSON.stringify(msg.content) : ''),
+        ...(msg.toolCalls && msg.toolCalls.length > 0 ? { toolCalls: msg.toolCalls } : {}),
+        ...(msg.toolCallId ? { toolCallId: msg.toolCallId } : {}),
+      }));
+      agent.setMessages(formattedMessages as Parameters<typeof agent.setMessages>[0]);
 
       // 检查是否需要恢复 AskUserQuestion 弹框
       // 最新一条消息如果是 AskUserQuestion 工具调用且无对应结果，则恢复弹框
@@ -147,7 +178,7 @@ export function CopilotChatPanel({
         const lastMsg = messages[messages.length - 1] as BrainMessage | undefined;
         if (lastMsg?.role === 'assistant' && lastMsg.toolCalls?.length) {
           const askQuestionToolCall = lastMsg.toolCalls.find(
-            (tc: Record<string, unknown>) => tc.name === 'AskUserQuestion' || tc.function?.name === 'AskUserQuestion'
+            (tc) => tc.function?.name === 'AskUserQuestion'
           );
           if (askQuestionToolCall) {
             const args = typeof askQuestionToolCall.function?.arguments === 'string'
@@ -258,14 +289,16 @@ export function CopilotChatPanel({
       {/* AskUserQuestion 选择框 - 展示在审批卡片下方 */}
       <AskUserQuestionBar />
       {/* CopilotChat 组件 - 隐藏默认 header */}
-      <CopilotChat
-        labels={{
-          title: '智能助手',
-          placeholder: '输入消息...',
-          initial: '我是你的平台助手，有什么问题可以问我哦^_^',
-        }}
-        className={styles.copilotChat}
-      />
+      <div ref={copilotChatRef} style={{ display: 'contents' }}>
+        <CopilotChat
+          labels={{
+            title: '智能助手',
+            placeholder: '输入消息...',
+            initial: '我是你的平台助手，有什么问题可以问我哦^_^',
+          }}
+          className={styles.copilotChat}
+        />
+      </div>
     </>
   );
 
@@ -296,7 +329,7 @@ export function CopilotChatPanel({
           (nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
           (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
         }}
-        className={`${styles.copilotChatWrapper} ${isHidden ? styles.hiddenWrapper : ''} ${isDraggableMode ? styles.draggableWrapper : ''} ${isInteractionActive ? styles.interactionActive : ''} ${className || ''}`}
+        className={`${styles.copilotChatWrapper} ${isHidden ? styles.hiddenWrapper : ''} ${isDraggableMode ? styles.draggableWrapper : ''} ${className || ''}`}
         style={isDraggableMode ? {
           width: panelState.width,
           height: panelState.height,
