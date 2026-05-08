@@ -12,10 +12,7 @@ import org.quyq.gwsu.system.api.common.dto.UserDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
 import org.quyq.gwsu.system.manager.service.ISysUserService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -42,7 +39,7 @@ public class BasicController {
     }
 
     @Operation(summary = "分页获取用户信息")
-    @GetMapping("page/userInfo")
+    @PostMapping("page/userInfo")
     public R<IPage<UserVO>> userPage(@RequestBody UserDTO dto) {
         SysUserQueryDTO form = new SysUserQueryDTO();
         form.setStatus(1);
