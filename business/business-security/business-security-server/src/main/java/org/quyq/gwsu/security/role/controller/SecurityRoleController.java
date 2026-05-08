@@ -158,4 +158,10 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
         return R.ok();
     }
 
+    @Operation(summary = "根据角色ID查询关联的主体ID列表")
+    @GetMapping("/{roleId}/subjects")
+    public R<List<String>> listSubjectIdsByRoleId(@PathVariable String roleId) {
+        return R.ok(roleService.listSubjectIdsByRoleId(roleId));
+    }
+
 }
