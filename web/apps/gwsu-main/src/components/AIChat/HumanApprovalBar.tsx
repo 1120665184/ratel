@@ -54,6 +54,13 @@ export function HumanApprovalBar() {
         content: approvalContent,
       } as any);
 
+      // 清除审批状态（必须在 runAgent 之前调用）
+      // 否则 runAgent 期间新分发的审批事件会被清除，导致第二次审批不弹框
+      clearHumanApproval();
+      setApprovalPayload(null);
+      setShowRejectReason(false);
+      setRejectReason('');
+
       // 触发 agent 继续运行
       await agent.runAgent();
 
@@ -65,12 +72,6 @@ export function HumanApprovalBar() {
       if (filteredMessages.length !== currentMessages.length) {
         agent.setMessages(filteredMessages);
       }
-
-      // 清除审批状态
-      clearHumanApproval();
-      setApprovalPayload(null);
-      setShowRejectReason(false);
-      setRejectReason('');
     } catch (error) {
       console.error('[HumanApproval] 提交审批结果失败:', error);
     } finally {

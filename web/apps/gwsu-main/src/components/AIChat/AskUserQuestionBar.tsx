@@ -51,7 +51,29 @@ export function AskUserQuestionBar() {
     if (!payload) return;
     setSubmitting(true);
     try {
-      const answer: AskUserQuestionAnswer = { answers, annotations };
+      // 提交时将 '__other__' / 'Other' 占位符替换为 annotations 中的实际文本
+      const finalAnswers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(answers)) {
+        if (value === '__other__' || value === 'Other') {
+          // 单选 Other：用 annotations 中的实际文本替换
+          finalAnswers[key] = annotations[key]?.notes || value;
+        } else if (value.includes('Other') || value.includes('__other__')) {
+          // 多选 Other：将 Other/__other__ 替换为实际文本
+          finalAnswers[key] = value
+            .split(', ')
+            .map((s) => {
+              if (s === 'Other' || s === '__other__') {
+                return annotations[key]?.notes || s;
+              }
+              return s;
+            })
+            .join(', ');
+        } else {
+          finalAnswers[key] = value;
+        }
+      }
+
+      const answer: AskUserQuestionAnswer = { answers: finalAnswers, annotations };
       const toolMsgId = crypto.randomUUID();
       agent.addMessage({
         id: toolMsgId,
@@ -121,28 +143,19 @@ export function AskUserQuestionBar() {
     setOtherInputs((prev) => ({ ...prev, [questionKey]: value }));
   }, []);
 
-  // Other 输入确认
+  // Other 输入确认（onBlur / Enter 时触发）
+  // 仅更新 annotations，不修改 answers
+  // answers 中保留 '__other__' / 'Other' 占位符以维持 UI 选中状态
+  // 提交时由 submitAnswer 负责将占位符替换为实际文本
   const handleOtherInputConfirm = useCallback((questionKey: string) => {
     const text = otherInputs[questionKey]?.trim();
     if (!text) return;
-
-    const question = payload?.questions.find((q) => q.question === questionKey);
-    if (!question) return;
-
-    if (question.multiSelect) {
-      const current = answers[questionKey] ? answers[questionKey].split(', ') : [];
-      const newSelected = current.filter((s) => s !== 'Other');
-      newSelected.push(text);
-      setAnswers((prev) => ({ ...prev, [questionKey]: newSelected.join(', ') }));
-    } else {
-      setAnswers((prev) => ({ ...prev, [questionKey]: text }));
-    }
 
     setAnnotations((prev) => ({
       ...prev,
       [questionKey]: { notes: text },
     }));
-  }, [otherInputs, answers, payload]);
+  }, [otherInputs]);
 
   // 上一步
   const handlePrev = useCallback(() => {
@@ -167,16 +180,26 @@ export function AskUserQuestionBar() {
   const isFirstStep = currentStep === 0;
   const totalSteps = questions.length;
 
+  // 判断某个问题是否已有效作答
+  // 选中 Other/__other__ 时必须填写了输入内容才算作答
+  const isQuestionAnswered = (q: QuestionParam): boolean => {
+    const ans = answers[q.question];
+    if (!ans) return false;
+    // 单选 Other 占位符
+    if (ans === '__other__') return Boolean(otherInputs[q.question]?.trim());
+    // 多选或普通选项：检查是否包含 Other 占位符
+    const selected = ans.split(', ');
+    const hasOther = selected.some((s) => s === 'Other' || s === '__other__');
+    if (hasOther) return Boolean(otherInputs[q.question]?.trim());
+    return true;
+  };
+
   // 当前问题是否已作答
   const currentAnswer = answers[currentQuestion.question];
-  const isCurrentAnswered = Boolean(currentAnswer && currentAnswer !== '__other__')
-    || (currentAnswer === '__other__' && Boolean(otherInputs[currentQuestion.question]?.trim()));
+  const isCurrentAnswered = isQuestionAnswered(currentQuestion);
 
   // 所有问题是否都已作答
-  const allAnswered = questions.every((q) => {
-    const ans = answers[q.question];
-    return (ans && ans !== '__other__') || (ans === '__other__' && Boolean(otherInputs[q.question]?.trim()));
-  });
+  const allAnswered = questions.every(isQuestionAnswered);
 
   // 获取当前问题的选中值
   const selectedValues = (() => {
