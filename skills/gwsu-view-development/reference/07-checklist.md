@@ -68,7 +68,19 @@
 - [ ] localStorage key 使用 `gwsu_` 前缀避免冲突
 - [ ] 子应用可独立运行（`pnpm dev:sub-xxx`）
 
-## 7.8 代码质量检查
+## 7.8 AI 操作审批标记检查
+
+- [ ] 保存/提交按钮已添加 `data-ai-approval` 属性
+- [ ] 删除按钮已添加 `data-ai-approval` 属性（或使用 `<Popconfirm>` 自动检测）
+- [ ] 编辑/修改按钮已添加 `data-ai-approval` 属性
+- [ ] 审核/审批操作按钮已添加 `data-ai-approval` 属性
+- [ ] 导入/导出按钮已添加 `data-ai-approval` 属性
+- [ ] 权限变更操作按钮已添加 `data-ai-approval` 属性
+- [ ] 纯查看/导航/搜索按钮**未添加** `data-ai-approval`（避免过度审批）
+- [ ] Popconfirm 的确定按钮无需手动添加（自动检测）
+- [ ] Modal footer 中使用数组形式定义按钮时，`data-ai-approval` 添加在对应 Button 上
+
+## 7.9 代码质量检查
 
 - [ ] TypeScript 无类型错误
 - [ ] 无 `@ts-ignore`（除非有充分理由）

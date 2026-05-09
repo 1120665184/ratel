@@ -64,15 +64,19 @@ function processNode(node: DomNode, depth: number, result: string[]): void {
   const isSemantic = SEMANTIC_TAGS.has(node.tagName);
   let nextDepth = depth;
 
-  // 可交互元素：输出带索引的格式
+  // 可交互元素：输出带索引和标签的格式
   if (node.isInteractive && node.highlightIndex !== undefined) {
     nextDepth = depth + 1;
 
     const indexStr = `[${node.highlightIndex}]`;
+    // 标签信息，如 {approval}
+    const tagsStr = node.tags && node.tags.length > 0
+      ? `{${node.tags.join(',')}}`
+      : '';
     const attrsStr = buildAttrsString(node.attributes);
     const text = node.textContent?.trim() || '';
 
-    let line = `${indent}${indexStr}<${node.tagName}`;
+    let line = `${indent}${indexStr}${tagsStr}<${node.tagName}`;
     if (attrsStr) line += ` ${attrsStr}`;
 
     if (text) {

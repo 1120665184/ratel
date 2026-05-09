@@ -24,9 +24,13 @@ import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.agentscope.core.tool.subagent.SubAgentConfig;
 import io.agentscope.core.tool.subagent.SubAgentProvider;
 import io.agentscope.core.tool.subagent.SubAgentTool;
+import org.quyq.gwsu.common.ai.loop.ApprovalCondition;
+import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
+import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
@@ -385,9 +389,31 @@ public class Toolkit {
                                 toolObject, method, param, customConverter);
                     }
 
+
                     @Override
-                    public HumanInTheLoop needHumanInTheLoop() {
-                        return method.getAnnotation(HumanInTheLoop.class);
+                    public ApprovalTips needHumanInTheLoop(Map<String, Object> args) {
+                        HumanInTheLoop annotation = method.getAnnotation(HumanInTheLoop.class);
+                        if (annotation == null) {
+                            return null;
+                        }
+
+                        // POST_ACTING 阶段：始终需要审批，无需条件判断
+                        if (annotation.stage() == ApprovalStage.POST_ACTING) {
+                            return new ApprovalTips(toolName, annotation.tip(), ApprovalStage.POST_ACTING);
+                        }
+
+                        // POST_REASONING 阶段：通过 reasoningCondition 动态判断
+                        Class<? extends ApprovalCondition> conditionClass = annotation.reasoningCondition();
+                        try {
+                            ApprovalCondition condition = conditionClass.getDeclaredConstructor().newInstance();
+                            ApprovalCondition.Outcome invoke = condition.invoke(args);
+                            return invoke.needApproval() ? new ApprovalTips(toolName, StringUtils.hasText(invoke.tip()) ? invoke.tip() : annotation.tip(), ApprovalStage.POST_REASONING) : null;
+                        } catch (Exception e) {
+                            logger.warn("Failed to invoke ApprovalCondition '{}' for tool '{}': {}",
+                                    conditionClass.getSimpleName(), toolName, e.getMessage());
+                            // 调用失败时默认需要审批（安全优先）
+                            return new ApprovalTips(toolName, annotation.tip(), ApprovalStage.POST_REASONING);
+                        }
                     }
                 };
 

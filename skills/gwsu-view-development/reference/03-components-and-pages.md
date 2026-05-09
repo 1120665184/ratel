@@ -387,3 +387,122 @@ export default Layout;
 - `ThemeLayout` 必须包裹子应用的全部内容，确保主题同步
 - `<Outlet />` 是 UmiJS 路由的出口，渲染匹配的页面组件
 - 子应用的 `ThemeLayout` 会通过 `window.postMessage` 监听主应用的主题变更事件
+
+## 3.6 AI 操作审批标记（data-ai-approval）
+
+AI 助手可以通过 `GetPageState` 工具查看界面元素，并通过 `ClickElement` 工具点击元素。对于涉及数据变更的危险操作，需要添加 `data-ai-approval` 属性，使 AI 在点击时触发人工审批流程。
+
+### 何时添加 data-ai-approval
+
+**必须添加**的场景（涉及数据持久化或不可逆操作）：
+
+| 操作类型 | 示例 | 说明 |
+|---------|------|------|
+| 保存/提交 | 保存、提交、确认 | 表单数据写入后端 |
+| 编辑/修改 | 编辑、修改、更新 | 修改已有数据 |
+| 删除 | 删除、移除、清空 | 数据不可逆删除 |
+| 审核/审批 | 通过、驳回、审批 | 状态流转操作 |
+| 导入/导出 | 导入、导出、下载 | 批量数据操作 |
+| 权限变更 | 授权、分配权限 | 安全敏感操作 |
+
+**不需要添加**的场景：
+
+| 操作类型 | 示例 | 说明 |
+|---------|------|------|
+| 纯查看 | 查看、详情、预览 | 不修改数据 |
+| 导航/跳转 | 跳转、返回、切换Tab | 仅路由变化 |
+| 筛选/搜索 | 搜索、筛选、翻页 | 只读查询 |
+| 展开/折叠 | 展开、折叠、收起 | UI状态切换 |
+| 弹窗打开 | 新增按钮（打开空表单） | 仅打开表单，尚未提交 |
+
+### 用法
+
+在按钮元素上添加 `data-ai-approval` 属性（无需赋值，仅作为标识）：
+
+```tsx
+// 表单保存按钮
+<Button type="primary" data-ai-approval onClick={handleSave}>
+  保存
+</Button>
+
+// 删除按钮
+<Button danger data-ai-approval onClick={handleDelete}>
+  删除
+</Button>
+
+// 编辑按钮
+<Button data-ai-approval onClick={handleEdit}>
+  编辑
+</Button>
+```
+
+### Popconfirm 自动检测
+
+Ant Design `<Popconfirm>` 的"确定"按钮**无需手动添加** `data-ai-approval`，DOM 引擎会自动检测：
+
+```tsx
+// 以下写法，AI 点击"确定"时会自动触发审批
+<Popconfirm title="确定删除吗？" onConfirm={handleDelete}>
+  <Button danger>删除</Button>
+</Popconfirm>
+```
+
+自动检测逻辑：Popconfirm 内 `.ant-popconfirm-buttons` 下的 `.ant-btn-primary` 按钮会被自动标记为 `{approval}`。
+
+### AI 视角与审批流程
+
+1. **GetPageState** 返回的简化 HTML 中，带审批标记的元素会显示 `{approval}` 标签：
+   ```
+   [0]{approval}<button>保存</button>
+   [1]<button>取消</button>
+   ```
+
+2. **ClickElement** 调用时，AI 会将 `tags` 参数传给后端（如 `tags: "approval"`）
+
+3. 后端 `NeedClickApprovalCondition` 判断 `tags` 包含 `approval`，触发 `@HumanInTheLoop` 人工审批
+
+4. 前端收到审批事件，展示审批确认 UI，用户确认后才执行点击操作
+
+### 完整示例
+
+```tsx
+// 典型的表单弹窗：保存按钮需要审批，取消按钮不需要
+const XxxFormModal: React.FC<XxxFormModalProps> = ({ visible, data, onClose, onSuccess }) => {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const isEdit = !!data?.id;
+
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    setLoading(true);
+    await saveXxx({ ...data, ...values });
+    message.success(isEdit ? '编辑成功' : '新增成功');
+    onSuccess();
+  };
+
+  return (
+    <Modal
+      title={isEdit ? '编辑' : '新增'}
+      open={visible}
+      onCancel={onClose}
+      footer={[
+        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="submit" type="primary" data-ai-approval loading={loading} onClick={handleOk}>
+          保存
+        </Button>,
+      ]}
+    >
+      <Form form={form} layout="vertical">
+        {/* 表单内容 */}
+      </Form>
+    </Modal>
+  );
+};
+```
+
+```tsx
+// 带二次确认的删除：Popconfirm 确定按钮自动审批，无需手动标记
+<Popconfirm title="确定删除该条记录吗？" onConfirm={() => handleDelete(record.id)}>
+  <Button danger size="small">删除</Button>
+</Popconfirm>
+```

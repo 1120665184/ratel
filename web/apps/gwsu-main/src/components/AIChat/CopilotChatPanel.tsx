@@ -5,6 +5,7 @@ import '@copilotkit/react-ui/styles.css';
 import { App, Button, Tooltip } from 'antd';
 import { RobotOutlined, CompressOutlined, DragOutlined, CloseOutlined, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
 import type { CSSProperties } from 'react';
 import type { AIChatPanelMode } from './types';
@@ -234,7 +235,7 @@ export function CopilotChatPanel({
           <span>智能助手</span>
         </div>
         <div className={styles.chatHeaderActions}>
-          <Tooltip title="新会话" zIndex={10000}>
+          <Tooltip title="新会话" zIndex={100001}>
             <Button
               type="text"
               size="small"
@@ -243,7 +244,7 @@ export function CopilotChatPanel({
               icon={<PlusOutlined />}
             />
           </Tooltip>
-          <Tooltip title="历史记录" zIndex={10000}>
+          <Tooltip title="历史记录" zIndex={100001}>
             <Button
               type="text"
               size="small"
@@ -253,7 +254,7 @@ export function CopilotChatPanel({
             />
           </Tooltip>
           {isDraggableMode ? (
-            <Tooltip title="固定模式" zIndex={10000}>
+            <Tooltip title="固定模式" zIndex={100001}>
               <Button
                 type="text"
                 size="small"
@@ -263,7 +264,7 @@ export function CopilotChatPanel({
               />
             </Tooltip>
           ) : (
-            <Tooltip title="拖拽模式" zIndex={10000}>
+            <Tooltip title="拖拽模式" zIndex={100001}>
               <Button
                 type="text"
                 size="small"
@@ -273,7 +274,7 @@ export function CopilotChatPanel({
               />
             </Tooltip>
           )}
-          <Tooltip title="收起面板" zIndex={10000}>
+          <Tooltip title="收起面板" zIndex={100001}>
             <Button
               type="text"
               size="small"
@@ -314,7 +315,9 @@ export function CopilotChatPanel({
   // 这样可以避免模式切换时组件被销毁重建，同时保持拖拽位置一致
   const isHidden = mode === 'hidden';
 
-  return (
+  // 使用 createPortal 将面板挂载到 body 最外层，脱离任何父级 stacking context
+  // 确保智能助手层级始终高于所有弹框、Modal、Drawer 等 Ant Design 组件
+  const panelContent = (
     <Draggable
       nodeRef={nodeRef}
       handle={`.${styles.chatHeader}`}
@@ -339,4 +342,6 @@ export function CopilotChatPanel({
       </div>
     </Draggable>
   );
+
+  return createPortal(panelContent, document.body);
 }

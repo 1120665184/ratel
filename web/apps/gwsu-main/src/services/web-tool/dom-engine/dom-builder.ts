@@ -19,6 +19,8 @@ export interface DomNode {
   isInteractive?: boolean;
   /** 可交互时分配的索引（仅element类型） */
   highlightIndex?: number;
+  /** 元素标签列表，如 ['approval']（仅element类型，表示需要人工审批等语义） */
+  tags?: string[];
   /** 文本内容（text类型为文本值，element类型为子元素文本汇总） */
   textContent?: string;
   /** 子节点 */
@@ -56,6 +58,7 @@ const KEEP_ATTRS = new Set([
   'data-date-format',
   'alt',
   'target',
+  'data-ai-approval',
 ]);
 
 /** 可交互的标签名集合 */
@@ -125,6 +128,56 @@ const SIBLING_COLLAPSE_THRESHOLD = 10;
 
 /** 保留的同类子元素数量（前N个+后N个） */
 const SIBLING_KEEP_COUNT = 3;
+
+/**
+ * 检测元素的语义标签
+ * 1. data-ai-approval 属性：按钮上标记需要人工审批
+ * 2. Popconfirm 确认按钮：Ant Design Popconfirm 的"确定"按钮自动标记为审批
+ */
+function detectElementTags(element: Element): string[] {
+  const tags: string[] = [];
+
+  // 1. 检测 data-ai-approval 属性
+  if (element.hasAttribute('data-ai-approval')) {
+    tags.push('approval');
+  }
+
+  // 2. 检测 Ant Design Popconfirm 确认按钮
+  // Popconfirm DOM 结构: .ant-popconfirm > .ant-popconfirm-buttons > .ant-btn-primary
+  // 确认按钮是 Popconfirm 内 .ant-popconfirm-buttons 下的 primary 按钮
+  if (
+    element.classList.contains('ant-btn-primary') &&
+    isInsidePopconfirm(element)
+  ) {
+    if (!tags.includes('approval')) {
+      tags.push('approval');
+    }
+  }
+
+  return tags;
+}
+
+/**
+ * 判断元素是否在 Popconfirm 确认区域内
+ */
+function isInsidePopconfirm(element: Element): boolean {
+  let current: Element | null = element.parentElement;
+  while (current) {
+    if (current.classList.contains('ant-popconfirm-buttons')) {
+      return true;
+    }
+    // 如果遇到非 Popconfirm 的弹框容器，停止搜索
+    if (
+      current.classList.contains('ant-modal-wrap') ||
+      current.classList.contains('ant-drawer') ||
+      current.classList.contains('ant-dropdown')
+    ) {
+      return false;
+    }
+    current = current.parentElement;
+  }
+  return false;
+}
 
 /**
  * 判断元素是否为遮罩/装饰性元素（应跳过）
@@ -277,6 +330,12 @@ export function buildDomTree(root: Element, selectorMap: SelectorMap, depth = 0)
   if (depth > 0 && isInteractiveElement(root)) {
     node.isInteractive = true;
     node.highlightIndex = selectorMap.register(root);
+
+    // 检测元素标签（如 data-ai-approval 审批标记）
+    const tags = detectElementTags(root);
+    if (tags.length > 0) {
+      node.tags = tags;
+    }
   }
 
   // 处理子节点

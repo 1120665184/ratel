@@ -7,6 +7,7 @@ import io.agentscope.core.tool.ToolEmitter;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
 
 import java.util.Map;
@@ -23,7 +24,7 @@ public class WebTool {
 
     // ==================== 路由导航 ====================
 
-    @HumanInTheLoop(tip = "是否同意路由跳转？")
+    @HumanInTheLoop(tip = "是否同意路由跳转？", stage = ApprovalStage.POST_ACTING)
     @Tool(name = "RouteNavigation", description = "控制web界面跳转到指定路由")
     public ToolResultBlock routeNavigation(@ToolParam(name = "path",
                                                    description = """
@@ -40,21 +41,34 @@ public class WebTool {
 
     @Tool(name = "GetPageState", description = """
             获取当前Web界面的状态信息，返回页面中可见的交互元素列表和页面基本信息。
-            返回内容为简化的HTML文本，每个可交互元素带有索引编号，如 [0]<button>提交</button>。
-            后续操作工具（ClickElement、InputText、SelectOption、ScrollPage）通过索引编号定位元素。
-            在需要了解界面当前状态、查找可操作元素时调用此工具。""")
+            返回内容为简化的HTML文本，每个可交互元素带有索引编号和标签信息。
+
+            元素格式说明：
+            - 普通元素：[0]<button>提交</button>
+            - 带标签的元素：[0]{approval}<button>提交</button>
+
+            标签含义：
+            - {approval}：该元素为危险操作（如保存、删除、编辑等），点击时需要人工审批确认
+
+            调用ClickElement时，必须将元素的标签信息通过tags参数传递给后端。""")
     public ToolResultBlock getPageState(ToolEmitter emitter) throws TimeoutException {
         return webToolUtils.webExecuteTool(emitter, "GetPageState", Map.of());
     }
 
     // ==================== 操作界面 ====================
 
+    @HumanInTheLoop(tip = "该操作需要人工审批确认，是否继续？", reasoningCondition = NeedClickApprovalCondition.class)
     @Tool(name = "ClickElement", description = """
             通过元素索引点击界面上的元素。执行完整的W3C指针事件序列。
             需要先调用GetPageState获取元素索引。
-            参数：index - 元素索引编号""")
+            参数：
+            - index：元素索引编号
+            - operationDescription：本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户
+            - tags：元素的标签信息，从GetPageState结果中{}包裹的内容获取，如"approval"。普通元素传空字符串即可""")
     public ToolResultBlock clickElement(
             @ToolParam(name = "index", description = "要点击的元素索引编号，从GetPageState结果中获取") Integer index,
+            @ToolParam(name = "operationDescription" ,description = "本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户") String operationDescription,
+            @ToolParam(name = "tags", description = "元素的标签信息（如approval），从GetPageState结果中{}包裹的内容获取，无标签时传空字符串",required = false) String tags,
             ToolEmitter emitter) throws TimeoutException {
         return webToolUtils.webExecuteTool(emitter, "ClickElement", Map.of("index", index));
     }

@@ -16,7 +16,7 @@
 package io.agentscope.core.tool;
 
 import io.agentscope.core.message.ToolResultBlock;
-import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
+import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -27,7 +27,7 @@ import java.util.Map;
  * <p>Agent tools are functions that AI agents can invoke to perform actions or retrieve
  * information. They bridge the gap between the agent's reasoning and the external world.
  *
- * <p><b>Implementation Guidelines:</b>
+ * <p><b>Implementation Guidelines</b>
  * <ul>
  *   <li>Tools should have clear, descriptive names</li>
  *   <li>Descriptions should explain what the tool does and when to use it</li>
@@ -94,10 +94,11 @@ public interface AgentTool {
 
 
     /**
-     * 判断该方法是否需要人工处理
-     * @return
+     * 判断该方法是否需要人工审批，根据运行时工具调用参数动态决定
+     * @param args 当前工具调用的输入参数
+     * @return 审批提示信息，不需要审批时返回 null
      */
-    default HumanInTheLoop needHumanInTheLoop() {
+    default ApprovalTips needHumanInTheLoop(Map<String, Object> args) {
         return null;
     }
 }

@@ -32,6 +32,7 @@ const clickElementTool: WebToolExecutor = {
     try {
       // 滚动元素到可见区域
       if (element instanceof HTMLElement) {
+        // @ts-ignore
         element.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
       }
       await sleep(100);
