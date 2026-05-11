@@ -61,6 +61,16 @@ const KEEP_ATTRS = new Set([
   'data-ai-approval',
 ]);
 
+/** HTML 布尔属性集合（值为空字符串时也需保留） */
+const BOOLEAN_ATTRS = new Set([
+  'disabled',
+  'readonly',
+  'required',
+  'checked',
+  'selected',
+  'multiple',
+]);
+
 /** 可交互的标签名集合 */
 const INTERACTIVE_TAGS = new Set([
   'a',
@@ -249,6 +259,48 @@ export function isInteractiveElement(element: Element): boolean {
 }
 
 /**
+ * Ant Design 组件语义增强
+ * 为复选框、单选框、开关等组件补充语义属性，使 AI 能理解其交互语义
+ */
+function enhanceAntdComponentAttrs(element: Element, attrs: Record<string, string>): void {
+  const classList = element.classList;
+  if (!classList) return;
+
+  // 复选框：ant-checkbox-wrapper
+  if (classList.contains('ant-checkbox-wrapper')) {
+    const input = element.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+    if (input) {
+      attrs['role'] = 'checkbox';
+      attrs['checked'] = input.checked ? 'true' : 'false';
+      if (input.indeterminate) {
+        attrs['indeterminate'] = 'true';
+      }
+    }
+    return;
+  }
+
+  // 单选框：ant-radio-wrapper
+  if (classList.contains('ant-radio-wrapper')) {
+    const input = element.querySelector('input[type="radio"]') as HTMLInputElement | null;
+    if (input) {
+      attrs['role'] = 'radio';
+      attrs['checked'] = input.checked ? 'true' : 'false';
+    }
+    return;
+  }
+
+  // 开关：ant-switch
+  if (classList.contains('ant-switch')) {
+    attrs['role'] = 'switch';
+    attrs['checked'] = classList.contains('ant-switch-checked') ? 'true' : 'false';
+    if (classList.contains('ant-switch-disabled')) {
+      attrs['disabled'] = 'true';
+    }
+    return;
+  }
+}
+
+/**
  * 提取元素的关键属性
  */
 function extractAttributes(element: Element): Record<string, string> {
@@ -262,6 +314,9 @@ function extractAttributes(element: Element): Record<string, string> {
       if (value) {
         // 属性值截断
         attrs[attr.name] = value.length > 30 ? value.substring(0, 30) + '...' : value;
+      } else if (BOOLEAN_ATTRS.has(attr.name)) {
+        // 布尔属性：HTML 中 disabled="" 等价于 disabled=true，值即使为空也保留
+        attrs[attr.name] = 'true';
       }
     }
   }
@@ -270,6 +325,9 @@ function extractAttributes(element: Element): Record<string, string> {
   if (attrs.role === element.tagName.toLowerCase()) {
     delete attrs.role;
   }
+
+  // Ant Design 组件语义增强：为复选框、单选框、开关补充语义属性
+  enhanceAntdComponentAttrs(element, attrs);
 
   // 提取 Ant Design 图标类名（anticon-xxx），作为 icon 属性保留
   const iconName = extractIconName(element);

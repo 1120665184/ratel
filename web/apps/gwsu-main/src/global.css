@@ -1,0 +1,46 @@
+/**
+ * 全局样式 - AI 助手固定模式下的弹框区域约束
+ *
+ * 当 AI 助手处于固定模式时，将 Modal/Drawer 的遮罩和弹框
+ * 约束在操作区域内（left: 420px），避免被 AI 助手面板遮挡。
+ *
+ * 原理：
+ * - AI 助手固定模式：position: fixed; left: 0; width: 420px; z-index: 100000
+ * - 操作区域从 420px 开始
+ * - Modal 默认渲染到 document.body，遮罩覆盖整个视口
+ * - 通过 CSS 将遮罩和弹框的左边界限制在 420px
+ */
+
+/* 固定模式：Modal 遮罩和弹框约束到操作区域 */
+body[data-ai-mode="fixed"] {
+  /* Modal 遮罩层 - 只覆盖操作区域 */
+  .ant-modal-mask {
+    left: 420px !important;
+  }
+
+  /* Modal 弹框容器 - 只覆盖操作区域 */
+  .ant-modal-wrap {
+    left: 420px !important;
+  }
+
+  /* Drawer 抽屉 - 约束到操作区域 */
+  .ant-drawer-mask {
+    left: 420px !important;
+  }
+
+  .ant-drawer-content-wrapper {
+    left: 420px !important;
+  }
+
+  /* Message 消息提示 - 右移避免遮挡 */
+  .ant-message {
+    left: 420px !important;
+    width: calc(100% - 420px) !important;
+  }
+
+  /* Notification 通知 - 右移避免遮挡 */
+  .ant-notification {
+    left: 420px !important;
+    width: calc(100% - 420px) !important;
+  }
+}

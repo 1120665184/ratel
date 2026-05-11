@@ -78,8 +78,6 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
             }
         }
 
-        // 默认只查询目录和菜单，不返回按钮
-        wrapper.in(SecurityMenu::getMenuType, 1, 2);
         wrapper.orderByAsc(SecurityMenu::getSort);
 
         List<SecurityMenu> menus = list(wrapper);
