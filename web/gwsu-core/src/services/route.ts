@@ -31,6 +31,8 @@ export interface MenuItem {
   status: boolean;
   /** 权限标识 */
   permission?: string;
+  /** 按钮标识，menuType=3 时有效，格式：菜单ID_标识 */
+  buttonKey?: string;
   /** 菜单位置类型 */
   position?: MenuPosition;
   /** 菜单所属类型 */

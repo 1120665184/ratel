@@ -29,9 +29,10 @@ public interface ISecurityMenuService extends IService<SecurityMenu> {
      *
      * @param query 查询条件
      * @param owner 菜单所属类型
+     * @param showButton 是否显示按钮
      * @return 菜单树
      */
-    List<MenuVO> listTree(MenuQueryDTO query, MenuOwner owner);
+    List<MenuVO> listTree(MenuQueryDTO query, MenuOwner owner , boolean showButton);
 
     /**
      * 根据用户ID查询菜单树

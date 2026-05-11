@@ -58,7 +58,7 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
     }
 
     @Override
-    public List<MenuVO> listTree(MenuQueryDTO query, MenuOwner owner) {
+    public List<MenuVO> listTree(MenuQueryDTO query, MenuOwner owner , boolean showButton) {
         LambdaQueryWrapper<SecurityMenu> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SecurityMenu::getDeleted, false);
         wrapper.eq(SecurityMenu::getOwner, owner);
@@ -76,6 +76,10 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
             if (query.getPosition() != null) {
                 wrapper.eq(SecurityMenu::getPosition, query.getPosition());
             }
+        }
+
+        if(!showButton){
+            wrapper.in(SecurityMenu::getMenuType , 1 ,2);
         }
 
         wrapper.orderByAsc(SecurityMenu::getSort);
@@ -155,7 +159,7 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
             // 返回所有启用的菜单树
             MenuQueryDTO query = new MenuQueryDTO();
             query.setStatus(true);
-            return listTree(query, owner);
+            return listTree(query, owner , true);
         }
 
         // 通过角色编码列表获取角色菜单关联记录（含时效字段）

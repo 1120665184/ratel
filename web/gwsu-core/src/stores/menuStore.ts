@@ -2,8 +2,17 @@
  * 菜单状态管理
  */
 
-import { create } from 'zustand';
+import { create, type UseBoundStore, type StoreApi } from 'zustand';
 import { MenuItem } from '../services/route';
+
+/**
+ * 获取真实 window 对象，绕过 qiankun JS 沙箱的 Proxy 代理
+ * 确保主应用和子应用共享同一个全局状态
+ */
+const rawWindow: Window & typeof globalThis & Record<string, unknown> = (0, eval)('window');
+
+/** Store 在真实 window 上的挂载键 */
+const STORE_KEY = '__GWSU_MENU_STORE__';
 
 interface MenuState {
   /** 菜单列表 */
@@ -93,30 +102,56 @@ export function findOpenKeys(menus: MenuItem[], path: string): string[] {
   return openKeys;
 }
 
-export const useMenuStore = create<MenuState>((set, get) => ({
-  menus: [],
-  loading: false,
-  currentMenuRoute: null,
-  setMenus: (menus) => set({ menus }),
-  setLoading: (loading) => set({ loading }),
-  loadMenus: async () => {
-    set({ loading: true });
-    try {
-      const { fetchUserRoutes } = await import('../services/route');
-      const menus = await fetchUserRoutes();
-      set({ menus, loading: false });
-    } catch (error) {
-      set({ loading: false });
-      throw error;
-    }
-  },
-  clearMenus: () => set({ menus: [], loading: false, currentMenuRoute: null }),
-  setCurrentMenuRoute: (route) => set({ currentMenuRoute: route }),
-  updateCurrentMenuRouteByPath: (path) => {
-    const { menus } = get();
-    const menu = findMenuByPath(menus, path);
-    if (menu) {
-      set({ currentMenuRoute: menu });
-    }
-  },
-}));
+/**
+ * 创建或获取单例 Store
+ * 通过真实 window 对象挂载，确保主应用和子应用共享同一个 Zustand 实例
+ */
+
+function createOrGetStore(): UseBoundStore<StoreApi<MenuState>> {
+  if (rawWindow[STORE_KEY]) {
+    return rawWindow[STORE_KEY] as UseBoundStore<StoreApi<MenuState>>;
+  }
+
+  const store = create<MenuState>((set, get) => ({
+    menus: [],
+    loading: false,
+    currentMenuRoute: null,
+    setMenus: (menus) => set({ menus }),
+    setLoading: (loading) => set({ loading }),
+    loadMenus: async () => {
+      set({ loading: true });
+      try {
+        const { fetchUserRoutes } = await import('../services/route');
+        const menus = await fetchUserRoutes();
+        set({ menus, loading: false });
+      } catch (error) {
+        set({ loading: false });
+        throw error;
+      }
+    },
+    clearMenus: () => {
+      set({ menus: [], loading: false, currentMenuRoute: null });
+      // 同步清空按钮权限
+      import('./authStore').then(({ useAuthStore }) => {
+        useAuthStore.getState().clearAuth();
+      });
+    },
+    setCurrentMenuRoute: (route) => set({ currentMenuRoute: route }),
+    updateCurrentMenuRouteByPath: (path) => {
+      const { menus } = get();
+      const menu = findMenuByPath(menus, path);
+      if (menu) {
+        set({ currentMenuRoute: menu });
+        // 同步更新按钮权限
+        import('./authStore').then(({ useAuthStore }) => {
+          useAuthStore.getState().updateAuthByMenuRoute(menu);
+        });
+      }
+    },
+  }));
+
+  rawWindow[STORE_KEY] = store;
+  return store;
+}
+
+export const useMenuStore = createOrGetStore();

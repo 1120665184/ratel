@@ -54,6 +54,55 @@ function MyComponent() {
 - 自动应用 CSS 变量到 `:root`
 - 自动配置 Ant Design `ConfigProvider` 的主题 token 和 algorithm（暗色/亮色）
 
+### 5.1.2 AuthGate — 权限门卫组件
+
+> 路径：`gwsu-core/src/components/AuthGate.tsx`
+
+根据按钮权限控制内容是否渲染。不限于按钮，任何需要权限控制的内容均可使用。
+
+**工作原理**：
+- 后端 `/menu/routes/{owner}` 接口返回的菜单树中，`menuType=3` 的节点为按钮权限，包含 `buttonKey` 标识
+- 路由切换时，`menuStore` 自动从当前菜单路由的 `children` 中提取按钮权限，更新到 `authStore`
+- `AuthGate` 读取 `authStore` 中的权限映射，决定是否渲染子内容
+
+**Props**：
+
+| 属性 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| buttonKey | `string` | 是 | 按钮标识，对应后端 `menuType=3` 节点的 `buttonKey` |
+| children | `React.ReactNode` | 是 | 有权限时渲染的内容 |
+| fallback | `React.ReactNode` | 否 | 无权限时的替代内容，默认不渲染 |
+
+**使用方式**：
+
+```tsx
+import { AuthGate, useAuth } from '@gwsu/core';
+
+// 方式1：AuthGate 组件包裹（按钮）
+<AuthGate buttonKey="101_add">
+  <Button type="primary">新增</Button>
+</AuthGate>
+
+// 方式2：AuthGate 组件包裹（非按钮内容，如整个区块）
+<AuthGate buttonKey="101_export">
+  <Card title="数据导出">...</Card>
+</AuthGate>
+
+// 方式3：useAuth hook（更灵活的控制）
+const canDelete = useAuth('101_delete');
+{canDelete && <Button danger>删除</Button>}
+
+// 方式4：无权限时显示替代内容
+<AuthGate buttonKey="101_edit" fallback={<Tooltip title="无权限"><Button disabled>编辑</Button></Tooltip>}>
+  <Button type="link">编辑</Button>
+</AuthGate>
+```
+
+**注意事项**：
+- `buttonKey` 格式为后端定义的 `菜单ID_标识`（如 `101_add`），直接使用完整值
+- 菜单未加载完或当前路由不在菜单树中时，所有权限默认无
+- `AuthGate` 跨微应用共享权限状态（通过 `rawWindow` 机制）
+
 ---
 
 ## 5.2 常量
@@ -280,6 +329,7 @@ interface MenuItem {
   visible: boolean;
   status: boolean;
   permission?: string;
+  buttonKey?: string;     // 按钮标识，menuType=3 时有效
   position?: MenuPosition;
   owner?: MenuOwner;
   children?: MenuItem[];
@@ -313,6 +363,7 @@ import {
   // 组件
   ThemeLayout,
   useThemeContext,
+  AuthGate,
 
   // 常量
   themes,
@@ -336,9 +387,13 @@ import {
   getIconComponent,
   transformToMenuItems,
 
+  // Hooks
+  useAuth,
+
   // 状态管理
   useUserStore,
   useMenuStore,
+  useAuthStore,
 
   // 服务
   fetchUserRoutes,

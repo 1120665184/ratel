@@ -47,7 +47,7 @@ public class SecurityMenuController implements MenuClientApi {
     @Override
     public R<List<MenuVO>> listTree(@RequestBody MenuQueryDTO query) {
         MenuOwner menuOwner = AssertUtils.notNull(query.getOwner(), SecurityErrorCode.E01002);
-        return R.ok(menuService.listTree(query, menuOwner));
+        return R.ok(menuService.listTree(query, menuOwner , false));
     }
 
     @Operation(summary = "根据用户ID查询菜单树")

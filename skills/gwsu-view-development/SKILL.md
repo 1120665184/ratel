@@ -59,8 +59,29 @@ type: skill
 ```tsx
 import { ThemeLayout, useThemeContext, themes, getThemeByKey } from '@gwsu/core';
 import { get, post, put, del } from '@gwsu/core';
-import { useUserStore, useMenuStore } from '@gwsu/core';
+import { useUserStore, useMenuStore, useAuthStore } from '@gwsu/core';
+import { useAuth, AuthGate } from '@gwsu/core';
 import { EventType, emitEvent, onEvent } from '@gwsu/core';
+```
+
+### 按钮权限控制
+
+根据 `buttonKey` 控制按钮/内容是否渲染，数据来自后端 `/menu/routes/{owner}` 接口返回的 `menuType=3` 节点：
+
+```tsx
+// AuthGate 组件（推荐）
+<AuthGate buttonKey="101_add">
+  <Button type="primary">新增</Button>
+</AuthGate>
+
+// useAuth hook
+const canDelete = useAuth('101_delete');
+{canDelete && <Button danger>删除</Button>}
+
+// 无权限时显示替代内容
+<AuthGate buttonKey="101_edit" fallback={<Button disabled>编辑</Button>}>
+  <Button type="link">编辑</Button>
+</AuthGate>
 ```
 
 ### 子应用布局模板

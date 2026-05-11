@@ -132,6 +132,7 @@ components/XxxPanel/
 ```tsx
 import React from 'react';
 import { Card, Button } from 'antd';
+import { AuthGate } from '@gwsu/core';
 import styles from './index.module.less';
 
 interface XxxPanelProps {
@@ -143,19 +144,31 @@ interface XxxPanelProps {
   onCreate: () => void;
   /** 编辑回调 */
   onEdit: (item: XxxItem) => void;
+  /** 删除回调 */
+  onDelete: (item: XxxItem) => void;
 }
 
-const XxxPanel: React.FC<XxxPanelProps> = ({ data, loading, onCreate, onEdit }) => {
+const XxxPanel: React.FC<XxxPanelProps> = ({ data, loading, onCreate, onEdit, onDelete }) => {
   return (
     <Card
       title="XXX 列表"
-      extra={<Button type="primary" onClick={onCreate}>新增</Button>}
+      extra={
+        <AuthGate buttonKey="101_add">
+          <Button type="primary" onClick={onCreate}>新增</Button>
+        </AuthGate>
+      }
       loading={loading}
       className={styles.panel}
     >
       {data.map((item) => (
-        <div key={item.id} className={styles.item} onClick={() => onEdit(item)}>
-          {item.name}
+        <div key={item.id} className={styles.item}>
+          <span>{item.name}</span>
+          <AuthGate buttonKey="101_edit">
+            <Button type="link" onClick={() => onEdit(item)}>编辑</Button>
+          </AuthGate>
+          <AuthGate buttonKey="101_delete">
+            <Button type="link" danger onClick={() => onDelete(item)}>删除</Button>
+          </AuthGate>
         </div>
       ))}
     </Card>

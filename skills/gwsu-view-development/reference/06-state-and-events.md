@@ -128,7 +128,55 @@ useMenuStore.getState().updateCurrentMenuRouteByPath('/sub-system/dept');
 useMenuStore.getState().clearMenus();
 ```
 
-### 6.1.3 Store 使用规范
+### 6.1.3 useAuthStore — 按钮权限状态管理
+
+> 路径：`gwsu-core/src/stores/authStore.ts`
+
+管理当前路由下的按钮权限映射。路由切换时由 `menuStore` 自动更新，退出登录时自动清空。
+
+**接口定义**：
+
+```typescript
+interface AuthState {
+  /** 当前路由的按钮权限映射：buttonKey → true */
+  buttonAuthMap: Record<string, boolean>;
+  /** 根据当前菜单路由更新权限映射 */
+  updateAuthByMenuRoute: (menuRoute: MenuItem | null) => void;
+  /** 判断某 buttonKey 是否有权限 */
+  hasAuth: (buttonKey: string) => boolean;
+  /** 清空权限（退出登录时） */
+  clearAuth: () => void;
+}
+```
+
+**使用方式**：
+
+```tsx
+import { useAuthStore, useAuth, AuthGate } from '@gwsu/core';
+
+// 在 React 组件中使用 Hook
+function MyComponent() {
+  const { buttonAuthMap } = useAuthStore();
+  // ...
+}
+
+// 在非组件中判断权限
+const hasPermission = useAuthStore.getState().hasAuth('101_add');
+
+// 推荐：使用 useAuth hook
+const canEdit = useAuth('101_edit');
+
+// 推荐：使用 AuthGate 组件
+<AuthGate buttonKey="101_add">
+  <Button type="primary">新增</Button>
+</AuthGate>
+```
+
+**自动更新时机**：
+- `menuStore.updateCurrentMenuRouteByPath()` 调用时，自动同步更新按钮权限
+- `menuStore.clearMenus()` 调用时（退出登录），自动清空权限
+
+### 6.1.4 Store 使用规范
 
 | 场景 | 使用方式 | 示例 |
 |------|---------|------|

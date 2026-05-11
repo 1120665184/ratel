@@ -3,7 +3,16 @@
  * 统一管理 Token 和用户信息，自动同步 localStorage
  */
 
-import {create} from 'zustand';
+import {create, type UseBoundStore, type StoreApi} from 'zustand';
+
+/**
+ * 获取真实 window 对象，绕过 qiankun JS 沙箱的 Proxy 代理
+ * 确保主应用和子应用共享同一个全局状态
+ */
+const rawWindow: Window & typeof globalThis & Record<string, unknown> = (0, eval)('window');
+
+/** Store 在真实 window 上的挂载键 */
+const STORE_KEY = '__GWSU_USER_STORE__';
 
 /** Token 信息 */
 export interface TokenInfo {
@@ -128,82 +137,98 @@ function saveUserToStorage(userInfo: UserInfo | null): void {
     }
 }
 
-export const useUserStore = create<UserState>((set, get) => ({
-    tokenInfo: null,
-    userInfo: null,
-    isLoggedIn: false,
+/**
+ * 创建或获取单例 Store
+ * 通过真实 window 对象挂载，确保主应用和子应用共享同一个 Zustand 实例
+ */
 
-    setTokenInfo: (tokenInfo) => {
-        saveTokenToStorage(tokenInfo);
-        set({
-            tokenInfo,
-            isLoggedIn: !!tokenInfo,
-        });
-    },
+function createOrGetStore(): UseBoundStore<StoreApi<UserState>> {
+    if (rawWindow[STORE_KEY]) {
+        return rawWindow[STORE_KEY] as UseBoundStore<StoreApi<UserState>>;
+    }
 
-    getTokenInfo: () => {
-        const {tokenInfo} = get();
-        if (tokenInfo) return tokenInfo;
+    const store = create<UserState>((set, get) => ({
+        tokenInfo: null,
+        userInfo: null,
+        isLoggedIn: false,
 
-        // 从 localStorage 加载
-        const storedToken = loadTokenFromStorage();
-        if (storedToken) {
-            set({tokenInfo: storedToken, isLoggedIn: true});
-        }
-        return storedToken;
-    },
+        setTokenInfo: (tokenInfo) => {
+            saveTokenToStorage(tokenInfo);
+            set({
+                tokenInfo,
+                isLoggedIn: !!tokenInfo,
+            });
+        },
 
-    setUserInfo: (userInfo) => {
-        saveUserToStorage(userInfo);
-        set({userInfo});
-    },
+        getTokenInfo: () => {
+            const {tokenInfo} = get();
+            if (tokenInfo) return tokenInfo;
 
-    getUserInfo: () => {
-        const {userInfo} = get();
-        if (userInfo) return userInfo;
+            // 从 localStorage 加载
+            const storedToken = loadTokenFromStorage();
+            if (storedToken) {
+                set({tokenInfo: storedToken, isLoggedIn: true});
+            }
+            return storedToken;
+        },
 
-        // 从 localStorage 加载
-        const storedUser = loadUserFromStorage();
-        if (storedUser) {
-            set({userInfo: storedUser});
-        }
-        return storedUser;
-    },
+        setUserInfo: (userInfo) => {
+            saveUserToStorage(userInfo);
+            set({userInfo});
+        },
 
-    checkLogin: () => {
-        const {tokenInfo, isLoggedIn} = get();
-        if (isLoggedIn && tokenInfo) return true;
+        getUserInfo: () => {
+            const {userInfo} = get();
+            if (userInfo) return userInfo;
 
-        // 检查 localStorage
-        const storedToken = loadTokenFromStorage();
-        if (storedToken) {
-            set({tokenInfo: storedToken, isLoggedIn: true});
-            return true;
-        }
-        return false;
-    },
+            // 从 localStorage 加载
+            const storedUser = loadUserFromStorage();
+            if (storedUser) {
+                set({userInfo: storedUser});
+            }
+            return storedUser;
+        },
 
-    isTokenExpired: () => {
-        const tokenInfo = get().getTokenInfo();
-        if (!tokenInfo || !tokenInfo.expireTime) return true;
-        return Date.now() >= tokenInfo.expireTime;
-    },
+        checkLogin: () => {
+            const {tokenInfo, isLoggedIn} = get();
+            if (isLoggedIn && tokenInfo) return true;
 
-    clearUserData: () => {
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
-        set({
-            tokenInfo: null,
-            userInfo: null,
-            isLoggedIn: false,
-        });
-    },
+            // 检查 localStorage
+            const storedToken = loadTokenFromStorage();
+            if (storedToken) {
+                set({tokenInfo: storedToken, isLoggedIn: true});
+                return true;
+            }
+            return false;
+        },
 
-    logout: () => {
-        get().clearUserData();
-    },
-}));
+        isTokenExpired: () => {
+            const tokenInfo = get().getTokenInfo();
+            if (!tokenInfo || !tokenInfo.expireTime) return true;
+            return Date.now() >= tokenInfo.expireTime;
+        },
+
+        clearUserData: () => {
+            localStorage.removeItem(STORAGE_KEYS.TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
+            set({
+                tokenInfo: null,
+                userInfo: null,
+                isLoggedIn: false,
+            });
+        },
+
+        logout: () => {
+            get().clearUserData();
+        },
+    }));
+
+    rawWindow[STORE_KEY] = store;
+    return store;
+}
+
+export const useUserStore = createOrGetStore();
 
 // 导出便捷方法
 export const userStore = useUserStore.getState();
