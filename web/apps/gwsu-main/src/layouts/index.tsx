@@ -157,6 +157,14 @@ function MainLayoutContent({
   const isHidden = panelState.mode === 'hidden';
   const isDraggableMode = panelState.mode === 'draggable';
 
+  // 将 AI 面板模式同步到 body，供全局 CSS 约束弹框区域
+  useEffect(() => {
+    document.body.dataset.aiMode = panelState.mode;
+    return () => {
+      delete document.body.dataset.aiMode;
+    };
+  }, [panelState.mode]);
+
   return (
     <div className={styles.mainLayout}>
       {/* 顶部导航栏 - 固定不变 */}

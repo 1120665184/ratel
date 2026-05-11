@@ -1,4 +1,4 @@
-import React from 'react';
+
 // @ts-ignore
 import { Link } from 'umi';
 import { Card, Typography, Button, Space } from 'antd';
