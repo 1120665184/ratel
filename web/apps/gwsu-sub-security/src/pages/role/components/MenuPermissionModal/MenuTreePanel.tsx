@@ -343,10 +343,20 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
         <div className={styles.headerActions}>
           {editing ? (
             <>
-              <Button size="small" icon={<SaveOutlined />} type="primary" onClick={onSave}>
+              <Button
+                size="small"
+                icon={<SaveOutlined />}
+                type="primary"
+                data-ai-approval
+                onClick={onSave}
+              >
                 保存
               </Button>
-              <Button size="small" icon={<CloseOutlined />} onClick={onCancelEdit}>
+              <Button
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={onCancelEdit}
+              >
                 取消
               </Button>
             </>
@@ -362,7 +372,12 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
                 okText="确定"
                 cancelText="取消"
               >
-                <Button size="small" danger icon={<DeleteOutlined />}>
+                <Button
+                  size="small"
+                  danger
+                  data-ai-approval
+                  icon={<DeleteOutlined />}
+                >
                   删除此组
                 </Button>
               </Popconfirm>

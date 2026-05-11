@@ -75,8 +75,11 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
 
   return (
     <Modal
-      title={isEdit ? '编辑角色' : '新增角色'}
+      title={isEdit ? "编辑角色" : "新增角色"}
       open={visible}
+      okText="保存"
+      cancelText="取消"
+      okButtonProps={{ "data-ai-approval": "true" }}
       onOk={handleOk}
       onCancel={onClose}
       confirmLoading={loading}
@@ -87,7 +90,7 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
         <Form.Item
           name="roleCode"
           label="角色编码"
-          rules={[{ required: true, message: '请输入角色编码' }]}
+          rules={[{ required: true, message: "请输入角色编码" }]}
         >
           <Input
             placeholder="请输入角色编码，如 ROLE_ADMIN"
@@ -97,7 +100,7 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
         <Form.Item
           name="roleName"
           label="角色名称"
-          rules={[{ required: true, message: '请输入角色名称' }]}
+          rules={[{ required: true, message: "请输入角色名称" }]}
         >
           <Input placeholder="请输入角色名称" />
         </Form.Item>
@@ -110,30 +113,27 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
           />
         </Form.Item>
         <Form.Item name="sort" label="排序号">
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber min={0} style={{ width: "100%" }} />
         </Form.Item>
         <Form.Item
           name="roleType"
           label="角色类型"
-          rules={[{ required: true, message: '请选择角色类型' }]}
+          rules={[{ required: true, message: "请选择角色类型" }]}
         >
-          <Select options={roleTypeOptions} placeholder="请选择角色类型" disabled />
+          <Select
+            options={roleTypeOptions}
+            placeholder="请选择角色类型"
+            disabled
+          />
         </Form.Item>
         <Form.Item
           name="dataScope"
           label="数据范围"
-          rules={[{ required: true, message: '请选择数据范围' }]}
+          rules={[{ required: true, message: "请选择数据范围" }]}
         >
-          <Select
-            options={dataScopeOptions}
-            placeholder="请选择数据范围"
-          />
+          <Select options={dataScopeOptions} placeholder="请选择数据范围" />
         </Form.Item>
-        <Form.Item
-          name="status"
-          label="状态"
-          valuePropName="checked"
-        >
+        <Form.Item name="status" label="状态" valuePropName="checked">
           <Switch checkedChildren="启用" unCheckedChildren="禁用" />
         </Form.Item>
       </Form>
