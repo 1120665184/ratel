@@ -63,6 +63,7 @@ public class BrainServiceImpl implements IBrainService {
                 .model(model)
                 .memory(memory)
                 .toolkit(toolkit)
+                .maxIters(50)
                 .build();
     }
 

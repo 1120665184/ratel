@@ -43,13 +43,9 @@ public class WebTool {
             返回内容为简化的HTML文本，每个可交互元素带有索引编号和标签信息。
             
             元素格式说明：
-            - 普通元素：[0]<button>提交</button>
-            - 带标签的元素：[0]{approval}<button>提交</button>
-            
-            标签含义：
-            - {approval}：该元素为危险操作（如保存、删除、编辑等），点击时需要人工审批确认
-            
-            调用ClickElement时，必须将元素的标签信息通过tags参数传递给后端。""")
+            - [index]{tags}元素： []标识的内容为元素索引编号，用该编号定位操作元素,必有 ，{}包裹的为元素标签，用户对元素的额外功能标注，多个,分割，由前端生成，可能不包含
+              示例：  普通元素：[0]<button>提交</button>  带标签的元素：[0]{approval}<button>提交</button>
+            """)
     public ToolResultBlock getPageState(ToolEmitter emitter) throws TimeoutException {
         return webToolUtils.webExecuteTool(emitter, "GetPageState", Map.of());
     }
@@ -63,11 +59,11 @@ public class WebTool {
             参数：
             - index：元素索引编号
             - operationDescription：本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户
-            - tags：元素的标签信息，从GetPageState结果中{}包裹的内容获取，如"approval"。普通元素传空字符串即可""")
+            - tags：元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可""")
     public ToolResultBlock clickElement(
             @ToolParam(name = "index", description = "要点击的元素索引编号，从GetPageState结果中获取") Integer index,
             @ToolParam(name = "operationDescription", description = "本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户") String operationDescription,
-            @ToolParam(name = "tags", description = "元素的标签信息（如approval），从GetPageState结果中{}包裹的内容获取，无标签时传空字符串", required = false) String tags,
+            @ToolParam(name = "tags", description = "元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可", required = false) String tags,
             ToolEmitter emitter) throws TimeoutException {
         return webToolUtils.webExecuteTool(emitter, "ClickElement", Map.of("index", index));
     }

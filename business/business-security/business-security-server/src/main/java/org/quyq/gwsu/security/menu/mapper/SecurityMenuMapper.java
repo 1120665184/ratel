@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.menu.domain.SecurityMenu;
+import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
 
 import java.util.List;
 
@@ -33,4 +34,13 @@ public interface SecurityMenuMapper extends BaseMapper<SecurityMenu> {
      * @return 菜单列表
      */
     List<SecurityMenu> selectMenusByRoleCodes(@Param("roleCodes") List<String> roleCodes, @Param("owner") MenuOwner owner);
+
+    /**
+     * 根据角色编码列表查询角色菜单关联记录（含时效字段）
+     *
+     * @param roleCodes 角色编码列表
+     * @param owner 菜单所属类型
+     * @return 角色菜单关联记录列表
+     */
+    List<SecurityRoleMenu> selectRoleMenusByRoleCodes(@Param("roleCodes") List<String> roleCodes, @Param("owner") MenuOwner owner);
 }

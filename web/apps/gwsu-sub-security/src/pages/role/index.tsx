@@ -384,6 +384,7 @@ const RolePage: React.FC = () => {
                 danger
                 icon={<DeleteOutlined />}
                 disabled={selectedRowKeys.length === 0}
+                data-ai-approval
               >
                 删除
               </Button>

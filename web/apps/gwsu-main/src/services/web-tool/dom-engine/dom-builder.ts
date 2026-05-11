@@ -130,53 +130,49 @@ const SIBLING_COLLAPSE_THRESHOLD = 10;
 const SIBLING_KEEP_COUNT = 3;
 
 /**
+ * 从元素及其子元素中提取 Ant Design 图标类名
+ * 图标类名格式为 anticon-xxx，如 anticon-user、anticon-delete
+ * 提取后返回图标名称（去掉 anticon- 前缀），多个图标用逗号分隔
+ */
+function extractIconName(element: Element): string | null {
+  const iconNames: string[] = [];
+
+  // 检查元素自身
+  collectIconNames(element, iconNames);
+
+  // 检查所有后代元素（图标可能嵌套多层，如 button > span.ant-btn-icon > span.anticon-xxx）
+  const descendants = element.querySelectorAll('*');
+  for (const descendant of descendants) {
+    collectIconNames(descendant, iconNames);
+  }
+
+  return iconNames.length > 0 ? iconNames.join(',') : null;
+}
+
+function collectIconNames(element: Element, names: string[]): void {
+  if (!element.classList) return;
+  for (const cls of element.classList) {
+    if (cls.startsWith('anticon-') && cls !== 'anticon') {
+      const name = cls.replace('anticon-', '');
+      if (name && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+}
+
+/**
  * 检测元素的语义标签
- * 1. data-ai-approval 属性：按钮上标记需要人工审批
- * 2. Popconfirm 确认按钮：Ant Design Popconfirm 的"确定"按钮自动标记为审批
+ * 通过 data-ai-approval 属性标记需要人工审批的元素
  */
 function detectElementTags(element: Element): string[] {
   const tags: string[] = [];
 
-  // 1. 检测 data-ai-approval 属性
   if (element.hasAttribute('data-ai-approval')) {
     tags.push('approval');
   }
 
-  // 2. 检测 Ant Design Popconfirm 确认按钮
-  // Popconfirm DOM 结构: .ant-popconfirm > .ant-popconfirm-buttons > .ant-btn-primary
-  // 确认按钮是 Popconfirm 内 .ant-popconfirm-buttons 下的 primary 按钮
-  if (
-    element.classList.contains('ant-btn-primary') &&
-    isInsidePopconfirm(element)
-  ) {
-    if (!tags.includes('approval')) {
-      tags.push('approval');
-    }
-  }
-
   return tags;
-}
-
-/**
- * 判断元素是否在 Popconfirm 确认区域内
- */
-function isInsidePopconfirm(element: Element): boolean {
-  let current: Element | null = element.parentElement;
-  while (current) {
-    if (current.classList.contains('ant-popconfirm-buttons')) {
-      return true;
-    }
-    // 如果遇到非 Popconfirm 的弹框容器，停止搜索
-    if (
-      current.classList.contains('ant-modal-wrap') ||
-      current.classList.contains('ant-drawer') ||
-      current.classList.contains('ant-dropdown')
-    ) {
-      return false;
-    }
-    current = current.parentElement;
-  }
-  return false;
 }
 
 /**
@@ -273,6 +269,12 @@ function extractAttributes(element: Element): Record<string, string> {
   // 去掉与tagName重复的role
   if (attrs.role === element.tagName.toLowerCase()) {
     delete attrs.role;
+  }
+
+  // 提取 Ant Design 图标类名（anticon-xxx），作为 icon 属性保留
+  const iconName = extractIconName(element);
+  if (iconName) {
+    attrs['icon'] = iconName;
   }
 
   return attrs;

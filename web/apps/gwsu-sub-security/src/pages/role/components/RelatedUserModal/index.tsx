@@ -94,6 +94,7 @@ const RelatedUserModal: React.FC<RelatedUserModalProps> = ({
       confirmLoading={saving}
       okText="保存"
       cancelText="取消"
+      okButtonProps={{ "data-ai-approval": "true" }}
       width={720}
       destroyOnHidden
       className={styles.relatedUserModal}
@@ -106,10 +107,10 @@ const RelatedUserModal: React.FC<RelatedUserModalProps> = ({
             onChange={handleChange}
             filterOption={filterOption}
             showSearch
-            titles={['未关联', '已关联']}
+            titles={["未关联", "已关联"]}
             listStyle={{ width: 300, height: 400 }}
             oneWay={false}
-            render={(item) => item.title ?? ''}
+            render={(item) => item.title ?? ""}
           />
         </div>
       </Spin>

@@ -436,18 +436,24 @@ AI 助手可以通过 `GetPageState` 工具查看界面元素，并通过 `Click
 </Button>
 ```
 
-### Popconfirm 自动检测
+### 组件内置按钮的标注
 
-Ant Design `<Popconfirm>` 的"确定"按钮**无需手动添加** `data-ai-approval`，DOM 引擎会自动检测：
+当使用 Ant Design 组件的内置按钮（如 Modal 的确认按钮）时，无法直接在 `<Button>` 上添加属性。这些组件提供了 `okButtonProps` API 来透传属性给内置确认按钮：
 
 ```tsx
-// 以下写法，AI 点击"确定"时会自动触发审批
-<Popconfirm title="确定删除吗？" onConfirm={handleDelete}>
-  <Button danger>删除</Button>
-</Popconfirm>
+// Modal 的确认按钮需要审批
+<Modal
+  title="编辑"
+  open={visible}
+  onOk={handleOk}
+  onCancel={onClose}
+  okButtonProps={{ 'data-ai-approval': true }}
+>
+  {/* 表单内容 */}
+</Modal>
 ```
 
-自动检测逻辑：Popconfirm 内 `.ant-popconfirm-buttons` 下的 `.ant-btn-primary` 按钮会被自动标记为 `{approval}`。
+同理，`cancelButtonProps` 可用于取消按钮（一般不需要审批）。
 
 ### AI 视角与审批流程
 
@@ -501,8 +507,14 @@ const XxxFormModal: React.FC<XxxFormModalProps> = ({ visible, data, onClose, onS
 ```
 
 ```tsx
-// 带二次确认的删除：Popconfirm 确定按钮自动审批，无需手动标记
-<Popconfirm title="确定删除该条记录吗？" onConfirm={() => handleDelete(record.id)}>
-  <Button danger size="small">删除</Button>
-</Popconfirm>
+// 使用 okButtonProps 给 Modal 内置确认按钮添加审批标记
+<Modal
+  title="确定删除该条记录吗？"
+  open={visible}
+  onOk={() => handleDelete(record.id)}
+  okButtonProps={{ 'data-ai-approval': 'true' }}
+  onCancel={onClose}
+>
+  <p>删除后数据将无法恢复，请确认操作。</p>
+</Modal>
 ```
