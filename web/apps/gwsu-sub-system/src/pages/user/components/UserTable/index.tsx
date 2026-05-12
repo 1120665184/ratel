@@ -47,15 +47,15 @@ const UserTable: React.FC<UserTableProps> = ({
 
   const handleBatchDelete = () => {
     Modal.confirm({
-      title: '确认删除',
+      title: "确认删除",
       content: `确定删除选中的 ${selectedRowKeys.length} 个用户吗？删除后不可恢复。`,
-      okText: '确定',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
+      okText: "确定",
+      cancelText: "取消",
+      okButtonProps: { danger: true, "data-ai-approval": "true" },
       onOk: async () => {
         try {
           await batchDeleteUsers(selectedRowKeys as string[]);
-          message.success('删除成功');
+          message.success("删除成功");
           setSelectedRowKeys([]);
           onRefresh();
         } catch {}

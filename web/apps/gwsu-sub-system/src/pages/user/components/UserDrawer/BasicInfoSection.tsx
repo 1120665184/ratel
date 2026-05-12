@@ -45,16 +45,24 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, re
   if (editing) {
     return (
       <Form form={form} layout="vertical" size="small">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Form.Item label="昵称" name="nickname" rules={[{ required: true, message: '请输入昵称' }]}>
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+        >
+          <Form.Item
+            label="昵称"
+            name="nickname"
+            rules={[{ required: true, message: "请输入昵称" }]}
+          >
             <Input />
           </Form.Item>
           <Form.Item label="性别" name="gender">
-            <Select options={[
-              { label: '未知', value: 0 },
-              { label: '男', value: 1 },
-              { label: '女', value: 2 },
-            ]} />
+            <Select
+              options={[
+                { label: "未知", value: 0 },
+                { label: "男", value: 1 },
+                { label: "女", value: 2 },
+              ]}
+            />
           </Form.Item>
           <Form.Item label="邮箱" name="email">
             <Input />
@@ -63,9 +71,19 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, re
             <Input />
           </Form.Item>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button size="small" onClick={() => setEditing(false)}>取消</Button>
-          <Button size="small" type="primary" loading={saving} onClick={handleSave}>保存</Button>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Button size="small" onClick={() => setEditing(false)}>
+            取消
+          </Button>
+          <Button
+            size="small"
+            type="primary"
+            data-ai-approval
+            loading={saving}
+            onClick={handleSave}
+          >
+            保存
+          </Button>
         </div>
       </Form>
     );

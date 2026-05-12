@@ -110,6 +110,7 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({
                         <AuthGate buttonKey="4_edit">
                           <a
                             style={{ color: "#ff4d4f", fontSize: 11 }}
+                            data-ai-approval
                             onClick={() => handleUnbind(account.id)}
                           >
                             解绑

@@ -82,17 +82,18 @@ const AddParentModal: React.FC<AddParentModalProps> = ({
       onOk={handleOk}
       confirmLoading={confirmLoading}
       width={400}
+      okButtonProps={{ "data-ai-approval": "true" }}
       destroyOnHidden
     >
       {loading ? (
-        <div style={{ padding: 20, textAlign: 'center' }}>加载中...</div>
+        <div style={{ padding: 20, textAlign: "center" }}>加载中...</div>
       ) : (
         <Tree
           treeData={convertToTreeNodes(treeData)}
           onSelect={handleSelect}
           selectedKeys={selectedId ? [selectedId] : []}
           showLine
-          style={{ maxHeight: 400, overflowY: 'auto' }}
+          style={{ maxHeight: 400, overflowY: "auto" }}
         />
       )}
     </Modal>

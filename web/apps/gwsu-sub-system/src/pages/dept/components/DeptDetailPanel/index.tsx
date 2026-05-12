@@ -36,6 +36,7 @@ const DeptDetailPanel: React.FC<DeptDetailPanelProps> = ({
     ...(dept.extraParents?.map((p) => p.id) ?? []),
   ];
 
+  // @ts-ignore
   const tabItems = [
     {
       key: 'basic',

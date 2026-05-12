@@ -4,10 +4,11 @@ import { DeleteOutlined, StarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getDeptUsers, removeUserDept, setPrimaryDept } from '@/services/dept';
 import type { UserDeptDetail } from '../../types';
+import {AuthGate} from '@gwsu/core'
 
 interface UserListTabProps {
   deptId: string;
-  onAddUser: () => void;
+  onAddUser: () => void ;
   onRefresh: () => void;
 }
 
@@ -55,48 +56,59 @@ const UserListTab: React.FC<UserListTabProps> = ({ deptId, onRefresh }) => {
 
   const columns: ColumnsType<UserDeptDetail> = [
     {
-      title: '用户名',
-      dataIndex: 'username',
-      key: 'username',
+      title: "用户名",
+      dataIndex: "username",
+      key: "username",
     },
     {
-      title: '昵称',
-      dataIndex: 'nickname',
-      key: 'nickname',
+      title: "昵称",
+      dataIndex: "nickname",
+      key: "nickname",
     },
     {
-      title: '是否主部门',
-      dataIndex: 'isPrimary',
-      key: 'isPrimary',
+      title: "是否主部门",
+      dataIndex: "isPrimary",
+      key: "isPrimary",
       render: (isPrimary: boolean) =>
         isPrimary ? <Tag color="blue">主部门</Tag> : <Tag>普通</Tag>,
     },
     {
-      title: '操作',
-      key: 'action',
+      title: "操作",
+      key: "action",
       width: 180,
       render: (_, record) => (
         <Space size="small">
           {!record.isPrimary && (
-            <Button
-              type="link"
-              size="small"
-              icon={<StarOutlined />}
-              onClick={() => handleSetPrimary(record.userId)}
-            >
-              设为主部门
-            </Button>
+            <AuthGate buttonKey="22_primary_dept">
+              <Button
+                type="link"
+                size="small"
+                icon={<StarOutlined />}
+                data-ai-approval
+                onClick={() => handleSetPrimary(record.userId)}
+              >
+                设为主部门
+              </Button>
+            </AuthGate>
           )}
-          <Popconfirm
-            title="确定要移除该用户吗？"
-            onConfirm={() => handleRemove(record.userId)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              移除
-            </Button>
-          </Popconfirm>
+          <AuthGate buttonKey="22_remove_user">
+            <Popconfirm
+              title="确定要移除该用户吗？"
+              onConfirm={() => handleRemove(record.userId)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button
+                type="link"
+                size="small"
+                danger
+                data-ai-approval
+                icon={<DeleteOutlined />}
+              >
+                移除
+              </Button>
+            </Popconfirm>
+          </AuthGate>
         </Space>
       ),
     },

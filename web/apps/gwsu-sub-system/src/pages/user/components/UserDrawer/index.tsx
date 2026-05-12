@@ -72,6 +72,7 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onCl
           {!isReadOnly && (
             <AuthGate buttonKey="4_disabled_enable">
               <Button
+                data-ai-approval
                 danger={user.status === 1}
                 type={user.status === 0 ? "primary" : "default"}
                 onClick={handleStatusToggle}

@@ -90,10 +90,11 @@ const DeptFormModal: React.FC<DeptFormModalProps> = ({
 
   return (
     <Modal
-      title={mode === 'edit' ? '编辑部门' : '新增部门'}
+      title={mode === "edit" ? "编辑部门" : "新增部门"}
       open={visible}
       onCancel={onClose}
       onOk={handleSubmit}
+      okButtonProps={{ "data-ai-approval": "true" }}
       confirmLoading={loading}
       destroyOnHidden
       width={500}
@@ -102,7 +103,7 @@ const DeptFormModal: React.FC<DeptFormModalProps> = ({
         <Form.Item
           name="name"
           label="部门名称"
-          rules={[{ required: true, message: '请输入部门名称' }]}
+          rules={[{ required: true, message: "请输入部门名称" }]}
         >
           <Input placeholder="请输入部门名称" />
         </Form.Item>
@@ -110,7 +111,7 @@ const DeptFormModal: React.FC<DeptFormModalProps> = ({
         <Form.Item
           name="type"
           label="部门类型"
-          rules={[{ required: true, message: '请选择部门类型' }]}
+          rules={[{ required: true, message: "请选择部门类型" }]}
         >
           <Select placeholder="请选择部门类型">
             {deptTypes.map((t) => (
@@ -122,7 +123,11 @@ const DeptFormModal: React.FC<DeptFormModalProps> = ({
         </Form.Item>
 
         <Form.Item name="parentId" label="父部门">
-          <Select placeholder="请选择父部门（不选则为根部门）" allowClear showSearch>
+          <Select
+            placeholder="请选择父部门（不选则为根部门）"
+            allowClear
+            showSearch
+          >
             {convertToOptions(deptTree).map((opt) => (
               <Select.Option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -136,7 +141,11 @@ const DeptFormModal: React.FC<DeptFormModalProps> = ({
         </Form.Item>
 
         <Form.Item name="sort" label="排序号">
-          <InputNumber min={0} placeholder="数字越小越靠前" style={{ width: '100%' }} />
+          <InputNumber
+            min={0}
+            placeholder="数字越小越靠前"
+            style={{ width: "100%" }}
+          />
         </Form.Item>
       </Form>
     </Modal>

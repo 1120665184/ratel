@@ -12,6 +12,7 @@ import styles from './index.module.less';
 import { getDeptDetail } from '@/services/dept';
 import type { DeptTreeNode, DeptDetail } from '../../types';
 import { useDeptTree } from '../../hooks/useDeptTree';
+import {AuthGate} from '@gwsu/core'
 
 interface DeptTreePanelProps {
   treeData: DeptTreeNode[];
@@ -45,23 +46,33 @@ const DeptTreePanel: React.FC<DeptTreePanelProps> = ({
       key: node.id,
       title: (
         <div className={styles.treeNode}>
-          <span className={styles.nodeIcon} style={{ color: node.enabled ? undefined : '#999' }}>
+          <span
+            className={styles.nodeIcon}
+            style={{ color: node.enabled ? undefined : "#999" }}
+          >
             {getDeptIcon(node.type)}
           </span>
-          <span className={`${styles.nodeName} ${!node.enabled ? styles.disabledNode : ''}`}>
+          <span
+            className={`${styles.nodeName} ${
+              !node.enabled ? styles.disabledNode : ""
+            }`}
+          >
             {node.name}
           </span>
           <div className={styles.nodeActions}>
-            <Button
-              type="text"
-              size="small"
-              icon={<PlusOutlined />}
-              className={styles.actionBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateChild(node.id);
-              }}
-            />
+            <AuthGate buttonKey="22_add">
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                className={styles.actionBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateChild(node.id);
+                }}
+              />
+            </AuthGate>
+
             <Button
               type="text"
               size="small"
@@ -93,7 +104,7 @@ const DeptTreePanel: React.FC<DeptTreePanelProps> = ({
     <div className={styles.treePanel}>
       <div className={styles.header}>
         <span className={styles.title}>部门管理</span>
-        <Button type="link" onClick={() => history.push('/dept/org-chart')}>
+        <Button type="link" onClick={() => history.push("/dept/org-chart")}>
           组织架构图
         </Button>
       </div>
@@ -118,10 +129,17 @@ const DeptTreePanel: React.FC<DeptTreePanelProps> = ({
           />
         </div>
       </Spin>
-      <div style={{ padding: '8px 16px', borderTop: '1px solid #e8e8e8' }}>
-        <Button type="primary" icon={<PlusOutlined />} block onClick={onCreateRoot}>
-          新增根部门
-        </Button>
+      <div style={{ padding: "8px 16px", borderTop: "1px solid #e8e8e8" }}>
+        <AuthGate buttonKey="22_add">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            block
+            onClick={onCreateRoot}
+          >
+            新增根部门
+          </Button>
+        </AuthGate>
       </div>
     </div>
   );

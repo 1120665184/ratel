@@ -179,6 +179,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
                 <AuthGate buttonKey="4_edit">
                   <a
                     onClick={() => handleSetPrimary(dept.deptId)}
+                    data-ai-approval
                     style={{ fontSize: 11 }}
                   >
                     设为主部门
@@ -189,6 +190,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
                 <AuthGate buttonKey="4_edit">
                   <a
                     style={{ color: "#ff4d4f", fontSize: 11 }}
+                    data-ai-approval
                     onClick={() => handleRemove(dept.deptId)}
                   >
                     移除
