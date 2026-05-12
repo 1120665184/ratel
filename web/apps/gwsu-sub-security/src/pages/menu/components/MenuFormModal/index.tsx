@@ -103,20 +103,34 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
 
   return (
     <Modal
-      title={isEdit ? '编辑菜单' : menuType === 1 ? '新增目录' : '新增菜单'}
+      title={isEdit ? "编辑菜单" : menuType === 1 ? "新增目录" : "新增菜单"}
       open={visible}
       onOk={handleOk}
       onCancel={onClose}
+      okButtonProps={{ "data-ai-approval": "true" }}
       confirmLoading={loading}
       className={styles.formModal}
       destroyOnHidden
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="menuName" label="菜单名称" rules={[{ required: true, message: '请输入菜单名称' }]}>
+        <Form.Item
+          name="menuName"
+          label="菜单名称"
+          rules={[{ required: true, message: "请输入菜单名称" }]}
+        >
           <Input placeholder="请输入菜单名称" />
         </Form.Item>
-        <Form.Item name="description" label="功能描述" rules={[{ required: true, message: '请输入功能描述' }]}>
-          <TextArea rows={2} placeholder="描述该菜单的功能，用于AI提示词构建" showCount maxLength={1024} />
+        <Form.Item
+          name="description"
+          label="功能描述"
+          rules={[{ required: true, message: "请输入功能描述" }]}
+        >
+          <TextArea
+            rows={2}
+            placeholder="描述该菜单的功能，用于AI提示词构建"
+            showCount
+            maxLength={1024}
+          />
         </Form.Item>
         <Form.Item name="menuType" label="菜单类型">
           <Select disabled options={MENU_TYPE_OPTIONS} />
@@ -131,7 +145,11 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
         </Form.Item>
         {currentMenuType === 2 && (
           <>
-            <Form.Item name="path" label="路由路径" rules={[{ required: true, message: '请输入路由路径' }]}>
+            <Form.Item
+              name="path"
+              label="路由路径"
+              rules={[{ required: true, message: "请输入路由路径" }]}
+            >
               <Input placeholder="例如：/menu" />
             </Form.Item>
             <Form.Item name="microApp" label="子应用名称">
@@ -145,7 +163,7 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
           </Form.Item>
         )}
         <Form.Item name="sort" label="排序号">
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber min={0} style={{ width: "100%" }} />
         </Form.Item>
         <Form.Item name="visible" label="是否显示" valuePropName="checked">
           <Switch />

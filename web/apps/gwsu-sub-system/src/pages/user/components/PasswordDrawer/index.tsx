@@ -48,11 +48,16 @@ const PasswordDrawer: React.FC<PasswordDrawerProps> = ({
       title={`修改密码 - ${nickname}`}
       open={visible}
       onClose={handleClose}
-      width={400}
+      size={400}
       footer={
         <div className={styles.footer}>
           <Button onClick={handleClose}>取消</Button>
-          <Button type="primary" loading={loading} onClick={handleSubmit}>
+          <Button
+            type="primary"
+            data-ai-approval
+            loading={loading}
+            onClick={handleSubmit}
+          >
             确认
           </Button>
         </div>
@@ -63,8 +68,8 @@ const PasswordDrawer: React.FC<PasswordDrawerProps> = ({
           label="新密码"
           name="newPassword"
           rules={[
-            { required: true, message: '请输入新密码' },
-            { min: 6, message: '密码至少6位' },
+            { required: true, message: "请输入新密码" },
+            { min: 6, message: "密码至少6位" },
           ]}
         >
           <Input.Password placeholder="请输入新密码，至少6位" />
@@ -72,15 +77,15 @@ const PasswordDrawer: React.FC<PasswordDrawerProps> = ({
         <Form.Item
           label="确认密码"
           name="confirmPassword"
-          dependencies={['newPassword']}
+          dependencies={["newPassword"]}
           rules={[
-            { required: true, message: '请确认新密码' },
+            { required: true, message: "请确认新密码" },
             ({ getFieldValue }) => ({
               validator(_, value) {
-                if (!value || getFieldValue('newPassword') === value) {
+                if (!value || getFieldValue("newPassword") === value) {
                   return Promise.resolve();
                 }
-                return Promise.reject(new Error('两次输入的密码不一致'));
+                return Promise.reject(new Error("两次输入的密码不一致"));
               },
             }),
           ]}

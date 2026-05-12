@@ -1,5 +1,4 @@
 import { CopilotChat } from '@copilotkit/react-ui';
-import { useCopilotChat } from '@copilotkit/react-core';
 import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-ui/styles.css';
 import { App, Button, Tooltip } from 'antd';
@@ -49,7 +48,6 @@ export function CopilotChatPanel({
   onHide,
 }: CopilotChatPanelProps) {
   const { viewMode, setViewMode, panelState, setPanelPosition, setCurrentThreadId } = usePanelContext();
-  const { reset } = useCopilotChat();
   const { agent } = useAgent({ agentId: 'brain' });
   const { message } = App.useApp();
 
@@ -146,7 +144,7 @@ export function CopilotChatPanel({
 
   // 新建会话
   const handleNewSession = () => {
-    reset();
+    agent.setMessages([]);
     clearHumanApproval();
     clearAskUserQuestion();
     // 生成新的 threadId，让后端创建新的会话
@@ -161,7 +159,7 @@ export function CopilotChatPanel({
       clearHumanApproval();
       clearAskUserQuestion();
       const messages = await getSessionMessages(sessionId);
-      reset();
+      agent.setMessages([]);
       agent.threadId = sessionId;
       setCurrentThreadId(sessionId);
       const formattedMessages = messages.map((msg: BrainMessage) => ({

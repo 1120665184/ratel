@@ -35,6 +35,7 @@ import {
   getConditionTypeOptions,
   getResourceAttributes,
 } from './services/dataResource';
+import {AuthGate} from '@gwsu/core'
 
 const STATUS_OPTIONS = [
   { label: '启用', value: true },
@@ -144,16 +145,6 @@ const DataResourcePage: React.FC = () => {
     [handleSaveOrUpdate],
   );
 
-  /** 单条删除 */
-  const handleSingleDelete = useCallback(
-    async (id: string) => {
-      const success = await handleDelete([id]);
-      if (success) {
-        setSelectedRowKeys([]);
-      }
-    },
-    [handleDelete],
-  );
 
   /** 批量删除 */
   const handleBatchDelete = useCallback(async () => {
@@ -165,59 +156,63 @@ const DataResourcePage: React.FC = () => {
   }, [selectedRowKeys, handleDelete]);
 
   /** 表格列定义 */
-  const columns: TableProps<DataResourceInfo>['columns'] = [
+  const columns: TableProps<DataResourceInfo>["columns"] = [
     Table.SELECTION_COLUMN,
     {
-      title: '序号',
+      title: "序号",
       width: 60,
-      align: 'center',
+      align: "center",
       render: (_: unknown, __: DataResourceInfo, index: number) =>
         (currentPage - 1) * pageSize + index + 1,
     },
     {
-      title: '库名',
-      dataIndex: 'databaseName',
+      title: "库名",
+      dataIndex: "databaseName",
       width: 160,
       render: (val: string) => val || <Tag>全部</Tag>,
     },
     {
-      title: '表名',
-      dataIndex: 'tableName',
+      title: "表名",
+      dataIndex: "tableName",
       width: 180,
       render: (val: string) => <code>{val}</code>,
     },
     {
-      title: '描述',
-      dataIndex: 'description',
+      title: "描述",
+      dataIndex: "description",
       width: 200,
       ellipsis: true,
     },
     {
-      title: '条件数',
+      title: "条件数",
       width: 80,
-      align: 'center',
+      align: "center",
       render: (_: unknown, record: DataResourceInfo) =>
         record.conditions?.length ?? 0,
     },
     {
-      title: '状态',
-      dataIndex: 'status',
+      title: "状态",
+      dataIndex: "status",
       width: 120,
       render: (val: boolean, record: DataResourceInfo) => (
         <Space>
-          <Switch
-            size="small"
-            checked={val}
-            onChange={(checked) => handleStatusChange(record, checked)}
-          />
-          <Tag color={val ? 'green' : 'red'}>{val ? '启用' : '禁用'}</Tag>
+          <AuthGate buttonKey="72974723_edit">
+            <Switch
+              size="small"
+              data-ai-approval
+              checked={val}
+              onChange={(checked) => handleStatusChange(record, checked)}
+            />
+          </AuthGate>
+
+          <Tag color={val ? "green" : "red"}>{val ? "启用" : "禁用"}</Tag>
         </Space>
       ),
     },
     {
-      title: '操作',
+      title: "操作",
       width: 160,
-      fixed: 'right',
+      fixed: "right",
       render: (_: unknown, record: DataResourceInfo) => (
         <div className={styles.actionColumn}>
           <Button
@@ -228,25 +223,16 @@ const DataResourcePage: React.FC = () => {
           >
             详情
           </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确认删除"
-            description="确定删除该数据资源配置？"
-            onConfirm={() => handleSingleDelete(record.id!)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" danger>
-              删除
+          <AuthGate buttonKey="72974723_edit">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              编辑
             </Button>
-          </Popconfirm>
+          </AuthGate>
         </div>
       ),
     },
@@ -310,38 +296,45 @@ const DataResourcePage: React.FC = () => {
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>数据资源列表</span>
           <Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            >
-              新增
-            </Button>
-            <Popconfirm
-              title="批量删除"
-              description={`确定删除选中的 ${selectedRowKeys.length} 条记录？`}
-              onConfirm={handleBatchDelete}
-              okText="确定"
-              cancelText="取消"
-              disabled={selectedRowKeys.length === 0}
-            >
+            <AuthGate buttonKey="72974723_add">
               <Button
-                danger
-                icon={<DeleteOutlined />}
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+              >
+                新增
+              </Button>
+            </AuthGate>
+            <AuthGate buttonKey="72974723_remove">
+              <Popconfirm
+                title="批量删除"
+                description={`确定删除选中的 ${selectedRowKeys.length} 条记录？`}
+                onConfirm={handleBatchDelete}
+                okText="确定"
+                cancelText="取消"
                 disabled={selectedRowKeys.length === 0}
               >
-                删除
-              </Button>
-            </Popconfirm>
-            <Popconfirm
-              title="同步到 Redis"
-              description="确定将数据资源规则同步到 Redis？"
-              onConfirm={handleSync}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button icon={<SyncOutlined />}>同步</Button>
-            </Popconfirm>
+                <Button
+                  danger
+                  data-ai-approval
+                  icon={<DeleteOutlined />}
+                  disabled={selectedRowKeys.length === 0}
+                >
+                  删除
+                </Button>
+              </Popconfirm>
+            </AuthGate>
+            <AuthGate buttonKey="72974723_sync">
+              <Popconfirm
+                title="同步到 Redis"
+                description="确定将数据资源规则同步到 Redis？"
+                onConfirm={handleSync}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button icon={<SyncOutlined />}>同步</Button>
+              </Popconfirm>
+            </AuthGate>
           </Space>
         </div>
         <Table<DataResourceInfo>

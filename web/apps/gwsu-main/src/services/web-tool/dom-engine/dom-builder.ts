@@ -127,6 +127,21 @@ const EXCLUDED_MASK_CLASSES = [
   'ant-popover-mask',
 ];
 
+/**
+ * 原子交互标签集合
+ * 这些标签是原子操作单元，其内部子元素属于同一操作，不应重复注册为独立交互元素。
+ * label 排除：label 可能包裹 input，input 是独立交互元素。
+ */
+const ATOMIC_INTERACTIVE_TAGS = new Set([
+  'button',
+  'a',
+  'input',
+  'select',
+  'textarea',
+  'summary',
+  'option',
+]);
+
 /** 最大遍历深度 */
 const MAX_DEPTH = 30;
 
@@ -341,13 +356,21 @@ function extractAttributes(element: Element): Record<string, string> {
 /**
  * 获取元素下的可见文本（直到遇到下一个可交互子元素为止）
  */
-function getElementText(element: Element): string {
+/**
+ * 获取元素下的可见文本
+ * @param element 目标元素
+ * @param ignoreChildInteractive 是否忽略子元素的可交互检查（原子交互标签短路时使用）
+ */
+function getElementText(element: Element, ignoreChildInteractive = false): string {
   const parts: string[] = [];
-  collectText(element, parts, 0, true);
+  collectText(element, parts, 0, true, ignoreChildInteractive);
   return parts.join(' ').trim();
 }
 
-function collectText(node: Element | Text, parts: string[], depth: number, isRoot = false): void {
+function collectText(
+  node: Element | Text, parts: string[], depth: number,
+  isRoot = false, ignoreChildInteractive = false,
+): void {
   if (depth > 3) return;
 
   if (node instanceof Text) {
@@ -357,7 +380,8 @@ function collectText(node: Element | Text, parts: string[], depth: number, isRoo
   }
 
   // 如果是可交互子元素且不是根节点本身，停止递归
-  if (!isRoot && isInteractiveElement(node) && depth > 0) {
+  // 忽略模式下（原子交互标签内部收集文本）跳过此检查，收集所有子元素文本
+  if (!ignoreChildInteractive && !isRoot && isInteractiveElement(node) && depth > 0) {
     return;
   }
 
@@ -366,7 +390,7 @@ function collectText(node: Element | Text, parts: string[], depth: number, isRoo
       const text = child.textContent?.trim();
       if (text) parts.push(text);
     } else if (child instanceof Element) {
-      collectText(child, parts, depth + 1, false);
+      collectText(child, parts, depth + 1, false, ignoreChildInteractive);
     }
   }
 }
@@ -395,6 +419,16 @@ export function buildDomTree(root: Element, selectorMap: SelectorMap, depth = 0)
     const tags = detectElementTags(root);
     if (tags.length > 0) {
       node.tags = tags;
+    }
+
+    // 原子交互标签短路：button/a/input 等是原子操作单元，
+    // 内部子元素属于同一操作，不再递归注册为独立交互元素
+    if (ATOMIC_INTERACTIVE_TAGS.has(root.tagName.toLowerCase())) {
+      const text = getElementText(root, true);
+      if (text) {
+        node.textContent = truncateText(text, TEXT_MAX_LENGTH);
+      }
+      return node;
     }
   }
 
@@ -458,7 +492,17 @@ export function buildDomTree(root: Element, selectorMap: SelectorMap, depth = 0)
   // 递归构建子树
   if (node.children) {
     for (const childEl of childElements) {
-      node.children.push(buildDomTree(childEl, selectorMap, depth + 1));
+      const childNode = buildDomTree(childEl, selectorMap, depth + 1);
+      // Tags 向下传播：如果子元素是交互元素但没有 tags，继承父元素的 tags
+      if (
+        childNode.isInteractive &&
+        (!childNode.tags || childNode.tags.length === 0) &&
+        node.tags &&
+        node.tags.length > 0
+      ) {
+        childNode.tags = [...node.tags];
+      }
+      node.children.push(childNode);
     }
   }
 

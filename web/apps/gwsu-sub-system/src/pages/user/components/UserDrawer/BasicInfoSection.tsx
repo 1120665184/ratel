@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Select, Button, App } from 'antd';
 import { GENDER_MAP } from '../../types';
 import type { SysUserDetailVO } from '../../types';
@@ -17,13 +17,20 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, re
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
 
+  // 进入编辑模式时设置表单初始值
+  // 确保 Form 组件已挂载后再调用 setFieldsValue，避免 Ant Design 告警
+  useEffect(() => {
+    if (editing) {
+      form.setFieldsValue({
+        nickname: user.nickname,
+        email: user.email,
+        phone: user.phone,
+        gender: user.gender,
+      });
+    }
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleEdit = () => {
-    form.setFieldsValue({
-      nickname: user.nickname,
-      email: user.email,
-      phone: user.phone,
-      gender: user.gender,
-    });
     setEditing(true);
   };
 

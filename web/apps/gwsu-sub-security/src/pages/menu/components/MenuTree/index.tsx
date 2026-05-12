@@ -12,6 +12,7 @@ import styles from './index.module.less';
 import { useMenuTree } from '../../hooks/useMenuTree';
 import { batchSortMenu } from '../../services/menu';
 import type { EnumOption, MenuTreeNode, MenuSortItem } from '../../types';
+import {AuthGate , useAuth} from '@gwsu/core'
 
 interface MenuTreeProps {
   treeData: MenuTreeNode[];
@@ -41,6 +42,7 @@ const MenuTree: React.FC<MenuTreeProps> = ({
   onRefresh,
 }) => {
   const { message } = App.useApp();
+  const canDraggable = useAuth("6_edit");
   const { searchValue, setSearchValue, expandedKeys, setExpandedKeys, filteredTreeData } =
     useMenuTree(treeData);
 
@@ -97,7 +99,7 @@ const MenuTree: React.FC<MenuTreeProps> = ({
 
   /** 拖拽排序处理 */
   const handleDrop: TreeProps['onDrop'] = useCallback(
-    async (info) => {
+    async (info:any) => {
       const dragNodeId = info.dragNode.key as string;
       const dropNodeId = info.node.key as string;
       const { dropToGap, dropPosition } = info;
@@ -156,11 +158,16 @@ const MenuTree: React.FC<MenuTreeProps> = ({
         {positions.map((p, idx) => (
           <Button
             key={p.code}
-            type={currentPosition === p.code ? 'primary' : 'default'}
+            type={currentPosition === p.code ? "primary" : "default"}
             size="small"
             onClick={() => onPositionChange(p.code)}
             style={{
-              borderRadius: idx === 0 ? '6px 0 0 6px' : idx === positions.length - 1 ? '0 6px 6px 0' : 0,
+              borderRadius:
+                idx === 0
+                  ? "6px 0 0 6px"
+                  : idx === positions.length - 1
+                  ? "0 6px 6px 0"
+                  : 0,
             }}
           >
             {p.description}
@@ -180,7 +187,7 @@ const MenuTree: React.FC<MenuTreeProps> = ({
         <div className={styles.treeWrapper}>
           <Tree
             showLine
-            draggable
+            draggable={canDraggable}
             blockNode
             treeData={convertToTreeData(filteredTreeData)}
             selectedKeys={selectedKey ? [selectedKey] : []}
@@ -193,12 +200,18 @@ const MenuTree: React.FC<MenuTreeProps> = ({
       </Spin>
       <div className={styles.footer}>
         <Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={onCreateDirectory}>
-            新增目录
-          </Button>
-          <Button icon={<PlusOutlined />} onClick={onCreateMenu}>
-            新增菜单
-          </Button>
+          <AuthGate buttonKey="6_add">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onCreateDirectory}
+            >
+              新增目录
+            </Button>
+            <Button icon={<PlusOutlined />} onClick={onCreateMenu}>
+              新增菜单
+            </Button>
+          </AuthGate>
         </Space>
       </div>
     </div>

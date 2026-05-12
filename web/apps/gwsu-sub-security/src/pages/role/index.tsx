@@ -10,7 +10,7 @@ import {
   Modal,
   Form,
   Space,
-  Popconfirm,
+  Popconfirm, type MenuProps,
 } from "antd";
 import type { TableProps } from "antd";
 import {
@@ -34,6 +34,7 @@ import RelatedUserModal from "./components/RelatedUserModal";
 import { useRole } from "./hooks/useRole";
 import type { RoleInfo, RoleQuery, EnumOption } from "./types";
 import { getRoleTypeOptions, getDataScopeOptions } from "./services/role";
+import {AuthGate , useAuth} from '@gwsu/core'
 
 const STATUS_OPTIONS = [
   { label: "启用", value: true },
@@ -54,6 +55,12 @@ const RolePage: React.FC = () => {
     handleDelete,
     handleToggleStatus,
   } = useRole();
+
+  const canEdit = useAuth("5_edit");
+  const canAssociationUser = useAuth("5_association_user");
+  const canMenuPermission = useAuth("5_menu_permission");
+  const canFieldPermission = useAuth("5_field_permission");
+  const canTableModelPermission = useAuth("5_table_model_permission");
 
   const [searchForm] = Form.useForm<RoleQuery>();
 
@@ -179,6 +186,57 @@ const RolePage: React.FC = () => {
     return dataScopeOptions.find((o) => o.value === value)?.label ?? "未知";
   };
 
+  /**
+   * 获取菜单列表
+   * @param record
+   */
+  const getButtonItem = (record: RoleInfo): MenuProps["items"] => {
+    let buttons = [];
+    if(canEdit){
+      buttons.push({
+        key: "edit",
+        icon: <EditOutlined />,
+        label: "编辑",
+        onClick: () => handleEdit(record),
+      });
+    }
+    if(canAssociationUser){
+      buttons.push({
+        key: "relatedUser",
+        icon: <UserOutlined />,
+        label: "关联用户",
+        onClick: () => handleRelatedUser(record),
+      });
+    }
+
+    if(canMenuPermission){
+      buttons.push({
+        key: "menuPermission",
+        icon: <MenuOutlined />,
+        label: "菜单权限",
+        onClick: () => handleMenuPermission(record),
+      });
+    }
+    if(canFieldPermission){
+      buttons.push({
+        key: "fieldPermission",
+        icon: <LockOutlined />,
+        label: "字段权限",
+        onClick: () => handlePlaceholder("字段权限"),
+      });
+    }
+    if(canTableModelPermission){
+      buttons.push({
+        key: "tablePermission",
+        icon: <TableOutlined />,
+        label: "表模型权限",
+        onClick: () => handlePlaceholder("表模型权限"),
+      });
+    }
+
+    return buttons
+  };
+
   /** 表格列定义 */
   const columns: TableProps<RoleInfo>["columns"] = [
     Table.SELECTION_COLUMN,
@@ -222,11 +280,15 @@ const RolePage: React.FC = () => {
       width: 120,
       render: (val: boolean, record: RoleInfo) => (
         <Space>
-          <Switch
-            size="small"
-            checked={val}
-            onChange={(checked) => handleStatusChange(record, checked)}
-          />
+          <AuthGate buttonKey="5_edit">
+            <Switch
+              size="small"
+              checked={val}
+              data-ai-approval
+              onChange={(checked) => handleStatusChange(record, checked)}
+            />
+          </AuthGate>
+
           <Tag color={val ? "green" : "red"}>{val ? "启用" : "禁用"}</Tag>
         </Space>
       ),
@@ -247,38 +309,7 @@ const RolePage: React.FC = () => {
           </Button>
           <Dropdown
             menu={{
-              items: [
-                {
-                  key: "edit",
-                  icon: <EditOutlined />,
-                  label: "编辑",
-                  onClick: () => handleEdit(record),
-                },
-                {
-                  key: "relatedUser",
-                  icon: <UserOutlined />,
-                  label: "关联用户",
-                  onClick: () => handleRelatedUser(record),
-                },
-                {
-                  key: "menuPermission",
-                  icon: <MenuOutlined />,
-                  label: "菜单权限",
-                  onClick: () => handleMenuPermission(record),
-                },
-                {
-                  key: "fieldPermission",
-                  icon: <LockOutlined />,
-                  label: "字段权限",
-                  onClick: () => handlePlaceholder("字段权限"),
-                },
-                {
-                  key: "tablePermission",
-                  icon: <TableOutlined />,
-                  label: "表模型权限",
-                  onClick: () => handlePlaceholder("表模型权限"),
-                },
-              ],
+              items: getButtonItem(record),
             }}
             disabled={record.roleCode === "super_admin"}
           >
@@ -365,30 +396,34 @@ const RolePage: React.FC = () => {
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>角色列表</span>
           <Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            >
-              新增角色
-            </Button>
-            <Popconfirm
-              title="批量删除"
-              description={`确定删除选中的 ${selectedRowKeys.length} 个角色？`}
-              onConfirm={handleBatchDelete}
-              okText="确定"
-              cancelText="取消"
-              disabled={selectedRowKeys.length === 0}
-            >
+            <AuthGate buttonKey="5_add">
               <Button
-                danger
-                icon={<DeleteOutlined />}
-                disabled={selectedRowKeys.length === 0}
-                data-ai-approval
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
               >
-                删除
+                新增角色
               </Button>
-            </Popconfirm>
+            </AuthGate>
+            <AuthGate buttonKey="5_remove">
+              <Popconfirm
+                title="批量删除"
+                description={`确定删除选中的 ${selectedRowKeys.length} 个角色？`}
+                onConfirm={handleBatchDelete}
+                okText="确定"
+                cancelText="取消"
+                disabled={selectedRowKeys.length === 0}
+              >
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  disabled={selectedRowKeys.length === 0}
+                  data-ai-approval
+                >
+                  删除
+                </Button>
+              </Popconfirm>
+            </AuthGate>
           </Space>
         </div>
         <Table<RoleInfo>

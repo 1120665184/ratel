@@ -137,7 +137,7 @@ const DeptTreePanel: React.FC<DeptTreePanelProps> = ({
             block
             onClick={onCreateRoot}
           >
-            新增根部门
+            新增部门
           </Button>
         </AuthGate>
       </div>

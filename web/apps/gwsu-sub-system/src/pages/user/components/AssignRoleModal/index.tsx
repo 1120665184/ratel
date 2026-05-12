@@ -118,9 +118,10 @@ const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
 
   return (
     <Modal
-      title={`分配角色 - ${nickname || ''}`}
+      title={`分配角色 - ${nickname || ""}`}
       open={visible}
       onCancel={onClose}
+      okButtonProps={{ "data-ai-approval": "true" }}
       onOk={handleSave}
       confirmLoading={saving}
       okText="保存"
@@ -143,10 +144,10 @@ const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
         {filteredRoles.length > 0 && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 16px 8px',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 16px 8px",
             }}
           >
             <Checkbox
@@ -165,7 +166,7 @@ const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
         <div className={styles.roleList}>
           {filteredRoles.length === 0 && !loading && (
             <div className={styles.emptyTip}>
-              {keyword ? '未找到匹配的角色' : '暂无可分配的角色'}
+              {keyword ? "未找到匹配的角色" : "暂无可分配的角色"}
             </div>
           )}
           {filteredRoles.map((role) => {
@@ -177,7 +178,7 @@ const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
                 className={styles.roleItem}
                 onClick={() => handleCheck(role.id, !checked)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <Checkbox checked={checked} />
                   <div className={styles.roleItemInfo}>
                     <span className={styles.roleItemName}>{role.roleName}</span>

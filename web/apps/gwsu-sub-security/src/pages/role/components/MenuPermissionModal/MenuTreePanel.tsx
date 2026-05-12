@@ -229,6 +229,8 @@ const MenuTreePanel: React.FC<MenuTreePanelProps> = ({
                       return (
                         <Tag
                           key={btn.id}
+                          role="checkbox"
+                          aria-checked={checked}
                           className={`${styles.buttonTag} ${checked ? styles.buttonTagChecked : ''}`}
                           color={checked ? 'blue' : undefined}
                           onClick={(e) => {

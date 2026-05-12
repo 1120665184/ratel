@@ -13,6 +13,7 @@ import { post } from '@gwsu/core';
 import type { MenuTreeNode, ButtonItem, MenuSaveRequest } from '../../types';
 import ApiResourcePicker from '../ApiResourcePicker';
 import ButtonFormModal from '../ButtonFormModal';
+import {AuthGate} from '@gwsu/core'
 
 const METHOD_COLORS: Record<string, string> = {
   GET: 'green',
@@ -137,64 +138,67 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
   const isMenuType = menu.menuType === 2;
 
-  const buttonColumns: TableProps<ButtonItem>['columns'] = [
+  const buttonColumns: TableProps<ButtonItem>["columns"] = [
     {
-      title: '按钮名称',
-      dataIndex: 'menuName',
+      title: "按钮名称",
+      dataIndex: "menuName",
       width: 120,
     },
     {
-      title: '功能描述',
-      dataIndex: 'description',
+      title: "功能描述",
+      dataIndex: "description",
       ellipsis: true,
-      render: (val: string | null) => val || '-',
+      render: (val: string | null) => val || "-",
     },
     {
-      title: '按钮标识',
-      dataIndex: 'buttonKey',
+      title: "按钮标识",
+      dataIndex: "buttonKey",
       width: 180,
-      render: (val: string) => (
-        <code style={{ fontSize: 12 }}>{val}</code>
-      ),
+      render: (val: string) => <code style={{ fontSize: 12 }}>{val}</code>,
     },
     {
-      title: '接口权限',
-      dataIndex: 'permission',
+      title: "接口权限",
+      dataIndex: "permission",
       className: styles.permissionCol,
       render: (val: string | null) => {
-        if (!val) return '-';
+        if (!val) return "-";
         return (
           <div className={styles.permissionTagsInCell}>
-            {val.split(';').filter(Boolean).map((tag, idx) =>
-              renderPermissionTag(tag, idx)
-            )}
+            {val
+              .split(";")
+              .filter(Boolean)
+              .map((tag, idx) => renderPermissionTag(tag, idx))}
           </div>
         );
       },
     },
     {
-      title: '操作',
+      title: "操作",
       width: 120,
       render: (_: unknown, record: ButtonItem) => (
         <>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              setButtonFormData(record);
-              setButtonFormVisible(true);
-            }}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定删除此按钮？"
-            onConfirm={() => handleDeleteButton(record)}
-          >
-            <Button type="link" size="small" danger>
-              删除
+          <AuthGate buttonKey="6_edit_button">
+            <Button
+              type="link"
+              size="small"
+              onClick={() => {
+                setButtonFormData(record);
+                setButtonFormVisible(true);
+              }}
+            >
+              编辑
             </Button>
-          </Popconfirm>
+          </AuthGate>
+          <AuthGate buttonKey="6_remove_button">
+            <Popconfirm
+              title="确定删除此按钮？"
+              onConfirm={() => handleDeleteButton(record)}
+            >
+              <Button type="link" data-ai-approval size="small" danger>
+                删除
+              </Button>
+            </Popconfirm>
+          </AuthGate>
         </>
       ),
     },
@@ -206,18 +210,22 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <span className={styles.sectionTitle}>基本信息</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button icon={<EditOutlined />} onClick={() => onEdit(menu)}>
-              编辑
-            </Button>
-            <Popconfirm
-              title="确定删除此菜单？删除后不可恢复"
-              onConfirm={handleDeleteMenu}
-            >
-              <Button icon={<DeleteOutlined />} danger>
-                删除
+          <div style={{ display: "flex", gap: 8 }}>
+            <AuthGate buttonKey="6_edit">
+              <Button icon={<EditOutlined />} onClick={() => onEdit(menu)}>
+                编辑
               </Button>
-            </Popconfirm>
+            </AuthGate>
+            <AuthGate buttonKey="6_remove">
+              <Popconfirm
+                title="确定删除此菜单？删除后不可恢复"
+                onConfirm={handleDeleteMenu}
+              >
+                <Button data-ai-approval icon={<DeleteOutlined />} danger>
+                  删除
+                </Button>
+              </Popconfirm>
+            </AuthGate>
           </div>
         </div>
         <div className={styles.infoGrid}>
@@ -228,16 +236,20 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>菜单类型</span>
             <span className={styles.infoValue}>
-              {menu.menuType === 1 ? '目录' : menu.menuType === 2 ? '菜单' : '按钮'}
+              {menu.menuType === 1
+                ? "目录"
+                : menu.menuType === 2
+                ? "菜单"
+                : "按钮"}
             </span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>路由路径</span>
-            <span className={styles.infoValue}>{menu.path || '-'}</span>
+            <span className={styles.infoValue}>{menu.path || "-"}</span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>子应用</span>
-            <span className={styles.infoValue}>{menu.microApp || '-'}</span>
+            <span className={styles.infoValue}>{menu.microApp || "-"}</span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>排序号</span>
@@ -246,20 +258,24 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
           {menu.menuType === 1 && (
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>图标</span>
-              <span className={styles.infoValue}>{menu.icon || '-'}</span>
+              <span className={styles.infoValue}>{menu.icon || "-"}</span>
             </div>
           )}
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>状态</span>
-            <span className={styles.infoValue}>{menu.status ? '启用' : '禁用'}</span>
+            <span className={styles.infoValue}>
+              {menu.status ? "启用" : "禁用"}
+            </span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>是否显示</span>
-            <span className={styles.infoValue}>{menu.visible ? '显示' : '隐藏'}</span>
+            <span className={styles.infoValue}>
+              {menu.visible ? "显示" : "隐藏"}
+            </span>
           </div>
-          <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}>
+          <div className={styles.infoItem} style={{ gridColumn: "1 / -1" }}>
             <span className={styles.infoLabel}>功能描述</span>
-            <span className={styles.infoValue}>{menu.description || '-'}</span>
+            <span className={styles.infoValue}>{menu.description || "-"}</span>
           </div>
         </div>
       </div>
@@ -269,12 +285,14 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>界面接口权限</span>
-            <Button
-              icon={<SelectOutlined />}
-              onClick={() => setPickerVisible(true)}
-            >
-              配置接口
-            </Button>
+            <AuthGate buttonKey="6_edit">
+              <Button
+                icon={<SelectOutlined />}
+                onClick={() => setPickerVisible(true)}
+              >
+                配置接口
+              </Button>
+            </AuthGate>
           </div>
           <div className={styles.permissionArea}>
             <div className={styles.permissionTags}>
@@ -293,16 +311,18 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>按钮管理</span>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setButtonFormData(null);
-                setButtonFormVisible(true);
-              }}
-            >
-              新增按钮
-            </Button>
+            <AuthGate buttonKey="6_add_button">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setButtonFormData(null);
+                  setButtonFormVisible(true);
+                }}
+              >
+                新增按钮
+              </Button>
+            </AuthGate>
           </div>
           <Table<ButtonItem>
             rowKey="id"
@@ -318,7 +338,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       {/* 查看权限配置弹窗 */}
       <ApiResourcePicker
         visible={pickerVisible}
-        currentPermission={menu.permission || ''}
+        currentPermission={menu.permission || ""}
         onClose={() => setPickerVisible(false)}
         onConfirm={handleViewPermissionConfirm}
       />
@@ -326,7 +346,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       {/* 按钮编辑弹窗 */}
       <ButtonFormModal
         visible={buttonFormVisible}
-        mode={buttonFormData ? 'edit' : 'create'}
+        mode={buttonFormData ? "edit" : "create"}
         owner={owner}
         position={position}
         parentMenuId={menu.id}

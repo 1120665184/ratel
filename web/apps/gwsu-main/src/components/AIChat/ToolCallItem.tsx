@@ -1,9 +1,15 @@
 import { LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined, RightOutlined, ThunderboltOutlined, ToolOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import type { CatchAllActionRenderProps } from '@copilotkit/react-core';
 import { useState, useMemo } from 'react';
 import styles from './ToolCallItem.module.less';
-// @ts-ignore
-import { Parameter } from '@copilotkit/shared';
+
+
+/** ToolCallItem 组件 Props 类型 */
+interface ToolCallItemProps {
+  name: string;
+  status: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
+}
 
 
 /**
@@ -20,9 +26,7 @@ const QUESTION_TOOL_NAME = 'AskUserQuestion';
  * 工具调用展示组件
  * 在聊天面板中展示工具/技能调用信息，可折叠查看详情
  */
-export function ToolCallItem(
-  props: CatchAllActionRenderProps<Parameter<string, unknown>>,
-) {
+export function ToolCallItem(props: ToolCallItemProps) {
   const { name, status, args, result } = props;
   const [expanded, setExpanded] = useState(false);
 
@@ -156,7 +160,7 @@ export function ToolCallItem(
                 const annotation = questionAnswer?.annotations?.[questionText];
                 return (
                   <div key={idx} className={styles.detailSection}>
-                    <div className={styles.detailLabel}>问题 {args.questions.length > 1 ? `${idx + 1}` : ''}</div>
+                    <div className={styles.detailLabel}>问题 {args && args.questions && args.questions.length > 1 ? `${idx + 1}` : ''}</div>
                     <div className={styles.questionText}>{questionText}</div>
                     {options && options.length > 0 && (
                       <div className={styles.questionOptions}>

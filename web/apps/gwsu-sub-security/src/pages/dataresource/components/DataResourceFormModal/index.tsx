@@ -265,11 +265,12 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
 
   return (
     <Modal
-      title={isEdit ? '编辑数据资源' : '新增数据资源'}
+      title={isEdit ? "编辑数据资源" : "新增数据资源"}
       open={visible}
       onOk={handleOk}
       onCancel={onClose}
       confirmLoading={loading}
+      okButtonProps={{ "data-ai-approval": "true" }}
       width={860}
       className={styles.formModal}
       destroyOnHidden
@@ -281,7 +282,7 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
         <Form.Item
           name="tableName"
           label="表名"
-          rules={[{ required: true, message: '请输入表名' }]}
+          rules={[{ required: true, message: "请输入表名" }]}
         >
           <Input placeholder="请输入表名" />
         </Form.Item>
@@ -293,7 +294,11 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
             maxLength={256}
           />
         </Form.Item>
-        <Form.Item name="supportSelfOnly" label="支持SELF_ONLY过滤" valuePropName="checked">
+        <Form.Item
+          name="supportSelfOnly"
+          label="支持SELF_ONLY过滤"
+          valuePropName="checked"
+        >
           <Switch
             checkedChildren="是"
             unCheckedChildren="否"
@@ -304,7 +309,7 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
           <Form.Item
             name="selfOnlyField"
             label="SELF_ONLY过滤字段"
-            rules={[{ required: true, message: '请输入SELF_ONLY过滤字段名' }]}
+            rules={[{ required: true, message: "请输入SELF_ONLY过滤字段名" }]}
           >
             <Input placeholder="SELF_ONLY过滤时使用的字段名，如 create_op" />
           </Form.Item>
@@ -326,13 +331,13 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
           </Button>
         </div>
         <Table<DataResourceCondition>
-          rowKey={(_, index) => String(index)}
+          rowKey={(data) => String(data.fieldName)}
           columns={conditionColumns}
           dataSource={conditions}
           size="small"
           pagination={false}
           scroll={{ x: 740 }}
-          locale={{ emptyText: '暂无条件，点击上方按钮添加' }}
+          locale={{ emptyText: "暂无条件，点击上方按钮添加" }}
         />
       </div>
     </Modal>

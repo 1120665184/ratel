@@ -115,8 +115,9 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
 
   return (
     <Modal
-      title={isEdit ? '编辑按钮' : '新增按钮'}
+      title={isEdit ? "编辑按钮" : "新增按钮"}
       open={visible}
+      okButtonProps={{ "data-ai-approval": "true" }}
       onOk={handleOk}
       onCancel={onClose}
       confirmLoading={loading}
@@ -127,26 +128,34 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
         <Form.Item
           name="menuName"
           label="按钮名称"
-          rules={[{ required: true, message: '请输入按钮名称' }]}
+          rules={[{ required: true, message: "请输入按钮名称" }]}
         >
           <Input placeholder="例如：新增、删除、导出" />
         </Form.Item>
         <Form.Item
           name="description"
           label="功能描述"
-          rules={[{ required: true, message: '请输入功能描述' }]}
+          rules={[{ required: true, message: "请输入功能描述" }]}
         >
-          <TextArea rows={2} placeholder="描述该按钮的功能，用于AI提示词构建" showCount maxLength={1024} />
+          <TextArea
+            rows={2}
+            placeholder="描述该按钮的功能，用于AI提示词构建"
+            showCount
+            maxLength={1024}
+          />
         </Form.Item>
         <Form.Item
           name="buttonKeySuffix"
           label="按钮标识"
-          rules={[{ required: true, message: '请输入按钮标识' }]}
+          rules={[{ required: true, message: "请输入按钮标识" }]}
         >
           <div className={styles.buttonKeyField}>
             <span className={styles.buttonKeyPrefix}>{parentMenuId}_</span>
             <Form.Item name="buttonKeySuffix" noStyle>
-              <Input className={styles.buttonKeyInput} placeholder="输入标识，例如：add" />
+              <Input
+                className={styles.buttonKeyInput}
+                placeholder="输入标识，例如：add"
+              />
             </Form.Item>
           </div>
         </Form.Item>
@@ -156,7 +165,9 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
               {permissionTags.length > 0 ? (
                 permissionTags.map((tag, idx) => renderPermTag(tag, idx))
               ) : (
-                <span style={{ color: 'var(--text-secondary-color)', fontSize: 13 }}>
+                <span
+                  style={{ color: "var(--text-secondary-color)", fontSize: 13 }}
+                >
                   暂未配置接口权限
                 </span>
               )}

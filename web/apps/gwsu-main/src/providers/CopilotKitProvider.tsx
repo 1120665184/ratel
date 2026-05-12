@@ -1,4 +1,5 @@
-import { CopilotKit, useRenderToolCall } from '@copilotkit/react-core';
+import { CopilotKit } from '@copilotkit/react-core';
+import { useRenderTool } from '@copilotkit/react-core/v2';
 import { useAgent } from '@copilotkit/react-core/v2';
 import { useUserStore } from '@gwsu/core';
 import type { ReactNode } from 'react';
@@ -31,11 +32,12 @@ interface GwsuCopilotKitProviderProps {
  * 必须在 CopilotKit 内部使用
  */
 function ToolCallRendererRegistration() {
-  // @ts-ignore
-  useRenderToolCall({
+  useRenderTool({
     name: '*',
-    render: (props: any) => <ToolCallItem {...props} />,
-  });
+    render: ({ name, args, status, result }) => (
+      <ToolCallItem name={name} args={args} status={status} result={result} />
+    ),
+  }, []);
   return null;
 }
 
