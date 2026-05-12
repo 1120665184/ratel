@@ -2,7 +2,7 @@
  * 按钮权限 Hook
  */
 
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../stores';
 
 /**
  * 判断当前路由下是否拥有指定按钮权限
@@ -11,5 +11,5 @@ import { useAuthStore } from '../stores/authStore';
  */
 export function useAuth(buttonKey: string): boolean {
   const buttonAuthMap = useAuthStore((state) => state.buttonAuthMap);
-  return !!buttonAuthMap[buttonKey];
+  return buttonAuthMap[buttonKey];
 }

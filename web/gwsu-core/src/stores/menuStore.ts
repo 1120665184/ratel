@@ -1,9 +1,14 @@
 /**
  * 菜单状态管理
+ *
+ * 使用 vanilla store 共享状态（无 React 依赖），每个应用用自己的 React 创建 Hook 绑定。
+ * 这样避免了 qiankun 微前端中多 React 实例导致 "Invalid hook call" 的问题。
  */
 
-import { create, type UseBoundStore, type StoreApi } from 'zustand';
-import { MenuItem } from '../services/route';
+import { createStore } from 'zustand/vanilla';
+import type { StoreApi } from 'zustand/vanilla';
+import { useStore } from 'zustand';
+import { MenuItem } from '../services';
 
 /**
  * 获取真实 window 对象，绕过 qiankun JS 沙箱的 Proxy 代理
@@ -103,16 +108,16 @@ export function findOpenKeys(menus: MenuItem[], path: string): string[] {
 }
 
 /**
- * 创建或获取单例 Store
+ * 创建或获取单例 vanilla Store
  * 通过真实 window 对象挂载，确保主应用和子应用共享同一个 Zustand 实例
+ * 使用 vanilla store（无 React 依赖），避免多 React 实例冲突
  */
-
-function createOrGetStore(): UseBoundStore<StoreApi<MenuState>> {
+function createOrGetStore(): StoreApi<MenuState> {
   if (rawWindow[STORE_KEY]) {
-    return rawWindow[STORE_KEY] as UseBoundStore<StoreApi<MenuState>>;
+    return rawWindow[STORE_KEY] as StoreApi<MenuState>;
   }
 
-  const store = create<MenuState>((set, get) => ({
+  const store = createStore<MenuState>((set, get) => ({
     menus: [],
     loading: false,
     currentMenuRoute: null,
@@ -154,4 +159,24 @@ function createOrGetStore(): UseBoundStore<StoreApi<MenuState>> {
   return store;
 }
 
-export const useMenuStore = createOrGetStore();
+const vanillaStore = createOrGetStore();
+
+/**
+ * React Hook — 菜单状态管理
+ *
+ * 每个应用导入此 Hook 时，使用各自的 React 实例创建绑定，
+ * 但底层共享同一个 vanilla store，确保状态跨应用同步。
+ */
+function useMenuStore(): MenuState;
+function useMenuStore<U>(selector: (state: MenuState) => U): U;
+function useMenuStore<U>(selector?: (state: MenuState) => U): MenuState | U {
+  return useStore(vanillaStore, selector as (state: MenuState) => U);
+}
+
+// 挂载 vanilla store 方法，保持向后兼容（useMenuStore.getState() 等）
+useMenuStore.getState = vanillaStore.getState;
+useMenuStore.setState = vanillaStore.setState;
+useMenuStore.subscribe = vanillaStore.subscribe;
+useMenuStore.getInitialState = vanillaStore.getInitialState;
+
+export { useMenuStore };

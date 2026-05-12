@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
-import { Tree, App } from 'antd';
-import type { TreeProps } from 'antd';
+import React, { useState } from "react";
+import { Tree, App } from "antd";
+import type { TreeProps } from "antd";
 import {
   BankOutlined,
   ShopOutlined,
   ApartmentOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
-} from '@ant-design/icons';
-import type { SysUserDeptVO } from '../../types';
-import type { DeptTreeNode } from '../../../dept/types';
-import { setUserDept, setPrimaryDept, removeUserDept } from '@/services/dept';
+} from "@ant-design/icons";
+import type { SysUserDeptVO } from "../../types";
+import type { DeptTreeNode } from "../../../dept/types";
+import { setUserDept, setPrimaryDept, removeUserDept } from "@/services/dept";
+import { AuthGate } from "@gwsu/core";
 
 interface DeptAssignSectionProps {
   userId: string;
@@ -47,28 +48,28 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
   const handleSetPrimary = async (deptId: string) => {
     try {
       await setPrimaryDept({ userId, deptId });
-      message.success('已设为主部门');
+      message.success("已设为主部门");
       onRefresh();
     } catch {
-      message.error('操作失败');
+      message.error("操作失败");
     }
   };
 
   const handleRemove = async (deptId: string) => {
     if (deptId === primaryDeptId) {
-      message.warning('主部门不能直接移除，请先设置其他部门为主部门');
+      message.warning("主部门不能直接移除，请先设置其他部门为主部门");
       return;
     }
     try {
       await removeUserDept({ userId, deptIds: [deptId] });
-      message.success('已移除');
+      message.success("已移除");
       onRefresh();
     } catch {
-      message.error('操作失败');
+      message.error("操作失败");
     }
   };
 
-  const handleCheck: TreeProps['onCheck'] = async (_checkedKeys, info) => {
+  const handleCheck: TreeProps["onCheck"] = async (_checkedKeys, info) => {
     const deptId = info.node.key as string;
     if (info.checked) {
       const newDeptIds = [...depts.map((d) => d.deptId), deptId];
@@ -78,23 +79,30 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
           deptIds: newDeptIds,
           primaryDeptId: primaryDeptId || deptId,
         });
-        message.success('已添加部门');
+        message.success("已添加部门");
         onRefresh();
       } catch {
-        message.error('操作失败');
+        message.error("操作失败");
       }
     }
   };
 
-  const convertToTreeData = (data: DeptTreeNode[]): TreeProps['treeData'] => {
+  const convertToTreeData = (data: DeptTreeNode[]): TreeProps["treeData"] => {
     return data.map((node) => ({
       key: node.id,
       title: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12,
+          }}
+        >
           {getDeptIcon(node.type)}
           <span>{node.name}</span>
           {deptIdSet.has(node.id) && (
-            <span style={{ color: '#52c41a', fontSize: 10 }}>已关联</span>
+            <span style={{ color: "#52c41a", fontSize: 10 }}>已关联</span>
           )}
         </div>
       ),
@@ -104,34 +112,61 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
         <span style={{ fontSize: 13, fontWeight: 600 }}>部门关联</span>
-        {!readOnly && <a onClick={() => setShowTree(!showTree)}>{showTree ? '收起' : '+ 添加部门'}</a>}
+        {!readOnly && (
+          <AuthGate buttonKey="4_edit">
+            <a onClick={() => setShowTree(!showTree)}>
+              {showTree ? "收起" : "+ 添加部门"}
+            </a>
+          </AuthGate>
+        )}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          marginBottom: 10,
+        }}
+      >
         {depts.map((dept) => (
           <div
             key={dept.deptId}
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '8px 12px',
-              background: dept.isPrimary ? '#fff7e6' : '#fafafa',
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "8px 12px",
+              background: dept.isPrimary ? "#fff7e6" : "#fafafa",
               borderRadius: 6,
-              border: `1px solid ${dept.isPrimary ? '#ffe58f' : '#f0f0f0'}`,
+              border: `1px solid ${dept.isPrimary ? "#ffe58f" : "#f0f0f0"}`,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+              }}
+            >
               <span>🏢</span>
               <span>{dept.deptName}</span>
               {dept.isPrimary && (
                 <span
                   style={{
-                    background: '#fa8c16',
-                    color: 'white',
+                    background: "#fa8c16",
+                    color: "white",
                     fontSize: 9,
-                    padding: '1px 6px',
+                    padding: "1px 6px",
                     borderRadius: 8,
                   }}
                 >
@@ -139,19 +174,26 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {!readOnly && !dept.isPrimary && (
-                <a onClick={() => handleSetPrimary(dept.deptId)} style={{ fontSize: 11 }}>
-                  设为主部门
-                </a>
+                <AuthGate buttonKey="4_edit">
+                  <a
+                    onClick={() => handleSetPrimary(dept.deptId)}
+                    style={{ fontSize: 11 }}
+                  >
+                    设为主部门
+                  </a>
+                </AuthGate>
               )}
               {!readOnly && (
-                <a
-                  style={{ color: '#ff4d4f', fontSize: 11 }}
-                  onClick={() => handleRemove(dept.deptId)}
-                >
-                  移除
-                </a>
+                <AuthGate buttonKey="4_edit">
+                  <a
+                    style={{ color: "#ff4d4f", fontSize: 11 }}
+                    onClick={() => handleRemove(dept.deptId)}
+                  >
+                    移除
+                  </a>
+                </AuthGate>
               )}
             </div>
           </div>
@@ -160,14 +202,16 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
       {showTree && (
         <div
           style={{
-            background: '#fafafa',
-            border: '1px dashed #d9d9d9',
+            background: "#fafafa",
+            border: "1px dashed #d9d9d9",
             borderRadius: 6,
             padding: 10,
             fontSize: 11,
           }}
         >
-          <div style={{ color: '#999', marginBottom: 6, fontSize: 10 }}>勾选部门后自动关联</div>
+          <div style={{ color: "#999", marginBottom: 6, fontSize: 10 }}>
+            勾选部门后自动关联
+          </div>
           <Tree
             checkable
             checkStrictly

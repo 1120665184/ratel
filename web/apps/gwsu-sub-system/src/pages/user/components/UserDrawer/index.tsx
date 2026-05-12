@@ -8,6 +8,7 @@ import type { SysUserDetailVO } from '../../types';
 import { USER_STATUS_MAP } from '../../types';
 import type { DeptTreeNode } from '../../../dept/types';
 import { getUserDetail, updateUserStatus } from '@/services/user';
+import { AuthGate } from "@gwsu/core";
 
 interface UserDrawerProps {
   visible: boolean;
@@ -63,43 +64,59 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onCl
       title="用户详情"
       open={visible}
       onClose={onClose}
-      size={640}
+      width={640}
       loading={loading}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button onClick={onClose}>关闭</Button>
           {!isReadOnly && (
-            <Button
-              danger={user.status === 1}
-              type={user.status === 0 ? 'primary' : 'default'}
-              onClick={handleStatusToggle}
-            >
-              {user.status === 1 ? '禁用用户' : '启用用户'}
-            </Button>
+            <AuthGate buttonKey="4_disabled_enable">
+              <Button
+                danger={user.status === 1}
+                type={user.status === 0 ? "primary" : "default"}
+                onClick={handleStatusToggle}
+              >
+                {user.status === 1 ? "禁用用户" : "启用用户"}
+              </Button>
+            </AuthGate>
           )}
         </div>
       }
     >
       <div className={styles.userDrawer}>
         <div className={styles.drawerHeader}>
-          <div className={styles.avatar}>{user.nickname?.charAt(0) || '?'}</div>
+          <div className={styles.avatar}>{user.nickname?.charAt(0) || "?"}</div>
           <div className={styles.info}>
             <div className={styles.name}>
-              {user.nickname} <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>/ {user.userName}</span>
+              {user.nickname}{" "}
+              <span style={{ fontSize: 12, color: "#999", fontWeight: 400 }}>
+                / {user.userName}
+              </span>
             </div>
             <div className={styles.tags}>
-              <Tag color={statusInfo.color === '#52c41a' ? 'success' : 'error'}>{statusInfo.text}</Tag>
+              <Tag color={statusInfo.color === "#52c41a" ? "success" : "error"}>
+                {statusInfo.text}
+              </Tag>
               {primaryDept && <Tag color="blue">{primaryDept.deptName}</Tag>}
             </div>
           </div>
         </div>
 
         <div className={styles.section}>
-          <BasicInfoSection user={user} onRefresh={loadDetail} readOnly={isReadOnly} />
+          <BasicInfoSection
+            user={user}
+            onRefresh={loadDetail}
+            readOnly={isReadOnly}
+          />
         </div>
 
         <div className={styles.section}>
-          <AccountBindSection userId={user.userId} accounts={user.accounts || []} onRefresh={loadDetail} readOnly={isReadOnly} />
+          <AccountBindSection
+            userId={user.userId}
+            accounts={user.accounts || []}
+            onRefresh={loadDetail}
+            readOnly={isReadOnly}
+          />
         </div>
 
         <div className={styles.section}>

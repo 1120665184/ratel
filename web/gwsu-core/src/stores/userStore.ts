@@ -1,9 +1,14 @@
 /**
  * 用户状态管理
  * 统一管理 Token 和用户信息，自动同步 localStorage
+ *
+ * 使用 vanilla store 共享状态（无 React 依赖），每个应用用自己的 React 创建 Hook 绑定。
+ * 这样避免了 qiankun 微前端中多 React 实例导致 "Invalid hook call" 的问题。
  */
 
-import {create, type UseBoundStore, type StoreApi} from 'zustand';
+import { createStore } from 'zustand/vanilla';
+import type { StoreApi } from 'zustand/vanilla';
+import { useStore } from 'zustand';
 
 /**
  * 获取真实 window 对象，绕过 qiankun JS 沙箱的 Proxy 代理
@@ -138,16 +143,16 @@ function saveUserToStorage(userInfo: UserInfo | null): void {
 }
 
 /**
- * 创建或获取单例 Store
+ * 创建或获取单例 vanilla Store
  * 通过真实 window 对象挂载，确保主应用和子应用共享同一个 Zustand 实例
+ * 使用 vanilla store（无 React 依赖），避免多 React 实例冲突
  */
-
-function createOrGetStore(): UseBoundStore<StoreApi<UserState>> {
+function createOrGetStore(): StoreApi<UserState> {
     if (rawWindow[STORE_KEY]) {
-        return rawWindow[STORE_KEY] as UseBoundStore<StoreApi<UserState>>;
+        return rawWindow[STORE_KEY] as StoreApi<UserState>;
     }
 
-    const store = create<UserState>((set, get) => ({
+    const store = createStore<UserState>((set, get) => ({
         tokenInfo: null,
         userInfo: null,
         isLoggedIn: false,
@@ -228,7 +233,27 @@ function createOrGetStore(): UseBoundStore<StoreApi<UserState>> {
     return store;
 }
 
-export const useUserStore = createOrGetStore();
+const vanillaStore = createOrGetStore();
 
-// 导出便捷方法
-export const userStore = useUserStore.getState();
+/**
+ * React Hook — 用户状态管理
+ *
+ * 每个应用导入此 Hook 时，使用各自的 React 实例创建绑定，
+ * 但底层共享同一个 vanilla store，确保状态跨应用同步。
+ */
+function useUserStore(): UserState;
+function useUserStore<U>(selector: (state: UserState) => U): U;
+function useUserStore<U>(selector?: (state: UserState) => U): UserState | U {
+    return useStore(vanillaStore, selector as (state: UserState) => U);
+}
+
+// 挂载 vanilla store 方法，保持向后兼容（useUserStore.getState() 等）
+useUserStore.getState = vanillaStore.getState;
+useUserStore.setState = vanillaStore.setState;
+useUserStore.subscribe = vanillaStore.subscribe;
+useUserStore.getInitialState = vanillaStore.getInitialState;
+
+export { useUserStore };
+
+// 导出便捷方法（快照，非响应式）
+export const userStore = vanillaStore.getState();

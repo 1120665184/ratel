@@ -30,14 +30,14 @@
     "@copilotkit/react-ui": "^1.56.2",
     "@gwsu/core": "workspace:*",
     "antd": "^6.3.4",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-draggable": "^4.5.0",
     "umi": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@umijs/plugins": "^4.0.0",
     "lint-staged": "^13.0.0",
     "prettier": "^2.8.0",

@@ -1,8 +1,13 @@
 /**
  * 按钮权限状态管理
+ *
+ * 使用 vanilla store 共享状态（无 React 依赖），每个应用用自己的 React 创建 Hook 绑定。
+ * 这样避免了 qiankun 微前端中多 React 实例导致 "Invalid hook call" 的问题。
  */
 
-import { create, type UseBoundStore, type StoreApi } from 'zustand';
+import { createStore } from 'zustand/vanilla';
+import type { StoreApi } from 'zustand/vanilla';
+import { useStore } from 'zustand';
 import { MenuItem } from '../services/route';
 
 /**
@@ -47,15 +52,16 @@ function extractButtonAuths(menuRoute: MenuItem | null): Record<string, boolean>
 }
 
 /**
- * 创建或获取单例 Store
+ * 创建或获取单例 vanilla Store
  * 通过真实 window 对象挂载，确保主应用和子应用共享同一个 Zustand 实例
+ * 使用 vanilla store（无 React 依赖），避免多 React 实例冲突
  */
-function createOrGetStore(): UseBoundStore<StoreApi<AuthState>> {
+function createOrGetStore(): StoreApi<AuthState> {
   if (rawWindow[STORE_KEY]) {
-    return rawWindow[STORE_KEY] as UseBoundStore<StoreApi<AuthState>>;
+    return rawWindow[STORE_KEY] as StoreApi<AuthState>;
   }
 
-  const store = create<AuthState>((set, get) => ({
+  const store = createStore<AuthState>((set, get) => ({
     buttonAuthMap: {},
     updateAuthByMenuRoute: (menuRoute) => {
       const buttonAuthMap = extractButtonAuths(menuRoute);
@@ -71,4 +77,24 @@ function createOrGetStore(): UseBoundStore<StoreApi<AuthState>> {
   return store;
 }
 
-export const useAuthStore = createOrGetStore();
+const vanillaStore = createOrGetStore();
+
+/**
+ * React Hook — 按钮权限状态管理
+ *
+ * 每个应用导入此 Hook 时，使用各自的 React 实例创建绑定，
+ * 但底层共享同一个 vanilla store，确保状态跨应用同步。
+ */
+function useAuthStore(): AuthState;
+function useAuthStore<U>(selector: (state: AuthState) => U): U;
+function useAuthStore<U>(selector?: (state: AuthState) => U): AuthState | U {
+  return useStore(vanillaStore, selector as (state: AuthState) => U);
+}
+
+// 挂载 vanilla store 方法，保持向后兼容（useAuthStore.getState() 等）
+useAuthStore.getState = vanillaStore.getState;
+useAuthStore.setState = vanillaStore.setState;
+useAuthStore.subscribe = vanillaStore.subscribe;
+useAuthStore.getInitialState = vanillaStore.getInitialState;
+
+export { useAuthStore };

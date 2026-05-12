@@ -67,6 +67,7 @@
 - [ ] 跨应用通信使用 `emitEvent` / `onEvent`
 - [ ] localStorage key 使用 `gwsu_` 前缀避免冲突
 - [ ] 子应用可独立运行（`pnpm dev:sub-xxx`）
+- [ ] 无 "Invalid hook call" 错误（Store 使用 vanilla store 架构，自动兼容多 React 实例）
 
 ## 7.8 AI 操作审批标记检查
 

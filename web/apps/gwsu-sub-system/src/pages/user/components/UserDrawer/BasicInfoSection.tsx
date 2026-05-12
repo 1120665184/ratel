@@ -3,6 +3,7 @@ import { Form, Input, Select, Button, App } from 'antd';
 import { GENDER_MAP } from '../../types';
 import type { SysUserDetailVO } from '../../types';
 import { saveOrUpdateUser } from '@/services/user';
+import { AuthGate } from "@gwsu/core";
 
 interface BasicInfoSectionProps {
   user: SysUserDetailVO;
@@ -72,30 +73,88 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, re
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
         <span style={{ fontSize: 13, fontWeight: 600 }}>基本信息</span>
-        {!readOnly && <a onClick={handleEdit}>编辑</a>}
+        {!readOnly && (
+          <AuthGate buttonKey="4_edit">
+            <a onClick={handleEdit}>编辑</a>
+          </AuthGate>
+        )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12 }}>
-        <div style={{ background: '#fafafa', padding: '8px 12px', borderRadius: 4 }}>
-          <div style={{ color: '#999', marginBottom: 2, fontSize: 10 }}>昵称</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 10,
+          fontSize: 12,
+        }}
+      >
+        <div
+          style={{
+            background: "#fafafa",
+            padding: "8px 12px",
+            borderRadius: 4,
+          }}
+        >
+          <div style={{ color: "#999", marginBottom: 2, fontSize: 10 }}>
+            昵称
+          </div>
           <div>{user.nickname}</div>
         </div>
-        <div style={{ background: '#fafafa', padding: '8px 12px', borderRadius: 4 }}>
-          <div style={{ color: '#999', marginBottom: 2, fontSize: 10 }}>性别</div>
-          <div>{GENDER_MAP[user.gender] || '未知'}</div>
+        <div
+          style={{
+            background: "#fafafa",
+            padding: "8px 12px",
+            borderRadius: 4,
+          }}
+        >
+          <div style={{ color: "#999", marginBottom: 2, fontSize: 10 }}>
+            性别
+          </div>
+          <div>{GENDER_MAP[user.gender] || "未知"}</div>
         </div>
-        <div style={{ background: '#fafafa', padding: '8px 12px', borderRadius: 4 }}>
-          <div style={{ color: '#999', marginBottom: 2, fontSize: 10 }}>邮箱</div>
-          <div>{user.email || '-'}</div>
+        <div
+          style={{
+            background: "#fafafa",
+            padding: "8px 12px",
+            borderRadius: 4,
+          }}
+        >
+          <div style={{ color: "#999", marginBottom: 2, fontSize: 10 }}>
+            邮箱
+          </div>
+          <div>{user.email || "-"}</div>
         </div>
-        <div style={{ background: '#fafafa', padding: '8px 12px', borderRadius: 4 }}>
-          <div style={{ color: '#999', marginBottom: 2, fontSize: 10 }}>手机</div>
-          <div>{user.phone || '-'}</div>
+        <div
+          style={{
+            background: "#fafafa",
+            padding: "8px 12px",
+            borderRadius: 4,
+          }}
+        >
+          <div style={{ color: "#999", marginBottom: 2, fontSize: 10 }}>
+            手机
+          </div>
+          <div>{user.phone || "-"}</div>
         </div>
-        <div style={{ background: '#fafafa', padding: '8px 12px', borderRadius: 4 }}>
-          <div style={{ color: '#999', marginBottom: 2, fontSize: 10 }}>最后登录</div>
-          <div>{user.lastLoginTime || '-'}</div>
+        <div
+          style={{
+            background: "#fafafa",
+            padding: "8px 12px",
+            borderRadius: 4,
+          }}
+        >
+          <div style={{ color: "#999", marginBottom: 2, fontSize: 10 }}>
+            最后登录
+          </div>
+          <div>{user.lastLoginTime || "-"}</div>
         </div>
       </div>
     </div>

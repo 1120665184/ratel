@@ -23,12 +23,8 @@ body[data-ai-mode="fixed"] {
     left: 420px !important;
   }
 
-  /* Drawer 抽屉 - 约束到操作区域 */
+  /* Drawer 抽屉 - 只约束遮罩到操作区域，右侧抽屉保持原有定位 */
   .ant-drawer-mask {
-    left: 420px !important;
-  }
-
-  .ant-drawer-content-wrapper {
     left: 420px !important;
   }
 

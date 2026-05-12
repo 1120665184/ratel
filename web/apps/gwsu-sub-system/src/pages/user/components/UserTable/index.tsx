@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Table, Input, Select, Button, Tag, Modal, Dropdown, App } from 'antd';
-import { PlusOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import styles from './index.module.less';
 import type { SysUserVO, SysUserQueryDTO } from '../../types';
 import { USER_STATUS_MAP } from '../../types';
 import { batchDeleteUsers } from '@/services/user';
+import { AuthGate , useAuth } from '@gwsu/core';
 
 interface UserTableProps {
   users: SysUserVO[];
@@ -39,7 +40,10 @@ const UserTable: React.FC<UserTableProps> = ({
   onRefresh,
 }) => {
   const { message } = App.useApp();
+  let canChangePwd = useAuth("4_change_pwd");
+  let canRole = useAuth("4_role");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
 
   const handleBatchDelete = () => {
     Modal.confirm({
@@ -59,23 +63,35 @@ const UserTable: React.FC<UserTableProps> = ({
     });
   };
 
-  const getActionMenuItems = (record: SysUserVO): MenuProps['items'] => [
-    {
-      key: 'edit',
-      label: '编辑',
-      onClick: () => onEdit(record.userId),
-    },
-    {
-      key: 'assignRole',
-      label: '分配角色',
-      onClick: () => onAssignRole(record.userId, record.nickname),
-    },
-    {
-      key: 'resetPassword',
-      label: '修改密码',
-      onClick: () => onResetPassword(record.userId, record.nickname),
-    },
-  ];
+  let getActionMenuItems = (record: SysUserVO): MenuProps['items'] => {
+
+    let buttons =  [
+      {
+        key: "edit",
+        label: "编辑",
+        onClick: () => onEdit(record.userId),
+      },
+
+    ];
+
+    if(canRole){
+      buttons.push({
+        key: "assignRole",
+        label: "分配角色",
+        onClick: () => onAssignRole(record.userId, record.nickname),
+      });
+    }
+
+    if (canChangePwd) {
+      buttons.push({
+        key: "resetPassword",
+        label: "修改密码",
+        onClick: () => onResetPassword(record.userId, record.nickname),
+      });
+    }
+
+    return buttons
+  };
 
   const columns = [
     {
@@ -135,7 +151,9 @@ const UserTable: React.FC<UserTableProps> = ({
     <div className={styles.userTable}>
       <div className={styles.toolbar}>
         <div className={styles.titleArea}>
-          <span className={styles.title}>{deptName ? `${deptName} 及下级用户` : '全部用户'}</span>
+          <span className={styles.title}>
+            {deptName ? `${deptName} 及下级用户` : "全部用户"}
+          </span>
           <span className={styles.count}>共 {total} 人</span>
         </div>
         <div className={styles.filterArea}>
@@ -151,24 +169,30 @@ const UserTable: React.FC<UserTableProps> = ({
             style={{ width: 110 }}
             onChange={(value) => onQueryChange({ status: value })}
             options={[
-              { label: '启用', value: 1 },
-              { label: '禁用', value: 0 },
+              { label: "启用", value: 1 },
+              { label: "禁用", value: 0 },
             ]}
           />
         </div>
       </div>
       <div className={styles.actionBar}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-          新增用户
-        </Button>
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          disabled={selectedRowKeys.length === 0}
-          onClick={handleBatchDelete}
-        >
-          {selectedRowKeys.length > 0 ? `删除 (${selectedRowKeys.length})` : '删除'}
-        </Button>
+        <AuthGate buttonKey="4_add">
+          <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+            新增用户
+          </Button>
+        </AuthGate>
+        <AuthGate buttonKey="4_remove">
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            disabled={selectedRowKeys.length === 0}
+            onClick={handleBatchDelete}
+          >
+            {selectedRowKeys.length > 0
+              ? `删除 (${selectedRowKeys.length})`
+              : "删除"}
+          </Button>
+        </AuthGate>
       </div>
       <Table
         columns={columns}
@@ -184,9 +208,10 @@ const UserTable: React.FC<UserTableProps> = ({
           pageSize,
           total,
           showTotal: (t) => `共 ${t} 条`,
-          onChange: (page, size) => onQueryChange({ pageNum: page, pageSize: size }),
+          onChange: (page, size) =>
+            onQueryChange({ pageNum: page, pageSize: size }),
         }}
-        scroll={{ y: 'calc(100vh - 280px)' }}
+        scroll={{ y: "calc(100vh - 280px)" }}
       />
     </div>
   );

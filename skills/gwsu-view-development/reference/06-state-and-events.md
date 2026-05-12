@@ -187,6 +187,34 @@ const canEdit = useAuth('101_edit');
 
 **重要**：在 React 组件中使用 Hook 方式访问 Store，确保组件能响应状态变化；在非组件环境中使用 `getState()` 方式。
 
+### 6.1.5 微前端 Store 架构：vanilla store + 本地 React 绑定
+
+在 qiankun 微前端中，主应用和子应用各自拥有独立的 React 实例。如果直接共享 `useBoundStore` Hook（其内部闭包引用了创建时的 React），会导致子应用调用 Hook 时使用了主应用的 React，但组件由子应用的 React 渲染，触发 "Invalid hook call" 错误。
+
+**解决方案**：使用 Zustand 的 `vanilla store` 模式：
+
+1. **vanilla store（`createStore` from `zustand/vanilla`）**：纯状态容器，不依赖 React，通过 `rawWindow` 跨应用共享
+2. **本地 React Hook（`useStore` from `zustand`）**：每个应用导入 Store 模块时，用自己的 React 实例创建 Hook 绑定
+3. **向后兼容**：Hook 函数上挂载了 `getState()`/`setState()`/`subscribe()` 等方法，API 与之前一致
+
+**架构示意**：
+
+```
+主应用 React A                    子应用 React B
+    │                                 │
+useAuthStore()                   useAuthStore()
+    │                                 │
+  useStore(A)                     useStore(B)
+    │                                 │
+    └──────────┬──────────────────────┘
+               │
+        vanilla Store (rawWindow 共享)
+               │
+         { buttonAuthMap, ... }
+```
+
+**开发者无需关心此架构**，`useXxxStore()` 的使用方式完全不变。
+
 ---
 
 ## 6.2 事件系统
