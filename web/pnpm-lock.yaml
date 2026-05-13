@@ -63,6 +63,9 @@ importers:
       umi:
         specifier: ^4.0.0
         version: 4.6.53(@babel/core@7.29.0)(@types/node@25.7.0)(@types/react@19.2.14)(eslint@8.57.1)(lightningcss@1.22.1)(prettier@2.8.8)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(rollup@3.30.0)(sass@1.54.0)(styled-jsx@5.1.7(@babel/core@7.29.0)(react@19.2.6))(stylelint@14.16.1)(terser@5.47.1)(type-fest@1.4.0)(typescript@4.9.5)(webpack@5.106.2(lightningcss@1.22.1)(postcss@8.5.14))
+      zustand:
+        specifier: ^5.0.13
+        version: 5.0.13(@types/react@19.2.14)(react@19.2.6)(use-sync-external-store@1.6.0(react@19.2.6))
     devDependencies:
       '@types/react':
         specifier: ^19.2.0
@@ -10950,7 +10953,7 @@ snapshots:
 
   '@types/history@5.0.0':
     dependencies:
-      history: 4.10.1
+      history: 5.3.0
 
   '@types/hoist-non-react-statics@3.3.7(@types/react@19.2.14)':
     dependencies:
@@ -11019,7 +11022,7 @@ snapshots:
       '@types/history': 4.7.11
       '@types/react': 19.2.14
       '@types/react-router': 5.1.20
-      redux: 3.7.2
+      redux: 4.2.1
 
   '@types/react-router@5.1.20':
     dependencies:

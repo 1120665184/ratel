@@ -23,7 +23,6 @@ public class WebTool {
 
     // ==================== 路由导航 ====================
 
-    @HumanInTheLoop(tip = "是否同意路由跳转？")
     @Tool(name = "RouteNavigation", description = "控制web界面跳转到指定路由")
     public ToolResultBlock routeNavigation(@ToolParam(name = "path",
                                                    description = """
@@ -34,6 +33,26 @@ public class WebTool {
 
         return webToolUtils
                 .webExecuteTool(emitter, "RouteNavigation", Map.of("path", path));
+    }
+
+    // ==================== 操作模式 ====================
+
+    @HumanInTheLoop(tip = "智能助手请求控制界面，是否同意？")
+    @Tool(name = "EnterAiMode", description = """
+            请求进入AI操作模式，获取界面控制权。
+            调用此工具后，界面将锁定为AI操作模式，用户无法手动操作界面。
+            使用场景：当你需要对界面进行操作（点击、输入、选择、滚动、路由跳转）时，必须先调用此工具获取控制权。
+            注意：获取页面状态(GetPageState)不需要进入AI操作模式。
+            操作完成后必须调用ExitAiMode退出AI操作模式，将控制权交还给用户。""")
+    public ToolResultBlock enterAiMode(ToolEmitter emitter) throws TimeoutException {
+        return webToolUtils.webExecuteTool(emitter, "EnterAiMode", Map.of());
+    }
+
+    @Tool(name = "ExitAiMode", description = """
+            退出AI操作模式，将界面控制权交还给用户。
+            当你完成所有界面操作后，必须调用此工具退出AI操作模式。""")
+    public ToolResultBlock exitAiMode(ToolEmitter emitter) throws TimeoutException {
+        return webToolUtils.webExecuteTool(emitter, "ExitAiMode", Map.of());
     }
 
     // ==================== 查看界面 ====================

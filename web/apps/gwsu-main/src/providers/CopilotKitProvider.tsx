@@ -3,7 +3,7 @@ import { useRenderTool } from '@copilotkit/react-core/v2';
 import { useAgent } from '@copilotkit/react-core/v2';
 import { useUserStore } from '@gwsu/core';
 import type { ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { dispatchWebTool } from '@/services/web-tool';
 import type { WebToolExecutePayload } from '@/services/web-tool';
 import { dispatchHumanApproval } from '@/services/human-approval';
@@ -21,6 +21,7 @@ import '@/services/web-tool/tools/input-text';
 import '@/services/web-tool/tools/select-option';
 import '@/services/web-tool/tools/scroll-page';
 import { AgentSubscriber } from '@ag-ui/client';
+import { useForwardedPropsStore } from '@/stores/forwardedProps';
 
 interface GwsuCopilotKitProviderProps {
   children: ReactNode;
@@ -116,6 +117,11 @@ function WebToolEventListener() {
  */
 export function GwsuCopilotKitProvider({ children }: GwsuCopilotKitProviderProps) {
 
+  // 订阅 forwardedProps store，变化时触发重渲染以更新 properties
+  const currentPath = useForwardedPropsStore((s:any) => s.currentPath);
+  const operationMode = useForwardedPropsStore((s:any) => s.operationMode);
+  const extras = useForwardedPropsStore((s: any) => s.extras);
+
   // 动态获取请求头
   const getHeaders = (): Record<string, string> => {
     const tokenInfo = useUserStore.getState().getTokenInfo();
@@ -126,10 +132,21 @@ export function GwsuCopilotKitProvider({ children }: GwsuCopilotKitProviderProps
     return headers;
   };
 
+  // 构建 properties，路由或操作模式变化时更新
+  const properties = useMemo(
+    () => ({
+      currentPath,
+      operationMode,
+      ...extras,
+    }),
+    [currentPath, operationMode, extras],
+  );
+
   return (
     <CopilotKit
       runtimeUrl="/api/security/brain/run/copilotKit"
       headers={getHeaders}
+      properties={properties}
       agent="brain"
       enableInspector={false}
     >

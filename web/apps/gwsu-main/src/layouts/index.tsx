@@ -1,6 +1,7 @@
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { CopilotChatPanel } from '@/components/AIChat/CopilotChatPanel';
 import AssistantOperationArea from '@/components/AssistantOperationArea';
+import { RouteTracker } from '@/components/RouteTracker';
 import {
   PanelProvider,
   usePanelContext,
@@ -79,6 +80,7 @@ function LayoutRouter() {
   // 非登录页面：初始化 CopilotKit
   return (
     <GwsuCopilotKitProvider>
+      <RouteTracker />
       <PanelProvider>
         <MainLayoutContent currentTheme={currentTheme} />
       </PanelProvider>
