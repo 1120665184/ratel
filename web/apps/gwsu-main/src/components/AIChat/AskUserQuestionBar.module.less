@@ -13,6 +13,17 @@
   border-bottom: 1px solid oklch(88% 0.04 250);
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+
+  /* 暗色主题适配 */
+  :global([data-theme="midnight"]) & {
+    background: linear-gradient(
+      135deg,
+      rgba(96, 165, 250, 0.08) 0%,
+      rgba(96, 165, 250, 0.04) 100%
+    );
+    border-top-color: rgba(96, 165, 250, 0.15);
+    border-bottom-color: rgba(96, 165, 250, 0.15);
+  }
 }
 
 .stepHeader {
@@ -29,6 +40,10 @@
   background: oklch(95% 0.03 250);
   padding: 2px 8px;
   border-radius: 10px;
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(96, 165, 250, 0.15);
+  }
 }
 
 .stepHeaderLabel {
@@ -70,12 +85,26 @@
     border-color: oklch(82% 0.06 250);
     background: oklch(98% 0.01 250);
   }
+
+  :global([data-theme="midnight"]) & {
+    border-color: rgba(96, 165, 250, 0.15);
+    background: var(--surface-color, #1e293b);
+
+    &:hover {
+      border-color: rgba(96, 165, 250, 0.25);
+      background: rgba(96, 165, 250, 0.06);
+    }
+  }
 }
 
 .optionItemSelected {
   border-color: var(--primary-color, #1a5fb4);
   background: oklch(97% 0.03 250);
   box-shadow: 0 0 0 1px var(--primary-color, #1a5fb4);
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(96, 165, 250, 0.12);
+  }
 }
 
 .optionRadio {
@@ -118,6 +147,10 @@
   justify-content: space-between;
   padding-top: 12px;
   border-top: 1px solid oklch(92% 0.02 250);
+
+  :global([data-theme="midnight"]) & {
+    border-top-color: rgba(96, 165, 250, 0.12);
+  }
 }
 
 .navButton {

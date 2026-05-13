@@ -43,28 +43,28 @@
   width: 420px;
   height: 520px;
 
-  /* 毛玻璃核心样式 - 浅色模式使用高不透明度毛玻璃保持文字可读性 */
-  background: rgba(255, 255, 255, 0.85);
+  /* 毛玻璃核心样式 - 更高透明度让毛玻璃效果更通透 */
+  background: rgba(255, 255, 255, 0.65);
 
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    background: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
 
-  /* 暗色主题适配 - 低不透明度 + 白色文字 */
+  /* 暗色主题适配 - 更高透明度 */
   :global([data-theme="midnight"]) & {
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.6);
 
     @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.2);
     }
 
     border-color: rgba(255, 255, 255, 0.15);
 
     .chatHeader {
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom-color: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.15);
+      border-bottom-color: rgba(255, 255, 255, 0.08);
     }
 
     .chatHeaderTitle {
@@ -85,12 +85,11 @@
     }
 
     .copilotChat {
-      /* 暗色主题 CopilotKit CSS 变量覆盖 */
+      /* 暗色主题拖拽模式 - 覆盖全局暗色变量为透明值以实现毛玻璃效果 */
       --copilot-kit-background-color: transparent;
       --copilot-kit-secondary-color: rgba(255, 255, 255, 0.1);
       --copilot-kit-input-background-color: rgba(0, 0, 0, 0.2);
-      --copilot-kit-separator-color: rgba(255, 255, 255, 0.1);
-      --copilot-kit-secondary-contrast-color: #fff;
+      --copilot-kit-separator-color: rgba(255, 255, 255, 0.08);
 
       :global(.copilotKitChatBody) {
         background: transparent;
@@ -102,11 +101,6 @@
 
       :global(.copilotKitAssistantMessage) {
         background: rgba(255, 255, 255, 0.1);
-        color: #fff;
-
-        p, span, div {
-          color: #fff;
-        }
       }
 
       :global(.copilotKitUserMessage) {
@@ -114,26 +108,8 @@
       }
 
       :global(.copilotKitInputContainer) {
-        background: rgba(0, 0, 0, 0.2) !important;
-        border-top-color: rgba(255, 255, 255, 0.1);
-      }
-
-      :global(.copilotKitInput) {
-        textarea {
-          color: #fff;
-        }
-
-        textarea::placeholder {
-          color: rgba(255, 255, 255, 0.5);
-        }
-      }
-
-      :global(.copilotKitInputControlButton) {
-        color: #fff;
-      }
-
-      :global(.poweredBy) {
-        color: rgba(255, 255, 255, 0.3) !important;
+        background: rgba(0, 0, 0, 0.15) !important;
+        border-top-color: rgba(255, 255, 255, 0.08);
       }
     }
 
@@ -152,19 +128,19 @@
     }
   }
 
-  /* Header 毛玻璃覆盖 - 浅色模式保持可读性 */
+  /* Header 毛玻璃覆盖 - 更高透明度 */
   .chatHeader {
-    background: rgba(255, 255, 255, 0.35);
-    border-bottom-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.2);
+    border-bottom-color: rgba(0, 0, 0, 0.06);
   }
 
   /* CopilotChat 内容毛玻璃覆盖 - 通过覆盖 CopilotKit CSS 变量实现透明化 */
   .copilotChat {
     /* 核心：覆盖 CopilotKit 的 CSS 变量，使内部组件背景透明 */
     --copilot-kit-background-color: transparent;
-    --copilot-kit-secondary-color: rgba(255, 255, 255, 0.35);
-    --copilot-kit-input-background-color: rgba(255, 255, 255, 0.4);
-    --copilot-kit-separator-color: rgba(0, 0, 0, 0.08);
+    --copilot-kit-secondary-color: rgba(255, 255, 255, 0.2);
+    --copilot-kit-input-background-color: rgba(255, 255, 255, 0.25);
+    --copilot-kit-separator-color: rgba(0, 0, 0, 0.06);
 
     /* Header 隐藏后消息列表顶部无背景 */
     :global(.copilotKitChatBody) {
@@ -178,7 +154,7 @@
 
     /* 助手消息半透明卡片 */
     :global(.copilotKitAssistantMessage) {
-      background: rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.2);
       border-radius: 12px;
       padding: 12px 16px;
     }
@@ -187,8 +163,8 @@
     :global(.copilotKitUserMessage) {
       background: linear-gradient(
         135deg,
-        rgba(99, 102, 241, 0.6) 0%,
-        rgba(99, 102, 241, 0.45) 100%
+        rgba(99, 102, 241, 0.5) 0%,
+        rgba(99, 102, 241, 0.35) 100%
       ) !important;
       border-radius: 12px;
       color: #fff;
@@ -197,8 +173,8 @@
 
     /* 输入区域背景 */
     :global(.copilotKitInputContainer) {
-      background: rgba(255, 255, 255, 0.35) !important;
-      border-top-color: rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.2) !important;
+      border-top-color: rgba(0, 0, 0, 0.06);
     }
 
     /* Powered by 文字淡化 */
@@ -209,26 +185,26 @@
     /* 消息控制按钮半透明 */
     :global(.copilotKitMessageControlButton) {
       color: var(--text-secondary-color, #6b7280);
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.35);
       border-radius: 6px;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.5);
       }
     }
 
     /* 发送按钮 */
     :global(.copilotKitInputControlButton) {
-      background: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.3);
       border-radius: 8px;
     }
   }
 
   /* AI模式控制条毛玻璃覆盖 */
   :global(.ai-mode-control-bar) {
-    background: rgba(255, 255, 255, 0.35);
-    border-top-color: rgba(0, 0, 0, 0.08);
-    border-bottom-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.2);
+    border-top-color: rgba(0, 0, 0, 0.06);
+    border-bottom-color: rgba(0, 0, 0, 0.06);
   }
 }
 
@@ -254,6 +230,16 @@
   border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
   min-height: 60px;
   flex-shrink: 0;
+
+  /* 暗色主题适配 */
+  :global([data-theme="midnight"]) & {
+    background: linear-gradient(
+      to bottom,
+      var(--surface-color, #1e293b),
+      rgba(96, 165, 250, 0.04)
+    );
+    border-bottom-color: var(--border-color, #334155);
+  }
 }
 
 .chatHeader.dragging {
@@ -299,6 +285,10 @@
 .actionButton:hover {
   background: oklch(95% 0.02 var(--brand-hue, 220));
   color: var(--primary-color, #1a5fb4);
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .actionButton.active {
@@ -308,10 +298,6 @@
 
 /* CopilotChat 组件样式覆盖 */
 .copilotChat {
-  --copilot-kit-primary-color: var(--primary-color, #1a5fb4);
-  --copilot-kit-background: var(--surface-color, #ffffff);
-  --copilot-kit-border-color: var(--border-color, rgba(0, 0, 0, 0.06));
-
   flex: 1;
   display: flex;
   flex-direction: column;

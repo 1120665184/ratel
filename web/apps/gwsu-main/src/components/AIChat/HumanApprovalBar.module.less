@@ -13,6 +13,17 @@
   border-bottom: 1px solid oklch(88% 0.05 45);
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+
+  /* 暗色主题适配 */
+  :global([data-theme="midnight"]) & {
+    background: linear-gradient(
+      135deg,
+      rgba(251, 191, 36, 0.08) 0%,
+      rgba(251, 191, 36, 0.04) 100%
+    );
+    border-top-color: rgba(251, 191, 36, 0.15);
+    border-bottom-color: rgba(251, 191, 36, 0.15);
+  }
 }
 
 .approvalContent {
@@ -26,6 +37,10 @@
   color: oklch(65% 0.18 45);
   margin-top: 2px;
   flex-shrink: 0;
+
+  :global([data-theme="midnight"]) & {
+    color: #fbbf24;
+  }
 }
 
 .approvalInfo {
@@ -51,6 +66,10 @@
   font-weight: 600;
   color: oklch(55% 0.15 45);
   margin-right: 4px;
+
+  :global([data-theme="midnight"]) & {
+    color: #fbbf24;
+  }
 }
 
 .approvalActions {
@@ -83,6 +102,10 @@
   padding-top: 10px;
   border-top: 1px dashed oklch(88% 0.04 45);
   animation: slideDown 0.2s ease;
+
+  :global([data-theme="midnight"]) & {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
 }
 
 .rejectInput {

@@ -35,6 +35,40 @@ export const applyTheme = (theme: ThemeConfig): void => {
   // 设置 body 背景色
   document.body.style.backgroundColor = colors.background;
 
+  // 设置 CopilotKit CSS 变量 - 使其跟随主题动态切换
+  // CopilotKit 内置暗色选择器不匹配 [data-theme="midnight"]，必须手动设置
+  if (isDarkTheme) {
+    root.style.setProperty('--copilot-kit-primary-color', colors.primary);
+    root.style.setProperty('--copilot-kit-contrast-color', '#1c1c1c');
+    root.style.setProperty('--copilot-kit-background-color', colors.surface);
+    root.style.setProperty('--copilot-kit-input-background-color', '#2c2c2c');
+    root.style.setProperty('--copilot-kit-secondary-color', '#1c1c1c');
+    root.style.setProperty('--copilot-kit-secondary-contrast-color', colors.text);
+    root.style.setProperty('--copilot-kit-separator-color', colors.border);
+    root.style.setProperty('--copilot-kit-muted-color', '#2d2d2d');
+    root.style.setProperty('--copilot-kit-error-background', '#7f1d1d');
+    root.style.setProperty('--copilot-kit-error-border', '#dc2626');
+    root.style.setProperty('--copilot-kit-error-text', '#fca5a5');
+    root.style.setProperty('--copilot-kit-shadow-sm', '0 1px 2px 0 rgba(0, 0, 0, 0.3)');
+    root.style.setProperty('--copilot-kit-shadow-md', '0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3)');
+    root.style.setProperty('--copilot-kit-shadow-lg', '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3)');
+  } else {
+    root.style.setProperty('--copilot-kit-primary-color', colors.primary);
+    root.style.setProperty('--copilot-kit-contrast-color', '#ffffff');
+    root.style.setProperty('--copilot-kit-background-color', colors.surface);
+    root.style.setProperty('--copilot-kit-input-background-color', colors.background);
+    root.style.setProperty('--copilot-kit-secondary-color', colors.surface);
+    root.style.setProperty('--copilot-kit-secondary-contrast-color', colors.text);
+    root.style.setProperty('--copilot-kit-separator-color', colors.border);
+    root.style.setProperty('--copilot-kit-muted-color', colors.border);
+    root.style.setProperty('--copilot-kit-error-background', '#fef2f2');
+    root.style.setProperty('--copilot-kit-error-border', '#fecaca');
+    root.style.setProperty('--copilot-kit-error-text', '#dc2626');
+    root.style.setProperty('--copilot-kit-shadow-sm', '0 1px 2px 0 rgba(0, 0, 0, 0.05)');
+    root.style.setProperty('--copilot-kit-shadow-md', '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)');
+    root.style.setProperty('--copilot-kit-shadow-lg', '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)');
+  }
+
   // 设置 data-theme 属性用于 CSS 选择器
   root.setAttribute('data-theme', theme.key);
 

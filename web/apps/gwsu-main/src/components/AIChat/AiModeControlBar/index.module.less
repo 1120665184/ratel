@@ -13,6 +13,17 @@
   border-bottom: 1px solid oklch(82% 0.08 25);
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+
+  /* 暗色主题适配 */
+  :global([data-theme="midnight"]) & {
+    background: linear-gradient(
+      135deg,
+      rgba(248, 113, 113, 0.08) 0%,
+      rgba(248, 113, 113, 0.04) 100%
+    );
+    border-top-color: rgba(248, 113, 113, 0.15);
+    border-bottom-color: rgba(248, 113, 113, 0.15);
+  }
 }
 
 .controlIcon {
@@ -21,6 +32,10 @@
   margin-right: 8px;
   flex-shrink: 0;
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  :global([data-theme="midnight"]) & {
+    color: #f87171;
+  }
 }
 
 .controlInfo {
@@ -33,6 +48,10 @@
   font-weight: 500;
   color: oklch(40% 0.08 25);
   line-height: 1.5;
+
+  :global([data-theme="midnight"]) & {
+    color: #fca5a5;
+  }
 }
 
 .stopBtn {

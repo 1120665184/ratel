@@ -22,6 +22,16 @@
   border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
   min-height: 60px;
   flex-shrink: 0;
+
+  /* 暗色主题适配 */
+  :global([data-theme="midnight"]) & {
+    background: linear-gradient(
+      to bottom,
+      var(--surface-color, #1e293b),
+      rgba(96, 165, 250, 0.04)
+    );
+    border-bottom-color: var(--border-color, #334155);
+  }
 }
 
 .backButton {
@@ -42,6 +52,10 @@
 .backButton:hover {
   background: oklch(95% 0.02 var(--brand-hue, 220));
   color: var(--primary-color, #1a5fb4);
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .historyTitle {
@@ -90,10 +104,18 @@
 
 .historyItem:hover {
   background: oklch(97% 0.01 var(--brand-hue, 220));
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(96, 165, 250, 0.08);
+  }
 }
 
 .historyItem:active {
   background: oklch(95% 0.02 var(--brand-hue, 220));
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(96, 165, 250, 0.14);
+  }
 }
 
 /* 历史项内容 */
@@ -156,6 +178,11 @@
 .deleteButton:hover {
   background: oklch(92% 0.02 var(--brand-hue, 220));
   color: #ef4444;
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
 }
 
 /* 空状态 */
@@ -195,6 +222,10 @@
   background: oklch(96% 0.005 var(--brand-hue, 220));
   border-radius: 8px;
   animation: skeletonPulse 1.5s ease-in-out infinite;
+
+  :global([data-theme="midnight"]) & {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 @keyframes skeletonPulse {
