@@ -1,6 +1,16 @@
 import { post } from '@gwsu/core';
 import { getWebTool } from './registry';
 import type { WebToolExecutePayload, WebToolCallbackRequest, WebToolConfirmEvent } from './types';
+import { useForwardedPropsStore } from '@/stores/forwardedProps';
+
+/** 需要 AI 操作模式的工具列表 */
+const AI_MODE_REQUIRED_TOOLS = [
+  'RouteNavigation',
+  'ClickElement',
+  'InputText',
+  'SelectOption',
+  'ScrollPage',
+];
 
 /** 确认事件监听器列表 */
 const confirmListeners = new Set<(event: WebToolConfirmEvent) => void>();
@@ -22,6 +32,14 @@ export function onWebToolConfirm(listener: (event: WebToolConfirmEvent) => void)
  */
 export async function dispatchWebTool(payload: WebToolExecutePayload): Promise<void> {
   const { toolCallId, toolName, params } = payload;
+
+  // 操作模式守卫：需要AI模式的工具在人类模式下直接拒绝
+  const mode = useForwardedPropsStore.getState().operationMode;
+  if (mode === 'human' && AI_MODE_REQUIRED_TOOLS.includes(toolName)) {
+    await callbackToolResult(toolCallId, false, '当前为人类操作模式，请先进入AI操作模式');
+    return;
+  }
+
   const executor = getWebTool(toolName);
 
   if (!executor) {
