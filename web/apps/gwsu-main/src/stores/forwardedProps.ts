@@ -13,6 +13,8 @@ interface ForwardedPropsState {
   currentPath: string;
   /** 操作模式：human=人类操作, ai=AI操作，默认人类 */
   operationMode: OperationMode;
+  /** 退出AI操作模式的原因（如用户手动终止），读取后由消费方清空 */
+  exitReason: string;
   /**
    * 扩展属性
    */
@@ -21,6 +23,10 @@ interface ForwardedPropsState {
   setCurrentPath: (path: string) => void;
   /** 设置操作模式 */
   setOperationMode: (mode: OperationMode) => void;
+  /** 设置退出AI操作模式的原因 */
+  setExitReason: (reason: string) => void;
+  /** 清空退出原因 */
+  clearExitReason: () => void;
   /** 更新扩展参数 */
   setExtras: (extras: Record<string, any>) => void;
 }
@@ -28,8 +34,11 @@ interface ForwardedPropsState {
 export const useForwardedPropsStore = create<ForwardedPropsState>((set: any) => ({
   currentPath: '/',
   operationMode: 'human',
+  exitReason: '',
   extras: {},
   setCurrentPath: (path: string) => set({ currentPath: path }),
   setOperationMode: (mode: OperationMode) => set({ operationMode: mode }),
+  setExitReason: (reason: string) => set({ exitReason: reason }),
+  clearExitReason: () => set({ exitReason: '' }),
   setExtras: (extras) => set({ extras }),
 }));

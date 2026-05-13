@@ -1,11 +1,10 @@
-/* AI操作模式遮罩 - 覆盖操作区+弹框 */
+/* AI操作模式遮罩 - 覆盖操作区+弹框，保持界面清晰可见 */
 
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 1050;
-  background: oklch(0% 0 0 / 0.25);
-  backdrop-filter: blur(2px);
+  background: oklch(0% 0 0 / 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,31 +16,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 32px 48px;
-  background: oklch(100% 0 0 / 0.92);
-  border-radius: 16px;
+  gap: 10px;
+  padding: 20px 36px;
+  background: oklch(100% 0 0 / 0.75);
+  border-radius: 12px;
   box-shadow:
-    0 8px 32px oklch(0% 0 0 / 0.12),
-    0 2px 8px oklch(0% 0 0 / 0.06);
+    0 4px 16px oklch(0% 0 0 / 0.08),
+    0 1px 4px oklch(0% 0 0 / 0.04);
   pointer-events: auto;
+  backdrop-filter: blur(4px);
 }
 
 .icon {
-  font-size: 36px;
+  font-size: 24px;
   color: oklch(62% 0.19 25);
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .text {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: oklch(35% 0.08 25);
   letter-spacing: 0.02em;
 }
 
 .subText {
-  font-size: 13px;
+  font-size: 12px;
   color: oklch(55% 0.04 25);
 }
 

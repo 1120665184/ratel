@@ -141,6 +141,7 @@ public class AguiAgentAdapter {
                                     error.getMessage() != null
                                             ? error.getMessage()
                                             : error.getClass().getSimpleName();
+                            logger.error("", error);
                             return Flux.just(
                                     new AguiEvent.Raw(
                                             threadId, runId, Map.of("error", errorMessage)),

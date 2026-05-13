@@ -18,9 +18,9 @@ export function AiModeOverlay() {
     <div className={styles.overlay}>
       <div className={styles.content}>
         <RobotOutlined className={styles.icon} />
-        <Spin size="large" />
+        <Spin size="small" />
         <div className={styles.text}>智能助手控制中...</div>
-        <div className={styles.subText}>请在右侧助手面板操作</div>
+        <div className={styles.subText}>请在助手面板操作</div>
       </div>
     </div>,
     document.body,

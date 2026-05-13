@@ -12,10 +12,12 @@ import styles from './index.module.less';
 export function AiModeControlBar() {
   const operationMode = useForwardedPropsStore((s) => s.operationMode);
   const setOperationMode = useForwardedPropsStore((s) => s.setOperationMode);
+  const setExitReason = useForwardedPropsStore((s) => s.setExitReason);
 
   const handleStop = useCallback(() => {
+    setExitReason('用户手动终止AI操作模式，停止操作');
     setOperationMode('human');
-  }, [setOperationMode]);
+  }, [setOperationMode, setExitReason]);
 
   if (operationMode !== 'ai') return null;
 

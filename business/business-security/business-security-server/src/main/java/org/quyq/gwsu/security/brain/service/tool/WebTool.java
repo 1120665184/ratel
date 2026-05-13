@@ -21,9 +21,33 @@ public class WebTool {
 
     private final WebToolUtils webToolUtils;
 
+
+    // ==================== 操作模式 ====================
+
+    @HumanInTheLoop(tip = "智能助手请求控制界面，是否同意？")
+    @Tool(name = "EnterAiMode", description = """
+            请求进入`AI操作模式`，获取界面控制权。
+            调用此工具后，界面将锁定为AI操作模式，用户无法手动操作界面。
+            使用场景：当你需要对界面进行操作（点击、输入、选择、滚动、路由跳转）时，必须先调用此工具获取控制权。
+            注意：获取页面状态(GetPageState)不需要进入AI操作模式。
+            操作完成后必须调用ExitAiMode退出AI操作模式，将控制权交还给用户。""")
+    public ToolResultBlock enterAiMode(ToolEmitter emitter) throws TimeoutException {
+        return webToolUtils.webExecuteTool(emitter, "EnterAiMode", Map.of());
+    }
+
+    @Tool(name = "ExitAiMode", description = """
+            退出`AI操作模式`，将界面控制权交还给用户。
+            当你完成所有界面操作后，必须调用此工具退出AI操作模式。""")
+    public ToolResultBlock exitAiMode(ToolEmitter emitter) throws TimeoutException {
+        return webToolUtils.webExecuteTool(emitter, "ExitAiMode", Map.of());
+    }
+
     // ==================== 路由导航 ====================
 
-    @Tool(name = "RouteNavigation", description = "控制web界面跳转到指定路由")
+    @Tool(name = "RouteNavigation", description = """
+            控制web界面跳转到指定路由
+            工具使用前提：界面操作模式必须是`AI操作模式`。
+            """)
     public ToolResultBlock routeNavigation(@ToolParam(name = "path",
                                                    description = """
                                                            跳转的前端路由地址
@@ -35,25 +59,6 @@ public class WebTool {
                 .webExecuteTool(emitter, "RouteNavigation", Map.of("path", path));
     }
 
-    // ==================== 操作模式 ====================
-
-    @HumanInTheLoop(tip = "智能助手请求控制界面，是否同意？")
-    @Tool(name = "EnterAiMode", description = """
-            请求进入AI操作模式，获取界面控制权。
-            调用此工具后，界面将锁定为AI操作模式，用户无法手动操作界面。
-            使用场景：当你需要对界面进行操作（点击、输入、选择、滚动、路由跳转）时，必须先调用此工具获取控制权。
-            注意：获取页面状态(GetPageState)不需要进入AI操作模式。
-            操作完成后必须调用ExitAiMode退出AI操作模式，将控制权交还给用户。""")
-    public ToolResultBlock enterAiMode(ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "EnterAiMode", Map.of());
-    }
-
-    @Tool(name = "ExitAiMode", description = """
-            退出AI操作模式，将界面控制权交还给用户。
-            当你完成所有界面操作后，必须调用此工具退出AI操作模式。""")
-    public ToolResultBlock exitAiMode(ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "ExitAiMode", Map.of());
-    }
 
     // ==================== 查看界面 ====================
 
@@ -75,6 +80,8 @@ public class WebTool {
     @Tool(name = "ClickElement", description = """
             通过元素索引点击界面上的元素。执行完整的W3C指针事件序列。
             需要先调用GetPageState获取元素索引。
+            工具使用前提：界面操作模式必须是`AI操作模式`。
+            
             参数：
             - index：元素索引编号
             - operationDescription：本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户
@@ -90,6 +97,7 @@ public class WebTool {
     @Tool(name = "InputText", description = """
             在指定索引的输入框中输入文本。会先清空现有内容再输入新文本，兼容React受控组件。
             需要先调用GetPageState获取输入框的元素索引。
+            工具使用前提：界面操作模式必须是`AI操作模式`。
             参数：index - 输入框元素索引编号，text - 要输入的文本内容""")
     public ToolResultBlock inputText(
             @ToolParam(name = "index", description = "输入框元素索引编号") Integer index,
@@ -101,6 +109,7 @@ public class WebTool {
     @Tool(name = "SelectOption", description = """
             在指定索引的下拉选择框中选择选项。支持原生select元素和Ant Design Select组件。
             需要先调用GetPageState获取select元素的索引。
+            工具使用前提：界面操作模式必须是`AI操作模式`。
             参数：index - select元素索引编号，text - 要选择的选项文本""")
     public ToolResultBlock selectOption(
             @ToolParam(name = "index", description = "select元素索引编号") Integer index,
@@ -111,6 +120,7 @@ public class WebTool {
 
     @Tool(name = "ScrollPage", description = """
             滚动页面或页面内的可滚动元素。
+            工具使用前提：界面操作模式必须是`AI操作模式`。
             参数：direction - 滚动方向(up/down/left/right)，amount - 滚动量(1=一页，像素值=精确滚动)""")
     public ToolResultBlock scrollPage(
             @ToolParam(name = "direction", description = "滚动方向：up/down/left/right") String direction,

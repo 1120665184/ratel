@@ -34,9 +34,14 @@ export async function dispatchWebTool(payload: WebToolExecutePayload): Promise<v
   const { toolCallId, toolName, params } = payload;
 
   // 操作模式守卫：需要AI模式的工具在人类模式下直接拒绝
-  const mode = useForwardedPropsStore.getState().operationMode;
-  if (mode === 'human' && AI_MODE_REQUIRED_TOOLS.includes(toolName)) {
-    await callbackToolResult(toolCallId, false, '当前为人类操作模式，请先进入AI操作模式');
+  const store = useForwardedPropsStore.getState();
+  if (store.operationMode === 'human' && AI_MODE_REQUIRED_TOOLS.includes(toolName)) {
+    const reason = store.exitReason || '当前为人类操作模式，请先进入AI操作模式';
+    // 读取后清空退出原因，避免重复消费
+    if (store.exitReason) {
+      store.clearExitReason();
+    }
+    await callbackToolResult(toolCallId, false, reason);
     return;
   }
 
