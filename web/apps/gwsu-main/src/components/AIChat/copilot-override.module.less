@@ -25,17 +25,14 @@
   }
 }
 
-/* 拖拽模式下的容器样式 */
+/* 拖拽模式下的容器样式 - 毛玻璃效果 */
 .draggableWrapper {
   /* 覆盖固定模式的定位样式 */
   top: 80px;
   left: 20px;
   border-radius: 16px;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 10px 15px -3px rgba(0, 0, 0, 0.08),
-    0 20px 25px -5px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   z-index: 100000;
   resize: both;
   overflow: hidden;
@@ -45,6 +42,177 @@
   border-right: none;
   width: 420px;
   height: 520px;
+
+  /* 毛玻璃核心样式 */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  /* 暗色主题适配 */
+  :global([data-theme="midnight"]) & {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+
+    .chatHeader {
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .copilotChat {
+      :global(.copilot-message-assistant-content) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      :global(.copilot-message-user-content) {
+        background: rgba(96, 165, 250, 0.4);
+        border-color: rgba(96, 165, 250, 0.3);
+      }
+    }
+
+    .copilotChat {
+      :global(.copilot-chat-input-container) {
+        background: rgba(0, 0, 0, 0.2);
+        border-top-color: rgba(255, 255, 255, 0.1);
+      }
+
+      :global(.copilot-chat-input) {
+        background: rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      :global(.copilot-chat-input:focus-within) {
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+      }
+    }
+  }
+
+  /* Header 毛玻璃覆盖 */
+  .chatHeader {
+    background: rgba(255, 255, 255, 0.15);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .chatHeaderTitle {
+    color: #fff;
+
+    svg {
+      color: #fff;
+      opacity: 0.9;
+    }
+  }
+
+  .actionButton {
+    color: rgba(255, 255, 255, 0.8);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    &.active {
+      background: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+  }
+
+  /* 消息列表毛玻璃覆盖 */
+  .copilotChat {
+    :global(.copilot-chat-messages) {
+      background: transparent;
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.4);
+        }
+      }
+    }
+
+    :global(.copilot-message-user-content) {
+      background: rgba(99, 102, 241, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      box-shadow: 0 2px 12px rgba(99, 102, 241, 0.15);
+    }
+
+    :global(.copilot-message-assistant-content) {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  /* 输入区域毛玻璃覆盖 */
+  .copilotChat {
+    :global(.copilot-chat-input-container) {
+      background: rgba(255, 255, 255, 0.15);
+      border-top-color: rgba(255, 255, 255, 0.2);
+    }
+
+    :global(.copilot-chat-input) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    :global(.copilot-chat-input:focus-within) {
+      border-color: rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+
+    :global(.copilot-chat-input textarea) {
+      color: #fff;
+    }
+
+    :global(.copilot-chat-input textarea::placeholder) {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    :global(.copilot-chat-send-button) {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.35);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      &:disabled {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+
+  /* 空状态和加载动画毛玻璃覆盖 */
+  .copilotChat {
+    :global(.copilot-chat-empty) {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    :global(.copilot-chat-empty-icon) {
+      color: #fff;
+      opacity: 0.4;
+    }
+
+    :global(.copilot-chat-empty-title) {
+      color: #fff;
+    }
+
+    :global(.copilot-chat-empty-subtitle) {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    :global(.copilot-loading) {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    :global(.copilot-loading-dot) {
+      background: #fff;
+    }
+  }
 }
 
 /* 隐藏状态 - 使用不可见+移出屏幕代替 display: none，避免 CopilotChat 输入框在 display:none 下无法正确初始化 */
