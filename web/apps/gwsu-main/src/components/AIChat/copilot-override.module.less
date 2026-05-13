@@ -86,6 +86,12 @@
         box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
       }
     }
+
+    :global(.ai-mode-control-bar) {
+      background: rgba(0, 0, 0, 0.2) !important;
+      border-top-color: rgba(255, 255, 255, 0.1) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    }
   }
 
   /* Header 毛玻璃覆盖 */
@@ -182,6 +188,21 @@
       &:disabled {
         background: rgba(255, 255, 255, 0.1);
       }
+    }
+  }
+
+  /* AI模式控制条毛玻璃覆盖 */
+  :global(.ai-mode-control-bar) {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-top-color: rgba(255, 255, 255, 0.2) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+
+    :global(.anticon) {
+      color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.9) !important;
     }
   }
 

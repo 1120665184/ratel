@@ -22,7 +22,7 @@ export function AiModeControlBar() {
   if (operationMode !== 'ai') return null;
 
   return (
-    <div className={styles.controlBar}>
+    <div className={`${styles.controlBar} ai-mode-control-bar`}>
       <StopOutlined className={styles.controlIcon} />
       <div className={styles.controlInfo}>
         <span className={styles.controlText}>智能助手正在控制界面</span>

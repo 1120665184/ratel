@@ -63,25 +63,3 @@
     opacity: 0.5;
   }
 }
-
-/* 拖拽模式下毛玻璃覆盖 - 通过父级 .draggableWrapper 限定 */
-:global(.draggableWrapper) .controlBar {
-  background: rgba(255, 255, 255, 0.15);
-  border-top-color: rgba(255, 255, 255, 0.2);
-  border-bottom-color: rgba(255, 255, 255, 0.2);
-}
-
-:global(.draggableWrapper) .controlIcon {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-:global(.draggableWrapper) .controlText {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* 暗色主题拖拽模式 */
-:global([data-theme="midnight"]) :global(.draggableWrapper) .controlBar {
-  background: rgba(0, 0, 0, 0.2);
-  border-top-color: rgba(255, 255, 255, 0.1);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
