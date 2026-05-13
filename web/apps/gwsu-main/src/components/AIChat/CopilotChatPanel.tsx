@@ -12,6 +12,7 @@ import { usePanelContext } from './AIChatContext';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { HumanApprovalBar } from './HumanApprovalBar';
 import { AskUserQuestionBar } from './AskUserQuestionBar';
+import { AiModeControlBar } from './AiModeControlBar';
 import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
 import { dispatchHumanApproval, clearHumanApproval, onHumanApproval } from '@/services/human-approval';
 import { dispatchAskUserQuestion, clearAskUserQuestion, onAskUserQuestion } from '@/services/ask-user-question';
@@ -283,9 +284,11 @@ export function CopilotChatPanel({
           </Tooltip>
         </div>
       </div>
-      {/* 人工审批卡片 - 展示在聊天输入框上方 */}
+      {/* AI模式终止控制 - 最上方 */}
+      <AiModeControlBar />
+      {/* 人工审批卡片 */}
       <HumanApprovalBar />
-      {/* AskUserQuestion 选择框 - 展示在审批卡片下方 */}
+      {/* AskUserQuestion 选择框 */}
       <AskUserQuestionBar />
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <div ref={copilotChatRef} style={{ display: 'contents' }}>

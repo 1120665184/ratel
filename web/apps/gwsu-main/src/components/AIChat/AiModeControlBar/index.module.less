@@ -1,0 +1,65 @@
+/* AI模式终止控制条 - 嵌入式展示在聊天输入框上方 */
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: linear-gradient(
+    135deg,
+    oklch(97% 0.03 25) 0%,
+    oklch(96% 0.04 25) 100%
+  );
+  border-top: 1px solid oklch(82% 0.08 25);
+  border-bottom: 1px solid oklch(82% 0.08 25);
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.controlIcon {
+  font-size: 16px;
+  color: oklch(60% 0.2 25);
+  margin-right: 8px;
+  flex-shrink: 0;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.controlInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.controlText {
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(40% 0.08 25);
+  line-height: 1.5;
+}
+
+.stopBtn {
+  font-size: 13px !important;
+  height: 28px !important;
+  padding: 0 14px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  flex-shrink: 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
