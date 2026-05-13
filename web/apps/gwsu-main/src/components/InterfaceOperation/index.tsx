@@ -1,3 +1,4 @@
+import { AiModeOverlay } from '@/components/AiModeOverlay';
 import {
   LoadingOutlined,
   MenuFoldOutlined,
@@ -133,6 +134,7 @@ const InterfaceOperation: React.FC<InterfaceOperationProps> = () => {
           <Outlet />
         </div>
       </main>
+      <AiModeOverlay />
     </div>
   );
 };
