@@ -85,13 +85,23 @@
     }
 
     .copilotChat {
-      :global(.copilotKitMessages),
-      :global(.copilot-chat-messages) {
+      /* 暗色主题 CopilotKit CSS 变量覆盖 */
+      --copilot-kit-background-color: transparent;
+      --copilot-kit-secondary-color: rgba(255, 255, 255, 0.1);
+      --copilot-kit-input-background-color: rgba(0, 0, 0, 0.2);
+      --copilot-kit-separator-color: rgba(255, 255, 255, 0.1);
+      --copilot-kit-secondary-contrast-color: #fff;
+
+      :global(.copilotKitChatBody) {
         background: transparent;
       }
 
-      :global(.copilotKitAssistantMessage),
-      :global(.copilot-message-assistant-content) {
+      :global(.copilotKitMessages) {
+        background: transparent !important;
+      }
+
+      :global(.copilotKitAssistantMessage) {
+        background: rgba(255, 255, 255, 0.1);
         color: #fff;
 
         p, span, div {
@@ -99,17 +109,16 @@
         }
       }
 
-      :global(.copilotKitInputContainer),
-      :global(.copilot-chat-input-container) {
-        background: rgba(0, 0, 0, 0.2);
+      :global(.copilotKitUserMessage) {
+        background: rgba(96, 165, 250, 0.4) !important;
+      }
+
+      :global(.copilotKitInputContainer) {
+        background: rgba(0, 0, 0, 0.2) !important;
         border-top-color: rgba(255, 255, 255, 0.1);
       }
 
-      :global(.copilotKitInput),
-      :global(.copilot-chat-input) {
-        background: rgba(0, 0, 0, 0.2);
-        border-color: rgba(255, 255, 255, 0.1);
-
+      :global(.copilotKitInput) {
         textarea {
           color: #fff;
         }
@@ -124,7 +133,7 @@
       }
 
       :global(.poweredBy) {
-        color: rgba(255, 255, 255, 0.4) !important;
+        color: rgba(255, 255, 255, 0.3) !important;
       }
     }
 
@@ -149,26 +158,33 @@
     border-bottom-color: rgba(0, 0, 0, 0.08);
   }
 
-  /* CopilotChat 内容毛玻璃覆盖（使用实际 CopilotKit 类名 + 旧版类名兼容） */
+  /* CopilotChat 内容毛玻璃覆盖 - 通过覆盖 CopilotKit CSS 变量实现透明化 */
   .copilotChat {
+    /* 核心：覆盖 CopilotKit 的 CSS 变量，使内部组件背景透明 */
+    --copilot-kit-background-color: transparent;
+    --copilot-kit-secondary-color: rgba(255, 255, 255, 0.35);
+    --copilot-kit-input-background-color: rgba(255, 255, 255, 0.4);
+    --copilot-kit-separator-color: rgba(0, 0, 0, 0.08);
+
+    /* Header 隐藏后消息列表顶部无背景 */
+    :global(.copilotKitChatBody) {
+      background: transparent;
+    }
+
     /* 消息列表背景透明 */
-    :global(.copilotKitMessages),
-    :global(.copilotKitMessagesContainer),
-    :global(.copilot-chat-messages) {
+    :global(.copilotKitMessages) {
       background: transparent !important;
     }
 
-    /* 助手消息半透明 */
-    :global(.copilotKitAssistantMessage),
-    :global(.copilot-message-assistant-content) {
+    /* 助手消息半透明卡片 */
+    :global(.copilotKitAssistantMessage) {
       background: rgba(255, 255, 255, 0.35);
-      border: 1px solid rgba(0, 0, 0, 0.06);
       border-radius: 12px;
+      padding: 12px 16px;
     }
 
     /* 用户消息半透明 */
-    :global(.copilotKitUserMessage),
-    :global(.copilot-message-user-content) {
+    :global(.copilotKitUserMessage) {
       background: linear-gradient(
         135deg,
         rgba(99, 102, 241, 0.6) 0%,
@@ -176,33 +192,21 @@
       ) !important;
       border-radius: 12px;
       color: #fff;
+      padding: 12px 16px;
     }
 
-    /* 输入区域 */
-    :global(.copilotKitInputContainer),
-    :global(.copilot-chat-input-container) {
-      background: rgba(255, 255, 255, 0.35);
+    /* 输入区域背景 */
+    :global(.copilotKitInputContainer) {
+      background: rgba(255, 255, 255, 0.35) !important;
       border-top-color: rgba(0, 0, 0, 0.08);
     }
 
-    :global(.copilotKitInput),
-    :global(.copilot-chat-input) {
-      background: rgba(255, 255, 255, 0.4);
-      border-color: rgba(0, 0, 0, 0.08);
-    }
-
-    :global(.copilotKitInput):focus-within,
-    :global(.copilot-chat-input):focus-within {
-      border-color: var(--primary-color, #1a5fb4);
-      box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.1);
-    }
-
-    /* Powered by 文字 */
+    /* Powered by 文字淡化 */
     :global(.poweredBy) {
       color: rgba(0, 0, 0, 0.25) !important;
     }
 
-    /* 消息控制按钮 */
+    /* 消息控制按钮半透明 */
     :global(.copilotKitMessageControlButton) {
       color: var(--text-secondary-color, #6b7280);
       background: rgba(255, 255, 255, 0.5);
@@ -211,6 +215,12 @@
       &:hover {
         background: rgba(255, 255, 255, 0.7);
       }
+    }
+
+    /* 发送按钮 */
+    :global(.copilotKitInputControlButton) {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 8px;
     }
   }
 
