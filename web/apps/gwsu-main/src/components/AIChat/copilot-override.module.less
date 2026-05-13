@@ -43,14 +43,23 @@
   width: 420px;
   height: 520px;
 
-  /* 毛玻璃核心样式 */
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  /* 毛玻璃核心样式 - 不支持 backdrop-filter 的浏览器使用高不透明度回退 */
+  background: rgba(255, 255, 255, 0.85);
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
 
   /* 暗色主题适配 */
   :global([data-theme="midnight"]) & {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.75);
+
+    @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
     border-color: rgba(255, 255, 255, 0.15);
 
     .chatHeader {
@@ -62,15 +71,14 @@
       :global(.copilot-message-assistant-content) {
         background: rgba(255, 255, 255, 0.1);
         border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: none;
       }
 
       :global(.copilot-message-user-content) {
         background: rgba(96, 165, 250, 0.4);
         border-color: rgba(96, 165, 250, 0.3);
       }
-    }
 
-    .copilotChat {
       :global(.copilot-chat-input-container) {
         background: rgba(0, 0, 0, 0.2);
         border-top-color: rgba(255, 255, 255, 0.1);
@@ -88,9 +96,9 @@
     }
 
     :global(.ai-mode-control-bar) {
-      background: rgba(0, 0, 0, 0.2) !important;
-      border-top-color: rgba(255, 255, 255, 0.1) !important;
-      border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+      background: rgba(0, 0, 0, 0.2);
+      border-top-color: rgba(255, 255, 255, 0.1);
+      border-bottom-color: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -123,8 +131,9 @@
     }
   }
 
-  /* 消息列表毛玻璃覆盖 */
+  /* CopilotChat 内容毛玻璃覆盖（消息 + 输入 + 空状态） */
   .copilotChat {
+    /* 消息列表 */
     :global(.copilot-chat-messages) {
       background: transparent;
 
@@ -147,12 +156,10 @@
       background: rgba(255, 255, 255, 0.25);
       color: #fff;
       border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      box-shadow: none;
     }
-  }
 
-  /* 输入区域毛玻璃覆盖 */
-  .copilotChat {
+    /* 输入区域 */
     :global(.copilot-chat-input-container) {
       background: rgba(255, 255, 255, 0.15);
       border-top-color: rgba(255, 255, 255, 0.2);
@@ -189,25 +196,8 @@
         background: rgba(255, 255, 255, 0.1);
       }
     }
-  }
 
-  /* AI模式控制条毛玻璃覆盖 */
-  :global(.ai-mode-control-bar) {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-top-color: rgba(255, 255, 255, 0.2) !important;
-    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
-
-    :global(.anticon) {
-      color: rgba(255, 255, 255, 0.9) !important;
-    }
-
-    span {
-      color: rgba(255, 255, 255, 0.9) !important;
-    }
-  }
-
-  /* 空状态和加载动画毛玻璃覆盖 */
-  .copilotChat {
+    /* 空状态和加载动画 */
     :global(.copilot-chat-empty) {
       color: rgba(255, 255, 255, 0.7);
     }
@@ -232,6 +222,21 @@
 
     :global(.copilot-loading-dot) {
       background: #fff;
+    }
+  }
+
+  /* AI模式控制条毛玻璃覆盖 - 使用全局类名桥接跨 CSS Module 作用域 */
+  :global(.ai-mode-control-bar) {
+    background: rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.2);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+
+    :global(.anticon) {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    :global(.ai-mode-control-text) {
+      color: rgba(255, 255, 255, 0.9);
     }
   }
 }

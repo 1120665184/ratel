@@ -25,7 +25,7 @@ export function AiModeControlBar() {
     <div className={`${styles.controlBar} ai-mode-control-bar`}>
       <StopOutlined className={styles.controlIcon} />
       <div className={styles.controlInfo}>
-        <span className={styles.controlText}>智能助手正在控制界面</span>
+        <span className={`${styles.controlText} ai-mode-control-text`}>智能助手正在控制界面</span>
       </div>
       <Button
         danger
