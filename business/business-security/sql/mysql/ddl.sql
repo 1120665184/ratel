@@ -406,3 +406,88 @@ CREATE TABLE security_role_table_model
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT = '角色表模型权限配置表';
+
+-- =============================================
+-- 表名：security_tablemodel_tables
+-- 说明：表基本信息
+-- =============================================
+CREATE TABLE security_tablemodel_tables
+(
+    id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
+    table_name    VARCHAR(128) NOT NULL COMMENT '表名',
+    module_prefix VARCHAR(64)           DEFAULT NULL COMMENT '模块前缀',
+    data_source   VARCHAR(64)  NOT NULL COMMENT '数据源',
+    table_comment TEXT                  DEFAULT NULL COMMENT '表注释',
+    tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time   DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间',
+    UNIQUE INDEX uk_table_datasource (table_name, data_source)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='表基本信息';
+
+-- =============================================
+-- 表名：security_tablemodel_columns
+-- 说明：字段详细信息
+-- =============================================
+CREATE TABLE security_tablemodel_columns
+(
+    id               VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
+    table_id         VARCHAR(24)  NOT NULL COMMENT '关联表ID',
+    column_name      VARCHAR(128) NOT NULL COMMENT '字段名',
+    column_type      VARCHAR(64)  NOT NULL COMMENT '字段类型',
+    column_length    INT                   DEFAULT NULL COMMENT '字段长度',
+    column_scale     INT                   DEFAULT NULL COMMENT '字段精度',
+    is_nullable      SMALLINT     NOT NULL DEFAULT 1 COMMENT '是否可空：0-否 1-是',
+    is_primary_key   SMALLINT     NOT NULL DEFAULT 0 COMMENT '是否主键：0-否 1-是',
+    pk_position      INT                   DEFAULT 0 COMMENT '主键位置',
+    default_value    TEXT                  DEFAULT NULL COMMENT '默认值',
+    column_comment   TEXT                  DEFAULT NULL COMMENT '字段注释',
+    ordinal_position INT                   DEFAULT 0 COMMENT '字段顺序',
+    tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op        VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time      DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op        VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time      DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted          SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op        VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time      DATETIME              DEFAULT NULL COMMENT '删除时间',
+    UNIQUE INDEX uk_table_column (table_id, column_name),
+    INDEX idx_table_id (table_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='字段详细信息';
+
+-- =============================================
+-- 表名：security_tablemodel_foreign_keys
+-- 说明：外键约束信息（单列外键）
+-- =============================================
+CREATE TABLE security_tablemodel_foreign_keys
+(
+    id                   VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
+    constraint_name      VARCHAR(128) NOT NULL COMMENT '约束名称',
+    table_id             VARCHAR(24)  NOT NULL COMMENT '所属表ID',
+    column_id            VARCHAR(24)  NOT NULL COMMENT '字段ID',
+    referenced_table_id  VARCHAR(24)  NOT NULL COMMENT '引用表ID',
+    referenced_column_id VARCHAR(24)  NOT NULL COMMENT '引用字段ID',
+    update_rule          VARCHAR(16)           DEFAULT 'RESTRICT' COMMENT '更新规则',
+    delete_rule          VARCHAR(16)           DEFAULT 'RESTRICT' COMMENT '删除规则',
+    tenant_id            VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op            VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time          DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op            VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time          DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted              SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op            VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time          DATETIME              DEFAULT NULL COMMENT '删除时间',
+    UNIQUE INDEX uk_table_constraint (table_id, constraint_name),
+    UNIQUE INDEX uk_table_column (table_id, column_id),
+    INDEX idx_referenced_table (referenced_table_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='外键约束信息（单列外键）';

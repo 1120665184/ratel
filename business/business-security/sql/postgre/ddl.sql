@@ -677,3 +677,140 @@ COMMENT ON COLUMN security_role_table_model.delete_time IS '删除时间';
 CREATE INDEX idx_security_role_table_model_role_id ON security_role_table_model (role_id);
 CREATE INDEX idx_security_role_table_model_table_name ON security_role_table_model (table_name);
 CREATE UNIQUE INDEX uk_security_role_table_model ON security_role_table_model (role_id, module_prefix, datasource, table_name);
+
+-- =============================================
+-- 表名：security_tablemodel_tables
+-- 说明：表基本信息
+-- =============================================
+CREATE TABLE security_tablemodel_tables
+(
+    id            VARCHAR(24) PRIMARY KEY,
+    table_name    VARCHAR(128) NOT NULL,
+    module_prefix VARCHAR(64)           DEFAULT NULL,
+    data_source   VARCHAR(64)  NOT NULL,
+    table_comment TEXT                  DEFAULT NULL,
+    tenant_id     VARCHAR(50)           DEFAULT NULL,
+    create_op     VARCHAR(50)           DEFAULT NULL,
+    create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op     VARCHAR(50)           DEFAULT NULL,
+    modify_time   TIMESTAMP             DEFAULT NULL,
+    deleted       INT2         NOT NULL DEFAULT 0,
+    delete_op     VARCHAR(50)           DEFAULT NULL,
+    delete_time   TIMESTAMP             DEFAULT NULL
+);
+
+COMMENT ON TABLE security_tablemodel_tables IS '表基本信息';
+COMMENT ON COLUMN security_tablemodel_tables.id IS '主键ID（雪花算法）';
+COMMENT ON COLUMN security_tablemodel_tables.table_name IS '表名';
+COMMENT ON COLUMN security_tablemodel_tables.module_prefix IS '模块前缀';
+COMMENT ON COLUMN security_tablemodel_tables.data_source IS '数据源';
+COMMENT ON COLUMN security_tablemodel_tables.table_comment IS '表注释';
+COMMENT ON COLUMN security_tablemodel_tables.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_tablemodel_tables.create_op IS '创建人';
+COMMENT ON COLUMN security_tablemodel_tables.create_time IS '创建时间';
+COMMENT ON COLUMN security_tablemodel_tables.modify_op IS '修改人';
+COMMENT ON COLUMN security_tablemodel_tables.modify_time IS '修改时间';
+COMMENT ON COLUMN security_tablemodel_tables.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_tablemodel_tables.delete_op IS '删除人';
+COMMENT ON COLUMN security_tablemodel_tables.delete_time IS '删除时间';
+
+CREATE UNIQUE INDEX uk_security_tablemodel_tables_table_datasource ON security_tablemodel_tables (table_name, data_source);
+
+-- =============================================
+-- 表名：security_tablemodel_columns
+-- 说明：字段详细信息
+-- =============================================
+CREATE TABLE security_tablemodel_columns
+(
+    id               VARCHAR(24) PRIMARY KEY,
+    table_id         VARCHAR(24)  NOT NULL,
+    column_name      VARCHAR(128) NOT NULL,
+    column_type      VARCHAR(64)  NOT NULL,
+    column_length    INT                   DEFAULT NULL,
+    column_scale     INT                   DEFAULT NULL,
+    is_nullable      INT2         NOT NULL DEFAULT 1,
+    is_primary_key   INT2         NOT NULL DEFAULT 0,
+    pk_position      INT                   DEFAULT 0,
+    default_value    TEXT                  DEFAULT NULL,
+    column_comment   TEXT                  DEFAULT NULL,
+    ordinal_position INT                   DEFAULT 0,
+    tenant_id        VARCHAR(50)           DEFAULT NULL,
+    create_op        VARCHAR(50)           DEFAULT NULL,
+    create_time      TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op        VARCHAR(50)           DEFAULT NULL,
+    modify_time      TIMESTAMP             DEFAULT NULL,
+    deleted          INT2         NOT NULL DEFAULT 0,
+    delete_op        VARCHAR(50)           DEFAULT NULL,
+    delete_time      TIMESTAMP             DEFAULT NULL
+);
+
+COMMENT ON TABLE security_tablemodel_columns IS '字段详细信息';
+COMMENT ON COLUMN security_tablemodel_columns.id IS '主键ID（雪花算法）';
+COMMENT ON COLUMN security_tablemodel_columns.table_id IS '关联表ID';
+COMMENT ON COLUMN security_tablemodel_columns.column_name IS '字段名';
+COMMENT ON COLUMN security_tablemodel_columns.column_type IS '字段类型';
+COMMENT ON COLUMN security_tablemodel_columns.column_length IS '字段长度';
+COMMENT ON COLUMN security_tablemodel_columns.column_scale IS '字段精度';
+COMMENT ON COLUMN security_tablemodel_columns.is_nullable IS '是否可空：0-否 1-是';
+COMMENT ON COLUMN security_tablemodel_columns.is_primary_key IS '是否主键：0-否 1-是';
+COMMENT ON COLUMN security_tablemodel_columns.pk_position IS '主键位置';
+COMMENT ON COLUMN security_tablemodel_columns.default_value IS '默认值';
+COMMENT ON COLUMN security_tablemodel_columns.column_comment IS '字段注释';
+COMMENT ON COLUMN security_tablemodel_columns.ordinal_position IS '字段顺序';
+COMMENT ON COLUMN security_tablemodel_columns.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_tablemodel_columns.create_op IS '创建人';
+COMMENT ON COLUMN security_tablemodel_columns.create_time IS '创建时间';
+COMMENT ON COLUMN security_tablemodel_columns.modify_op IS '修改人';
+COMMENT ON COLUMN security_tablemodel_columns.modify_time IS '修改时间';
+COMMENT ON COLUMN security_tablemodel_columns.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_tablemodel_columns.delete_op IS '删除人';
+COMMENT ON COLUMN security_tablemodel_columns.delete_time IS '删除时间';
+
+CREATE UNIQUE INDEX uk_security_tablemodel_columns_table_column ON security_tablemodel_columns (table_id, column_name);
+CREATE INDEX idx_security_tablemodel_columns_table_id ON security_tablemodel_columns (table_id);
+
+-- =============================================
+-- 表名：security_tablemodel_foreign_keys
+-- 说明：外键约束信息（单列外键）
+-- =============================================
+CREATE TABLE security_tablemodel_foreign_keys
+(
+    id                   VARCHAR(24) PRIMARY KEY,
+    constraint_name      VARCHAR(128) NOT NULL,
+    table_id             VARCHAR(24)  NOT NULL,
+    column_id            VARCHAR(24)  NOT NULL,
+    referenced_table_id  VARCHAR(24)  NOT NULL,
+    referenced_column_id VARCHAR(24)  NOT NULL,
+    update_rule          VARCHAR(16)           DEFAULT 'RESTRICT',
+    delete_rule          VARCHAR(16)           DEFAULT 'RESTRICT',
+    tenant_id            VARCHAR(50)           DEFAULT NULL,
+    create_op            VARCHAR(50)           DEFAULT NULL,
+    create_time          TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op            VARCHAR(50)           DEFAULT NULL,
+    modify_time          TIMESTAMP             DEFAULT NULL,
+    deleted              INT2         NOT NULL DEFAULT 0,
+    delete_op            VARCHAR(50)           DEFAULT NULL,
+    delete_time          TIMESTAMP             DEFAULT NULL
+);
+
+COMMENT ON TABLE security_tablemodel_foreign_keys IS '外键约束信息（单列外键）';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.id IS '主键ID（雪花算法）';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.constraint_name IS '约束名称';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.table_id IS '所属表ID';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.column_id IS '字段ID';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.referenced_table_id IS '引用表ID';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.referenced_column_id IS '引用字段ID';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.update_rule IS '更新规则';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_rule IS '删除规则';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.create_op IS '创建人';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.create_time IS '创建时间';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.modify_op IS '修改人';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.modify_time IS '修改时间';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_op IS '删除人';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_time IS '删除时间';
+
+CREATE UNIQUE INDEX uk_security_tablemodel_foreign_keys_table_constraint ON security_tablemodel_foreign_keys (table_id, constraint_name);
+CREATE UNIQUE INDEX uk_security_tablemodel_foreign_keys_table_column ON security_tablemodel_foreign_keys (table_id, column_id);
+CREATE INDEX idx_security_tablemodel_foreign_keys_referenced_table ON security_tablemodel_foreign_keys (referenced_table_id);

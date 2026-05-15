@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
-import org.quyq.gwsu.security.api.vo.ApiResourceVO;
+import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 
 /**
  * 接口资源 Mapper

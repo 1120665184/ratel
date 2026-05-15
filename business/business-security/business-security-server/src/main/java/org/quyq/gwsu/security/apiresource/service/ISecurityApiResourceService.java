@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
-import org.quyq.gwsu.security.api.vo.ApiResourceVO;
+import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 
 import java.util.List;
 

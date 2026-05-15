@@ -39,7 +39,7 @@ org.quyq:
 #      model-name: astron-code-latest
       api-key: sk-1IhNkXlU5JiiIZyuaiyxyvFFMp3D4ywMw2Yeexp7ILwE7ogF
       base-url: http://192.168.101.200:3000/v1
-      model-name: Qwen3.6
+      model-name: Qwen3.6-35B-A3B
 logging:
   level:
     org.quyq: DEBUG

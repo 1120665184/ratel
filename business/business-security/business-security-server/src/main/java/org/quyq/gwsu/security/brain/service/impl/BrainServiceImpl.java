@@ -29,6 +29,7 @@ import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.menu.vo.MenuVO;
 import org.quyq.gwsu.security.brain.service.IBrainService;
+import org.quyq.gwsu.security.brain.service.agent.DatabaseSearchAgent;
 import org.quyq.gwsu.security.brain.service.tool.WebTool;
 import org.quyq.gwsu.security.menu.service.ISecurityMenuService;
 import org.springframework.ai.template.st.StTemplateRenderer;
@@ -51,6 +52,8 @@ public class BrainServiceImpl implements IBrainService {
     private final ObjectProvider<Memory> memoryProvider;
 
     private final ObjectProvider<Toolkit> toolkitProvider;
+
+    private final DatabaseSearchAgent databaseSearchAgent;
 
     private final Session agentSession;
 
@@ -196,6 +199,11 @@ public class BrainServiceImpl implements IBrainService {
 
 
     private ReActAgent getAgent(Memory memory, Toolkit toolkit, SkillBox skillBox) {
+        //数据库智能查询智能体
+//        toolkit.registration()
+//                .subAgent(databaseSearchAgent::build, databaseSearchAgent.getSubAgentConfig())
+//                .apply();
+
         return ReActAgent.builder()
                 .name("CentralBrain")
                 .sysPrompt(buildSysPrompt())

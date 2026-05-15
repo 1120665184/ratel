@@ -7,10 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
-import org.quyq.gwsu.security.api.vo.ApiResourceVO;
+import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
-import org.quyq.gwsu.security.dataresource.domain.SecurityDataResource;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

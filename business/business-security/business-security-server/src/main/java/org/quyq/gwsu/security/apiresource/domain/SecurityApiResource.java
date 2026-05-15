@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 import org.quyq.gwsu.common.security.domain.ApiEndpointInfo;
-import org.quyq.gwsu.security.api.vo.ApiResourceVO;
+import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 
 import java.util.Objects;
 

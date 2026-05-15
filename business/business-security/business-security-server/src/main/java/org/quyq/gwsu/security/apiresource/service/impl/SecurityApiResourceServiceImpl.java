@@ -19,7 +19,7 @@ import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.apiresource.mapper.SecurityApiResourceMapper;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
-import org.quyq.gwsu.security.api.vo.ApiResourceVO;
+import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 import org.redisson.RedissonShutdownException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Service;
