@@ -5,9 +5,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
 import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
 import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.role.domain.SecurityRoleTableModel;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("roleTableModel")
 @Tag(name = "角色表模型权限管理", description = "角色表模型权限管理接口")
+@TableModelPermission({SecurityRoleTableModel.class})
 @RequiredArgsConstructor
 public class SecurityRoleTableModelController {
 

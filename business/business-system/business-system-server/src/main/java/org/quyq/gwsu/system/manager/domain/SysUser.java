@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
+import org.quyq.gwsu.common.security.annotation.SensitiveStrategy;
+import org.quyq.gwsu.common.security.annotation.TableModelField;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
 
 import java.time.LocalDateTime;
@@ -38,9 +40,11 @@ public class SysUser extends BaseDO {
     private String avatar;
 
     @Schema(description = "邮箱")
+    @TableModelField(desensitize = true ,strategy = SensitiveStrategy.EMAIL)
     private String email;
 
     @Schema(description = "手机号")
+    @TableModelField(desensitize = true ,strategy = SensitiveStrategy.PHONE)
     private String phone;
 
     @Schema(description = "性别：0-未知 1-男 2-女")

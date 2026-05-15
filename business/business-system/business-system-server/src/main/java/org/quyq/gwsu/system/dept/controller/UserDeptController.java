@@ -4,10 +4,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.system.api.dept.dto.RemoveUserDeptDTO;
 import org.quyq.gwsu.system.api.dept.dto.SetPrimaryDeptDTO;
 import org.quyq.gwsu.system.api.dept.dto.UserDeptSaveDTO;
 import org.quyq.gwsu.system.api.dept.vo.UserDeptDetailVO;
+import org.quyq.gwsu.system.dept.domain.SysUserDept;
 import org.quyq.gwsu.system.dept.service.ISysUserDeptService;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("user-dept")
 @Tag(name = "用户部门关联")
+@TableModelPermission({SysUserDept.class})
 @RequiredArgsConstructor
 public class UserDeptController {
 

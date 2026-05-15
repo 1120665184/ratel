@@ -5,8 +5,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
 import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModelConfig;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("apiTableModel")
 @Tag(name = "接口-表模型绑定管理", description = "接口-表模型绑定管理接口")
+@TableModelPermission({SecurityApiTableModel.class, SecurityApiTableModelConfig.class})
 @RequiredArgsConstructor
 public class SecurityApiTableModelController {
 

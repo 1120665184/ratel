@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.system.api.dept.dto.DeptSaveDTO;
 import org.quyq.gwsu.system.api.dept.enums.DeptTypeEnum;
 import org.quyq.gwsu.system.api.dept.vo.DeptTreeVO;
 import org.quyq.gwsu.system.api.dept.vo.DeptTypeVO;
 import org.quyq.gwsu.system.api.dept.vo.DeptVO;
 import org.quyq.gwsu.system.api.dept.vo.UserDeptDetailVO;
+import org.quyq.gwsu.system.dept.domain.SysDept;
 import org.quyq.gwsu.system.dept.service.ISysDeptService;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +27,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("dept")
 @Tag(name = "部门管理")
+@TableModelPermission({SysDept.class})
 @RequiredArgsConstructor
 public class DeptController {
 

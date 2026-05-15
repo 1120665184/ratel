@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.system.api.manager.dto.ResetPasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
@@ -14,6 +15,8 @@ import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
 import org.quyq.gwsu.system.errcode.SystemErrorCode;
+import org.quyq.gwsu.system.manager.domain.SysAccount;
+import org.quyq.gwsu.system.manager.domain.SysUser;
 import org.quyq.gwsu.system.manager.service.ISysUserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("manager")
 @Tag(name = "用户管理")
+@TableModelPermission({SysUser.class , SysAccount.class})
 @RequiredArgsConstructor
 public class UserController {
 
@@ -35,6 +39,7 @@ public class UserController {
 
     @LoginAllowAccess
     @GetMapping("current")
+    @TableModelPermission
     @Operation(summary = "获取当前登录用户信息")
     public R<SysUserDetailVO> currentUserInfo() {
         return securityUtils.userInfo()

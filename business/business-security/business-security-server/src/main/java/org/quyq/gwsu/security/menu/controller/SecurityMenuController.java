@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.menu.MenuClientApi;
 import org.quyq.gwsu.security.api.menu.dto.MenuQueryDTO;
 import org.quyq.gwsu.security.api.menu.dto.MenuSortDTO;
@@ -30,6 +31,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("menu")
 @Tag(name = "菜单管理", description = "菜单管理接口")
+@TableModelPermission({SecurityMenu.class})
 @RequiredArgsConstructor
 public class SecurityMenuController implements MenuClientApi {
 
@@ -88,6 +90,7 @@ public class SecurityMenuController implements MenuClientApi {
 
     @Operation(summary = "获取当前用户路由菜单")
     @LoginAllowAccess
+    @TableModelPermission
     @GetMapping("/routes/{owner}")
     public R<List<MenuVO>> listUserRoutes(@PathVariable Integer owner) {
         MenuOwner menuOwner = AssertUtils.notNull(MenuOwner.of(owner), SecurityErrorCode.E01002);

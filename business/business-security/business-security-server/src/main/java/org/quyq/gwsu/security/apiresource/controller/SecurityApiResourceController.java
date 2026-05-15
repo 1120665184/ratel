@@ -5,10 +5,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.api.vo.ApiResourceVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
+import org.quyq.gwsu.security.dataresource.domain.SecurityDataResource;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("apiResource")
 @Tag(name = "接口资源管理", description = "接口资源管理接口")
+@TableModelPermission({SecurityApiResource.class})
 @RequiredArgsConstructor
 public class SecurityApiResourceController {
 

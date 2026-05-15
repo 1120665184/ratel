@@ -14,6 +14,7 @@ import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 接口-表模型绑定表（注解采集，启动时覆盖）
@@ -64,5 +65,19 @@ public class SecurityApiTableModel extends BaseDO {
         entity.setDatasource(vo.getDatasource());
         entity.setTableName(vo.getTableName());
         return entity;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SecurityApiTableModel that = (SecurityApiTableModel) o;
+        return Objects.equals(id, that.id) && Objects.equals(apiId, that.apiId) && Objects.equals(modulePrefix, that.modulePrefix) && Objects.equals(datasource, that.datasource) && Objects.equals(tableName, that.tableName) && Objects.equals(fieldConfig, that.fieldConfig);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, apiId, modulePrefix, datasource, tableName, fieldConfig);
     }
 }

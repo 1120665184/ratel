@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
+import org.quyq.gwsu.common.security.annotation.TableModelField;
 import org.quyq.gwsu.system.api.manager.vo.AccountVO;
 
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class SysAccount extends BaseDO {
     private String identifier;
 
     @Schema(description = "凭证")
+    @TableModelField(show = false)
     private String credential;
 
     @Schema(description = "状态：0-禁用 1-正常")

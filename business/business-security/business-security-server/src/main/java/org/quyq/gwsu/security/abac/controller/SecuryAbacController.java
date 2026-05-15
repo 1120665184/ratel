@@ -2,18 +2,21 @@ package org.quyq.gwsu.security.abac.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.quyq.gwsu.common.core.domain.R;
-import org.quyq.gwsu.common.core.exception.BusinessException;
-import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
-import org.quyq.gwsu.security.abac.domain.SecurityAbac;
-import org.quyq.gwsu.security.abac.service.ISecurityAbacService;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
+import org.quyq.gwsu.security.abac.domain.SecurityAbac;
+import org.quyq.gwsu.security.abac.domain.SecurityAbacField;
+import org.quyq.gwsu.security.abac.domain.SecurityAbacPermission;
+import org.quyq.gwsu.security.abac.service.ISecurityAbacService;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("abac/expression")
 @Tag(name = "ABAC表达式模块", description = "ABAC表达式管理")
+@TableModelPermission({SecurityAbac.class, SecurityAbacPermission.class, SecurityAbacField.class})
 @RequiredArgsConstructor
 public class SecuryAbacController {
 

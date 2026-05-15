@@ -23,7 +23,9 @@
 - [ ] 创建 Service 接口，继承 `IService`
 - [ ] 创建 Service 实现类
 - [ ] 创建 Controller，添加 `@Tag`、`@Operation` 注解
+- [ ] 在 Controller 类上添加 `@TableModelPermission` 注解，声明涉及的表模型 Domain 类
 - [ ] 在 Controller 新增方法中使用 `AssertUtils` 验证必填字段
+- [ ] 在 Domain 类敏感字段上添加 `@TableModelField` 注解（如需字段级权限控制）
 - [ ] 在 api 模块创建 VO 类
 - [ ] 在 `sql/mysql/` 目录创建 `ddl.sql` 表结构脚本
 - [ ] 在 `sql/mysql/` 目录创建 `dml.sql` 初始化数据脚本
@@ -38,7 +40,13 @@
 - [ ] 创建 `XxxClientApiFallbackFactory` 降级工厂
 - [ ] 在 Controller 中实现接口方法
 
-## 7.4 工具类使用检查
+## 7.4 新增表模型（Domain/数据库表）
+
+- [ ] 在 Domain 类上确保有 `@TableName` 注解
+- [ ] 在 Domain 类敏感字段上添加 `@TableModelField` 注解（如需字段级权限控制）
+- [ ] 在所属业务模块的 Controller 类上的 `@TableModelPermission` 注解中补充该 Domain 类
+
+## 7.5 工具类使用检查
 
 - [ ] 参数校验使用 `AssertUtils` 而非手动 if-else
 - [ ] Redis 操作使用 `CacheUtils` 而非直接使用 `RedisTemplate`
