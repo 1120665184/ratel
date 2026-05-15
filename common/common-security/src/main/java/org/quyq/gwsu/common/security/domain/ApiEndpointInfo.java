@@ -1,5 +1,7 @@
 package org.quyq.gwsu.common.security.domain;
 
+import java.util.List;
+
 /**
  * HTTP 接口信息
  *
@@ -20,8 +22,9 @@ public record ApiEndpointInfo(
         String summary,
         String requestClass,
         String responseClass,
-        String className ,
-        String methodName ,
-        boolean allowLoginAccess
+        String className,
+        String methodName,
+        boolean allowLoginAccess,
+        List<TableModelInfo> tableModels
 ) {
 }

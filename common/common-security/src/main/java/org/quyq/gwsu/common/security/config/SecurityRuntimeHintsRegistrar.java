@@ -3,6 +3,8 @@ package org.quyq.gwsu.common.security.config;
 import org.jspecify.annotations.Nullable;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.security.annotation.TableModelField;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -24,6 +26,10 @@ public class SecurityRuntimeHintsRegistrar implements RuntimeHintsRegistrar {
 
         // 注册 ClientInfo.DefaultClientInfo 及其继承链的所有字段访问
         registerClassWithInheritance(hints, ClientInfo.DefaultClientInfo.class);
+
+        // 注册表模型权限注解相关类的反射提示
+        hints.reflection().registerType(TableModelPermission.class, MemberCategory.ACCESS_DECLARED_FIELDS);
+        hints.reflection().registerType(TableModelField.class, MemberCategory.ACCESS_DECLARED_FIELDS);
     }
 
     /**

@@ -13,7 +13,13 @@ import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ProjectUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
+import org.quyq.gwsu.common.security.annotation.SensitiveStrategy;
+import org.quyq.gwsu.common.security.annotation.TableModelField;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.domain.ApiEndpointInfo;
+import org.quyq.gwsu.common.security.domain.FieldPermission;
+import org.quyq.gwsu.common.security.domain.TableModelInfo;
+import com.baomidou.mybatisplus.annotation.TableName;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -190,6 +196,8 @@ public class ApiEndpointCollector implements ApplicationRunner {
 
         boolean loginAllowAccess = beanType.isAnnotationPresent(LoginAllowAccess.class) || method.isAnnotationPresent(LoginAllowAccess.class);
 
+        // === 表模型权限采集 ===
+        List<TableModelInfo> tableModels = collectTableModelPermission(beanType, method, modulePrefix);
 
         return new ApiEndpointInfo(
                 genId(modulePrefix, httpMethod, path),
@@ -201,9 +209,86 @@ public class ApiEndpointCollector implements ApplicationRunner {
                 requestType,
                 responseType,
                 beanType.getName(),
-                method.getName() ,
-                loginAllowAccess
+                method.getName(),
+                loginAllowAccess,
+                tableModels   // 新增
         );
+    }
+
+    /**
+     * 采集表模型权限配置
+     */
+    private List<TableModelInfo> collectTableModelPermission(Class<?> beanType, Method method, String modulePrefix) {
+        TableModelPermission classAnnotation = AnnotatedElementUtils.findMergedAnnotation(beanType, TableModelPermission.class);
+        TableModelPermission methodAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, TableModelPermission.class);
+
+        TableModelPermission effectiveAnnotation;
+        if (methodAnnotation != null) {
+            if (methodAnnotation.value().length == 0 && methodAnnotation.tables().length == 0) {
+                return List.of();
+            }
+            effectiveAnnotation = methodAnnotation;
+        } else if (classAnnotation != null) {
+            effectiveAnnotation = classAnnotation;
+        } else {
+            return List.of();
+        }
+
+        String datasource = "master";
+
+        List<TableModelInfo> result = new ArrayList<>();
+        for (Class<?> domainClass : effectiveAnnotation.value()) {
+            TableName tableNameAnnotation = domainClass.getAnnotation(TableName.class);
+            if (tableNameAnnotation == null) {
+                log.warn("@TableModelPermission 引用的类 {} 缺少 @TableName 注解，跳过", domainClass.getName());
+                continue;
+            }
+            String tableName = tableNameAnnotation.value();
+            Map<String, FieldPermission> fieldConfig = buildFieldConfig(domainClass);
+            result.add(new TableModelInfo(modulePrefix, tableName, datasource, fieldConfig));
+        }
+
+        for (String tableName : effectiveAnnotation.tables()) {
+            result.add(new TableModelInfo(modulePrefix, tableName, datasource, Map.of()));
+        }
+
+        return result;
+    }
+
+    private Map<String, FieldPermission> buildFieldConfig(Class<?> domainClass) {
+        Map<String, FieldPermission> fieldConfig = new HashMap<>();
+        for (java.lang.reflect.Field field : domainClass.getDeclaredFields()) {
+            TableModelField fieldAnnotation = field.getAnnotation(TableModelField.class);
+            if (fieldAnnotation == null) {
+                continue;
+            }
+            String columnName = camelToUnderline(field.getName());
+            fieldConfig.put(columnName, new FieldPermission(
+                    fieldAnnotation.show(),
+                    fieldAnnotation.desensitize(),
+                    fieldAnnotation.strategy(),
+                    fieldAnnotation.strategy() == SensitiveStrategy.CUSTOM ? fieldAnnotation.prefixNoMaskLen() : null,
+                    fieldAnnotation.strategy() == SensitiveStrategy.CUSTOM ? fieldAnnotation.suffixNoMaskLen() : null,
+                    fieldAnnotation.strategy() == SensitiveStrategy.CUSTOM ? fieldAnnotation.symbol() : null
+            ));
+        }
+        return fieldConfig;
+    }
+
+    private String camelToUnderline(String camelCase) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < camelCase.length(); i++) {
+            char c = camelCase.charAt(i);
+            if (Character.isUpperCase(c)) {
+                if (i > 0) {
+                    sb.append('_');
+                }
+                sb.append(Character.toLowerCase(c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private String genId(String modulePrefix, String httpMethod, String httpUrl) {
