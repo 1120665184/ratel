@@ -14,6 +14,7 @@ import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
 import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityApiTableModelService;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.apiresource.mapper.SecurityApiResourceMapper;
@@ -45,6 +46,8 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
     private final CacheUtils cacheUtils;
 
     private final PermissionAlterationManager permissionAlterationManager;
+
+    private final ISecurityApiTableModelService apiTableModelService;
 
     @PostConstruct
     public void init() {
@@ -116,6 +119,9 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
         List<SecurityApiResource> oldResources = lambdaQuery()
                 .in(SecurityApiResource::getModulePrefix, modules)
                 .list();
+
+        // 处理表模型绑定数据（在 hasChanged 判断之前，与接口资源共享同一事务和分布式锁）
+        apiTableModelService.handleTableModel(applicationName, permissions);
 
         // 判断是否有变动：数量不同或内容不同
         boolean hasChanged = isResourceChanged(newResources, oldResources);
