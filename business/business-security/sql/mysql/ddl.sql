@@ -324,3 +324,84 @@ CREATE TABLE security_role_menu_permission
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='角色菜单权限关联表';
 
+-- =============================================
+-- 表名：security_api_table_model
+-- 说明：接口-表模型绑定表（注解采集，启动时覆盖）
+-- =============================================
+CREATE TABLE security_api_table_model
+(
+    id            VARCHAR(64) PRIMARY KEY COMMENT '主键ID，MD5(module_prefix + datasource + table_name + api_id)',
+    api_id        VARCHAR(64)  NOT NULL COMMENT '接口资源ID，关联security_api_resource.id',
+    module_prefix VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '模块前缀（服务标识）',
+    datasource    VARCHAR(50)  NOT NULL DEFAULT 'master' COMMENT '数据源名称',
+    table_name    VARCHAR(100) NOT NULL COMMENT '表模型名称',
+    field_config  LONGTEXT              DEFAULT NULL COMMENT '字段配置JSON，仅记录注解标识的字段配置',
+    tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time   DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间',
+    INDEX idx_api_id (api_id),
+    INDEX idx_table_name (table_name),
+    INDEX idx_module_prefix (module_prefix),
+    INDEX idx_module_datasource_table (module_prefix, datasource, table_name)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT = '接口-表模型绑定表（注解采集，启动时覆盖）';
+
+-- =============================================
+-- 表名：security_api_table_model_config
+-- 说明：表模型手动配置表（持久化，启动不覆盖）
+-- =============================================
+CREATE TABLE security_api_table_model_config
+(
+    id             VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    table_model_id VARCHAR(64)  DEFAULT NULL COMMENT '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型',
+    table_name     VARCHAR(100) NOT NULL COMMENT '表模型名称',
+    module_prefix  VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '模块前缀',
+    datasource     VARCHAR(50)  NOT NULL COMMENT '数据源名称',
+    description    VARCHAR(200) DEFAULT NULL COMMENT '配置说明',
+    tenant_id      VARCHAR(50)  DEFAULT NULL COMMENT '租户ID',
+    create_op      VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
+    create_time    DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op      VARCHAR(50)  DEFAULT NULL COMMENT '修改人',
+    modify_time    DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted        SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op      VARCHAR(50)  DEFAULT NULL COMMENT '删除人',
+    delete_time    DATETIME              DEFAULT NULL COMMENT '删除时间',
+    INDEX idx_table_model_id (table_model_id),
+    INDEX idx_table_name (table_name),
+    INDEX idx_module_prefix (module_prefix)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT = '表模型手动配置表（持久化，启动不覆盖）';
+
+-- =============================================
+-- 表名：security_role_table_model
+-- 说明：角色表模型权限配置表
+-- =============================================
+CREATE TABLE security_role_table_model
+(
+    id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    role_id       VARCHAR(24)  NOT NULL COMMENT '角色ID',
+    module_prefix VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '模块前缀（服务标识）',
+    table_name    VARCHAR(100) NOT NULL COMMENT '表模型名称',
+    datasource    VARCHAR(50)  NOT NULL DEFAULT 'master' COMMENT '数据源名称',
+    field_config  LONGTEXT              DEFAULT NULL COMMENT '字段限制配置JSON，仅存储限制性配置',
+    tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time   DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间',
+    UNIQUE INDEX uk_role_table_model (role_id, module_prefix, datasource, table_name),
+    INDEX idx_role_id (role_id),
+    INDEX idx_table_name (table_name)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT = '角色表模型权限配置表';
