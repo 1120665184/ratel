@@ -8,10 +8,7 @@ import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.api.proxy.LocalApiClientFactory;
 import org.quyq.gwsu.common.api.proxy.RemoteApiClientFactory;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -25,10 +22,12 @@ import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClient;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Quyq
@@ -46,9 +45,18 @@ public class ApiClientAutoConfiguration {
      */
     @Bean
     @LoadBalanced
-    public RestClient.Builder loadBalancedRestClientBuilder() {
-        return RestClient.builder();
+    public RestClient.Builder loadBalancedRestClientBuilder(List<ApiClientInterceptor> interceptors,
+                                                            ObjectProvider<List<ClientHttpRequestInterceptor>> requestInterceptors) {
+        RestClient.Builder builder = RestClient.builder();
+        List<ClientHttpRequestInterceptor> clientHttpRequestInterceptors = new ArrayList<>(Optional.ofNullable(requestInterceptors.getIfAvailable()).orElse(Collections.emptyList()));
+        if (!CollectionUtils.isEmpty(interceptors)) {
+            clientHttpRequestInterceptors.addFirst(createRequestInterceptor(interceptors));
+        }
+        clientHttpRequestInterceptors.forEach(builder::requestInterceptor);
+
+        return builder;
     }
+
 
     @Bean
     @ConditionalOnMissingBean
@@ -60,9 +68,8 @@ public class ApiClientAutoConfiguration {
     @ConditionalOnMissingBean
     public RemoteApiClientFactory remoteApiClientFactory(
             @Lazy RestClient.Builder restClientBuilder,
-            CircuitBreakerProperties circuitBreakerProperties,
-            @Lazy List<ApiClientInterceptor> interceptors) {
-        return new RemoteApiClientFactory(restClientBuilder, circuitBreakerProperties, interceptors);
+            CircuitBreakerProperties circuitBreakerProperties) {
+        return new RemoteApiClientFactory(restClientBuilder, circuitBreakerProperties);
     }
 
     @Bean
@@ -71,6 +78,29 @@ public class ApiClientAutoConfiguration {
             LocalApiClientFactory localApiClientFactory,
             RemoteApiClientFactory remoteApiClientFactory) {
         return new UnifiedApiClientFactory(localApiClientFactory, remoteApiClientFactory);
+    }
+
+
+    /**
+     * 创建 ClientHttpRequestInterceptor 来执行自定义拦截器
+     *
+     * @return ClientHttpRequestInterceptor 实例
+     */
+    private ClientHttpRequestInterceptor createRequestInterceptor(List<ApiClientInterceptor> interceptors) {
+        return (request, body, execution) -> {
+            // 创建新的 HttpHeaders 用于收集拦截器添加的头
+            HttpHeaders additionalHeaders = new HttpHeaders();
+            for (ApiClientInterceptor interceptor : interceptors) {
+                interceptor.intercept(additionalHeaders);
+            }
+
+            // 将额外的请求头添加到原始请求中
+            if (!additionalHeaders.isEmpty()) {
+                request.getHeaders().putAll(additionalHeaders);
+            }
+
+            return execution.execute(request, body);
+        };
     }
 
     static class ApiClientRegistrar implements ImportBeanDefinitionRegistrar {

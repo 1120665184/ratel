@@ -1,12 +1,12 @@
-package org.quyq.gwsu.security.tablemodel.service;
+package org.quyq.gwsu.security.role.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
-import org.quyq.gwsu.security.api.tablemodel.dto.RoleTableModelSaveDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.RoleTableModelVO;
-import org.quyq.gwsu.security.tablemodel.domain.SecurityRoleTableModel;
+import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.role.domain.SecurityRoleTableModel;
 
 import java.util.List;
 import java.util.Map;

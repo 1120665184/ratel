@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.api.tablemodel.vo;
+package org.quyq.gwsu.security.api.apiresource.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

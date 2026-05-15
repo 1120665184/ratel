@@ -23,7 +23,7 @@ public class InterceptorAutoConfiguration {
     @Bean
     @ConditionalOnClass(value = {RequestAttributes.class})
     public ApiClientInterceptor commonHeaderApiClientInterceptor() {
-        return (headers, serverName) -> {
+        return (headers) -> {
             Map<String, String> currHeaders = ServletUtils.getHeaders();
 
             currHeaders.forEach((k, v) -> {

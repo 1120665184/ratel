@@ -2,7 +2,6 @@ package org.quyq.gwsu.common.database.config;
 
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceProperties;
 import com.baomidou.mybatisplus.annotation.DbType;
-import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
@@ -12,14 +11,11 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.database.enums.DatabaseType;
 import org.quyq.gwsu.common.database.provider.DefaultIdentifierGenerator;
-import org.quyq.gwsu.common.database.provider.DefaultMetaObjectHandler;
 import org.quyq.gwsu.common.database.provider.DynamicDatabaseIdProvider;
 import org.quyq.gwsu.common.database.utils.DatabaseHelper;
-import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -93,14 +89,6 @@ public class DatabaseConfiguration {
     @ConditionalOnMissingBean
     public IdentifierGenerator defaultIdentifierGenerator() {
         return new DefaultIdentifierGenerator();
-    }
-
-
-    @Bean
-    @ConditionalOnClass(SecurityUtils.class)
-    @ConditionalOnMissingBean
-    public MetaObjectHandler defaultMetaObjectHandler(ObjectProvider<SecurityUtils> securityUtils) {
-        return new DefaultMetaObjectHandler(securityUtils.getIfAvailable());
     }
 
 

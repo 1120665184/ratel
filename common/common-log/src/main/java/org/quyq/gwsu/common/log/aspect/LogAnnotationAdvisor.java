@@ -1,4 +1,4 @@
-package com.dtt.base.common.log.aspect;
+package org.quyq.gwsu.common.log.aspect;
 
 import org.aopalliance.aop.Advice;
 import org.springframework.aop.Pointcut;
@@ -10,7 +10,6 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.jws.WebService;
 import java.util.Objects;
 
 public class LogAnnotationAdvisor extends AbstractPointcutAdvisor implements BeanFactoryAware {
@@ -19,15 +18,14 @@ public class LogAnnotationAdvisor extends AbstractPointcutAdvisor implements Bea
 
     private final transient Pointcut pointcut;
 
-    public LogAnnotationAdvisor(LogAspectInterceptor advice){
+    public LogAnnotationAdvisor(LogAspectInterceptor advice) {
         this.advice = advice;
         this.pointcut = buildPointcut();
     }
 
     private Pointcut buildPointcut() {
         Pointcut cpc = new AnnotationMatchingPointcut(RestController.class, true);
-        AnnotationMatchingPointcut pct = new AnnotationMatchingPointcut(WebService.class, true);
-        return new ComposablePointcut(cpc).union(pct);
+        return new ComposablePointcut(cpc);
     }
 
     @Override

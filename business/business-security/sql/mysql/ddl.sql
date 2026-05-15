@@ -310,6 +310,7 @@ CREATE TABLE security_role_menu_permission
     id                  VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     role_menu_id        VARCHAR(24) NOT NULL COMMENT '角色菜单关联ID，关联security_role_menu表',
     abac_permission_id  VARCHAR(24) NOT NULL COMMENT 'ABAC接口权限ID，关联security_abac_permission表',
+    api_id      VARCHAR(64)         NOT NULL COMMENT '接口资源ID，关联security_api_resource表',
     tenant_id   VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
     create_op   VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
     create_time DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

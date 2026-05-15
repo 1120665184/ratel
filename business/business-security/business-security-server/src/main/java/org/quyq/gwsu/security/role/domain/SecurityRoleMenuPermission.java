@@ -20,9 +20,12 @@ public class SecurityRoleMenuPermission extends BaseDO {
     @Schema(description = "主键ID")
     private String id;
 
-    @Schema(description = "角色菜单关联ID")
+    @Schema(description = "角色菜单关联ID , 对应security_role_menu.id")
     private String roleMenuId;
 
-    @Schema(description = "ABAC接口权限ID")
+    @Schema(description = "ABAC接口权限ID , 对应security_abac_permission.id")
     private String abacPermissionId;
+
+    @Schema(description = "接口ID， 对应security_api_resource.id")
+    private String apiId;
 }

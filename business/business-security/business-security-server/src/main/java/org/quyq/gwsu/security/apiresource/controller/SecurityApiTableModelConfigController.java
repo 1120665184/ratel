@@ -1,14 +1,14 @@
-package org.quyq.gwsu.security.tablemodel.controller;
+package org.quyq.gwsu.security.apiresource.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelConfigSaveDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelConfigVO;
-import org.quyq.gwsu.security.tablemodel.service.ISecurityApiTableModelConfigService;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelConfigSaveDTO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelConfigVO;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelConfigService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

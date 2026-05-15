@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.tablemodel.domain;
+package org.quyq.gwsu.security.apiresource.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelConfigVO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelConfigVO;
 
 /**
  * 表模型手动配置表（持久化，启动不覆盖）

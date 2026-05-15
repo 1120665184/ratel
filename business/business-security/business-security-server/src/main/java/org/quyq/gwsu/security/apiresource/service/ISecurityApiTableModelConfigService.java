@@ -1,11 +1,11 @@
-package org.quyq.gwsu.security.tablemodel.service;
+package org.quyq.gwsu.security.apiresource.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelConfigSaveDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelConfigVO;
-import org.quyq.gwsu.security.tablemodel.domain.SecurityApiTableModelConfig;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelConfigSaveDTO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelConfigVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModelConfig;
 
 import java.util.List;
 

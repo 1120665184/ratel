@@ -1,5 +1,7 @@
 package org.quyq.gwsu.common.security.domain;
 
+import cn.hutool.crypto.digest.MD5;
+
 import java.util.List;
 
 /**
@@ -27,4 +29,9 @@ public record ApiEndpointInfo(
         boolean allowLoginAccess,
         List<TableModelInfo> tableModels
 ) {
+
+    public static String genId(String modulePrefix, String httpMethod, String httpUrl) {
+        return MD5.create().digestHex("%s:%s:%s".formatted(modulePrefix, httpMethod, httpUrl));
+    }
+
 }

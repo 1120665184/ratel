@@ -14,7 +14,7 @@ import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
 import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
-import org.quyq.gwsu.security.tablemodel.service.ISecurityApiTableModelService;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.apiresource.mapper.SecurityApiResourceMapper;

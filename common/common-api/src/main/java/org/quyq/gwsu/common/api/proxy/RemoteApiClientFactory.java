@@ -8,11 +8,8 @@ import org.quyq.gwsu.common.api.annotation.CircuitBreakerCustomConfig;
 import org.quyq.gwsu.common.api.client.ApiClientFactory;
 import org.quyq.gwsu.common.api.config.properties.CircuitBreakerProperties;
 import org.quyq.gwsu.common.api.fallback.FallbackFactory;
-import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.api.utils.CircuitBreakerConfigResolver;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
@@ -22,7 +19,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,14 +34,11 @@ public class RemoteApiClientFactory implements ApiClientFactory {
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final Map<String, CircuitBreaker> circuitBreakerCache = new ConcurrentHashMap<>();
     private final CircuitBreakerProperties circuitBreakerProperties;
-    private final List<ApiClientInterceptor> interceptors;
 
     public RemoteApiClientFactory(RestClient.Builder restClientBuilder,
-                                  CircuitBreakerProperties circuitBreakerProperties,
-                                  List<ApiClientInterceptor> interceptors) {
+                                  CircuitBreakerProperties circuitBreakerProperties) {
         this.restClientBuilder = restClientBuilder;
         this.circuitBreakerProperties = circuitBreakerProperties;
-        this.interceptors = interceptors != null ? interceptors : List.of();
         this.circuitBreakerRegistry = CircuitBreakerRegistry.of(createDefaultCircuitBreakerConfig());
     }
 
@@ -81,36 +74,9 @@ public class RemoteApiClientFactory implements ApiClientFactory {
         RestClient.Builder builder = restClientBuilder.clone()
                 .baseUrl("http://%s".formatted(serviceName));
 
-        // 如果有拦截器，添加 ClientHttpRequestInterceptor
-        if (!interceptors.isEmpty()) {
-            builder.requestInterceptor(createRequestInterceptor(serviceName));
-        }
-
         return builder.build();
     }
 
-    /**
-     * 创建 ClientHttpRequestInterceptor 来执行自定义拦截器
-     *
-     * @param serviceName 服务名称
-     * @return ClientHttpRequestInterceptor 实例
-     */
-    private ClientHttpRequestInterceptor createRequestInterceptor(String serviceName) {
-        return (request, body, execution) -> {
-            // 创建新的 HttpHeaders 用于收集拦截器添加的头
-            HttpHeaders additionalHeaders = new HttpHeaders();
-            for (ApiClientInterceptor interceptor : interceptors) {
-                interceptor.intercept(additionalHeaders, serviceName);
-            }
-
-            // 将额外的请求头添加到原始请求中
-            if (!additionalHeaders.isEmpty()) {
-                request.getHeaders().putAll(additionalHeaders);
-            }
-
-            return execution.execute(request, body);
-        };
-    }
 
     /**
      * 创建带熔断器的代理
@@ -161,7 +127,7 @@ public class RemoteApiClientFactory implements ApiClientFactory {
         String circuitBreakerName = generateCircuitBreakerName(apiClientClass, method);
 
         return circuitBreakerCache.computeIfAbsent(circuitBreakerName, name -> {
-            CircuitBreakerConfig config = CircuitBreakerConfigResolver.resolve( getApiClientAnnotation(apiClientClass),method, circuitBreakerProperties);
+            CircuitBreakerConfig config = CircuitBreakerConfigResolver.resolve(getApiClientAnnotation(apiClientClass), method, circuitBreakerProperties);
             return circuitBreakerRegistry.circuitBreaker(name, config);
         });
     }

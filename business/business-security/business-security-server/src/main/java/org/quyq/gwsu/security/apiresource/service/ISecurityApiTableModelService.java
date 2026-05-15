@@ -1,11 +1,13 @@
-package org.quyq.gwsu.security.tablemodel.service;
+package org.quyq.gwsu.security.apiresource.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelVO;
-import org.quyq.gwsu.security.tablemodel.domain.SecurityApiTableModel;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -16,12 +18,18 @@ public interface ISecurityApiTableModelService extends IService<SecurityApiTable
     /**
      * 分页查询
      */
-    com.baomidou.mybatisplus.core.metadata.IPage<TableModelVO> pageByCondition(TableModelQueryDTO query);
+    IPage<TableModelVO> pageByCondition(TableModelQueryDTO query);
 
     /**
      * 根据接口资源ID查询表模型列表
      */
     List<TableModelVO> listByApiId(String apiId);
+
+    /**
+     * 根据接口资源ID列表批量查询表模型列表（按 modulePrefix+datasource+tableName 去重）
+     * 支持大量apiId，内部自动分批查询
+     */
+    List<TableModelVO> listByApiIds(Collection<String> apiIds);
 
     /**
      * 根据模块前缀查询表模型列表

@@ -1,10 +1,152 @@
 package org.quyq.gwsu.common.log.vo;
 
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.quyq.gwsu.common.core.domain.BaseVO;
+
+import java.time.LocalDateTime;
+
 /**
  * @author Quyq
  * @date 2026/5/14
- * @description 
+ * @description 操作日志VO对象
  */
- public class CloudseaOperLogVO {
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class CloudseaOperLogVO extends BaseVO {
+
+    @Schema(description = "日志标识")
+    private String operId;
+
+    /**
+     * 全局日志链路
+     */
+    @Schema(description = "全局日志链路")
+    private String tid;
+
+    /**
+     * 父节点
+     */
+    @Schema(description = "父节点")
+    private String parentId;
+
+    /**
+     * 服务名
+     */
+    @Schema(description = "服务名")
+    private String application;
+
+    /**
+     * 链路来源服务
+     */
+    @Schema(description = "链路来源服务")
+    private String fromApp;
+
+    /**
+     * api模块名
+     */
+    @Schema(description = "api模块名")
+    private String apiModule;
+
+    /**
+     * 来源菜单
+     */
+    @Schema(description = "来源菜单")
+    private String menuId;
+
+    /**
+     * api接口详情注释
+     */
+    @Schema(description = "api接口详情注释")
+    private String apiDescription;
+
+    /**
+     * 方法名
+     */
+    @Schema(description = "方法名")
+    private String method;
+
+    /**
+     * 请求路径
+     */
+    @Schema(description = "请求路径")
+    private String requestUrl;
+
+    /**
+     * 请求方式
+     */
+    @Schema(description = "请求方式")
+    private String requestMethod;
+
+    /**
+     * 请求终端
+     */
+    @Schema(description = "请求终端")
+    private String terminal;
+
+    /**
+     * 请求终端详情
+     */
+    @Schema(description = "请求终端详情")
+    private String terminalDetail;
+
+    /**
+     * 操作人
+     */
+    @Schema(description = "操作人")
+    private String operName;
+
+    /**
+     * token
+     */
+    @Schema(description = "token")
+    private String tokenId;
+
+    /**
+     * 请求参数
+     */
+    @Schema(description = "请求参数")
+    private String requestParam;
+
+    /**
+     * 响应数据
+     */
+    @Schema(description = "响应数据")
+    private String responseData;
+
+    /**
+     * 错误消息
+     */
+    @Schema(description = "错误消息")
+    private String errorMsg;
+
+    /**
+     * 状态：1-成功；0-失败
+     */
+    @Schema(title = "状态")
+    private Boolean status;
+
+    /**
+     * 请求时间
+     */
+    @Schema(description = "请求时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS", timezone = "GMT+8")
+    private LocalDateTime requestTime;
+
+    /**
+     * 响应时间
+     */
+    @Schema(description = "响应时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS", timezone = "GMT+8")
+    private LocalDateTime responseTime;
+
+    /**
+     * 耗时，ms
+     */
+    @Schema(description = "耗时，ms")
+    private long consumeMill;
+
 }

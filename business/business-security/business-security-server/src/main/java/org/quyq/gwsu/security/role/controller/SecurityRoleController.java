@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
 import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
@@ -18,6 +19,9 @@ import org.quyq.gwsu.security.api.role.vo.MenuTreeNodeVO;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
 import org.quyq.gwsu.security.api.role.vo.RoleValidGroupVO;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
+import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
+import org.quyq.gwsu.security.role.domain.SecurityRoleMenuPermission;
+import org.quyq.gwsu.security.role.domain.SecurityRoleSubject;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +37,7 @@ import java.util.List;
 @RequestMapping("role")
 @Tag(name = "角色管理", description = "角色管理接口")
 @RequiredArgsConstructor
+@TableModelPermission({SecurityRole.class , SecurityRoleMenu.class , SecurityRoleMenuPermission.class , SecurityRoleSubject.class})
 public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi {
 
     private final ISecurityRoleService roleService;

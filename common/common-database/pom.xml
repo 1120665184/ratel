@@ -52,12 +52,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.quyq.gwsu</groupId>
-            <artifactId>common-security</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
     </dependencies>
 
 </project>

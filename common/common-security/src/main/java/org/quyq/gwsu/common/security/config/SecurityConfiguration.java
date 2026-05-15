@@ -1,17 +1,20 @@
 package org.quyq.gwsu.common.security.config;
 
 
+import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.dataresource.DataResourceInterceptor;
 import org.quyq.gwsu.common.security.dataresource.DataResourceRuleUtils;
+import org.quyq.gwsu.common.security.db.DefaultMetaObjectHandler;
 import org.quyq.gwsu.common.security.filter.PropertiesSettingFilter;
 import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportRuntimeHints;
@@ -82,9 +85,18 @@ public class SecurityConfiguration {
 
     @Bean
     public DataResourceInterceptor dataResourceInterceptor(
-                                                           DataResourceRuleUtils ruleUtils,
-                                                           DataPermissionUtils dataPermissionUtils) {
+            DataResourceRuleUtils ruleUtils,
+            DataPermissionUtils dataPermissionUtils) {
         return new DataResourceInterceptor(ruleUtils, dataPermissionUtils);
     }
+
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(MetaObjectHandler.class)
+    public MetaObjectHandler defaultMetaObjectHandler(SecurityUtils securityUtils) {
+        return new DefaultMetaObjectHandler(securityUtils);
+    }
+
 
 }

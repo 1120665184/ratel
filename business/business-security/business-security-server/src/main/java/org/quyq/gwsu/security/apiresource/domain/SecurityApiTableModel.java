@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.tablemodel.domain;
+package org.quyq.gwsu.security.apiresource.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelVO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
 
 import java.util.Map;
 

@@ -28,8 +28,7 @@ public interface ApiClientInterceptor {
     /**
      * 拦截请求并添加定制内容
      *
-     * @param headers     请求头操作器，用于添加或修改请求头
-     * @param serviceName 目标服务名称
+     * @param headers 请求头操作器，用于添加或修改请求头
      */
-    void intercept(HttpHeaders headers, String serviceName);
+    void intercept(HttpHeaders headers);
 }

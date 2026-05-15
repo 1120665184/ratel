@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.tablemodel.service.impl;
+package org.quyq.gwsu.security.role.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,13 +9,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.SensitiveStrategy;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
-import org.quyq.gwsu.security.api.tablemodel.dto.RoleTableModelSaveDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
+import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
-import org.quyq.gwsu.security.tablemodel.domain.SecurityRoleTableModel;
-import org.quyq.gwsu.security.tablemodel.mapper.SecurityRoleTableModelMapper;
-import org.quyq.gwsu.security.tablemodel.service.ISecurityRoleTableModelService;
+import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
+import org.quyq.gwsu.security.role.domain.SecurityRoleMenuPermission;
+import org.quyq.gwsu.security.role.domain.SecurityRoleTableModel;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuPermissionMapper;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleTableModelMapper;
+import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -27,6 +33,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleTableModelMapper, SecurityRoleTableModel>
         implements ISecurityRoleTableModelService {
+
+    private final SecurityRoleMenuMapper roleMenuMapper;
+    private final SecurityRoleMenuPermissionMapper roleMenuPermissionMapper;
+    private final ISecurityApiTableModelService apiTableModelService;
+
+    private static final int BATCH_SIZE = 500;
 
     @Override
     public IPage<RoleTableModelVO> pageByCondition(TableModelQueryDTO query) {
@@ -125,7 +137,118 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
             }
             result.put(entry.getKey(), mergedFields);
         }
+
+        // 通过角色关联的菜单获取接口绑定的表模型权限，与角色自定义权限合并
+        List<String> apiIds = getApiIdsByRoleIds(roleIds);
+        if (!CollectionUtils.isEmpty(apiIds)) {
+            List<SecurityApiTableModel> apiTableModels = listApiTableModelsByApiIds(apiIds);
+            if (!CollectionUtils.isEmpty(apiTableModels)) {
+                // 按 "module_prefix:datasource:table_name" 分组
+                Map<String, List<SecurityApiTableModel>> apiGrouped = apiTableModels.stream()
+                        .collect(Collectors.groupingBy(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName()));
+
+                for (Map.Entry<String, List<SecurityApiTableModel>> entry : apiGrouped.entrySet()) {
+                    String key = entry.getKey();
+                    Map<String, FieldPermission> existingFields = result.computeIfAbsent(key, k -> new HashMap<>());
+                    // 合并接口绑定的字段权限（接口优先级高）
+                    for (SecurityApiTableModel atm : entry.getValue()) {
+                        if (atm.getFieldConfig() != null) {
+                            mergeApiWithRoleFieldPermissions(existingFields, atm.getFieldConfig());
+                        }
+                    }
+                }
+            }
+        }
+
         return result;
+    }
+
+    /**
+     * 通过角色ID列表获取关联的所有接口资源ID
+     * roleIds → security_role_menu → security_role_menu_permission → apiIds
+     */
+    private List<String> getApiIdsByRoleIds(List<String> roleIds) {
+        // 查询角色关联的菜单
+        List<SecurityRoleMenu> roleMenus = roleMenuMapper.selectList(
+                new LambdaQueryWrapper<SecurityRoleMenu>()
+                        .in(SecurityRoleMenu::getRoleId, roleIds));
+        if (CollectionUtils.isEmpty(roleMenus)) {
+            return Collections.emptyList();
+        }
+
+        List<String> roleMenuIds = roleMenus.stream()
+                .map(SecurityRoleMenu::getId)
+                .toList();
+
+        // 查询菜单关联的接口权限
+        List<SecurityRoleMenuPermission> permissions = roleMenuPermissionMapper.selectList(
+                new LambdaQueryWrapper<SecurityRoleMenuPermission>()
+                        .in(SecurityRoleMenuPermission::getRoleMenuId, roleMenuIds));
+        if (CollectionUtils.isEmpty(permissions)) {
+            return Collections.emptyList();
+        }
+
+        return permissions.stream()
+                .map(SecurityRoleMenuPermission::getApiId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * 批量查询接口绑定的表模型（支持大量apiId分批查询）
+     */
+    private List<SecurityApiTableModel> listApiTableModelsByApiIds(List<String> apiIds) {
+        if (CollectionUtils.isEmpty(apiIds)) {
+            return Collections.emptyList();
+        }
+        List<SecurityApiTableModel> all = new ArrayList<>();
+        for (int i = 0; i < apiIds.size(); i += BATCH_SIZE) {
+            List<String> batch = apiIds.subList(i, Math.min(i + BATCH_SIZE, apiIds.size()));
+            all.addAll(apiTableModelService.list(
+                    new LambdaQueryWrapper<SecurityApiTableModel>()
+                            .in(SecurityApiTableModel::getApiId, batch)));
+        }
+        return all;
+    }
+
+    /**
+     * 合并接口绑定的字段权限到已有权限中
+     * 接口关联的表模型优先级高：
+     * - 注解标注 show=false → 无论角色如何配置，该字段不可查询
+     * - 注解标注 desensitize=true → 无论角色如何配置，该字段必须脱敏
+     */
+    private void mergeApiWithRoleFieldPermissions(Map<String, FieldPermission> existing, Map<String, FieldPermission> incoming) {
+        for (Map.Entry<String, FieldPermission> entry : incoming.entrySet()) {
+            String fieldName = entry.getKey();
+            FieldPermission apiPerm = entry.getValue();
+            FieldPermission existingPerm = existing.get(fieldName);
+
+            if (existingPerm == null) {
+                // 字段只存在于接口配置中，直接使用
+                existing.put(fieldName, apiPerm);
+            } else {
+                // 两边都有配置，接口优先级高
+                // show: 如果接口配置不可见，则不可见（强制约束）
+                boolean showResult = apiPerm.show() && existingPerm.show();
+                // desensitize: 如果接口配置要求脱敏，则必须脱敏（强制约束）
+                boolean desensitizeResult = apiPerm.desensitize() || existingPerm.desensitize();
+                // 脱敏策略：接口要求脱敏时优先使用接口配置，否则使用角色配置
+                SensitiveStrategy strategyResult = apiPerm.desensitize()
+                        ? (apiPerm.strategy() != SensitiveStrategy.NONE ? apiPerm.strategy() : existingPerm.strategy())
+                        : existingPerm.strategy();
+                Integer prefixResult = apiPerm.desensitize()
+                        ? (apiPerm.prefixNoMaskLen() != null ? apiPerm.prefixNoMaskLen() : existingPerm.prefixNoMaskLen())
+                        : existingPerm.prefixNoMaskLen();
+                Integer suffixResult = apiPerm.desensitize()
+                        ? (apiPerm.suffixNoMaskLen() != null ? apiPerm.suffixNoMaskLen() : existingPerm.suffixNoMaskLen())
+                        : existingPerm.suffixNoMaskLen();
+                String symbolResult = apiPerm.desensitize()
+                        ? (apiPerm.symbol() != null ? apiPerm.symbol() : existingPerm.symbol())
+                        : existingPerm.symbol();
+                existing.put(fieldName, new FieldPermission(showResult, desensitizeResult, strategyResult, prefixResult, suffixResult, symbolResult));
+            }
+        }
     }
 
     /**

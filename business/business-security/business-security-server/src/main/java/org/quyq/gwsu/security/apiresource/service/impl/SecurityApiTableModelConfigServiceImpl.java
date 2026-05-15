@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.tablemodel.service.impl;
+package org.quyq.gwsu.security.apiresource.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -6,13 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelConfigSaveDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelConfigVO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelConfigSaveDTO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelConfigVO;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
-import org.quyq.gwsu.security.tablemodel.domain.SecurityApiTableModelConfig;
-import org.quyq.gwsu.security.tablemodel.mapper.SecurityApiTableModelConfigMapper;
-import org.quyq.gwsu.security.tablemodel.service.ISecurityApiTableModelConfigService;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModelConfig;
+import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelConfigMapper;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelConfigService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 

@@ -515,6 +515,7 @@ CREATE TABLE security_role_menu_permission
     id                  VARCHAR(24) PRIMARY KEY,
     role_menu_id        VARCHAR(24) NOT NULL,
     abac_permission_id  VARCHAR(24) NOT NULL,
+    api_id              VARCHAR(64) NOT NULL ,
     tenant_id   VARCHAR(50)          DEFAULT NULL,
     create_op   VARCHAR(50)          DEFAULT NULL,
     create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
@@ -530,6 +531,7 @@ COMMENT ON TABLE security_role_menu_permission IS '角色菜单权限关联表';
 COMMENT ON COLUMN security_role_menu_permission.id IS '主键ID';
 COMMENT ON COLUMN security_role_menu_permission.role_menu_id IS '角色菜单关联ID，关联security_role_menu表';
 COMMENT ON COLUMN security_role_menu_permission.abac_permission_id IS 'ABAC接口权限ID，关联security_abac_permission表';
+COMMENT ON COLUMN security_role_menu_permission.api_id IS '接口资源ID，关联security_api_resource表';
 COMMENT ON COLUMN security_role_menu_permission.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_role_menu_permission.create_op IS '创建人';
 COMMENT ON COLUMN security_role_menu_permission.create_time IS '创建时间';
@@ -543,3 +545,135 @@ COMMENT ON COLUMN security_role_menu_permission.delete_time IS '删除时间';
 CREATE INDEX idx_security_role_menu_permission_role_menu_id ON security_role_menu_permission (role_menu_id);
 CREATE INDEX idx_security_role_menu_permission_abac_permission_id ON security_role_menu_permission (abac_permission_id);
 
+-- =============================================
+-- 表名：security_api_table_model
+-- 说明：接口-表模型绑定表（注解采集，启动时覆盖）
+-- =============================================
+CREATE TABLE security_api_table_model
+(
+    id            VARCHAR(64) PRIMARY KEY,
+    api_id        VARCHAR(64)  NOT NULL,
+    module_prefix VARCHAR(50)  NOT NULL DEFAULT '',
+    datasource    VARCHAR(50)  NOT NULL DEFAULT 'master',
+    table_name    VARCHAR(100) NOT NULL,
+    field_config  TEXT                  DEFAULT NULL,
+    tenant_id     VARCHAR(50)           DEFAULT NULL,
+    create_op     VARCHAR(50)           DEFAULT NULL,
+    create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op     VARCHAR(50)           DEFAULT NULL,
+    modify_time   TIMESTAMP             DEFAULT NULL,
+    deleted       INT2         NOT NULL DEFAULT 0,
+    delete_op     VARCHAR(50)           DEFAULT NULL,
+    delete_time   TIMESTAMP             DEFAULT NULL
+);
+
+-- 表和字段注释
+COMMENT ON TABLE security_api_table_model IS '接口-表模型绑定表（注解采集，启动时覆盖）';
+COMMENT ON COLUMN security_api_table_model.id IS '主键ID，MD5(module_prefix + datasource + table_name + api_id)';
+COMMENT ON COLUMN security_api_table_model.api_id IS '接口资源ID，关联security_api_resource.id';
+COMMENT ON COLUMN security_api_table_model.module_prefix IS '模块前缀（服务标识）';
+COMMENT ON COLUMN security_api_table_model.datasource IS '数据源名称';
+COMMENT ON COLUMN security_api_table_model.table_name IS '表模型名称';
+COMMENT ON COLUMN security_api_table_model.field_config IS '字段配置JSON，仅记录注解标识的字段配置';
+COMMENT ON COLUMN security_api_table_model.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_api_table_model.create_op IS '创建人';
+COMMENT ON COLUMN security_api_table_model.create_time IS '创建时间';
+COMMENT ON COLUMN security_api_table_model.modify_op IS '修改人';
+COMMENT ON COLUMN security_api_table_model.modify_time IS '修改时间';
+COMMENT ON COLUMN security_api_table_model.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_api_table_model.delete_op IS '删除人';
+COMMENT ON COLUMN security_api_table_model.delete_time IS '删除时间';
+
+-- 索引
+CREATE INDEX idx_security_api_table_model_api_id ON security_api_table_model (api_id);
+CREATE INDEX idx_security_api_table_model_table_name ON security_api_table_model (table_name);
+CREATE INDEX idx_security_api_table_model_module_prefix ON security_api_table_model (module_prefix);
+CREATE INDEX idx_security_api_table_model_module_datasource_table ON security_api_table_model (module_prefix, datasource, table_name);
+
+-- =============================================
+-- 表名：security_api_table_model_config
+-- 说明：表模型手动配置表（持久化，启动不覆盖）
+-- =============================================
+CREATE TABLE security_api_table_model_config
+(
+    id             VARCHAR(24)  PRIMARY KEY,
+    table_model_id VARCHAR(64)  DEFAULT NULL,
+    table_name     VARCHAR(100) NOT NULL,
+    module_prefix  VARCHAR(50)  NOT NULL DEFAULT '',
+    datasource     VARCHAR(50)  NOT NULL,
+    description    VARCHAR(200) DEFAULT NULL,
+    tenant_id      VARCHAR(50)  DEFAULT NULL,
+    create_op      VARCHAR(50)  DEFAULT NULL,
+    create_time    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op      VARCHAR(50)  DEFAULT NULL,
+    modify_time    TIMESTAMP             DEFAULT NULL,
+    deleted        INT2         NOT NULL DEFAULT 0,
+    delete_op      VARCHAR(50)  DEFAULT NULL,
+    delete_time    TIMESTAMP             DEFAULT NULL
+);
+
+-- 表和字段注释
+COMMENT ON TABLE security_api_table_model_config IS '表模型手动配置表（持久化，启动不覆盖）';
+COMMENT ON COLUMN security_api_table_model_config.id IS '主键ID';
+COMMENT ON COLUMN security_api_table_model_config.table_model_id IS '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型';
+COMMENT ON COLUMN security_api_table_model_config.table_name IS '表模型名称';
+COMMENT ON COLUMN security_api_table_model_config.module_prefix IS '模块前缀';
+COMMENT ON COLUMN security_api_table_model_config.datasource IS '数据源名称';
+COMMENT ON COLUMN security_api_table_model_config.description IS '配置说明';
+COMMENT ON COLUMN security_api_table_model_config.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_api_table_model_config.create_op IS '创建人';
+COMMENT ON COLUMN security_api_table_model_config.create_time IS '创建时间';
+COMMENT ON COLUMN security_api_table_model_config.modify_op IS '修改人';
+COMMENT ON COLUMN security_api_table_model_config.modify_time IS '修改时间';
+COMMENT ON COLUMN security_api_table_model_config.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_api_table_model_config.delete_op IS '删除人';
+COMMENT ON COLUMN security_api_table_model_config.delete_time IS '删除时间';
+
+-- 索引
+CREATE INDEX idx_security_api_table_model_config_table_model_id ON security_api_table_model_config (table_model_id);
+CREATE INDEX idx_security_api_table_model_config_table_name ON security_api_table_model_config (table_name);
+CREATE INDEX idx_security_api_table_model_config_module_prefix ON security_api_table_model_config (module_prefix);
+
+-- =============================================
+-- 表名：security_role_table_model
+-- 说明：角色表模型权限配置表
+-- =============================================
+CREATE TABLE security_role_table_model
+(
+    id            VARCHAR(24) PRIMARY KEY,
+    role_id       VARCHAR(24)  NOT NULL,
+    module_prefix VARCHAR(50)  NOT NULL DEFAULT '',
+    table_name    VARCHAR(100) NOT NULL,
+    datasource    VARCHAR(50)  NOT NULL DEFAULT 'master',
+    field_config  TEXT                  DEFAULT NULL,
+    tenant_id     VARCHAR(50)           DEFAULT NULL,
+    create_op     VARCHAR(50)           DEFAULT NULL,
+    create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op     VARCHAR(50)           DEFAULT NULL,
+    modify_time   TIMESTAMP             DEFAULT NULL,
+    deleted       INT2         NOT NULL DEFAULT 0,
+    delete_op     VARCHAR(50)           DEFAULT NULL,
+    delete_time   TIMESTAMP             DEFAULT NULL
+);
+
+-- 表和字段注释
+COMMENT ON TABLE security_role_table_model IS '角色表模型权限配置表';
+COMMENT ON COLUMN security_role_table_model.id IS '主键ID';
+COMMENT ON COLUMN security_role_table_model.role_id IS '角色ID';
+COMMENT ON COLUMN security_role_table_model.module_prefix IS '模块前缀（服务标识）';
+COMMENT ON COLUMN security_role_table_model.table_name IS '表模型名称';
+COMMENT ON COLUMN security_role_table_model.datasource IS '数据源名称';
+COMMENT ON COLUMN security_role_table_model.field_config IS '字段限制配置JSON，仅存储限制性配置';
+COMMENT ON COLUMN security_role_table_model.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_role_table_model.create_op IS '创建人';
+COMMENT ON COLUMN security_role_table_model.create_time IS '创建时间';
+COMMENT ON COLUMN security_role_table_model.modify_op IS '修改人';
+COMMENT ON COLUMN security_role_table_model.modify_time IS '修改时间';
+COMMENT ON COLUMN security_role_table_model.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_role_table_model.delete_op IS '删除人';
+COMMENT ON COLUMN security_role_table_model.delete_time IS '删除时间';
+
+-- 索引
+CREATE INDEX idx_security_role_table_model_role_id ON security_role_table_model (role_id);
+CREATE INDEX idx_security_role_table_model_table_name ON security_role_table_model (table_name);
+CREATE UNIQUE INDEX uk_security_role_table_model ON security_role_table_model (role_id, module_prefix, datasource, table_name);

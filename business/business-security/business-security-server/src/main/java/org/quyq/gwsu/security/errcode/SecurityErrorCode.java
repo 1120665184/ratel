@@ -26,6 +26,10 @@ public enum SecurityErrorCode implements ReturnCode {
     E02004("角色已禁用"),
     E02005("时效配置无效"),
     E02006("该时效分组已存在，请编辑已有配置"),
+
+    E03001("表名称不能为空"),
+    E03002("数据源不能为空"),
+    E03003("角色ID不能为空"),
     ;
 
     private final String msg;

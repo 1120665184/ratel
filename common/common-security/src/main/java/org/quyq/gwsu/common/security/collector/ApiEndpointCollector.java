@@ -1,6 +1,10 @@
 package org.quyq.gwsu.common.security.collector;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.MD5;
+import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +15,9 @@ import org.quyq.gwsu.common.core.domain.BusinessModuleInfo;
 import org.quyq.gwsu.common.core.provider.BusinessModuleInfoProvider;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ProjectUtils;
+import org.quyq.gwsu.common.core.utils.ProxyUtil;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.quyq.gwsu.common.database.utils.DatabaseHelper;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.SensitiveStrategy;
 import org.quyq.gwsu.common.security.annotation.TableModelField;
@@ -19,10 +25,10 @@ import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.domain.ApiEndpointInfo;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.TableModelInfo;
-import com.baomidou.mybatisplus.annotation.TableName;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,10 +40,7 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.pattern.PathPattern;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,6 +60,7 @@ public class ApiEndpointCollector implements ApplicationRunner {
     private final CacheUtils cacheUtils;
 
     private final ProjectUtils projectUtils;
+
 
     public static final String PERMISSION_API_CHANNEL = "permission:api";
 
@@ -200,7 +204,7 @@ public class ApiEndpointCollector implements ApplicationRunner {
         List<TableModelInfo> tableModels = collectTableModelPermission(beanType, method, modulePrefix);
 
         return new ApiEndpointInfo(
-                genId(modulePrefix, httpMethod, path),
+                ApiEndpointInfo.genId(modulePrefix, httpMethod, path),
                 modulePrefix,
                 tagName,
                 path,
@@ -235,6 +239,18 @@ public class ApiEndpointCollector implements ApplicationRunner {
         }
 
         String datasource = "master";
+        if (ProxyUtil.hasClass("org.quyq.gwsu.common.database.utils.DatabaseHelper")) {
+            DS classDS = AnnotatedElementUtils.findMergedAnnotation(beanType, DS.class);
+            DS methodDS = AnnotatedElementUtils.findMergedAnnotation(method, DS.class);
+            datasource = Optional.ofNullable(methodDS)
+                    .map(DS::value)
+                    .orElseGet(() ->
+                            Optional.ofNullable(classDS)
+                                    .map(DS::value)
+                                    .orElse(getCurrDatasource())
+                    );
+
+        }
 
         List<TableModelInfo> result = new ArrayList<>();
         for (Class<?> domainClass : effectiveAnnotation.value()) {
@@ -255,14 +271,29 @@ public class ApiEndpointCollector implements ApplicationRunner {
         return result;
     }
 
+    private String getCurrDatasource() {
+        List<DatabaseHelper> beansOfType = SpringUtils.getBeansOfType(DatabaseHelper.class);
+        if (!CollectionUtils.isEmpty(beansOfType)) {
+            return beansOfType.getFirst().getCurrentDatasourceKey();
+        }
+        return "master";
+    }
+
     private Map<String, FieldPermission> buildFieldConfig(Class<?> domainClass) {
         Map<String, FieldPermission> fieldConfig = new HashMap<>();
-        for (java.lang.reflect.Field field : domainClass.getDeclaredFields()) {
+        for (Field field : domainClass.getDeclaredFields()) {
             TableModelField fieldAnnotation = field.getAnnotation(TableModelField.class);
-            if (fieldAnnotation == null) {
+            TableField tableFieldAnnotation = field.getAnnotation(TableField.class);
+            if (fieldAnnotation == null || (Objects.nonNull(tableFieldAnnotation) && !tableFieldAnnotation.exist())) {
                 continue;
             }
-            String columnName = camelToUnderline(field.getName());
+
+
+            String columnName = Optional.ofNullable(tableFieldAnnotation)
+                            .map(a ->{
+                                String value = a.value();
+                                return StringUtils.hasText(value) ? value : StrUtil.toUnderlineCase(field.getName());
+                            }).orElse(StrUtil.toUnderlineCase(field.getName()));
             fieldConfig.put(columnName, new FieldPermission(
                     fieldAnnotation.show(),
                     fieldAnnotation.desensitize(),
@@ -273,26 +304,6 @@ public class ApiEndpointCollector implements ApplicationRunner {
             ));
         }
         return fieldConfig;
-    }
-
-    private String camelToUnderline(String camelCase) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < camelCase.length(); i++) {
-            char c = camelCase.charAt(i);
-            if (Character.isUpperCase(c)) {
-                if (i > 0) {
-                    sb.append('_');
-                }
-                sb.append(Character.toLowerCase(c));
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-    private String genId(String modulePrefix, String httpMethod, String httpUrl) {
-        return MD5.create().digestHex("%s:%s:%s".formatted(modulePrefix, httpMethod, httpUrl));
     }
 
     /**

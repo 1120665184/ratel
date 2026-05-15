@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.tablemodel.service.impl;
+package org.quyq.gwsu.security.apiresource.service.impl;
 
 import cn.hutool.crypto.digest.MD5;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -10,22 +10,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
 import org.quyq.gwsu.common.security.domain.ApiEndpointInfo;
 import org.quyq.gwsu.common.security.domain.TableModelInfo;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelVO;
-import org.quyq.gwsu.security.tablemodel.domain.SecurityApiTableModel;
-import org.quyq.gwsu.security.tablemodel.mapper.SecurityApiTableModelMapper;
-import org.quyq.gwsu.security.tablemodel.service.ISecurityApiTableModelService;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModelConfig;
+import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelConfigMapper;
+import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelMapper;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class SecurityApiTableModelServiceImpl extends ServiceImpl<SecurityApiTableModelMapper, SecurityApiTableModel>
         implements ISecurityApiTableModelService {
+
+    private final SecurityApiTableModelConfigMapper configMapper;
 
     @Override
     public IPage<TableModelVO> pageByCondition(TableModelQueryDTO query) {
@@ -40,29 +45,94 @@ public class SecurityApiTableModelServiceImpl extends ServiceImpl<SecurityApiTab
         if (query.getApiId() != null) {
             wrapper.eq(SecurityApiTableModel::getApiId, query.getApiId());
         }
-        return page(page, wrapper).convert(SecurityApiTableModel::toVo);
+        IPage<TableModelVO> result = page(page, wrapper).convert(SecurityApiTableModel::toVo);
+        applyConfigOverride(result.getRecords());
+        return result;
     }
 
     @Override
     public List<TableModelVO> listByApiId(String apiId) {
-        return list(new LambdaQueryWrapper<SecurityApiTableModel>()
+        List<TableModelVO> list = list(new LambdaQueryWrapper<SecurityApiTableModel>()
                 .eq(SecurityApiTableModel::getApiId, apiId))
                 .stream()
                 .map(SecurityApiTableModel::toVo)
                 .toList();
+        return applyConfigOverride(list);
+    }
+
+    private static final int BATCH_SIZE = 500;
+
+    @Override
+    public List<TableModelVO> listByApiIds(Collection<String> apiIds) {
+        if (CollectionUtils.isEmpty(apiIds)) {
+            return Collections.emptyList();
+        }
+        List<String> apiIdList = apiIds instanceof List<String> l ? l : new ArrayList<>(apiIds);
+        // 分批查询并回填 config 覆盖值，避免 IN 子句超限
+        List<TableModelVO> allVos = new ArrayList<>();
+        for (int i = 0; i < apiIdList.size(); i += BATCH_SIZE) {
+            List<String> batch = apiIdList.subList(i, Math.min(i + BATCH_SIZE, apiIdList.size()));
+            List<TableModelVO> batchVos = list(new LambdaQueryWrapper<SecurityApiTableModel>()
+                            .in(SecurityApiTableModel::getApiId, batch))
+                    .stream()
+                    .map(SecurityApiTableModel::toVo)
+                    .collect(Collectors.toCollection(ArrayList::new));
+            applyConfigOverride(batchVos);
+            allVos.addAll(batchVos);
+        }
+        if (allVos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // 按覆盖后的 modulePrefix+datasource+tableName 去重
+        Map<String, TableModelVO> dedupMap = new LinkedHashMap<>();
+        for (TableModelVO vo : allVos) {
+            String key = "%s:%s:%s".formatted(vo.getModulePrefix(), vo.getDatasource(), vo.getTableName());
+            dedupMap.putIfAbsent(key, vo);
+        }
+        return new ArrayList<>(dedupMap.values());
     }
 
     @Override
     public List<TableModelVO> listByModulePrefix(String modulePrefix) {
-        return list(new LambdaQueryWrapper<SecurityApiTableModel>()
+        List<TableModelVO> list = list(new LambdaQueryWrapper<SecurityApiTableModel>()
                 .eq(SecurityApiTableModel::getModulePrefix, modulePrefix))
                 .stream()
                 .map(SecurityApiTableModel::toVo)
                 .toList();
+        return applyConfigOverride(list);
+    }
+
+    /**
+     * 根据 security_api_table_model_config 覆盖数据源配置
+     * 优先级：config 中的 datasource > 采集默认的 datasource
+     */
+    private List<TableModelVO> applyConfigOverride(List<TableModelVO> list) {
+        if (CollectionUtils.isEmpty(list)) {
+            return list;
+        }
+        // 批量查询所有关联的 config 记录
+        List<String> tableModelIds = list.stream()
+                .map(TableModelVO::getId)
+                .toList();
+        Map<String, SecurityApiTableModelConfig> configMap = configMapper.selectList(
+                        new LambdaQueryWrapper<SecurityApiTableModelConfig>()
+                                .in(SecurityApiTableModelConfig::getTableModelId, tableModelIds))
+                .stream()
+                .collect(Collectors.toMap(
+                        SecurityApiTableModelConfig::getTableModelId,
+                        c -> c,
+                        (a, b) -> a));
+        // 回填覆盖值
+        for (TableModelVO vo : list) {
+            SecurityApiTableModelConfig config = configMap.get(vo.getId());
+            if (config != null) {
+                vo.setDatasource(config.getDatasource());
+            }
+        }
+        return list;
     }
 
     @Override
-    @Transactional
     public void handleTableModel(String applicationName, ApiEndpointCollector.ApiEndpointWrapper permissions) {
         // 从接口数据中提取所有表模型绑定关系
         List<SecurityApiTableModel> newTableModels = new ArrayList<>();

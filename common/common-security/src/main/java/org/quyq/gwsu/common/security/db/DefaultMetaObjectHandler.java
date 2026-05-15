@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.database.provider;
+package org.quyq.gwsu.common.security.db;
 
 
 import cn.hutool.core.lang.func.LambdaUtil;
@@ -37,7 +37,7 @@ public class DefaultMetaObjectHandler implements MetaObjectHandler {
 
     @Override
     public void updateFill(MetaObject metaObject) {
-        String username = Objects.isNull(securityUtils) ? null :  securityUtils.getUsername();
+        String username = Objects.isNull(securityUtils) ? null : securityUtils.getUsername();
         LocalDateTime now = LocalDateTime.now();
         this.strictInsertFill(metaObject, LambdaUtil.getFieldName(BaseDO::getModifyTime), LocalDateTime.class, now);
         if (StringUtils.hasText(username)) {

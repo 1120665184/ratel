@@ -1,4 +1,4 @@
-package com.dtt.base.common.log.enums;
+package org.quyq.gwsu.common.log.enums;
 
 public enum TableLogSourceType {
     /**

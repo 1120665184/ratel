@@ -4,6 +4,7 @@ package org.quyq.gwsu.security.abac.loading;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.security.domain.ApiEndpointInfo;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
 import org.quyq.gwsu.security.abac.domain.SecurityAbacPermission;
 import org.quyq.gwsu.security.abac.enums.AbacPerType;
@@ -249,12 +250,15 @@ public class RoleBindingMenuAbacLoading implements IAbacAlterationProvider {
 
             SecurityRoleMenuPermission rmp = new SecurityRoleMenuPermission()
                     .setRoleMenuId(roleMenu.getId())
-                    .setAbacPermissionId(abacP.getId());
+                    .setAbacPermissionId(abacP.getId())
+                    .setApiId(ApiEndpointInfo.genId(abacP.getResourceType() ,abacP.getAction() , abacP.getUrlPattern()));
+                    ;
             roleMenuPermissions.add(rmp);
         }
 
         return new AbacAndMenuRole(roleMenu, permissions, roleMenuPermissions);
     }
+
 
     /**
      * 删除指定角色下某个时效组的所有数据
