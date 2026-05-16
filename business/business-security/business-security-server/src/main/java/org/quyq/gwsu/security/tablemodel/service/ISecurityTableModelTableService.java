@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.tablemodel.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
 
@@ -20,6 +21,16 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
      * @return 表信息
      */
     TableModelTableVO getById(String id);
+
+
+    /**
+     * 获取指定表的详细内容，包含字段等
+     * @param modulePrefix
+     * @param datasource
+     * @param tableName
+     * @return
+     */
+    TableModelDetailVO getTableDetail(String modulePrefix , String datasource , String tableName);
 
     /**
      * 根据表名和数据源查询

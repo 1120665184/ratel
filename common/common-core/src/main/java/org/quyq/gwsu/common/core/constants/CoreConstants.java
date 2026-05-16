@@ -30,7 +30,15 @@ public interface CoreConstants {
 
     interface EndPoint {
 
+        /**
+         * 获取微服务信息列表
+         */
         String ENDPOINT_MODULE_INFOS = "/modules/list";
+
+        /**
+         * 查询数据库接口 ， 该接口只有微服务模式启用
+         */
+        String ENDPOINT_DB_EXECUTION = "/db/query";
 
     }
 

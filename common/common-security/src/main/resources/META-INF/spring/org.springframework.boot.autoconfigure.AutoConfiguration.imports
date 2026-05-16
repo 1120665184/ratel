@@ -1,3 +1,4 @@
 org.quyq.gwsu.common.security.config.SecurityConfiguration
 org.quyq.gwsu.common.security.config.CasbinConfiguration
 org.quyq.gwsu.common.security.config.ApiEndpointCollectorConfiguration
+org.quyq.gwsu.common.security.config.SecurityDBConfiguration

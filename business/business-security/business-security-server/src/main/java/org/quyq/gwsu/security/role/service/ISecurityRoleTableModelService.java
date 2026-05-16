@@ -39,6 +39,7 @@ public interface ISecurityRoleTableModelService extends IService<SecurityRoleTab
     /**
      * 获取指定角色的合并后表模型权限
      * key = "module_prefix:datasource:table_name"
+     * @param roleCodes 角色code列表
      */
-    Map<String, Map<String, FieldPermission>> getMergedRoleTableModelPermission(List<String> roleIds);
+    Map<String, Map<String, FieldPermission>> getMergedRoleTableModelPermission(List<String> roleCodes);
 }

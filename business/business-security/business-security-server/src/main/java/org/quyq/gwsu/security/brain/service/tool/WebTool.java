@@ -8,6 +8,7 @@ import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeoutException;
  * 提供AI助手查看和操作Web界面的能力
  */
 @RequiredArgsConstructor
+@Component
 public class WebTool {
 
     private final WebToolUtils webToolUtils;

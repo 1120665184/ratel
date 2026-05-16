@@ -1,5 +1,6 @@
 package org.quyq.gwsu.security.role.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,12 +16,15 @@ import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
+import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenuPermission;
 import org.quyq.gwsu.security.role.domain.SecurityRoleTableModel;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuPermissionMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleTableModelMapper;
+import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -35,6 +39,7 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         implements ISecurityRoleTableModelService {
 
     private final SecurityRoleMenuMapper roleMenuMapper;
+    private final SecurityRoleMapper roleMapper;
     private final SecurityRoleMenuPermissionMapper roleMenuPermissionMapper;
     private final ISecurityApiTableModelService apiTableModelService;
 
@@ -115,10 +120,19 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
     }
 
     @Override
-    public Map<String, Map<String, FieldPermission>> getMergedRoleTableModelPermission(List<String> roleIds) {
-        if (CollectionUtils.isEmpty(roleIds)) {
+    public Map<String, Map<String, FieldPermission>> getMergedRoleTableModelPermission(List<String> roleCodes) {
+        if (CollectionUtils.isEmpty(roleCodes)) {
             return Map.of();
         }
+        List<String> roleIds = roleMapper.selectList(new LambdaQueryWrapper<SecurityRole>()
+                        .in(SecurityRole::getRoleCode, roleCodes))
+                .stream().map(SecurityRole::getId)
+                .toList();
+        if(CollUtil.isEmpty(roleIds)) {
+            return Map.of();
+        }
+
+
         List<SecurityRoleTableModel> roleTableModels = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
                 .in(SecurityRoleTableModel::getRoleId, roleIds));
 

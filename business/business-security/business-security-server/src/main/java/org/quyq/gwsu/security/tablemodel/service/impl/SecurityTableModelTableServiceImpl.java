@@ -3,13 +3,19 @@ package org.quyq.gwsu.security.tablemodel.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
+import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelColumn;
+import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelForeignKey;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
 import org.quyq.gwsu.security.tablemodel.mapper.SecurityTableModelTableMapper;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelColumnService;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelForeignKeyService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 表基本信息 服务实现
@@ -21,10 +27,52 @@ import java.util.List;
 public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTableModelTableMapper, SecurityTableModelTable>
         implements ISecurityTableModelTableService {
 
+
+    private final ISecurityTableModelColumnService securityTableModelColumnService;
+
+    private final ISecurityTableModelForeignKeyService securityTableModelForeignKeyService;
+
     @Override
     public TableModelTableVO getById(String id) {
         SecurityTableModelTable entity = super.getById(id);
         return entity != null ? entity.toVo() : null;
+    }
+
+    @Override
+    public TableModelDetailVO getTableDetail(String modulePrefix, String datasource, String tableName) {
+        // 查询所有匹配的表
+        SecurityTableModelTable table = getOne(
+                new LambdaQueryWrapper<SecurityTableModelTable>()
+                        .eq(SecurityTableModelTable::getModulePrefix, modulePrefix)
+                        .eq(SecurityTableModelTable::getDataSource, datasource)
+                        .eq(SecurityTableModelTable::getTableName, tableName)
+                        .eq(SecurityTableModelTable::getDeleted, false));
+
+        if (Objects.isNull(table)) {
+            return null;
+        }
+
+
+        // 批量查询字段
+        List<SecurityTableModelColumn> columns = securityTableModelColumnService.list(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SecurityTableModelColumn>()
+                        .eq(SecurityTableModelColumn::getTableId, table.getId())
+                        .eq(SecurityTableModelColumn::getDeleted, false)
+                        .orderByAsc(SecurityTableModelColumn::getOrdinalPosition));
+
+
+        // 批量查询外键
+        List<SecurityTableModelForeignKey> foreignKeys = securityTableModelForeignKeyService.list(
+                new LambdaQueryWrapper<SecurityTableModelForeignKey>()
+                        .eq(SecurityTableModelForeignKey::getTableId, table.getId())
+                        .eq(SecurityTableModelForeignKey::getDeleted, false));
+
+        TableModelDetailVO detail = new TableModelDetailVO();
+        detail.setTable(table.toVo());
+        detail.setColumns(columns.stream().map(SecurityTableModelColumn::toVo).toList());
+        detail.setForeignKeys(foreignKeys.stream().map(SecurityTableModelForeignKey::toVo).toList());
+
+        return detail;
     }
 
     @Override
@@ -39,7 +87,7 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
     @Override
     public List<TableModelTableVO> listAll() {
         return list(new LambdaQueryWrapper<SecurityTableModelTable>()
-                        .eq(SecurityTableModelTable::getDeleted, false))
+                .eq(SecurityTableModelTable::getDeleted, false))
                 .stream()
                 .map(SecurityTableModelTable::toVo)
                 .toList();

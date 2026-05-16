@@ -115,10 +115,11 @@ public class AguiAgentAdapter {
 
         // Normal flow: convert AG-UI messages to AgentScope messages
         List<Msg> msgs = messageConverter.toMsgList(input.getMessages());
+
         //处理审批信息
         Flux<Event> startFlux = buildMsgFromApproval(approvalResult, msgs);
         //携带前端传递的额外参数
-        handlerForwardedProps(msgs ,input.getForwardedProps());
+        handlerForwardedProps(msgs, input.getForwardedProps());
 
         // Determine the event stream based on whether this is an approval resume
         Flux<Event> agentEvents;
@@ -152,15 +153,16 @@ public class AguiAgentAdapter {
 
     /**
      * 将额外传递的信息放到最后一条User消息中
+     *
      * @param msgs
      * @param forwardedProps
      */
-    private void handlerForwardedProps(List<Msg> msgs , Map<String, Object> forwardedProps){
-        if(CollectionUtils.isEmpty(msgs)) return;
+    private void handlerForwardedProps(List<Msg> msgs, Map<String, Object> forwardedProps) {
+        if (CollectionUtils.isEmpty(msgs)) return;
 
         for (int i = msgs.size() - 1; i >= 0; i--) {
             Msg msg = msgs.get(i);
-            if(MsgRole.USER == msg.getRole()){
+            if (MsgRole.USER == msg.getRole()) {
                 msg.getMetadata().put("forwardedProps", forwardedProps);
                 break;
             }

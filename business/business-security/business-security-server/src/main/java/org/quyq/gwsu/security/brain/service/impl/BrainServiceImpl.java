@@ -65,12 +65,13 @@ public class BrainServiceImpl implements IBrainService {
 
     private final ISecurityMenuService menuService;
 
+    private final WebTool webTool;
+
 
     public Agent buildAgent() {
         Memory memory = memoryProvider.getIfAvailable();
         Toolkit toolkit = toolkitProvider.getIfAvailable(Toolkit::new);
 
-        toolkit.registerTool(new WebTool(webToolUtils));
         toolkit.registerTool(new AskUserQuestionTool());
 
         // 构建包含当前用户菜单权限信息的技能
@@ -93,11 +94,14 @@ public class BrainServiceImpl implements IBrainService {
 
         AgentSkill userMenuSkill = AgentSkill.builder()
                 .name("user_menu_permissions")
-                .description("当需要了解用户拥有的功能权限、决定跳转哪个页面、判断用户能执行什么操作时，加载此技能查看用户的完整菜单和功能列表")
+                .description("当需要操作用户界面,了解用户拥有的功能权限、决定跳转哪个页面、判断用户能执行什么操作时，加载此技能查看用户的完整菜单和功能列表以及操作界面相关工具")
                 .skillContent(menuContent)
                 .build();
 
-        skillBox.registerSkill(userMenuSkill);
+        skillBox.registration()
+                .skill(userMenuSkill)
+                .tool(webTool)
+                .apply();
 
         return skillBox;
     }
@@ -200,9 +204,9 @@ public class BrainServiceImpl implements IBrainService {
 
     private ReActAgent getAgent(Memory memory, Toolkit toolkit, SkillBox skillBox) {
         //数据库智能查询智能体
-//        toolkit.registration()
-//                .subAgent(databaseSearchAgent::build, databaseSearchAgent.getSubAgentConfig())
-//                .apply();
+        toolkit.registration()
+                .subAgent(databaseSearchAgent::build, databaseSearchAgent.getSubAgentConfig())
+                .apply();
 
         return ReActAgent.builder()
                 .name("CentralBrain")

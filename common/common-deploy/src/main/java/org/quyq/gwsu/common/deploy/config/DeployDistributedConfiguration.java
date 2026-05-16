@@ -8,12 +8,15 @@ import org.quyq.gwsu.common.core.domain.BusinessModuleInfo;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.provider.BusinessModuleInfoProvider;
 import org.quyq.gwsu.common.core.utils.filter.ProcessorChain;
+import org.quyq.gwsu.common.deploy.controller.DistributedSqlExecutionController;
 import org.quyq.gwsu.common.deploy.domain.ApplicationModules;
 import org.quyq.gwsu.common.deploy.filter.DistributedGatewayProcessorFilter;
+import org.quyq.gwsu.common.security.service.ISQLExecutionService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
@@ -64,6 +67,18 @@ public class DeployDistributedConfiguration {
 
         return properties;
 
+    }
+
+    /**
+     * 微服务模式时，各服务添加执行sql接口
+     *
+     * @param sqlExecutionService
+     * @return
+     */
+    @Bean
+    @ConditionalOnMissingClass({"org.springframework.cloud.gateway.config.GatewayAutoConfiguration"})
+    public DistributedSqlExecutionController distributedSqlExecutionController(ISQLExecutionService sqlExecutionService) {
+        return new DistributedSqlExecutionController(sqlExecutionService);
     }
 
     @Configuration

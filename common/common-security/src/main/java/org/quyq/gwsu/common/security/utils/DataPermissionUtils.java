@@ -25,6 +25,7 @@ public class DataPermissionUtils {
 
     /**
      * 获取当前用户的数据权限信息
+     *
      * @return
      */
     public DataPermissionInfo getUserDataPermission() {
@@ -53,6 +54,7 @@ public class DataPermissionUtils {
 
     /**
      * 获取当前用户名
+     *
      * @return 当前用户名，未登录时返回 null
      */
     public String getCurrentUsername() {
