@@ -184,7 +184,7 @@ public class DatabaseSearchTool {
         StringBuilder dataStr = new StringBuilder("查询无数据");
         if (CollUtil.isNotEmpty(queryResult)) {
             // 4. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
-            desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.tableColumnMap());
+            desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.resultColumnMap());
 
             dataStr = new StringBuilder();
             // 表头
@@ -237,7 +237,7 @@ public class DatabaseSearchTool {
         try {
             Statement statement = CCJSqlParserUtil.parse(sql);
             if (!(statement instanceof Select select)) {
-                return new SqlParseResult("仅支持SELECT语句的权限校验", Map.of());
+                return new SqlParseResult("仅支持SELECT语句的权限校验", Map.of(), Map.of());
             }
 
             // 1. 提取SQL中的表名与别名映射
@@ -246,7 +246,12 @@ public class DatabaseSearchTool {
             collectTableInfo(select, aliasToTable, tableNames);
 
             if (tableNames.isEmpty()) {
-                return new SqlParseResult(null, Map.of());
+                return new SqlParseResult(null, Map.of(), Map.of());
+            }
+
+            // 校验是否包含 SELECT *
+            if (containsSelectAll(select)) {
+                return new SqlParseResult("禁止使用 SELECT * 查询，请明确指定需要查询的字段", Map.of(), Map.of());
             }
 
             // 2. 校验每个表：存在性 + 归属分组 + 表级权限
@@ -255,7 +260,7 @@ public class DatabaseSearchTool {
                 String key = modulePrefix + ":" + dataSource + ":" + tableName;
                 Map<String, FieldPermission> fieldPerms = userTableModelPermission.get(key);
                 if (Objects.isNull(fieldPerms)) {
-                    return new SqlParseResult("当前用户无权访问表 [" + tableName + "]", Map.of());
+                    return new SqlParseResult("当前用户无权访问表 [" + tableName + "]", Map.of(), Map.of());
                 }
             }
 
@@ -289,23 +294,36 @@ public class DatabaseSearchTool {
             }
 
             if (!deniedFields.isEmpty()) {
-                return new SqlParseResult("当前用户无权访问以下字段: " + String.join(", ", deniedFields), Map.of());
+                return new SqlParseResult("当前用户无权访问以下字段: " + String.join(", ", deniedFields), Map.of(), Map.of());
             }
 
-            return new SqlParseResult(null, tableColumnMap);
+            // 4. 构建 结果列名 -> 列来源 的映射（供脱敏使用）
+            Map<String, ColumnSource> resultColumnMap = buildResultColumnMap(select, aliasToTable, tableNames);
+
+            return new SqlParseResult(null, tableColumnMap, resultColumnMap);
         } catch (JSQLParserException e) {
             log.warn("SQL解析失败，无法校验权限: {}", sql, e);
-            return new SqlParseResult("SQL解析失败，无法校验权限", Map.of());
+            return new SqlParseResult("SQL解析失败，无法校验权限", Map.of(), Map.of());
         }
+    }
+
+    /**
+     * 结果列来源信息，用于脱敏时精确定位字段所属表
+     *
+     * @param tableName  字段所属的表名
+     * @param columnName 字段原始列名
+     */
+    private record ColumnSource(String tableName, String columnName) {
     }
 
     /**
      * SQL解析结果
      *
-     * @param error          错误信息，null表示校验通过
-     * @param tableColumnMap 表名 -> 列名集合 的映射
+     * @param error           错误信息，null表示校验通过
+     * @param tableColumnMap  表名 -> 列名集合 的映射（用于权限校验）
+     * @param resultColumnMap 结果列名 -> 列来源 的映射（用于脱敏处理）
      */
-    private record SqlParseResult(String error, Map<String, Set<String>> tableColumnMap) {
+    private record SqlParseResult(String error, Map<String, Set<String>> tableColumnMap, Map<String, ColumnSource> resultColumnMap) {
     }
 
     // ==================== SQL解析辅助方法 ====================
@@ -537,7 +555,70 @@ public class DatabaseSearchTool {
     }
 
     /**
-     * 执行SQL的具体实现（待实现）
+     * 检查SELECT语句中是否包含 SELECT * 或 SELECT t.*
+     */
+    private boolean containsSelectAll(Select select) {
+        if (select instanceof PlainSelect plainSelect) {
+            List<SelectItem<?>> items = plainSelect.getSelectItems();
+            if (items == null) return false;
+            for (SelectItem<?> item : items) {
+                Expression expr = item.getExpression();
+                if (expr instanceof AllColumns || expr instanceof AllTableColumns) {
+                    return true;
+                }
+            }
+        } else if (select instanceof SetOperationList setOp) {
+            for (Select body : setOp.getSelects()) {
+                if (containsSelectAll(body)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 从SELECT子句构建结果列名到列来源的映射
+     * 只处理SELECT子句中的简单列引用，用于脱敏时精确定位字段所属表
+     *
+     * @param select       SELECT语句
+     * @param aliasToTable 别名 -> 真实表名 的映射
+     * @param tableNames   所有表名
+     * @return 结果列名 -> 列来源 的映射
+     */
+    private Map<String, ColumnSource> buildResultColumnMap(Select select, Map<String, String> aliasToTable, Set<String> tableNames) {
+        Map<String, ColumnSource> result = new LinkedHashMap<>();
+
+        if (select instanceof PlainSelect plainSelect) {
+            List<SelectItem<?>> items = plainSelect.getSelectItems();
+            if (items == null) return result;
+
+            for (SelectItem<?> item : items) {
+                Expression expr = item.getExpression();
+                if (expr == null) continue;
+
+                if (expr instanceof Column col) {
+                    String colName = col.getColumnName();
+                    String tableAlias = col.getTable() != null ? col.getTable().getName() : null;
+                    String resolvedTableName = resolveTableName(tableAlias, aliasToTable, tableNames);
+                    if (resolvedTableName == null) continue;
+
+                    // 结果列名：有别名用别名，否则用列名
+                    String resultColName = item.getAlias() != null ? item.getAlias().getName() : colName;
+                    result.put(resultColName, new ColumnSource(resolvedTableName, colName));
+                }
+            }
+        } else if (select instanceof SetOperationList setOp) {
+            for (Select body : setOp.getSelects()) {
+                result.putAll(buildResultColumnMap(body, aliasToTable, tableNames));
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 执行SQL的具体实现
      *
      * @param modulePrefix 所属服务
      * @param dataSource   数据源
@@ -591,54 +672,41 @@ public class DatabaseSearchTool {
 
     /**
      * 根据字段脱敏配置对查询结果进行脱敏处理
-     * 基于SQL解析出的表名->列名映射精确定位每个字段所属的表，获取对应的脱敏配置
+     * 基于SQL解析出的结果列名->列来源映射，精确定位每个结果字段所属的表和原始列名，获取对应的脱敏配置
      *
      * @param queryResult              查询结果
      * @param userTableModelPermission 用户表模型权限
      * @param modulePrefix             所属服务
      * @param dataSource               数据源
-     * @param tableColumnMap           SQL解析出的 表名->列名集合 映射
+     * @param resultColumnMap          SQL解析出的 结果列名 -> 列来源 的映射
      * @return 已脱敏的字段名列表
      */
     private List<String> applyDesensitization(List<Map<String, Object>> queryResult,
                                               Map<String, Map<String, FieldPermission>> userTableModelPermission,
                                               String modulePrefix, String dataSource,
-                                              Map<String, Set<String>> tableColumnMap) {
-        if (CollectionUtils.isEmpty(queryResult) || tableColumnMap.isEmpty()) {
+                                              Map<String, ColumnSource> resultColumnMap) {
+        if (CollectionUtils.isEmpty(queryResult) || resultColumnMap.isEmpty()) {
             return Collections.emptyList();
-        }
-
-
-        Map<String, FieldPermission> fieldPermMap = new LinkedHashMap<>();
-        for (Map.Entry<String, Set<String>> entry : tableColumnMap.entrySet()) {
-            String tableName = entry.getKey();
-            Set<String> columnNames = entry.getValue();
-            String key = modulePrefix + ":" + dataSource + ":" + tableName;
-            Map<String, FieldPermission> tablePerms = userTableModelPermission.get(key);
-            if (tablePerms == null || tablePerms.isEmpty()) {
-                continue;
-            }
-            for (String colName : columnNames) {
-                FieldPermission perm = tablePerms.get(colName);
-                if (perm == null) {
-                    continue;
-                }
-                FieldPermission existing = fieldPermMap.get(colName);
-                if (existing == null) {
-                    fieldPermMap.put(colName, perm);
-                } else if (perm.desensitize() && !existing.desensitize()) {
-                    // 如果当前表的该字段要求脱敏而之前的没有，使用脱敏配置
-                    fieldPermMap.put(colName, perm);
-                }
-            }
         }
 
         List<String> desensitizedFields = new ArrayList<>();
 
         for (Map<String, Object> row : queryResult) {
             for (Map.Entry<String, Object> field : row.entrySet()) {
-                String fieldName = field.getKey();
-                FieldPermission perm = fieldPermMap.get(fieldName);
+                String resultColName = field.getKey();
+                ColumnSource source = resultColumnMap.get(resultColName);
+                if (source == null) {
+                    continue;
+                }
+
+                // 根据来源表和原始列名精确查找脱敏配置
+                String key = modulePrefix + ":" + dataSource + ":" + source.tableName();
+                Map<String, FieldPermission> tablePerms = userTableModelPermission.get(key);
+                if (tablePerms == null) {
+                    continue;
+                }
+
+                FieldPermission perm = tablePerms.get(source.columnName());
                 if (perm == null || !perm.desensitize()) {
                     continue;
                 }
@@ -651,8 +719,8 @@ public class DatabaseSearchTool {
                 String desensitized = desensitize(value.toString(), perm);
                 field.setValue(desensitized);
 
-                if (!desensitizedFields.contains(fieldName)) {
-                    desensitizedFields.add(fieldName);
+                if (!desensitizedFields.contains(resultColName)) {
+                    desensitizedFields.add(resultColName);
                 }
             }
         }
