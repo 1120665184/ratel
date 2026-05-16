@@ -171,7 +171,7 @@ public class DatabaseSearchTool {
             return "权限校验失败: " + parseResult.error();
         }
 
-        // 4. 执行SQL
+        // 3. 执行SQL
         SqlQueryVO result = doExecuteSql(modulePrefix, dataSource, sql);
         if (Objects.isNull(result)) {
             return "执行失败";
@@ -183,7 +183,7 @@ public class DatabaseSearchTool {
 
         StringBuilder dataStr = new StringBuilder("查询无数据");
         if (CollUtil.isNotEmpty(queryResult)) {
-            // 5. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
+            // 4. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
             desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.tableColumnMap());
 
             dataStr = new StringBuilder();
@@ -501,7 +501,7 @@ public class DatabaseSearchTool {
         // NOT 表达式
         if (expr instanceof NotExpression not) {
             collectColumnsFromExpression(not.getExpression(), columns);
-            return;
+
         }
     }
 
@@ -545,7 +545,6 @@ public class DatabaseSearchTool {
      * @return 查询结果列表，每行是一个 字段名->值 的Map
      */
     private SqlQueryVO doExecuteSql(String modulePrefix, String dataSource, String sql) {
-        log.info("执行SQL: modulePrefix={}, dataSource={}, sql={}", modulePrefix, dataSource, sql);
 
         if (DeployUtils.isSingle()) {
             return SpringUtils.getBean(ISQLExecutionService.class).query(dataSource, sql, null);
@@ -560,13 +559,33 @@ public class DatabaseSearchTool {
                 .baseUrl("http://%s".formatted(serviceName))
                 .build();
 
-        return FeignUtils.data(resultClient.post()
+        DistributedSqlQueryVO v = FeignUtils.data(resultClient.post()
                 .uri(CoreConstants.EndPoint.ENDPOINT_DB_EXECUTION)
                 .body(Map.of("datasource", dataSource,
                         "sql", sql))
                 .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                }));
+                .body(new ParameterizedTypeReference<>() {}));
+
+        return new SqlQueryVO(v.executionSql ,v.transformationData());
+    }
+
+    //专门用于解析分布式部署时的结果，使用LinkedHashMap接收
+     private record DistributedSqlQueryVO(
+            String executionSql ,
+            List<LinkedHashMap<String, Object>> data
+    ){
+
+        public List<Map<String, Object>> transformationData(){
+            if(CollectionUtils.isEmpty(data)){
+                return Collections.emptyList();
+            }
+
+            return data.stream()
+                    .map(v ->(Map<String , Object>)v)
+                    .toList();
+
+        }
+
     }
 
 

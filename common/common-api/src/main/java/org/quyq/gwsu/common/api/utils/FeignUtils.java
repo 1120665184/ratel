@@ -18,13 +18,14 @@ public class FeignUtils {
 
     /**
      * 获取微服务接口返回数据对象
+     *
      * @param r
-     * @return
      * @param <T>
+     * @return
      */
     public static <T> T data(R<T> r) {
         if (Objects.isNull(r)) {
-            return null;
+            throw new NullPointerException("r is null");
         }
         if (r.isSuccess()) {
             return r.data();
