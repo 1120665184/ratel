@@ -21,7 +21,7 @@ CREATE TABLE security_menu
     status      SMALLINT    NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-正常',
     permission  VARCHAR(100)         DEFAULT NULL COMMENT '权限标识',
     button_key  VARCHAR(100)         DEFAULT NULL COMMENT '按钮标识，格式：菜单ID_标识，用于前端按钮显示控制',
-    description VARCHAR(1024)         DEFAULT NULL COMMENT '功能描述，用于AI提示词构建',
+    description VARCHAR(1024)        DEFAULT NULL COMMENT '功能描述，用于AI提示词构建',
     position    INT                  DEFAULT NULL COMMENT '菜单位置类型：1-侧边栏 2-顶部栏',
     owner       INT                  DEFAULT NULL COMMENT '菜单所属类型：1-后端管理 2-移动端APP',
     tenant_id   VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
@@ -148,7 +148,7 @@ CREATE TABLE security_abac
 CREATE TABLE security_abac_permission
 (
     id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    abac_id       VARCHAR(24)       NOT NULL COMMENT '表达式ID',
+    abac_id       VARCHAR(24)  NOT NULL COMMENT '表达式ID',
     resource_type VARCHAR(50)  NOT NULL COMMENT '资源类型',
     action        VARCHAR(50)  NOT NULL COMMENT '操作',
     url_pattern   VARCHAR(500) NOT NULL COMMENT 'URL模式',
@@ -176,7 +176,7 @@ CREATE TABLE security_abac_permission
 CREATE TABLE security_abac_field
 (
     id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    abac_id       VARCHAR(24)       NOT NULL COMMENT '表达式ID',
+    abac_id       VARCHAR(24)  NOT NULL COMMENT '表达式ID',
     resource_type VARCHAR(50)  NOT NULL COMMENT '资源类型',
     action        VARCHAR(50)  NOT NULL COMMENT '操作',
     url_pattern   VARCHAR(500) NOT NULL COMMENT 'URL',
@@ -236,21 +236,21 @@ CREATE TABLE security_api_resource
 -- =============================================
 CREATE TABLE security_data_resource
 (
-    id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    database_name VARCHAR(100)          DEFAULT NULL COMMENT '库名，为空时匹配所有库',
-    table_name    VARCHAR(100) NOT NULL COMMENT '表名',
-    description     VARCHAR(200)          DEFAULT NULL COMMENT '规则描述',
-    support_self_only TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否支持SELF_ONLY过滤：0-不支持 1-支持',
+    id                VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    database_name     VARCHAR(100)          DEFAULT NULL COMMENT '库名，为空时匹配所有库',
+    table_name        VARCHAR(100) NOT NULL COMMENT '表名',
+    description       VARCHAR(200)          DEFAULT NULL COMMENT '规则描述',
+    support_self_only TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否支持SELF_ONLY过滤：0-不支持 1-支持',
     self_only_field   VARCHAR(100)          DEFAULT NULL COMMENT 'SELF_ONLY过滤时使用的字段名，即目标表中记录创建人的字段',
-    status          TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '启用状态：0-禁用 1-启用',
-    tenant_id       VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
-    create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
-    create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    modify_op     VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
-    modify_time   DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    deleted       TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
-    delete_op     VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
-    delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间',
+    status            TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '启用状态：0-禁用 1-启用',
+    tenant_id         VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op         VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time       DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op         VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time       DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted           TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op         VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time       DATETIME              DEFAULT NULL COMMENT '删除时间',
     INDEX idx_table_name (table_name),
     INDEX idx_database_name (database_name)
 ) ENGINE = InnoDB
@@ -264,7 +264,7 @@ CREATE TABLE security_data_resource
 CREATE TABLE security_data_resource_condition
 (
     id                   VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    data_resource_id     VARCHAR(24)       NOT NULL COMMENT '数据资源配置ID',
+    data_resource_id     VARCHAR(24)  NOT NULL COMMENT '数据资源配置ID',
     field_name           VARCHAR(100) NOT NULL COMMENT '字段名',
     show_null            TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '显示过滤字段为null的数据：0-不显示 1-显示',
     user_resource_fields VARCHAR(500)          DEFAULT NULL COMMENT '关联的用户数据资源字段，多个用逗号分隔',
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS security_brain_sessions
     `state_key`  VARCHAR(255) NOT NULL COMMENT '状态键名，普通状态直接存储，列表状态会附加 ":_hash" 后缀用于存储哈希值',
     `item_index` INT          NOT NULL DEFAULT 0 COMMENT '列表项索引，普通状态固定为 0，列表状态从 0 开始递增',
     `state_data` LONGTEXT     NOT NULL COMMENT '序列化后的状态数据，JSON 格式',
-    `user_id`    VARCHAR(24)       DEFAULT NULL COMMENT '关联的用户ID',
+    `user_id`    VARCHAR(24)           DEFAULT NULL COMMENT '关联的用户ID',
     `created_at` DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间，自动生成',
     `updated_at` DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录最后更新时间，自动更新',
     PRIMARY KEY (`session_id`, `state_key`, `item_index`)
@@ -307,18 +307,18 @@ CREATE TABLE IF NOT EXISTS security_brain_sessions
 -- =============================================
 CREATE TABLE security_role_menu_permission
 (
-    id                  VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    role_menu_id        VARCHAR(24) NOT NULL COMMENT '角色菜单关联ID，关联security_role_menu表',
-    abac_permission_id  VARCHAR(24) NOT NULL COMMENT 'ABAC接口权限ID，关联security_abac_permission表',
-    api_id      VARCHAR(64)         NOT NULL COMMENT '接口资源ID，关联security_api_resource表',
-    tenant_id   VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
-    create_op   VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
-    create_time DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    modify_op   VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
-    modify_time DATETIME             DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    deleted     SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
-    delete_op   VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
-    delete_time DATETIME             DEFAULT NULL COMMENT '删除时间',
+    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    role_menu_id       VARCHAR(24) NOT NULL COMMENT '角色菜单关联ID，关联security_role_menu表',
+    abac_permission_id VARCHAR(24) NOT NULL COMMENT 'ABAC接口权限ID，关联security_abac_permission表',
+    api_id             VARCHAR(64) NOT NULL COMMENT '接口资源ID，关联security_api_resource表',
+    tenant_id          VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME             DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted            SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op          VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME             DEFAULT NULL COMMENT '删除时间',
     INDEX idx_role_menu_id (role_menu_id),
     INDEX idx_abac_permission_id (abac_permission_id)
 ) ENGINE = InnoDB
@@ -359,23 +359,18 @@ CREATE TABLE security_api_table_model
 -- =============================================
 CREATE TABLE security_api_table_model_config
 (
-    id             VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
-    table_model_id VARCHAR(64)  DEFAULT NULL COMMENT '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型',
-    table_name     VARCHAR(100) NOT NULL COMMENT '表模型名称',
-    module_prefix  VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '模块前缀',
-    datasource     VARCHAR(50)  NOT NULL COMMENT '数据源名称',
-    description    VARCHAR(200) DEFAULT NULL COMMENT '配置说明',
-    tenant_id      VARCHAR(50)  DEFAULT NULL COMMENT '租户ID',
-    create_op      VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
-    create_time    DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    modify_op      VARCHAR(50)  DEFAULT NULL COMMENT '修改人',
-    modify_time    DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    deleted        SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
-    delete_op      VARCHAR(50)  DEFAULT NULL COMMENT '删除人',
-    delete_time    DATETIME              DEFAULT NULL COMMENT '删除时间',
-    INDEX idx_table_model_id (table_model_id),
-    INDEX idx_table_name (table_name),
-    INDEX idx_module_prefix (module_prefix)
+    id             VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    table_model_id VARCHAR(64)          DEFAULT NULL COMMENT '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型',
+    datasource     VARCHAR(50) NOT NULL COMMENT '数据源名称',
+    tenant_id      VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op      VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time    DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op      VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time    DATETIME             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted        SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op      VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time    DATETIME             DEFAULT NULL COMMENT '删除时间',
+    INDEX idx_table_model_id (table_model_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT = '表模型手动配置表（持久化，启动不覆盖）';

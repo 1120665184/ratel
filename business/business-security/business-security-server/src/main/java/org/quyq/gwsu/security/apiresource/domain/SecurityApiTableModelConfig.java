@@ -27,26 +27,15 @@ public class SecurityApiTableModelConfig extends BaseDO {
     @Schema(description = "关联的接口-表模型绑定ID")
     private String tableModelId;
 
-    @Schema(description = "表名")
-    private String tableName;
-
-    @Schema(description = "模块前缀")
-    private String modulePrefix;
-
     @Schema(description = "数据源名称")
     private String datasource;
 
-    @Schema(description = "配置说明")
-    private String description;
 
     public TableModelConfigVO toVo() {
         TableModelConfigVO vo = new TableModelConfigVO();
         vo.setId(this.id);
         vo.setTableModelId(this.tableModelId);
-        vo.setTableName(this.tableName);
-        vo.setModulePrefix(this.modulePrefix);
         vo.setDatasource(this.datasource);
-        vo.setDescription(this.description);
         vo.copyBaseProperties(this);
         return vo;
     }

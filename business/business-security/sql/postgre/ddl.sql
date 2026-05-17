@@ -10,7 +10,7 @@
 CREATE TABLE security_menu
 (
     id          VARCHAR(24) PRIMARY KEY,
-    parent_id   VARCHAR(24)               DEFAULT NULL,
+    parent_id   VARCHAR(24)          DEFAULT NULL,
     menu_name   VARCHAR(50) NOT NULL,
     menu_type   SMALLINT    NOT NULL DEFAULT 1,
     sort        INT         NOT NULL DEFAULT 0,
@@ -23,7 +23,7 @@ CREATE TABLE security_menu
     position    INT                  DEFAULT NULL,
     owner       INT                  DEFAULT NULL,
     button_key  VARCHAR(100)         DEFAULT NULL,
-    description VARCHAR(1024)         DEFAULT NULL,
+    description VARCHAR(1024)        DEFAULT NULL,
     tenant_id   VARCHAR(50)          DEFAULT NULL,
     create_op   VARCHAR(50)          DEFAULT NULL,
     create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
@@ -163,16 +163,16 @@ CREATE TABLE security_role_menu
     valid_end        TIMESTAMP            DEFAULT NULL,
     cycle_type       INT2                 DEFAULT NULL,
     cycle_value      VARCHAR(100)         DEFAULT NULL,
-    cycle_start_time VARCHAR(10)           DEFAULT NULL,
-    cycle_end_time   VARCHAR(10)           DEFAULT NULL,
-    tenant_id   VARCHAR(50)          DEFAULT NULL,
-    create_op   VARCHAR(50)          DEFAULT NULL,
-    create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
-    modify_op   VARCHAR(50)          DEFAULT NULL,
-    modify_time TIMESTAMP            DEFAULT NULL,
-    deleted     INT2        NOT NULL DEFAULT 0,
-    delete_op   VARCHAR(50)          DEFAULT NULL,
-    delete_time TIMESTAMP            DEFAULT NULL
+    cycle_start_time VARCHAR(10)          DEFAULT NULL,
+    cycle_end_time   VARCHAR(10)          DEFAULT NULL,
+    tenant_id        VARCHAR(50)          DEFAULT NULL,
+    create_op        VARCHAR(50)          DEFAULT NULL,
+    create_time      TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    modify_op        VARCHAR(50)          DEFAULT NULL,
+    modify_time      TIMESTAMP            DEFAULT NULL,
+    deleted          INT2        NOT NULL DEFAULT 0,
+    delete_op        VARCHAR(50)          DEFAULT NULL,
+    delete_time      TIMESTAMP            DEFAULT NULL
 );
 
 -- 表和字段注释
@@ -245,7 +245,7 @@ CREATE INDEX idx_security_abac_expression ON security_abac (expression);
 CREATE TABLE security_abac_permission
 (
     id            VARCHAR(24) PRIMARY KEY,
-    abac_id       VARCHAR(24)       NOT NULL,
+    abac_id       VARCHAR(24)  NOT NULL,
     resource_type VARCHAR(50)  NOT NULL,
     action        VARCHAR(50)  NOT NULL,
     url_pattern   VARCHAR(500) NOT NULL,
@@ -291,7 +291,7 @@ CREATE INDEX idx_security_abac_permission_url_pattern ON security_abac_permissio
 CREATE TABLE security_abac_field
 (
     id            VARCHAR(24) PRIMARY KEY,
-    abac_id       VARCHAR(24)       NOT NULL,
+    abac_id       VARCHAR(24)  NOT NULL,
     resource_type VARCHAR(50)  NOT NULL,
     action        VARCHAR(50)  NOT NULL,
     url_pattern   VARCHAR(500) NOT NULL,
@@ -392,21 +392,21 @@ CREATE INDEX idx_security_api_resource_tag_name ON security_api_resource (tag_na
 -- =============================================
 CREATE TABLE security_data_resource
 (
-    id            VARCHAR(24) PRIMARY KEY,
-    database_name VARCHAR(100)          DEFAULT NULL,
-    table_name      VARCHAR(100) NOT NULL,
-    description     VARCHAR(200)          DEFAULT NULL,
+    id                VARCHAR(24) PRIMARY KEY,
+    database_name     VARCHAR(100)          DEFAULT NULL,
+    table_name        VARCHAR(100) NOT NULL,
+    description       VARCHAR(200)          DEFAULT NULL,
     support_self_only INT2         NOT NULL DEFAULT 0,
     self_only_field   VARCHAR(100)          DEFAULT NULL,
-    status          INT2         NOT NULL DEFAULT 1,
-    tenant_id     VARCHAR(50)           DEFAULT NULL,
-    create_op     VARCHAR(50)           DEFAULT NULL,
-    create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    modify_op     VARCHAR(50)           DEFAULT NULL,
-    modify_time   TIMESTAMP             DEFAULT NULL,
-    deleted       INT2         NOT NULL DEFAULT 0,
-    delete_op     VARCHAR(50)           DEFAULT NULL,
-    delete_time   TIMESTAMP             DEFAULT NULL
+    status            INT2         NOT NULL DEFAULT 1,
+    tenant_id         VARCHAR(50)           DEFAULT NULL,
+    create_op         VARCHAR(50)           DEFAULT NULL,
+    create_time       TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op         VARCHAR(50)           DEFAULT NULL,
+    modify_time       TIMESTAMP             DEFAULT NULL,
+    deleted           INT2         NOT NULL DEFAULT 0,
+    delete_op         VARCHAR(50)           DEFAULT NULL,
+    delete_time       TIMESTAMP             DEFAULT NULL
 );
 
 -- 表和字段注释
@@ -438,7 +438,7 @@ CREATE INDEX idx_security_data_resource_database_name ON security_data_resource 
 CREATE TABLE security_data_resource_condition
 (
     id                   VARCHAR(24) PRIMARY KEY,
-    data_resource_id     VARCHAR(24)       NOT NULL,
+    data_resource_id     VARCHAR(24)  NOT NULL,
     field_name           VARCHAR(100) NOT NULL,
     show_null            INT2         NOT NULL DEFAULT 0,
     user_resource_fields VARCHAR(500)          DEFAULT NULL,
@@ -488,7 +488,7 @@ CREATE TABLE security_brain_sessions
     state_key  VARCHAR(255) NOT NULL,
     item_index INT          NOT NULL DEFAULT 0,
     state_data TEXT         NOT NULL,
-    user_id    VARCHAR(24)       DEFAULT NULL,
+    user_id    VARCHAR(24)           DEFAULT NULL,
     created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (session_id, state_key, item_index)
@@ -512,18 +512,18 @@ COMMENT ON COLUMN security_brain_sessions.updated_at IS '记录最后更新时�
 -- =============================================
 CREATE TABLE security_role_menu_permission
 (
-    id                  VARCHAR(24) PRIMARY KEY,
-    role_menu_id        VARCHAR(24) NOT NULL,
-    abac_permission_id  VARCHAR(24) NOT NULL,
-    api_id              VARCHAR(64) NOT NULL ,
-    tenant_id   VARCHAR(50)          DEFAULT NULL,
-    create_op   VARCHAR(50)          DEFAULT NULL,
-    create_time TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
-    modify_op   VARCHAR(50)          DEFAULT NULL,
-    modify_time TIMESTAMP            DEFAULT NULL,
-    deleted     INT2        NOT NULL DEFAULT 0,
-    delete_op   VARCHAR(50)          DEFAULT NULL,
-    delete_time TIMESTAMP            DEFAULT NULL
+    id                 VARCHAR(24) PRIMARY KEY,
+    role_menu_id       VARCHAR(24) NOT NULL,
+    abac_permission_id VARCHAR(24) NOT NULL,
+    api_id             VARCHAR(64) NOT NULL,
+    tenant_id          VARCHAR(50)          DEFAULT NULL,
+    create_op          VARCHAR(50)          DEFAULT NULL,
+    create_time        TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    modify_op          VARCHAR(50)          DEFAULT NULL,
+    modify_time        TIMESTAMP            DEFAULT NULL,
+    deleted            INT2        NOT NULL DEFAULT 0,
+    delete_op          VARCHAR(50)          DEFAULT NULL,
+    delete_time        TIMESTAMP            DEFAULT NULL
 );
 
 -- 表和字段注释
@@ -596,30 +596,24 @@ CREATE INDEX idx_security_api_table_model_module_datasource_table ON security_ap
 -- =============================================
 CREATE TABLE security_api_table_model_config
 (
-    id             VARCHAR(24)  PRIMARY KEY,
-    table_model_id VARCHAR(64)  DEFAULT NULL,
-    table_name     VARCHAR(100) NOT NULL,
-    module_prefix  VARCHAR(50)  NOT NULL DEFAULT '',
-    datasource     VARCHAR(50)  NOT NULL,
-    description    VARCHAR(200) DEFAULT NULL,
-    tenant_id      VARCHAR(50)  DEFAULT NULL,
-    create_op      VARCHAR(50)  DEFAULT NULL,
-    create_time    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    modify_op      VARCHAR(50)  DEFAULT NULL,
-    modify_time    TIMESTAMP             DEFAULT NULL,
-    deleted        INT2         NOT NULL DEFAULT 0,
-    delete_op      VARCHAR(50)  DEFAULT NULL,
-    delete_time    TIMESTAMP             DEFAULT NULL
+    id             VARCHAR(24) PRIMARY KEY,
+    table_model_id VARCHAR(64)          DEFAULT NULL,
+    datasource     VARCHAR(50) NOT NULL,
+    tenant_id      VARCHAR(50)          DEFAULT NULL,
+    create_op      VARCHAR(50)          DEFAULT NULL,
+    create_time    TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    modify_op      VARCHAR(50)          DEFAULT NULL,
+    modify_time    TIMESTAMP            DEFAULT NULL,
+    deleted        INT2        NOT NULL DEFAULT 0,
+    delete_op      VARCHAR(50)          DEFAULT NULL,
+    delete_time    TIMESTAMP            DEFAULT NULL
 );
 
 -- 表和字段注释
 COMMENT ON TABLE security_api_table_model_config IS '表模型手动配置表（持久化，启动不覆盖）';
 COMMENT ON COLUMN security_api_table_model_config.id IS '主键ID';
 COMMENT ON COLUMN security_api_table_model_config.table_model_id IS '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型';
-COMMENT ON COLUMN security_api_table_model_config.table_name IS '表模型名称';
-COMMENT ON COLUMN security_api_table_model_config.module_prefix IS '模块前缀';
 COMMENT ON COLUMN security_api_table_model_config.datasource IS '数据源名称';
-COMMENT ON COLUMN security_api_table_model_config.description IS '配置说明';
 COMMENT ON COLUMN security_api_table_model_config.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_api_table_model_config.create_op IS '创建人';
 COMMENT ON COLUMN security_api_table_model_config.create_time IS '创建时间';
@@ -631,8 +625,6 @@ COMMENT ON COLUMN security_api_table_model_config.delete_time IS '删除时间';
 
 -- 索引
 CREATE INDEX idx_security_api_table_model_config_table_model_id ON security_api_table_model_config (table_model_id);
-CREATE INDEX idx_security_api_table_model_config_table_name ON security_api_table_model_config (table_name);
-CREATE INDEX idx_security_api_table_model_config_module_prefix ON security_api_table_model_config (module_prefix);
 
 -- =============================================
 -- 表名：security_role_table_model
