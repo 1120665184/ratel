@@ -13,6 +13,7 @@ import { getDeptDetail } from '@/services/dept';
 import type { DeptTreeNode, DeptDetail } from '../../types';
 import { useDeptTree } from '../../hooks/useDeptTree';
 import {AuthGate} from '@gwsu/core'
+import { PERM_ADD } from '../../permissionConstants';
 
 interface DeptTreePanelProps {
   treeData: DeptTreeNode[];
@@ -60,7 +61,7 @@ const DeptTreePanel: React.FC<DeptTreePanelProps> = ({
             {node.name}
           </span>
           <div className={styles.nodeActions}>
-            <AuthGate buttonKey="22_add">
+            <AuthGate buttonKey={PERM_ADD}>
               <Button
                 type="text"
                 size="small"

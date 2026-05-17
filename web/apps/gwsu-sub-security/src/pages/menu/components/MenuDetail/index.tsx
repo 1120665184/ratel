@@ -14,6 +14,7 @@ import type { MenuTreeNode, ButtonItem, MenuSaveRequest } from '../../types';
 import ApiResourcePicker from '../ApiResourcePicker';
 import ButtonFormModal from '../ButtonFormModal';
 import {AuthGate} from '@gwsu/core'
+import { PERM_EDIT, PERM_REMOVE, PERM_ADD_BUTTON, PERM_EDIT_BUTTON, PERM_REMOVE_BUTTON } from '../../permissionConstants';
 
 const METHOD_COLORS: Record<string, string> = {
   GET: 'green',
@@ -177,7 +178,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       width: 120,
       render: (_: unknown, record: ButtonItem) => (
         <>
-          <AuthGate buttonKey="6_edit_button">
+          <AuthGate buttonKey={PERM_EDIT_BUTTON}>
             <Button
               type="link"
               size="small"
@@ -189,7 +190,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
               编辑
             </Button>
           </AuthGate>
-          <AuthGate buttonKey="6_remove_button">
+          <AuthGate buttonKey={PERM_REMOVE_BUTTON}>
             <Popconfirm
               title="确定删除此按钮？"
               onConfirm={() => handleDeleteButton(record)}
@@ -211,12 +212,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <div className={styles.sectionHeader}>
           <span className={styles.sectionTitle}>基本信息</span>
           <div style={{ display: "flex", gap: 8 }}>
-            <AuthGate buttonKey="6_edit">
+            <AuthGate buttonKey={PERM_EDIT}>
               <Button icon={<EditOutlined />} onClick={() => onEdit(menu)}>
                 编辑
               </Button>
             </AuthGate>
-            <AuthGate buttonKey="6_remove">
+            <AuthGate buttonKey={PERM_REMOVE}>
               <Popconfirm
                 title="确定删除此菜单？删除后不可恢复"
                 onConfirm={handleDeleteMenu}
@@ -285,7 +286,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>界面接口权限</span>
-            <AuthGate buttonKey="6_edit">
+            <AuthGate buttonKey={PERM_EDIT}>
               <Button
                 icon={<SelectOutlined />}
                 onClick={() => setPickerVisible(true)}
@@ -311,7 +312,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>按钮管理</span>
-            <AuthGate buttonKey="6_add_button">
+            <AuthGate buttonKey={PERM_ADD_BUTTON}>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

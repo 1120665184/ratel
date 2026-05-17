@@ -35,6 +35,11 @@ import { useRole } from "./hooks/useRole";
 import type { RoleInfo, RoleQuery, EnumOption } from "./types";
 import { getRoleTypeOptions, getDataScopeOptions } from "./services/role";
 import {AuthGate , useAuth} from '@gwsu/core'
+import {
+  PERM_ADD, PERM_REMOVE, PERM_EDIT,
+  PERM_ASSOCIATION_USER, PERM_MENU_PERMISSION,
+  PERM_FIELD_PERMISSION, PERM_TABLE_MODEL_PERMISSION,
+} from './permissionConstants';
 
 const STATUS_OPTIONS = [
   { label: "启用", value: true },
@@ -56,11 +61,11 @@ const RolePage: React.FC = () => {
     handleToggleStatus,
   } = useRole();
 
-  const canEdit = useAuth("5_edit");
-  const canAssociationUser = useAuth("5_association_user");
-  const canMenuPermission = useAuth("5_menu_permission");
-  const canFieldPermission = useAuth("5_field_permission");
-  const canTableModelPermission = useAuth("5_table_model_permission");
+  const canEdit = useAuth(PERM_EDIT);
+  const canAssociationUser = useAuth(PERM_ASSOCIATION_USER);
+  const canMenuPermission = useAuth(PERM_MENU_PERMISSION);
+  const canFieldPermission = useAuth(PERM_FIELD_PERMISSION);
+  const canTableModelPermission = useAuth(PERM_TABLE_MODEL_PERMISSION);
 
   const [searchForm] = Form.useForm<RoleQuery>();
 
@@ -280,7 +285,7 @@ const RolePage: React.FC = () => {
       width: 120,
       render: (val: boolean, record: RoleInfo) => (
         <Space>
-          <AuthGate buttonKey="5_edit">
+          <AuthGate buttonKey={PERM_EDIT}>
             <Switch
               size="small"
               checked={val}
@@ -396,7 +401,7 @@ const RolePage: React.FC = () => {
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>角色列表</span>
           <Space>
-            <AuthGate buttonKey="5_add">
+            <AuthGate buttonKey={PERM_ADD}>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -405,7 +410,7 @@ const RolePage: React.FC = () => {
                 新增角色
               </Button>
             </AuthGate>
-            <AuthGate buttonKey="5_remove">
+            <AuthGate buttonKey={PERM_REMOVE}>
               <Popconfirm
                 title="批量删除"
                 description={`确定删除选中的 ${selectedRowKeys.length} 个角色？`}

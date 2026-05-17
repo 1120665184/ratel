@@ -32,6 +32,7 @@ type: skill
 | [05-core-library.md](reference/05-core-library.md) | @gwsu/core 共享库完整指南 | 使用共享组件、主题、工具函数 |
 | [06-state-and-events.md](reference/06-state-and-events.md) | 状态管理（Zustand）、事件系统 | 使用/创建 Store、跨组件通信 |
 | [07-checklist.md](reference/07-checklist.md) | 开发检查清单 | 新建子应用/页面/组件后的自查 |
+| [08-list-page-pattern.md](reference/08-list-page-pattern.md) | 列表页开发模式、操作列规范、按钮权限、data-ai-approval | 开发列表页、表格操作列 |
 
 ## 快速参考
 
@@ -66,23 +67,72 @@ import { EventType, emitEvent, onEvent } from '@gwsu/core';
 
 ### 按钮权限控制
 
-根据 `buttonKey` 控制按钮/内容是否渲染，数据来自后端 `/menu/routes/{owner}` 接口返回的 `menuType=3` 节点：
+根据 `buttonKey` 控制按钮/内容是否渲染，数据来自后端 `/menu/routes/{owner}` 接口返回的 `menuType=3` 节点。
+
+**权限标识必须定义为常量**，放在 `permissionConstants.ts` 中，禁止硬编码字符串：
+
+```typescript
+// permissionConstants.ts
+export const PERM_ADD = '72974723_add';
+export const PERM_REMOVE = '72974723_remove';
+export const PERM_EDIT = '72974723_edit';
+```
 
 ```tsx
+import { PERM_ADD, PERM_REMOVE, PERM_EDIT } from './permissionConstants';
+
 // AuthGate 组件（推荐）
-<AuthGate buttonKey="101_add">
+<AuthGate buttonKey={PERM_ADD}>
   <Button type="primary">新增</Button>
 </AuthGate>
 
 // useAuth hook
-const canDelete = useAuth('101_delete');
-{canDelete && <Button danger>删除</Button>}
+const canEdit = useAuth(PERM_EDIT);
+{canEdit && <Button danger>编辑</Button>}
 
 // 无权限时显示替代内容
-<AuthGate buttonKey="101_edit" fallback={<Button disabled>编辑</Button>}>
+<AuthGate buttonKey={PERM_EDIT} fallback={<Button disabled>编辑</Button>}>
   <Button type="link">编辑</Button>
 </AuthGate>
 ```
+
+### 列表页操作列模式
+
+操作列统一采用 **"详情" + "更多"下拉菜单** 模式，固定在右侧（`fixed: "right"`）：
+
+```tsx
+// 表格头部按钮：用 AuthGate 控制权限
+<AuthGate buttonKey="xxx_add">
+  <Button type="primary" icon={<PlusOutlined />}>新增</Button>
+</AuthGate>
+
+// 操作列下拉菜单：用 useAuth 控制菜单项
+const canEdit = useAuth('xxx_edit');
+const getButtonItem = (record): MenuProps['items'] => {
+  const buttons = [];
+  if (canEdit) buttons.push({ key: 'edit', icon: <EditOutlined />, label: '编辑', onClick: () => handleEdit(record) });
+  return buttons;
+};
+
+// 操作列渲染
+<div className={styles.actionColumn}>
+  <Button type="link" size="small" icon={<EyeOutlined />}>详情</Button>
+  <Dropdown menu={{ items: getButtonItem(record) }} disabled={getButtonItem(record).length === 0}>
+    <Button type="link" size="small" icon={<MoreOutlined />}>更多</Button>
+  </Dropdown>
+</div>
+```
+
+### data-ai-approval 判断标准
+
+**核心标准**：按钮点击后是否立即触发后端数据变更。需要则加，不需要则不加。
+
+| 需要 | 不需要 |
+|------|--------|
+| 删除、批量删除 | 新增（仅打开空表单） |
+| 状态 Switch 切换 | 详情、查看 |
+| 同步到 Redis | 编辑（仅打开编辑弹窗） |
+| 保存/提交 | 搜索、筛选、翻页 |
 
 ### 子应用布局模板
 

@@ -4,6 +4,7 @@ import { GENDER_MAP } from '../../types';
 import type { SysUserDetailVO } from '../../types';
 import { saveOrUpdateUser } from '@/services/user';
 import { AuthGate } from "@gwsu/core";
+import { PERM_EDIT } from '../../permissionConstants';
 
 interface BasicInfoSectionProps {
   user: SysUserDetailVO;
@@ -108,7 +109,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, re
       >
         <span style={{ fontSize: 13, fontWeight: 600 }}>基本信息</span>
         {!readOnly && (
-          <AuthGate buttonKey="4_edit">
+          <AuthGate buttonKey={PERM_EDIT}>
             <a onClick={handleEdit}>编辑</a>
           </AuthGate>
         )}

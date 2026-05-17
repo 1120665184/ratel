@@ -12,6 +12,7 @@ import type { SysUserDeptVO } from "../../types";
 import type { DeptTreeNode } from "../../../dept/types";
 import { setUserDept, setPrimaryDept, removeUserDept } from "@/services/dept";
 import { AuthGate } from "@gwsu/core";
+import { PERM_EDIT } from '../../permissionConstants';
 
 interface DeptAssignSectionProps {
   userId: string;
@@ -122,7 +123,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
       >
         <span style={{ fontSize: 13, fontWeight: 600 }}>部门关联</span>
         {!readOnly && (
-          <AuthGate buttonKey="4_edit">
+          <AuthGate buttonKey={PERM_EDIT}>
             <a onClick={() => setShowTree(!showTree)}>
               {showTree ? "收起" : "+ 添加部门"}
             </a>
@@ -176,7 +177,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {!readOnly && !dept.isPrimary && (
-                <AuthGate buttonKey="4_edit">
+                <AuthGate buttonKey={PERM_EDIT}>
                   <a
                     onClick={() => handleSetPrimary(dept.deptId)}
                     data-ai-approval
@@ -187,7 +188,7 @@ const DeptAssignSection: React.FC<DeptAssignSectionProps> = ({
                 </AuthGate>
               )}
               {!readOnly && (
-                <AuthGate buttonKey="4_edit">
+                <AuthGate buttonKey={PERM_EDIT}>
                   <a
                     style={{ color: "#ff4d4f", fontSize: 11 }}
                     data-ai-approval

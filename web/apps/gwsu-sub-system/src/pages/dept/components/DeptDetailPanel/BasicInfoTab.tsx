@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { deleteDept, removeParentDept } from "@/services/dept";
 import type { DeptDetail, DeptTypeOption } from "../../types";
 import { AuthGate } from "@gwsu/core";
+import { PERM_EDIT, PERM_REMOVE } from '../../permissionConstants';
 
 interface BasicInfoTabProps {
   dept: DeptDetail;
@@ -52,12 +53,12 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({
     <div>
       <div style={{ marginBottom: 16 }}>
         <Space>
-          <AuthGate buttonKey="22_edit">
+          <AuthGate buttonKey={PERM_EDIT}>
             <Button type="primary" icon={<EditOutlined />} onClick={onEdit}>
               编辑
             </Button>
           </AuthGate>
-          <AuthGate buttonKey="22_remove">
+          <AuthGate buttonKey={PERM_REMOVE}>
             <Popconfirm
               title="确定要删除该部门吗？"
               description="删除后不可恢复，子部门将移至上级部门"
@@ -108,7 +109,7 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({
                     {p.name}
                   </Tag>
                 ))}
-                <AuthGate buttonKey="22_edit">
+                <AuthGate buttonKey={PERM_EDIT}>
                   <Button
                     type="dashed"
                     size="small"

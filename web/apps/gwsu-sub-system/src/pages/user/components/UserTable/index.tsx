@@ -7,6 +7,7 @@ import type { SysUserVO, SysUserQueryDTO } from '../../types';
 import { USER_STATUS_MAP } from '../../types';
 import { batchDeleteUsers } from '@/services/user';
 import { AuthGate , useAuth } from '@gwsu/core';
+import { PERM_ADD, PERM_REMOVE, PERM_CHANGE_PWD, PERM_ROLE } from '../../permissionConstants';
 
 interface UserTableProps {
   users: SysUserVO[];
@@ -40,8 +41,8 @@ const UserTable: React.FC<UserTableProps> = ({
   onRefresh,
 }) => {
   const { message } = App.useApp();
-  let canChangePwd = useAuth("4_change_pwd");
-  let canRole = useAuth("4_role");
+  let canChangePwd = useAuth(PERM_CHANGE_PWD);
+  let canRole = useAuth(PERM_ROLE);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
 
@@ -176,12 +177,12 @@ const UserTable: React.FC<UserTableProps> = ({
         </div>
       </div>
       <div className={styles.actionBar}>
-        <AuthGate buttonKey="4_add">
+        <AuthGate buttonKey={PERM_ADD}>
           <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
             新增用户
           </Button>
         </AuthGate>
-        <AuthGate buttonKey="4_remove">
+        <AuthGate buttonKey={PERM_REMOVE}>
           <Button
             danger
             icon={<DeleteOutlined />}

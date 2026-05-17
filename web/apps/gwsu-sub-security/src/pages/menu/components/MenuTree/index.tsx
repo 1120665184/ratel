@@ -13,6 +13,7 @@ import { useMenuTree } from '../../hooks/useMenuTree';
 import { batchSortMenu } from '../../services/menu';
 import type { EnumOption, MenuTreeNode, MenuSortItem } from '../../types';
 import {AuthGate , useAuth} from '@gwsu/core'
+import { PERM_ADD, PERM_EDIT } from '../../permissionConstants';
 
 interface MenuTreeProps {
   treeData: MenuTreeNode[];
@@ -42,7 +43,7 @@ const MenuTree: React.FC<MenuTreeProps> = ({
   onRefresh,
 }) => {
   const { message } = App.useApp();
-  const canDraggable = useAuth("6_edit");
+  const canDraggable = useAuth(PERM_EDIT);
   const { searchValue, setSearchValue, expandedKeys, setExpandedKeys, filteredTreeData } =
     useMenuTree(treeData);
 
@@ -200,7 +201,7 @@ const MenuTree: React.FC<MenuTreeProps> = ({
       </Spin>
       <div className={styles.footer}>
         <Space>
-          <AuthGate buttonKey="6_add">
+          <AuthGate buttonKey={PERM_ADD}>
             <Button
               type="primary"
               icon={<PlusOutlined />}

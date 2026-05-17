@@ -5,6 +5,7 @@ import { IDENTITY_TYPE_MAP } from "../../types";
 import { bindAccount, unbindAccount } from "@/services/user";
 import AccountBindForm from "./AccountBindForm";
 import { AuthGate } from "@gwsu/core";
+import { PERM_EDIT } from '../../permissionConstants';
 
 interface AccountBindSectionProps {
   userId: string;
@@ -107,7 +108,7 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({
                     <>
                       <Tag color="success">已绑定</Tag>
                       {!readOnly && (
-                        <AuthGate buttonKey="4_edit">
+                        <AuthGate buttonKey={PERM_EDIT}>
                           <a
                             style={{ color: "#ff4d4f", fontSize: 11 }}
                             data-ai-approval

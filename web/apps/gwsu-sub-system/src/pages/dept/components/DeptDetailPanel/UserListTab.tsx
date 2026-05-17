@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { getDeptUsers, removeUserDept, setPrimaryDept } from '@/services/dept';
 import type { UserDeptDetail } from '../../types';
 import {AuthGate} from '@gwsu/core'
+import { PERM_PRIMARY_DEPT, PERM_REMOVE_USER } from '../../permissionConstants';
 
 interface UserListTabProps {
   deptId: string;
@@ -79,7 +80,7 @@ const UserListTab: React.FC<UserListTabProps> = ({ deptId, onRefresh }) => {
       render: (_, record) => (
         <Space size="small">
           {!record.isPrimary && (
-            <AuthGate buttonKey="22_primary_dept">
+            <AuthGate buttonKey={PERM_PRIMARY_DEPT}>
               <Button
                 type="link"
                 size="small"
@@ -91,7 +92,7 @@ const UserListTab: React.FC<UserListTabProps> = ({ deptId, onRefresh }) => {
               </Button>
             </AuthGate>
           )}
-          <AuthGate buttonKey="22_remove_user">
+          <AuthGate buttonKey={PERM_REMOVE_USER}>
             <Popconfirm
               title="确定要移除该用户吗？"
               onConfirm={() => handleRemove(record.userId)}

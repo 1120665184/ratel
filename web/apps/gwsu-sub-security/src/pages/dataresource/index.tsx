@@ -6,9 +6,11 @@ import {
   Select,
   Tag,
   Switch,
+  Dropdown,
   Form,
   Space,
   Popconfirm,
+  type MenuProps,
 } from 'antd';
 import type { TableProps } from 'antd';
 import {
@@ -19,6 +21,7 @@ import {
   SyncOutlined,
   EyeOutlined,
   EditOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 import styles from './index.module.less';
 import DataResourceDetail from './components/DataResourceDetail';
@@ -35,7 +38,8 @@ import {
   getConditionTypeOptions,
   getResourceAttributes,
 } from './services/dataResource';
-import {AuthGate} from '@gwsu/core'
+import {AuthGate, useAuth} from '@gwsu/core'
+import { PERM_ADD, PERM_REMOVE, PERM_SYNC, PERM_EDIT } from './permissionConstants';
 
 const STATUS_OPTIONS = [
   { label: '启用', value: true },
@@ -56,6 +60,8 @@ const DataResourcePage: React.FC = () => {
     handleDelete,
     handleSync,
   } = useDataResource();
+
+  const canEdit = useAuth(PERM_EDIT);
 
   const [searchForm] = Form.useForm<DataResourceQuery>();
 
@@ -155,6 +161,20 @@ const DataResourcePage: React.FC = () => {
     }
   }, [selectedRowKeys, handleDelete]);
 
+  /** 获取更多下拉菜单项 */
+  const getButtonItem = (record: DataResourceInfo): NonNullable<MenuProps['items']> => {
+    const buttons = [];
+    if (canEdit) {
+      buttons.push({
+        key: 'edit',
+        icon: <EditOutlined />,
+        label: '编辑',
+        onClick: () => handleEdit(record),
+      });
+    }
+    return buttons;
+  };
+
   /** 表格列定义 */
   const columns: TableProps<DataResourceInfo>["columns"] = [
     Table.SELECTION_COLUMN,
@@ -196,7 +216,7 @@ const DataResourcePage: React.FC = () => {
       width: 120,
       render: (val: boolean, record: DataResourceInfo) => (
         <Space>
-          <AuthGate buttonKey="72974723_edit">
+          <AuthGate buttonKey={PERM_EDIT}>
             <Switch
               size="small"
               data-ai-approval
@@ -211,7 +231,7 @@ const DataResourcePage: React.FC = () => {
     },
     {
       title: "操作",
-      width: 160,
+      width: 200,
       fixed: "right",
       render: (_: unknown, record: DataResourceInfo) => (
         <div className={styles.actionColumn}>
@@ -223,16 +243,19 @@ const DataResourcePage: React.FC = () => {
           >
             详情
           </Button>
-          <AuthGate buttonKey="72974723_edit">
+          <Dropdown
+            menu={{ items: getButtonItem(record) }}
+            disabled={getButtonItem(record).length === 0}
+          >
             <Button
               type="link"
               size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
+              icon={<MoreOutlined />}
+              disabled={getButtonItem(record).length === 0}
             >
-              编辑
+              更多
             </Button>
-          </AuthGate>
+          </Dropdown>
         </div>
       ),
     },
@@ -296,7 +319,7 @@ const DataResourcePage: React.FC = () => {
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>数据资源列表</span>
           <Space>
-            <AuthGate buttonKey="72974723_add">
+            <AuthGate buttonKey={PERM_ADD}>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -305,7 +328,7 @@ const DataResourcePage: React.FC = () => {
                 新增
               </Button>
             </AuthGate>
-            <AuthGate buttonKey="72974723_remove">
+            <AuthGate buttonKey={PERM_REMOVE}>
               <Popconfirm
                 title="批量删除"
                 description={`确定删除选中的 ${selectedRowKeys.length} 条记录？`}
@@ -324,7 +347,7 @@ const DataResourcePage: React.FC = () => {
                 </Button>
               </Popconfirm>
             </AuthGate>
-            <AuthGate buttonKey="72974723_sync">
+            <AuthGate buttonKey={PERM_SYNC}>
               <Popconfirm
                 title="同步到 Redis"
                 description="确定将数据资源规则同步到 Redis？"

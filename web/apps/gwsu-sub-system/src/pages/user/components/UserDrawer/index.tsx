@@ -9,6 +9,7 @@ import { USER_STATUS_MAP } from '../../types';
 import type { DeptTreeNode } from '../../../dept/types';
 import { getUserDetail, updateUserStatus } from '@/services/user';
 import { AuthGate } from "@gwsu/core";
+import { PERM_DISABLED_ENABLE } from '../../permissionConstants';
 
 interface UserDrawerProps {
   visible: boolean;
@@ -70,7 +71,7 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ visible, userId, treeData, onCl
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button onClick={onClose}>关闭</Button>
           {!isReadOnly && (
-            <AuthGate buttonKey="4_disabled_enable">
+            <AuthGate buttonKey={PERM_DISABLED_ENABLE}>
               <Button
                 data-ai-approval
                 danger={user.status === 1}
