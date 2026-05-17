@@ -360,7 +360,7 @@ CREATE TABLE security_api_table_model
 CREATE TABLE security_api_table_model_config
 (
     id             VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    table_model_id VARCHAR(64)          DEFAULT NULL COMMENT '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型',
+    table_model_id VARCHAR(64)          DEFAULT NULL COMMENT '关联security_api_table_model的ID',
     datasource     VARCHAR(50) NOT NULL COMMENT '数据源名称',
     tenant_id      VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
     create_op      VARCHAR(50)          DEFAULT NULL COMMENT '创建人',

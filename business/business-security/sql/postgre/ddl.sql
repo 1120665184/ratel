@@ -612,7 +612,7 @@ CREATE TABLE security_api_table_model_config
 -- 表和字段注释
 COMMENT ON TABLE security_api_table_model_config IS '表模型手动配置表（持久化，启动不覆盖）';
 COMMENT ON COLUMN security_api_table_model_config.id IS '主键ID';
-COMMENT ON COLUMN security_api_table_model_config.table_model_id IS '关联security_api_table_model的ID，有值表示关联的表模型，NULL表示独立表模型';
+COMMENT ON COLUMN security_api_table_model_config.table_model_id IS '关联security_api_table_model的ID';
 COMMENT ON COLUMN security_api_table_model_config.datasource IS '数据源名称';
 COMMENT ON COLUMN security_api_table_model_config.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_api_table_model_config.create_op IS '创建人';
