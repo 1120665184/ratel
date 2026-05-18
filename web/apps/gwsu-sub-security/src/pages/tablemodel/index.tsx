@@ -337,6 +337,7 @@ const TableModelPage: React.FC = () => {
       <ChangeDatasourceModal
         visible={changeDatasourceVisible}
         record={currentRecord}
+        modules={modules}
         onClose={() => {
           setChangeDatasourceVisible(false);
           setCurrentRecord(null);

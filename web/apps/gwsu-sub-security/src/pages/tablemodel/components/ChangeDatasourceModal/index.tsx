@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Form, Select, Checkbox, Space, Alert, message, Empty, Spin } from 'antd';
-import type { TableModelInfo, ApiResourceSimple } from '../../types';
+import type { TableModelInfo, ApiResourceSimple, ModuleInfo } from '../../types';
 import { changeDatasource, getDatasourceList, listApiByTableModel } from '../../services/tableModel';
 import styles from './index.module.less';
 
 interface ChangeDatasourceModalProps {
   visible: boolean;
   record: TableModelInfo | null;
+  modules: ModuleInfo[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, record, onClose, onSuccess }) => {
+const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, record, modules, onClose, onSuccess }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [apiList, setApiList] = useState<ApiResourceSimple[]>([]);
@@ -41,14 +42,15 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
   /** 加载数据源列表 */
   const loadDatasources = useCallback(async () => {
     if (!record) return;
+    const mod = modules.find((m) => m.prefix === record.modulePrefix);
+    if (!mod) return;
     try {
-      // 从模块获取数据源列表
-      const dsList = await getDatasourceList(record.modulePrefix);
+      const dsList = await getDatasourceList(mod.applicationName);
       setDatasourceOptions(dsList.filter((ds) => ds !== record.dataSource));
     } catch {
       // request 层已自动提示
     }
-  }, [record]);
+  }, [record, modules]);
 
   useEffect(() => {
     if (visible && record) {
