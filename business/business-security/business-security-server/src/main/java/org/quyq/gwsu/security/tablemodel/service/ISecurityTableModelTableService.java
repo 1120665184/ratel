@@ -1,8 +1,13 @@
 package org.quyq.gwsu.security.tablemodel.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
 import org.quyq.gwsu.common.database.metadata.model.TableInfo;
+import org.quyq.gwsu.security.api.tablemodel.dto.TableModelChangeDatasourceDTO;
+import org.quyq.gwsu.security.api.tablemodel.dto.TableModelCollectDTO;
+import org.quyq.gwsu.security.api.tablemodel.dto.TableModelCustomSaveDTO;
+import org.quyq.gwsu.security.api.tablemodel.dto.TableModelTableQueryDTO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
@@ -82,5 +87,53 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
      * @return
      */
     List<ColumnInfo>  columnList(String applicationName ,String datasource, String tableName);
+
+    /**
+     * 分页查询表模型列表
+     *
+     * @param query 查询条件
+     * @return 分页结果
+     */
+    IPage<TableModelTableVO> pageByCondition(TableModelTableQueryDTO query);
+
+    /**
+     * 查询未采集的表模型列表（从api_table_model中分析）
+     *
+     * @param modulePrefix 模块前缀
+     * @return 未采集的表模型列表
+     */
+    List<TableModelTableVO> listUncollected(String modulePrefix);
+
+    /**
+     * 采集表模型（批量保存表+字段+外键）
+     *
+     * @param dto 采集请求
+     * @return 是否成功
+     */
+    Boolean collectTableModels(TableModelCollectDTO dto);
+
+    /**
+     * 自定义添加表模型
+     *
+     * @param dto 自定义添加请求
+     * @return 表模型信息
+     */
+    TableModelTableVO customSave(TableModelCustomSaveDTO dto);
+
+    /**
+     * 同步表模型字段（与库中最新对比，增删字段）
+     *
+     * @param tableModelId 表模型ID
+     * @return 是否成功
+     */
+    Boolean syncTableModel(String tableModelId);
+
+    /**
+     * 修改数据源
+     *
+     * @param dto 修改数据源请求
+     * @return 是否成功
+     */
+    Boolean changeDatasource(TableModelChangeDatasourceDTO dto);
 
 }

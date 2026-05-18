@@ -8,6 +8,7 @@ import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.database.metadata.DdlFactory;
 import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.ForeignKeyInfo;
 import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.common.database.utils.DatabaseHelper;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
@@ -102,6 +103,22 @@ public class SQLExecutionServiceImpl implements ISQLExecutionService {
         }
         try {
             return databaseHelper.getCurrentDatabaseType().getName();
+        } finally {
+            if (StringUtils.hasText(datasource)) {
+                DynamicDataSourceContextHolder.clear();
+            }
+        }
+    }
+
+    @Override
+    public List<ForeignKeyInfo> foreignKeyList(String datasource, String tableName) {
+        AssertUtils.hasText(tableName, CommonErrorCode.E01002);
+
+        if (StringUtils.hasText(datasource)) {
+            DynamicDataSourceContextHolder.push(datasource);
+        }
+        try {
+            return ddlFactory.showForeignKeys(null, tableName);
         } finally {
             if (StringUtils.hasText(datasource)) {
                 DynamicDataSourceContextHolder.clear();

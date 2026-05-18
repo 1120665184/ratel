@@ -2,6 +2,7 @@ package org.quyq.gwsu.common.security.service;
 
 
 import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.ForeignKeyInfo;
 import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
 
@@ -54,5 +55,13 @@ public interface ISQLExecutionService {
      * @return
      */
     String getDatabaseName(String datasource);
+
+    /**
+     * 获取外键信息
+     * @param datasource 数据源
+     * @param tableName 表名
+     * @return 外键信息列表
+     */
+    List<ForeignKeyInfo> foreignKeyList(String datasource, String tableName);
 
 }
