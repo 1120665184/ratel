@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Form, Select, Checkbox, Space, Alert, message, Empty, Spin } from 'antd';
 import type { TableModelInfo, ApiResourceSimple } from '../../types';
 import { changeDatasource, getDatasourceList, listApiByTableModel } from '../../services/tableModel';
-import styles from './changeDatasourceModal.module.less';
+import styles from './index.module.less';
 
 interface ChangeDatasourceModalProps {
   visible: boolean;
