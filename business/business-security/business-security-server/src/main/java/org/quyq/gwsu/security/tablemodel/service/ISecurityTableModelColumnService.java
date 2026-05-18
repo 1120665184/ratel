@@ -60,4 +60,13 @@ public interface ISecurityTableModelColumnService extends IService<SecurityTable
      * @return 是否成功
      */
     Boolean removeByIds(List<String> ids);
+
+    /**
+     * 更新字段注释
+     *
+     * @param columnId      字段ID
+     * @param columnComment 新注释
+     * @return 是否成功
+     */
+    Boolean updateComment(String columnId, String columnComment);
 }

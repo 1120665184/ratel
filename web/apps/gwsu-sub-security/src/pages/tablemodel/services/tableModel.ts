@@ -73,7 +73,7 @@ export async function getModuleList(): Promise<ModuleInfo[]> {
 
 /** 通过服务名获取数据源列表 */
 export async function getDatasourceList(applicationName: string): Promise<string[]> {
-  const res = await post<string[]>('/security/apiResource/getDatasourceList', { applicationName });
+  const res = await get<string[]>('/security/apiResource/getDatasourceList', { serverName: applicationName });
   return res.data;
 }
 
@@ -108,5 +108,11 @@ export async function updateForeignKeyRemark(fkId: string, remark: string): Prom
 /** 保存外键（新增/更新） */
 export async function saveForeignKey(data: Record<string, unknown>): Promise<boolean> {
   const res = await post<boolean>('/security/tablemodel/foreignKey/save', data);
+  return res.data;
+}
+
+/** 更新表注释 */
+export async function updateTableComment(tableId: string, tableComment: string): Promise<boolean> {
+  const res = await post<boolean>('/security/tablemodel/updateTableComment', { tableId, tableComment });
   return res.data;
 }

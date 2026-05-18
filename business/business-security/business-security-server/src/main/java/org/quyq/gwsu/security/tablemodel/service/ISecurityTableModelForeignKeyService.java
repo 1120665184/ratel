@@ -60,4 +60,13 @@ public interface ISecurityTableModelForeignKeyService extends IService<SecurityT
      * @return 是否成功
      */
     Boolean removeByIds(List<String> ids);
+
+    /**
+     * 更新外键备注
+     *
+     * @param fkId   外键ID
+     * @param remark 新备注
+     * @return 是否成功
+     */
+    Boolean updateRemark(String fkId, String remark);
 }

@@ -10,12 +10,15 @@ import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.tablemodel.dto.*;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
+import org.quyq.gwsu.security.api.tablemodel.vo.TableModelForeignKeyVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelColumn;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelForeignKey;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelColumnService;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelForeignKeyService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +37,10 @@ import java.util.List;
 public class SecurityTableModelTableController {
 
     private final ISecurityTableModelTableService securityTableModelTableService;
+
+    private final ISecurityTableModelColumnService securityTableModelColumnService;
+
+    private final ISecurityTableModelForeignKeyService securityTableModelForeignKeyService;
 
     @Operation(summary = "查询指定服务中指定数据源的表列表")
     @PostMapping("table/info")
@@ -92,6 +99,30 @@ public class SecurityTableModelTableController {
                                          @RequestParam String datasource,
                                          @RequestParam String tableName) {
         return R.ok(securityTableModelTableService.getTableDetail(modulePrefix, datasource, tableName));
+    }
+
+    @Operation(summary = "更新字段注释")
+    @PostMapping("column/updateComment")
+    public R<Boolean> updateColumnComment(@RequestBody java.util.Map<String, String> params) {
+        return R.ok(securityTableModelColumnService.updateComment(params.get("columnId"), params.get("columnComment")));
+    }
+
+    @Operation(summary = "更新外键备注")
+    @PostMapping("foreignKey/updateRemark")
+    public R<Boolean> updateForeignKeyRemark(@RequestBody java.util.Map<String, String> params) {
+        return R.ok(securityTableModelForeignKeyService.updateRemark(params.get("fkId"), params.get("remark")));
+    }
+
+    @Operation(summary = "保存外键（新增/更新）")
+    @PostMapping("foreignKey/save")
+    public R<Boolean> saveForeignKey(@RequestBody TableModelForeignKeyVO vo) {
+        return R.ok(securityTableModelForeignKeyService.saveOrUpdateForeignKey(vo));
+    }
+
+    @Operation(summary = "更新表注释")
+    @PostMapping("updateTableComment")
+    public R<Boolean> updateTableComment(@RequestBody java.util.Map<String, String> params) {
+        return R.ok(securityTableModelTableService.updateTableComment(params.get("tableId"), params.get("tableComment")));
     }
 
 }

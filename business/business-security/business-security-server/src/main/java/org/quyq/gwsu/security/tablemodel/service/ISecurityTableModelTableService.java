@@ -136,4 +136,13 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
      */
     Boolean changeDatasource(TableModelChangeDatasourceDTO dto);
 
+    /**
+     * 更新表注释
+     *
+     * @param tableId      表模型ID
+     * @param tableComment 新注释
+     * @return 是否成功
+     */
+    Boolean updateTableComment(String tableId, String tableComment);
+
 }

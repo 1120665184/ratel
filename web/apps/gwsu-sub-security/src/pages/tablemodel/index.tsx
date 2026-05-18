@@ -1,10 +1,32 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Button, Table, Tag, Form, Select, Input, Space, Popconfirm } from 'antd';
-import { PlusOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Table,
+  Tag,
+  Form,
+  Select,
+  Input,
+  Space,
+  Popconfirm,
+  Dropdown,
+  type MenuProps,
+} from 'antd';
+import type { TableProps } from 'antd';
+import {
+  PlusOutlined,
+  CloudDownloadOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  EyeOutlined,
+  EditOutlined,
+  MoreOutlined,
+  SyncOutlined,
+} from '@ant-design/icons';
 import { useTableModel } from './hooks/useTableModel';
 import CollectModal from './components/CollectModal';
 import CustomAddModal from './components/CustomAddModal';
 import DetailDrawer from './components/DetailDrawer';
+import EditDrawer from './components/EditDrawer';
 import ChangeDatasourceModal from './components/ChangeDatasourceModal';
 import { SOURCE_TYPE_MAP } from './types';
 import type { TableModelInfo } from './types';
@@ -22,13 +44,14 @@ const TableModelPage: React.FC = () => {
     handleSync,
   } = useTableModel();
 
+  const [searchForm] = Form.useForm();
+
   const [collectVisible, setCollectVisible] = useState(false);
   const [customAddVisible, setCustomAddVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
   const [changeDatasourceVisible, setChangeDatasourceVisible] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<TableModelInfo | null>(null);
-
-  const [searchForm] = Form.useForm();
 
   useEffect(() => {
     loadModules();
@@ -53,6 +76,12 @@ const TableModelPage: React.FC = () => {
     setDetailVisible(true);
   }, []);
 
+  /** 编辑 */
+  const handleEdit = useCallback((record: TableModelInfo) => {
+    setCurrentRecord(record);
+    setEditVisible(true);
+  }, []);
+
   /** 修改数据源 */
   const handleChangeDatasource = useCallback((record: TableModelInfo) => {
     setCurrentRecord(record);
@@ -64,7 +93,40 @@ const TableModelPage: React.FC = () => {
     loadPageData();
   }, [loadPageData]);
 
-  const columns = [
+  /** 获取更多下拉菜单项 */
+  const getMoreMenuItems = (record: TableModelInfo): NonNullable<MenuProps['items']> => {
+    const items: NonNullable<MenuProps['items']> = [];
+    items.push({
+      key: 'edit',
+      icon: <EditOutlined />,
+      label: '编辑',
+      onClick: () => handleEdit(record),
+    });
+    if (record.sourceType === 0) {
+      items.push({
+        key: 'sync',
+        icon: <SyncOutlined />,
+        label: '同步',
+        onClick: () => handleSync(record),
+      });
+    }
+    items.push({
+      key: 'changeDatasource',
+      label: '修改数据源',
+      onClick: () => handleChangeDatasource(record),
+    });
+    return items;
+  };
+
+  /** 表格列定义 */
+  const columns: TableProps<TableModelInfo>['columns'] = [
+    {
+      title: '序号',
+      width: 60,
+      align: 'center',
+      render: (_: unknown, __: TableModelInfo, index: number) =>
+        (pageData.current - 1) * pageData.size + index + 1,
+    },
     {
       title: '表名',
       dataIndex: 'tableName',
@@ -108,100 +170,129 @@ const TableModelPage: React.FC = () => {
     },
     {
       title: '操作',
-      key: 'action',
-      width: 220,
+      width: 180,
+      fixed: 'right',
       render: (_: unknown, record: TableModelInfo) => (
-        <Space size="small">
-          <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
+        <div className={styles.actionColumn}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
             详情
           </Button>
-          {record.sourceType === 0 && (
-            <Popconfirm
-              title="确认同步？同步将从库中获取最新字段信息"
-              onConfirm={() => handleSync(record)}
-            >
-              <Button type="link" size="small">同步</Button>
-            </Popconfirm>
-          )}
-          <Button type="link" size="small" onClick={() => handleChangeDatasource(record)}>
-            修改数据源
-          </Button>
-        </Space>
+          <Dropdown
+            menu={{ items: getMoreMenuItems(record) }}
+          >
+            <Button type="link" size="small" icon={<MoreOutlined />}>
+              更多
+            </Button>
+          </Dropdown>
+        </div>
       ),
     },
   ];
 
   return (
-    <div className={styles.tableModelPage}>
+    <div className={styles.dataResourcePage}>
       {/* 搜索栏 */}
       <div className={styles.searchBar}>
-        <Form form={searchForm} layout="inline">
-          <Form.Item name="modulePrefix" label="所属模块">
-            <Select
-              placeholder="请选择模块"
-              allowClear
-              style={{ width: 160 }}
-              options={modules.map((m) => ({ label: m.note || m.prefix, value: m.prefix }))}
-            />
-          </Form.Item>
-          <Form.Item name="tableName" label="表名">
-            <Input placeholder="请输入表名" allowClear style={{ width: 160 }} />
-          </Form.Item>
-          <Form.Item name="dataSource" label="数据源">
-            <Input placeholder="请输入数据源" allowClear style={{ width: 160 }} />
-          </Form.Item>
-          <Form.Item name="sourceType" label="来源类型">
-            <Select
-              placeholder="请选择"
-              allowClear
-              style={{ width: 120 }}
-              options={[
-                { label: '采集', value: 0 },
-                { label: '自定义', value: 1 },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" onClick={onSearch}>查询</Button>
-              <Button onClick={onReset}>重置</Button>
-            </Space>
-          </Form.Item>
+        <Form form={searchForm} layout="inline" component={false}>
+          <div className={styles.searchItem}>
+            <span className={styles.searchLabel}>所属模块</span>
+            <Form.Item name="modulePrefix" noStyle>
+              <Select
+                placeholder="请选择模块"
+                allowClear
+                style={{ width: 160 }}
+                options={modules.map((m) => ({ label: m.note || m.prefix, value: m.prefix }))}
+              />
+            </Form.Item>
+          </div>
+          <div className={styles.searchItem}>
+            <span className={styles.searchLabel}>表名</span>
+            <Form.Item name="tableName" noStyle>
+              <Input
+                placeholder="请输入表名"
+                allowClear
+                style={{ width: 160 }}
+                onPressEnter={onSearch}
+              />
+            </Form.Item>
+          </div>
+          <div className={styles.searchItem}>
+            <span className={styles.searchLabel}>数据源</span>
+            <Form.Item name="dataSource" noStyle>
+              <Input
+                placeholder="请输入数据源"
+                allowClear
+                style={{ width: 160 }}
+                onPressEnter={onSearch}
+              />
+            </Form.Item>
+          </div>
+          <div className={styles.searchItem}>
+            <span className={styles.searchLabel}>来源类型</span>
+            <Form.Item name="sourceType" noStyle>
+              <Select
+                placeholder="全部"
+                allowClear
+                style={{ width: 120 }}
+                options={[
+                  { label: '采集', value: 0 },
+                  { label: '自定义', value: 1 },
+                ]}
+              />
+            </Form.Item>
+          </div>
         </Form>
-      </div>
-
-      {/* 操作按钮 + 表格 */}
-      <div className={styles.tableCard}>
-        <div className={styles.actionBar}>
-          <Button
-            type="primary"
-            icon={<CloudDownloadOutlined />}
-            onClick={() => setCollectVisible(true)}
-          >
-            采集
+        <div className={styles.searchActions}>
+          <Button type="primary" icon={<SearchOutlined />} onClick={onSearch}>
+            查询
           </Button>
-          <Button
-            icon={<PlusOutlined />}
-            onClick={() => setCustomAddVisible(true)}
-          >
-            自定义添加
+          <Button icon={<ReloadOutlined />} onClick={onReset}>
+            重置
           </Button>
         </div>
+      </div>
 
-        <Table
+      {/* 表格区域 */}
+      <div className={styles.tableWrapper}>
+        <div className={styles.tableHeader}>
+          <span className={styles.tableTitle}>表模型列表</span>
+          <Space>
+            <Button
+              type="primary"
+              icon={<CloudDownloadOutlined />}
+              onClick={() => setCollectVisible(true)}
+            >
+              采集
+            </Button>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={() => setCustomAddVisible(true)}
+            >
+              自定义添加
+            </Button>
+          </Space>
+        </div>
+        <Table<TableModelInfo>
           rowKey="id"
           loading={loading}
           dataSource={pageData.records}
           columns={columns}
+          size="middle"
           pagination={{
             current: pageData.current,
             pageSize: pageData.size,
             total: pageData.total,
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+            showQuickJumper: true,
+            showTotal: (t) => `共 ${t} 条`,
             onChange: handlePageChange,
           }}
-          scroll={{ y: 'calc(100vh - 380px)' }}
+          scroll={{ x: 960 }}
         />
       </div>
 
@@ -221,7 +312,7 @@ const TableModelPage: React.FC = () => {
         onSuccess={refreshList}
       />
 
-      {/* 详情抽屉 */}
+      {/* 详情抽屉（只读） */}
       <DetailDrawer
         visible={detailVisible}
         record={currentRecord}
@@ -229,6 +320,17 @@ const TableModelPage: React.FC = () => {
           setDetailVisible(false);
           setCurrentRecord(null);
         }}
+      />
+
+      {/* 编辑抽屉 */}
+      <EditDrawer
+        visible={editVisible}
+        record={currentRecord}
+        onClose={() => {
+          setEditVisible(false);
+          setCurrentRecord(null);
+        }}
+        onSuccess={refreshList}
       />
 
       {/* 修改数据源弹窗 */}

@@ -58,4 +58,14 @@ public class SecurityTableModelForeignKeyServiceImpl extends ServiceImpl<Securit
     public Boolean removeByIds(List<String> ids) {
         return removeBatchByIds(ids);
     }
+
+    @Override
+    public Boolean updateRemark(String fkId, String remark) {
+        SecurityTableModelForeignKey entity = super.getById(fkId);
+        if (entity == null) {
+            throw new IllegalArgumentException("外键不存在：id=" + fkId);
+        }
+        entity.setRemark(remark);
+        return updateById(entity);
+    }
 }

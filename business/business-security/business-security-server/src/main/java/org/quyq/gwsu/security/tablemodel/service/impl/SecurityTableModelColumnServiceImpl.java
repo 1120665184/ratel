@@ -58,4 +58,14 @@ public class SecurityTableModelColumnServiceImpl extends ServiceImpl<SecurityTab
     public Boolean removeByIds(List<String> ids) {
         return removeBatchByIds(ids);
     }
+
+    @Override
+    public Boolean updateComment(String columnId, String columnComment) {
+        SecurityTableModelColumn entity = super.getById(columnId);
+        if (entity == null) {
+            throw new IllegalArgumentException("字段不存在：id=" + columnId);
+        }
+        entity.setColumnComment(columnComment);
+        return updateById(entity);
+    }
 }

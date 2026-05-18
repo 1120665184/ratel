@@ -502,6 +502,16 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
         return true;
     }
 
+    @Override
+    public Boolean updateTableComment(String tableId, String tableComment) {
+        SecurityTableModelTable entity = super.getById(tableId);
+        if (entity == null) {
+            throw new IllegalArgumentException("表模型不存在：id=" + tableId);
+        }
+        entity.setTableComment(tableComment);
+        return updateById(entity);
+    }
+
     // ==================== 辅助方法 ====================
 
     /**
