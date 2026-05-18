@@ -1,0 +1,63 @@
+.collectModal {
+  .stepContent {
+    min-height: 200px;
+    padding: 24px 0;
+  }
+
+  .uncollectedList {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .tableItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .tableItemInfo {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .tableName {
+    font-weight: 500;
+    min-width: 180px;
+  }
+
+  .moduleTag {
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .dsTag {
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .collectingOverlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    gap: 16px;
+  }
+
+  .collectProgress {
+    width: 100%;
+  }
+
+  .emptyHint {
+    text-align: center;
+    color: var(--text-color-secondary);
+    padding: 40px 0;
+  }
+}

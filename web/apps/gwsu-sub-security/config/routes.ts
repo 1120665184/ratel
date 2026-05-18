@@ -15,4 +15,8 @@ export default [
     path: '/dataresource',
     component: '@/pages/dataresource',
   },
+  {
+    path: '/tablemodel',
+    component: '@/pages/tablemodel',
+  },
 ];

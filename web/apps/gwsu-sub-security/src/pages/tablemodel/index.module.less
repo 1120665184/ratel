@@ -1,0 +1,39 @@
+.tableModelPage {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color);
+
+  .searchBar {
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--component-bg);
+    border-radius: 8px;
+  }
+
+  .tableCard {
+    flex: 1;
+    overflow: hidden;
+    background: var(--component-bg);
+    border-radius: 8px;
+    padding: 16px;
+
+    :global {
+      .ant-table-wrapper {
+        height: 100%;
+      }
+    }
+  }
+
+  .actionBar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .sourceTag {
+    min-width: 52px;
+    text-align: center;
+  }
+}
