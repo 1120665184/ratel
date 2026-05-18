@@ -15,7 +15,7 @@ const CustomAddModal: React.FC<CustomAddModalProps> = ({ visible, modules, onClo
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [datasourceOptions, setDatasourceOptions] = useState<string[]>([]);
-  const [tableOptions, setTableOptions] = useState<string[]>([]);
+  const [tableOptions, setTableOptions] = useState<{ name: string; remark: string }[]>([]);
 
   const selectedModulePrefix = Form.useWatch('modulePrefix', form);
 
@@ -137,7 +137,7 @@ const CustomAddModal: React.FC<CustomAddModalProps> = ({ visible, modules, onClo
             placeholder="请选择表名"
             showSearch
             disabled={!tableOptions.length}
-            options={tableOptions.map((t) => ({ label: t, value: t }))}
+            options={tableOptions.map((t) => ({ label: t.remark ? `${t.name}（${t.remark}）` : t.name, value: t.name }))}
             filterOption={(input, option) =>
               (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
             }

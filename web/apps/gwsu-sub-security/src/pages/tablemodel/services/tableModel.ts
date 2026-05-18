@@ -88,8 +88,8 @@ export async function listApiByTableModel(data: {
 }
 
 /** 查询指定数据源的表列表 */
-export async function getTableList(applicationName: string, datasource?: string): Promise<string[]> {
-  const res = await post<string[]>('/security/tablemodel/table/info', { applicationName, datasource });
+export async function getTableList(applicationName: string, datasource?: string): Promise<{ name: string; remark: string }[]> {
+  const res = await post<{ name: string; remark: string }[]>('/security/tablemodel/table/info', { applicationName, datasource });
   return res.data;
 }
 
