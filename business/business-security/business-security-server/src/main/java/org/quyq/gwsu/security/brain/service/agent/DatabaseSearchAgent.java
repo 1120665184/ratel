@@ -163,15 +163,7 @@ public class DatabaseSearchAgent {
             String key = table.getModulePrefix() + ":" + table.getDataSource() + ":" + table.getTableName();
             Map<String, FieldPermission> fieldPerms = mergedPermissions.get(key);
 
-            boolean hasPermission;
-            if (fieldPerms == null || fieldPerms.isEmpty()) {
-                // 没有配置权限信息，默认有权限
-                hasPermission = true;
-            } else {
-                // 至少有一个字段有查询权限则认为有表级权限
-                hasPermission = fieldPerms.values().stream().anyMatch(FieldPermission::show);
-            }
-            tablePermissionMap.put(key, hasPermission);
+            tablePermissionMap.put(key, Objects.nonNull(fieldPerms));
         }
 
         // 按所属服务+数据源分组

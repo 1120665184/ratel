@@ -46,7 +46,7 @@ public class SecurityApiResourceController {
 
     @Operation(summary = "获取指定表模型关联的api接口资源")
     @PostMapping("listByTableModel")
-    public R<List<ApiResourceVO>> selectByTableModel(ApiResourceQueryByTableModelDTO queryDTO) {
+    public R<List<ApiResourceVO>> selectByTableModel(@RequestBody ApiResourceQueryByTableModelDTO queryDTO) {
         AssertUtils.hasText(queryDTO.modulePrefix(), SecurityErrorCode.E03004);
         AssertUtils.hasText(queryDTO.datasource(), SecurityErrorCode.E03002);
         AssertUtils.hasText(queryDTO.tableName(), SecurityErrorCode.E03001);

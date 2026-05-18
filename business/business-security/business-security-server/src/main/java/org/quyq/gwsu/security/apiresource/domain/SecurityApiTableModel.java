@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,6 +11,7 @@ import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
+import org.quyq.gwsu.security.apiresource.typehandler.FieldConfigTypeHandler;
 
 import java.util.Map;
 import java.util.Objects;
@@ -42,7 +42,7 @@ public class SecurityApiTableModel extends BaseDO {
     @Schema(description = "表名")
     private String tableName;
 
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = FieldConfigTypeHandler.class)
     @Schema(description = "字段配置，key为字段名（下划线格式）")
     private Map<String, FieldPermission> fieldConfig;
 

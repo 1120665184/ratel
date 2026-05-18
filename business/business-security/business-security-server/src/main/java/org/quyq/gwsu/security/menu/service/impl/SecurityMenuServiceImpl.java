@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.menu.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.googlecode.aviator.Expression;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
@@ -8,8 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.casbin.jcasbin.exception.CasbinMatcherException;
 import org.casbin.jcasbin.main.Enforcer;
+import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.util.Util;
+import org.casbin.jcasbin.util.function.CustomFunction;
 import org.quyq.gwsu.common.cache.utils.IDGenerationUtils;
+import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
@@ -30,10 +34,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +50,30 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
     private final SecurityRoleMenuMapper roleMenuMapper;
     private final SecurityUtils securityUtils;
     private final IDGenerationUtils idGenerationUtils;
-    private final Enforcer casbinEnforcer;
+    private final Model model;
+    private final List<CustomFunction> enforcerFunctions;
+    private Enforcer casbinEnforcer = null;
+
+    private Enforcer getEnforcer(){
+        if(Objects.isNull(casbinEnforcer)){
+            synchronized (SecurityMenuServiceImpl.class){
+                if(Objects.isNull(casbinEnforcer)){
+                    List<Enforcer> enforcers = SpringUtils.getBeansOfType(Enforcer.class);
+                    if(CollectionUtils.isNotEmpty(enforcers)){
+                        casbinEnforcer = enforcers.getFirst();
+                    }else {
+                        casbinEnforcer = new Enforcer(model);
+                        if (CollectionUtils.isNotEmpty(enforcerFunctions)) {
+                            enforcerFunctions.forEach(function -> casbinEnforcer.addFunction(function.getName(), function));
+                        }
+                    }
+                }
+            }
+        }
+
+
+        return casbinEnforcer;
+    }
 
     @Override
     public MenuVO getById(String id) {
@@ -316,7 +340,7 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
 
         try {
             String r = replaceTargets(Util.convertInSyntax(expression));
-            Expression exp = casbinEnforcer.getAviatorEval().compile(Util.md5(r), r, false);
+            Expression exp = getEnforcer().getAviatorEval().compile(Util.md5(r), r, false);
             Object result = exp.execute(parameters);
 
             if (result instanceof Boolean bool) {

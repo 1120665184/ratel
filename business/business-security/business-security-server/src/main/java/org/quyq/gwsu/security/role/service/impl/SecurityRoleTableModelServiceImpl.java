@@ -9,12 +9,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.SensitiveStrategy;
+import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
 import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
-import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
+import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelMapper;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
@@ -24,12 +27,14 @@ import org.quyq.gwsu.security.role.mapper.SecurityRoleMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuPermissionMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleTableModelMapper;
-import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
+import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,7 +46,9 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
     private final SecurityRoleMenuMapper roleMenuMapper;
     private final SecurityRoleMapper roleMapper;
     private final SecurityRoleMenuPermissionMapper roleMenuPermissionMapper;
-    private final ISecurityApiTableModelService apiTableModelService;
+    private final SecurityApiTableModelMapper apiTableModelMapper;
+    private final ISecurityApiResourceService apiResourceService;
+    private final ISecurityTableModelTableService modelTableService;
 
     private static final int BATCH_SIZE = 500;
 
@@ -124,51 +131,61 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         if (CollectionUtils.isEmpty(roleCodes)) {
             return Map.of();
         }
+        boolean isAdmin = false;
+        if (roleCodes.contains(SecurityConstants.Authentication.ROLE_SUPER_ADMIN_FLAG)) {
+            isAdmin = true;
+        }
         List<String> roleIds = roleMapper.selectList(new LambdaQueryWrapper<SecurityRole>()
                         .in(SecurityRole::getRoleCode, roleCodes))
                 .stream().map(SecurityRole::getId)
                 .toList();
-        if(CollUtil.isEmpty(roleIds)) {
+        if (CollUtil.isEmpty(roleIds)) {
             return Map.of();
         }
-
-
-        List<SecurityRoleTableModel> roleTableModels = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
-                .in(SecurityRoleTableModel::getRoleId, roleIds));
-
-        // 按 "module_prefix:datasource:table_name" 分组
-        Map<String, List<SecurityRoleTableModel>> grouped = roleTableModels.stream()
-                .collect(Collectors.groupingBy(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName()));
-
         // 多角色取最大权限：show取或，desensitize取与
         Map<String, Map<String, FieldPermission>> result = new HashMap<>();
-        for (Map.Entry<String, List<SecurityRoleTableModel>> entry : grouped.entrySet()) {
-            Map<String, FieldPermission> mergedFields = new HashMap<>();
-            for (SecurityRoleTableModel rtm : entry.getValue()) {
-                if (rtm.getFieldConfig() != null) {
-                    mergeFieldPermissions(mergedFields, rtm.getFieldConfig());
+
+        if (isAdmin) {
+            modelTableService.list(new LambdaQueryWrapper<>(SecurityTableModelTable.class)
+                            //获取所有自定义添加的表模型
+                            .eq(SecurityTableModelTable::getSourceType, 1)
+                            .eq(SecurityTableModelTable::getDeleted, 0)
+                    ).stream().map(v -> v.getModulePrefix() + ":" + v.getDataSource() + ":" + v.getTableName())
+                    .forEach(table -> result.put(table, Map.of()));
+        } else {
+            List<SecurityRoleTableModel> roleTableModels = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
+                    .in(SecurityRoleTableModel::getRoleId, roleIds));
+
+            // 按 "module_prefix:datasource:table_name" 分组
+            Map<String, List<SecurityRoleTableModel>> grouped = roleTableModels.stream()
+                    .collect(Collectors.groupingBy(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName()));
+
+            for (Map.Entry<String, List<SecurityRoleTableModel>> entry : grouped.entrySet()) {
+                Map<String, FieldPermission> mergedFields = new HashMap<>();
+                for (SecurityRoleTableModel rtm : entry.getValue()) {
+                    if (rtm.getFieldConfig() != null) {
+                        mergeFieldPermissions(mergedFields, rtm.getFieldConfig());
+                    }
                 }
+                result.put(entry.getKey(), mergedFields);
             }
-            result.put(entry.getKey(), mergedFields);
         }
 
         // 通过角色关联的菜单获取接口绑定的表模型权限，与角色自定义权限合并
-        List<String> apiIds = getApiIdsByRoleIds(roleIds);
+        List<String> apiIds = getApiIdsByRoleIds(roleIds, isAdmin);
         if (!CollectionUtils.isEmpty(apiIds)) {
             List<SecurityApiTableModel> apiTableModels = listApiTableModelsByApiIds(apiIds);
             if (!CollectionUtils.isEmpty(apiTableModels)) {
                 // 按 "module_prefix:datasource:table_name" 分组
-                Map<String, List<SecurityApiTableModel>> apiGrouped = apiTableModels.stream()
-                        .collect(Collectors.groupingBy(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName()));
-
-                for (Map.Entry<String, List<SecurityApiTableModel>> entry : apiGrouped.entrySet()) {
+                Map<String, SecurityApiTableModel> apiGroupd = apiTableModels.stream().collect(Collectors.toMap(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName(),
+                        Function.identity(), (k1, k2) -> k2));
+                for (Map.Entry<String, SecurityApiTableModel> entry : apiGroupd.entrySet()) {
                     String key = entry.getKey();
                     Map<String, FieldPermission> existingFields = result.computeIfAbsent(key, k -> new HashMap<>());
                     // 合并接口绑定的字段权限（接口优先级高）
-                    for (SecurityApiTableModel atm : entry.getValue()) {
-                        if (atm.getFieldConfig() != null) {
-                            mergeApiWithRoleFieldPermissions(existingFields, atm.getFieldConfig());
-                        }
+                    SecurityApiTableModel atm = entry.getValue();
+                    if (Objects.nonNull(atm)) {
+                        mergeApiWithRoleFieldPermissions(existingFields, atm.getFieldConfig());
                     }
                 }
             }
@@ -181,7 +198,15 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
      * 通过角色ID列表获取关联的所有接口资源ID
      * roleIds → security_role_menu → security_role_menu_permission → apiIds
      */
-    private List<String> getApiIdsByRoleIds(List<String> roleIds) {
+    private List<String> getApiIdsByRoleIds(List<String> roleIds, boolean isAdmin) {
+        //管理员直接返回所有的接口API
+        if (isAdmin) {
+            return apiResourceService.list(
+                    new LambdaQueryWrapper<SecurityApiResource>()
+                            .eq(SecurityApiResource::getDeleted, 0)
+            ).stream().map(SecurityApiResource::getId).toList();
+        }
+
         // 查询角色关联的菜单
         List<SecurityRoleMenu> roleMenus = roleMenuMapper.selectList(
                 new LambdaQueryWrapper<SecurityRoleMenu>()
@@ -219,9 +244,7 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         List<SecurityApiTableModel> all = new ArrayList<>();
         for (int i = 0; i < apiIds.size(); i += BATCH_SIZE) {
             List<String> batch = apiIds.subList(i, Math.min(i + BATCH_SIZE, apiIds.size()));
-            all.addAll(apiTableModelService.list(
-                    new LambdaQueryWrapper<SecurityApiTableModel>()
-                            .in(SecurityApiTableModel::getApiId, batch)));
+            all.addAll(apiTableModelMapper.listTableModelByApiId(batch));
         }
         return all;
     }

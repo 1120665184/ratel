@@ -4,6 +4,8 @@ package org.quyq.gwsu.common.deploy.controller;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.common.deploy.dto.SQLQueryDTO;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
 import org.quyq.gwsu.common.security.service.ISQLExecutionService;
@@ -52,7 +54,7 @@ public class DistributedSqlExecutionController {
      * @return
      */
     @GetMapping(CoreConstants.EndPoint.ENDPOINT_DB_TABLES)
-    public R<?> queryTables(@RequestParam(required = false) String datasource) {
+    public R<List<TableInfo>> queryTables(@RequestParam(required = false) String datasource) {
         return R.ok(sqlExecutionService.tableList(datasource));
     }
 
@@ -64,13 +66,14 @@ public class DistributedSqlExecutionController {
      * @return
      */
     @GetMapping(CoreConstants.EndPoint.ENDPOINT_DB_COLUMNS)
-    public R<?> queryColumns(@RequestParam(required = false) String datasource, @RequestParam String tableName) {
+    public R<List<ColumnInfo>> queryColumns(@RequestParam(required = false) String datasource, @RequestParam String tableName) {
         return R.ok(sqlExecutionService.columnList(datasource, tableName));
     }
 
 
     /**
      * 获取指定数据源的数据库名
+     *
      * @param datasource
      * @return
      */

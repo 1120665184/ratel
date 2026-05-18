@@ -8,7 +8,10 @@ import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.api.proxy.LocalApiClientFactory;
 import org.quyq.gwsu.common.api.proxy.RemoteApiClientFactory;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.springframework.beans.factory.*;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -24,10 +27,10 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClient;
 
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author Quyq
@@ -45,14 +48,9 @@ public class ApiClientAutoConfiguration {
      */
     @Bean
     @LoadBalanced
-    public RestClient.Builder loadBalancedRestClientBuilder(List<ApiClientInterceptor> interceptors,
-                                                            ObjectProvider<List<ClientHttpRequestInterceptor>> requestInterceptors) {
+    public RestClient.Builder loadBalancedRestClientBuilder(List<ApiClientInterceptor> interceptors) {
         RestClient.Builder builder = RestClient.builder();
-        List<ClientHttpRequestInterceptor> clientHttpRequestInterceptors = new ArrayList<>(Optional.ofNullable(requestInterceptors.getIfAvailable()).orElse(Collections.emptyList()));
-        if (!CollectionUtils.isEmpty(interceptors)) {
-            clientHttpRequestInterceptors.addFirst(createRequestInterceptor(interceptors));
-        }
-        clientHttpRequestInterceptors.forEach(builder::requestInterceptor);
+        builder.requestInterceptor(createRequestInterceptor(interceptors));
 
         return builder;
     }

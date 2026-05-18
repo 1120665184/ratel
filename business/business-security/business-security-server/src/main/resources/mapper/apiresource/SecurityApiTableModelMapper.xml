@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelMapper">
+
+    <resultMap id="SecurityApiTableModelMap" type="org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel" autoMapping="true">
+        <result column="field_config" property="fieldConfig"
+                typeHandler="org.quyq.gwsu.security.apiresource.typehandler.FieldConfigTypeHandler"/>
+    </resultMap>
+
+    <select id="selectByTableModel" resultType="org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO">
+        select asr.id,asr.module_prefix,asr.tag_name,asr.req_path,asr.req_method,asr.summary,asr.request_class,asr.response_class,asr.class_name,asr.method_name,asr.login_allow_access from security_api_resource asr
+                                                                                                                                                                                                 left join (
+            select satm.id ,satm.api_id ,satm.module_prefix ,COALESCE(satmc.datasource ,satm.datasource) as datasource,satm.table_name,satm.field_config from security_api_table_model satm
+                                                                                                                                                                  left join security_api_table_model_config satmc on satmc.table_model_id = satm.id
+        ) tb on tb.api_id = asr.id
+        where tb.module_prefix = #{modulePrefix} and tb.datasource = #{datasource} and tb.table_name = #{tableName} and asr.deleted = 0
+    </select>
+
+    <select id="listTableModelByApiId" resultMap="SecurityApiTableModelMap">
+        select satm.id ,satm.api_id ,satm.module_prefix ,COALESCE(satmc.datasource ,satm.datasource) as datasource,satm.table_name,satm.field_config,
+               satm.tenant_id,satm.create_op,satm.create_time,satm.modify_op,satm.modify_time from security_api_table_model satm
+                                                                                                       left join security_api_table_model_config satmc on satmc.table_model_id = satm.id
+        where satm.api_id in
+        <foreach collection="apiIds" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </select>
+
+</mapper>

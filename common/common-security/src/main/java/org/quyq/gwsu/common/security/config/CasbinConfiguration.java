@@ -12,11 +12,7 @@ import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.security.casbin.RedisAdapter;
 import org.quyq.gwsu.common.security.casbin.RedisWatcher;
 import org.quyq.gwsu.common.security.casbin.field.FieldEnforcer;
-import org.quyq.gwsu.common.security.casbin.function.ContainsFunction;
-import org.quyq.gwsu.common.security.casbin.function.CycleMonthlyFunction;
-import org.quyq.gwsu.common.security.casbin.function.CycleWeeklyFunction;
-import org.quyq.gwsu.common.security.casbin.function.IsUserLoginFunction;
-import org.quyq.gwsu.common.security.casbin.function.TimeInRangeFunction;
+import org.quyq.gwsu.common.security.casbin.function.*;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.filter.AuthenticationFilter;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -41,54 +37,8 @@ import java.util.List;
  * @description
  */
 @AutoConfiguration
-@Conditional({CasbinConfiguration.LoadingCondition.class})
 @Slf4j
 public class CasbinConfiguration {
-
-
-    @Bean
-    public RedisWatcher redisWatcher(CacheUtils cacheUtils) {
-        return new RedisWatcher(cacheUtils);
-    }
-
-
-    @Bean
-    public Enforcer casbinEnforcer(ResourceLoader resourceLoader, CacheUtils cacheUtils,
-                                   RedisWatcher redisWatcher, List<CustomFunction> functions) throws IOException {
-        Model model = new Model();
-        model.loadModelFromText(loadModelConfig(resourceLoader));
-
-        RedisAdapter adapter = new RedisAdapter(cacheUtils);
-
-        Enforcer enforcer = new SyncedEnforcer(model, adapter);
-        //预先加载一次
-        enforcer.loadPolicy();
-        //配置更新监听
-        redisWatcher.setUpdateCallback(() -> {
-            enforcer.loadPolicy();
-            log.info("权限策略变更， 加载最新策略");
-        });
-        enforcer.setWatcher(redisWatcher);
-
-        if (CollectionUtils.isNotEmpty(functions)) {
-            functions.forEach(function -> enforcer.addFunction(function.getName(), function));
-        }
-
-        return enforcer;
-
-    }
-
-    @Bean
-    public FieldEnforcer fieldEnforcer(CacheUtils cacheUtils, Enforcer enforcer) {
-        return new FieldEnforcer(cacheUtils, enforcer);
-    }
-
-    @Bean
-    public AuthenticationFilter authenticationFilter(Enforcer enforcer, FieldEnforcer fieldEnforcer,
-                                                     SecurityUtils securityUtils,
-                                                     SecurityProperties securityProperties) {
-        return new AuthenticationFilter(enforcer, fieldEnforcer, securityUtils, securityProperties);
-    }
 
 
     @Bean
@@ -117,6 +67,13 @@ public class CasbinConfiguration {
     }
 
 
+    @Bean
+    public Model enforcerModel(ResourceLoader resourceLoader) throws IOException {
+        Model model = new Model();
+        model.loadModelFromText(loadModelConfig(resourceLoader));
+        return model;
+    }
+
     private String loadModelConfig(ResourceLoader resourceLoader) throws IOException {
         Resource resource = resourceLoader.getResource("classpath:casbin/abac.conf");
         try (InputStream is = resource.getInputStream()) {
@@ -125,6 +82,53 @@ public class CasbinConfiguration {
         }
     }
 
+
+    @AutoConfiguration
+    @Conditional({CasbinConfiguration.LoadingCondition.class})
+    public static class PermissionCasbinConfiguration {
+        @Bean
+        public RedisWatcher redisWatcher(CacheUtils cacheUtils) {
+            return new RedisWatcher(cacheUtils);
+        }
+
+
+        @Bean
+        public Enforcer casbinEnforcer(Model model, CacheUtils cacheUtils,
+                                       RedisWatcher redisWatcher, List<CustomFunction> functions) {
+
+
+            RedisAdapter adapter = new RedisAdapter(cacheUtils);
+
+            Enforcer enforcer = new SyncedEnforcer(model, adapter);
+            //预先加载一次
+            enforcer.loadPolicy();
+            //配置更新监听
+            redisWatcher.setUpdateCallback(() -> {
+                enforcer.loadPolicy();
+                log.info("权限策略变更， 加载最新策略");
+            });
+            enforcer.setWatcher(redisWatcher);
+
+            if (CollectionUtils.isNotEmpty(functions)) {
+                functions.forEach(function -> enforcer.addFunction(function.getName(), function));
+            }
+
+            return enforcer;
+
+        }
+
+        @Bean
+        public FieldEnforcer fieldEnforcer(CacheUtils cacheUtils, Enforcer enforcer) {
+            return new FieldEnforcer(cacheUtils, enforcer);
+        }
+
+        @Bean
+        public AuthenticationFilter authenticationFilter(Enforcer enforcer, FieldEnforcer fieldEnforcer,
+                                                         SecurityUtils securityUtils,
+                                                         SecurityProperties securityProperties) {
+            return new AuthenticationFilter(enforcer, fieldEnforcer, securityUtils, securityProperties);
+        }
+    }
 
     /**
      * 只有网关服务或单应用部署时加载该应用
