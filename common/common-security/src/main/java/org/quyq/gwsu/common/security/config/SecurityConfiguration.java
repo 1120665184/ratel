@@ -12,7 +12,6 @@ import org.quyq.gwsu.common.security.filter.PropertiesSettingFilter;
 import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
-import org.quyq.gwsu.common.security.utils.SqlDataPermissionFilterUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -65,9 +64,9 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public DataPermissionUtils dataPermissionUtils(SecurityUtils securityUtils,
+    public DataPermissionUtils dataPermissionUtils(DataResourceRuleUtils ruleUtils, SecurityUtils securityUtils,
                                                    SessionUtils sessionUtils) {
-        return new DataPermissionUtils(securityUtils, sessionUtils);
+        return new DataPermissionUtils(ruleUtils, securityUtils, sessionUtils);
     }
 
 
@@ -86,9 +85,10 @@ public class SecurityConfiguration {
 
     @Bean
     public DataResourceInterceptor dataResourceInterceptor(
+            SecurityUtils securityUtils ,
             DataResourceRuleUtils ruleUtils,
             DataPermissionUtils dataPermissionUtils) {
-        return new DataResourceInterceptor(ruleUtils, dataPermissionUtils);
+        return new DataResourceInterceptor(securityUtils ,ruleUtils, dataPermissionUtils);
     }
 
 
@@ -97,14 +97,6 @@ public class SecurityConfiguration {
     @ConditionalOnClass(MetaObjectHandler.class)
     public MetaObjectHandler defaultMetaObjectHandler(SecurityUtils securityUtils) {
         return new DefaultMetaObjectHandler(securityUtils);
-    }
-
-
-    @Bean
-    @ConditionalOnMissingBean
-    public SqlDataPermissionFilterUtils sqlDataPermissionFilterUtils(DataResourceRuleUtils dataResourceRuleUtils ,
-                                                                     DataPermissionUtils dataPermissionUtils) {
-        return new SqlDataPermissionFilterUtils(dataResourceRuleUtils , dataPermissionUtils);
     }
 
 

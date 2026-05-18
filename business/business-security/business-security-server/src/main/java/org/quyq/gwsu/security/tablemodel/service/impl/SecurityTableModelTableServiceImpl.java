@@ -3,6 +3,14 @@ package org.quyq.gwsu.security.tablemodel.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.quyq.gwsu.common.api.utils.FeignUtils;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.utils.DeployUtils;
+import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.TableInfo;
+import org.quyq.gwsu.common.security.service.ISQLExecutionService;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelColumn;
@@ -12,7 +20,9 @@ import org.quyq.gwsu.security.tablemodel.mapper.SecurityTableModelTableMapper;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelColumnService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelForeignKeyService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Objects;
@@ -31,6 +41,10 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
     private final ISecurityTableModelColumnService securityTableModelColumnService;
 
     private final ISecurityTableModelForeignKeyService securityTableModelForeignKeyService;
+
+    private final RestClient.Builder clientBuilder;
+
+    private final ISQLExecutionService sqlExecutionService;
 
     @Override
     public TableModelTableVO getById(String id) {
@@ -102,5 +116,50 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
     @Override
     public Boolean removeByIds(List<String> ids) {
         return removeBatchByIds(ids);
+    }
+
+    @Override
+    public List<TableInfo> tableList(String applicationName, String datasource) {
+
+        if (DeployUtils.isSingle()) {
+            return sqlExecutionService.tableList(datasource);
+        }
+        RestClient restClient = clientBuilder.clone()
+                .baseUrl("http://%s".formatted(applicationName))
+                .build();
+
+        String uri = CoreConstants.EndPoint.ENDPOINT_DB_TABLES;
+        if(StringUtils.isNotBlank(datasource)){
+            uri += "?datasource=%s".formatted(datasource);
+        }
+        return FeignUtils.data(restClient
+                .get()
+                .uri(uri)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                }));
+    }
+
+    @Override
+    public List<ColumnInfo> columnList(String applicationName, String datasource, String tableName) {
+
+        if(DeployUtils.isSingle()){
+            return sqlExecutionService.columnList(datasource, tableName);
+        }
+
+        RestClient restClient = clientBuilder.clone()
+                .baseUrl("http://%s".formatted(applicationName))
+                .build();
+
+        String uri = CoreConstants.EndPoint.ENDPOINT_DB_COLUMNS + "?tableName=%s".formatted(tableName);
+        if(StringUtils.isNotBlank(datasource)){
+            uri += "&datasource=%s".formatted(datasource);
+        }
+        return FeignUtils.data(restClient
+                .get()
+                .uri(uri)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                }));
     }
 }

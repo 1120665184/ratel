@@ -4,8 +4,8 @@
 <mapper namespace="org.quyq.gwsu.security.tablemodel.mapper.SecurityTableModelForeignKeyMapper">
 
     <select id="selectByTableId" resultType="org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelForeignKey">
-        SELECT id, constraint_name, table_id, column_id, referenced_table_id,
-               referenced_column_id, update_rule, delete_rule,
+        SELECT id, constraint_name, table_id, column_name, referenced_table_name,
+               referenced_column_name, update_rule, delete_rule, data_type, remark,
                tenant_id, create_op, create_time, modify_op, modify_time
         FROM security_tablemodel_foreign_keys
         WHERE deleted = 0

@@ -29,4 +29,7 @@ public class TableModelTableVO extends BaseVO {
 
     @Schema(description = "表注释")
     private String tableComment;
+
+    @Schema(description = "来源类型：0-采集 1-自定义添加")
+    private Integer sourceType;
 }

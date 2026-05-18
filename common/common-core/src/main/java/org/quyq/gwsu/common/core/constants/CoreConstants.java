@@ -40,6 +40,21 @@ public interface CoreConstants {
          */
         String ENDPOINT_DB_EXECUTION = "/db/query";
 
+        /**
+         * 查询所有数据源列表
+         */
+        String ENDPOINT_DB_DATASOURCE = "/db/datasource";
+
+        /**
+         * 查询指定数据源中库的表信息
+         */
+        String ENDPOINT_DB_TABLES = "/db/tables";
+
+        /**
+         * 查询指定表的的列信息
+         */
+        String ENDPOINT_DB_COLUMNS = "db/columns";
+
     }
 
     interface Headers {

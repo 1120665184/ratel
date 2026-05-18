@@ -8,6 +8,8 @@ import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 
+import java.util.List;
+
 /**
  * 接口资源 Mapper
  *
@@ -23,4 +25,15 @@ public interface SecurityApiResourceMapper extends BaseMapper<SecurityApiResourc
      * @return 分页结果
      */
     IPage<ApiResourceVO> selectPageVo(Page<ApiResourceVO> page, @Param("query") ApiResourceQueryDTO query);
+
+
+    /**
+     * 获取指定表模型关联的所有接口资源
+     * @param modulePrefix
+     * @param datasource
+     * @param tableName
+     * @return
+     */
+    List<ApiResourceVO> selectByTableModel(@Param("modulePrefix") String modulePrefix,@Param("datasource") String datasource ,@Param("tableName") String tableName);
+
 }

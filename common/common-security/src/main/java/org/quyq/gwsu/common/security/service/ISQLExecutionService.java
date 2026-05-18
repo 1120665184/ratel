@@ -1,6 +1,8 @@
 package org.quyq.gwsu.common.security.service;
 
 
+import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
 
 import java.util.List;
@@ -23,5 +25,27 @@ public interface ISQLExecutionService {
      * @return
      */
     SqlQueryVO query(String datasource, String sql, List<Object> parameters);
+
+
+    /**
+     * 获取数据源列表
+     * @return
+     */
+    List<String> datasourceList();
+
+    /**
+     * 获取指定数据源的表信息
+     * @param datasource
+     * @return
+     */
+    List<TableInfo> tableList(String datasource);
+
+    /**
+     * 获取列信息
+     * @param datasource
+     * @param tableName
+     * @return
+     */
+    List<ColumnInfo>  columnList(String datasource, String tableName);
 
 }

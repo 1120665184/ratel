@@ -413,6 +413,7 @@ CREATE TABLE security_tablemodel_tables
     module_prefix VARCHAR(64)           DEFAULT NULL COMMENT '模块前缀',
     data_source   VARCHAR(64)  NOT NULL COMMENT '数据源',
     table_comment TEXT                  DEFAULT NULL COMMENT '表注释',
+    source_type   SMALLINT     NOT NULL DEFAULT 0 COMMENT '来源类型：0-采集 1-自定义添加',
     tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
     create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -464,25 +465,26 @@ CREATE TABLE security_tablemodel_columns
 -- =============================================
 CREATE TABLE security_tablemodel_foreign_keys
 (
-    id                   VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
-    constraint_name      VARCHAR(128) NOT NULL COMMENT '约束名称',
-    table_id             VARCHAR(24)  NOT NULL COMMENT '所属表ID',
-    column_id            VARCHAR(24)  NOT NULL COMMENT '字段ID',
-    referenced_table_id  VARCHAR(24)  NOT NULL COMMENT '引用表ID',
-    referenced_column_id VARCHAR(24)  NOT NULL COMMENT '引用字段ID',
-    update_rule          VARCHAR(16)           DEFAULT 'RESTRICT' COMMENT '更新规则',
-    delete_rule          VARCHAR(16)           DEFAULT 'RESTRICT' COMMENT '删除规则',
-    tenant_id            VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
-    create_op            VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
-    create_time          DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    modify_op            VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
-    modify_time          DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    deleted              SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
-    delete_op            VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
-    delete_time          DATETIME              DEFAULT NULL COMMENT '删除时间',
+    id                     VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
+    constraint_name        VARCHAR(128) NOT NULL COMMENT '约束名称',
+    table_id               VARCHAR(24)  NOT NULL COMMENT '所属表ID',
+    column_name            VARCHAR(128) NOT NULL COMMENT '字段名',
+    referenced_table_name  VARCHAR(128) NOT NULL COMMENT '引用表名',
+    referenced_column_name VARCHAR(128) NOT NULL COMMENT '引用字段名',
+    update_rule            VARCHAR(16)           DEFAULT 'RESTRICT' COMMENT '更新规则',
+    delete_rule            VARCHAR(16)           DEFAULT 'RESTRICT' COMMENT '删除规则',
+    data_type              SMALLINT     NOT NULL DEFAULT 0 COMMENT '数据类型：0-采集 1-自定义添加',
+    remark                 VARCHAR(500)          DEFAULT NULL COMMENT '备注',
+    tenant_id              VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op              VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time            DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op              VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time            DATETIME              DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    deleted                SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op              VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time            DATETIME              DEFAULT NULL COMMENT '删除时间',
     UNIQUE INDEX uk_table_constraint (table_id, constraint_name),
-    UNIQUE INDEX uk_table_column (table_id, column_id),
-    INDEX idx_referenced_table (referenced_table_id)
+    INDEX idx_referenced_table_name (referenced_table_name)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='外键约束信息（单列外键）';

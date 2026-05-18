@@ -3,6 +3,7 @@ package org.quyq.gwsu.security.apiresource.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
+import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryByTableModelDTO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
@@ -33,6 +34,14 @@ public interface ISecurityApiResourceService extends IService<SecurityApiResourc
      */
     ApiResourceVO getByPathAndMethod(String reqPath, String reqMethod);
 
+
+    /**
+     * 获取指定微服务的所有数据源信息
+     * @param serverName
+     * @return
+     */
+    List<String> getAllDatasource(String serverName);
+
     /**
      * 根据模块前缀查询列表
      *
@@ -48,6 +57,13 @@ public interface ISecurityApiResourceService extends IService<SecurityApiResourc
      * @return 接口资源列表
      */
     List<ApiResourceVO> listByTagName(String tagName);
+
+    /**
+     * 查询指定表模型关联的接口资源
+     * @param queryDTO
+     * @return
+     */
+    List<ApiResourceVO> selectByTableModel(ApiResourceQueryByTableModelDTO queryDTO);
 
     /**
      * 分页查询

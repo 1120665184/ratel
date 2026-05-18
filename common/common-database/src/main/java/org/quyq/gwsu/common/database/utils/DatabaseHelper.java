@@ -17,6 +17,8 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @RequiredArgsConstructor
@@ -26,7 +28,18 @@ public class DatabaseHelper {
 
     private final DynamicDataSourceProperties properties;
 
+    /**
+     * 获取所有数据源key
+     * @return
+     */
+    public List<String> getAllDatasourceKeys() {
+        return new ArrayList<>(properties.getDatasource().keySet());
+    }
 
+    /**
+     * 获取当前数据源
+     * @return
+     */
     public String getCurrentDatasourceKey() {
         String currDataSource = DynamicDataSourceContextHolder.peek();
         if (StringUtils.isBlank(currDataSource))
@@ -34,7 +47,10 @@ public class DatabaseHelper {
         return currDataSource;
     }
 
-
+    /**
+     * 获取当前数据源的库类型
+     * @return
+     */
     public DatabaseType getCurrentDatabaseType() {
         return getCurrentDatabaseType(dataSource);
     }

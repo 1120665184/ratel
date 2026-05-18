@@ -1,6 +1,8 @@
 package org.quyq.gwsu.security.tablemodel.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
@@ -63,4 +65,22 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
      * @return 是否成功
      */
     Boolean removeByIds(List<String> ids);
+
+    /**
+     * 获取表信息
+     * @param applicationName 服务名
+     * @param datasource
+     * @return
+     */
+    List<TableInfo> tableList(String applicationName ,String datasource);
+
+    /**
+     * 获取表的列信息
+     * @param applicationName 服务名
+     * @param datasource
+     * @param tableName
+     * @return
+     */
+    List<ColumnInfo>  columnList(String applicationName ,String datasource, String tableName);
+
 }

@@ -38,6 +38,9 @@ public class SecurityTableModelTable extends BaseDO {
     @Schema(description = "表注释")
     private String tableComment;
 
+    @Schema(description = "来源类型：0-采集 1-自定义添加")
+    private Integer sourceType;
+
     /**
      * DO 转 VO
      *
@@ -50,6 +53,7 @@ public class SecurityTableModelTable extends BaseDO {
         vo.setModulePrefix(this.modulePrefix);
         vo.setDataSource(this.dataSource);
         vo.setTableComment(this.tableComment);
+        vo.setSourceType(this.sourceType);
         vo.copyBaseProperties(this);
         return vo;
     }
@@ -67,6 +71,7 @@ public class SecurityTableModelTable extends BaseDO {
         entity.setModulePrefix(vo.getModulePrefix());
         entity.setDataSource(vo.getDataSource());
         entity.setTableComment(vo.getTableComment());
+        entity.setSourceType(vo.getSourceType());
         return entity;
     }
 }

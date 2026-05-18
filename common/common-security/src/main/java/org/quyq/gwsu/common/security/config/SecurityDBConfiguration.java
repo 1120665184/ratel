@@ -2,11 +2,12 @@ package org.quyq.gwsu.common.security.config;
 
 
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
+import org.quyq.gwsu.common.database.metadata.DdlFactory;
+import org.quyq.gwsu.common.database.utils.DatabaseHelper;
 import org.quyq.gwsu.common.security.service.ISQLExecutionService;
 import org.quyq.gwsu.common.security.service.impl.SQLExecutionServiceImpl;
-import org.quyq.gwsu.common.security.utils.SqlDataPermissionFilterUtils;
+import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,7 +22,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class SecurityDBConfiguration {
 
     @Bean
-    public ISQLExecutionService sqlExecutionService(JdbcTemplate jdbcTemplate, SqlDataPermissionFilterUtils sqlDataPermissionFilterUtils) {
-        return new SQLExecutionServiceImpl(jdbcTemplate, sqlDataPermissionFilterUtils);
+    public ISQLExecutionService sqlExecutionService(JdbcTemplate jdbcTemplate, DataPermissionUtils dataPermissionUtils,
+                                                    DatabaseHelper databaseHelper, DdlFactory ddlFactory) {
+        return new SQLExecutionServiceImpl(jdbcTemplate, dataPermissionUtils, databaseHelper, ddlFactory);
     }
 }

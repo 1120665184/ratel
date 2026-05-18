@@ -681,6 +681,7 @@ CREATE TABLE security_tablemodel_tables
     module_prefix VARCHAR(64)           DEFAULT NULL,
     data_source   VARCHAR(64)  NOT NULL,
     table_comment TEXT                  DEFAULT NULL,
+    source_type   INT2         NOT NULL DEFAULT 0,
     tenant_id     VARCHAR(50)           DEFAULT NULL,
     create_op     VARCHAR(50)           DEFAULT NULL,
     create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -697,6 +698,7 @@ COMMENT ON COLUMN security_tablemodel_tables.table_name IS '表名';
 COMMENT ON COLUMN security_tablemodel_tables.module_prefix IS '模块前缀';
 COMMENT ON COLUMN security_tablemodel_tables.data_source IS '数据源';
 COMMENT ON COLUMN security_tablemodel_tables.table_comment IS '表注释';
+COMMENT ON COLUMN security_tablemodel_tables.source_type IS '来源类型：0-采集 1-自定义添加';
 COMMENT ON COLUMN security_tablemodel_tables.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_tablemodel_tables.create_op IS '创建人';
 COMMENT ON COLUMN security_tablemodel_tables.create_time IS '创建时间';
@@ -767,33 +769,37 @@ CREATE INDEX idx_security_tablemodel_columns_table_id ON security_tablemodel_col
 -- =============================================
 CREATE TABLE security_tablemodel_foreign_keys
 (
-    id                   VARCHAR(24) PRIMARY KEY,
-    constraint_name      VARCHAR(128) NOT NULL,
-    table_id             VARCHAR(24)  NOT NULL,
-    column_id            VARCHAR(24)  NOT NULL,
-    referenced_table_id  VARCHAR(24)  NOT NULL,
-    referenced_column_id VARCHAR(24)  NOT NULL,
-    update_rule          VARCHAR(16)           DEFAULT 'RESTRICT',
-    delete_rule          VARCHAR(16)           DEFAULT 'RESTRICT',
-    tenant_id            VARCHAR(50)           DEFAULT NULL,
-    create_op            VARCHAR(50)           DEFAULT NULL,
-    create_time          TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    modify_op            VARCHAR(50)           DEFAULT NULL,
-    modify_time          TIMESTAMP             DEFAULT NULL,
-    deleted              INT2         NOT NULL DEFAULT 0,
-    delete_op            VARCHAR(50)           DEFAULT NULL,
-    delete_time          TIMESTAMP             DEFAULT NULL
+    id                     VARCHAR(24) PRIMARY KEY,
+    constraint_name        VARCHAR(128) NOT NULL,
+    table_id               VARCHAR(24)  NOT NULL,
+    column_name            VARCHAR(128) NOT NULL,
+    referenced_table_name  VARCHAR(128) NOT NULL,
+    referenced_column_name VARCHAR(128) NOT NULL,
+    update_rule            VARCHAR(16)           DEFAULT 'RESTRICT',
+    delete_rule            VARCHAR(16)           DEFAULT 'RESTRICT',
+    data_type              INT2         NOT NULL DEFAULT 0,
+    remark                 VARCHAR(500)          DEFAULT NULL,
+    tenant_id              VARCHAR(50)           DEFAULT NULL,
+    create_op              VARCHAR(50)           DEFAULT NULL,
+    create_time            TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op              VARCHAR(50)           DEFAULT NULL,
+    modify_time            TIMESTAMP             DEFAULT NULL,
+    deleted                INT2         NOT NULL DEFAULT 0,
+    delete_op              VARCHAR(50)           DEFAULT NULL,
+    delete_time            TIMESTAMP             DEFAULT NULL
 );
 
 COMMENT ON TABLE security_tablemodel_foreign_keys IS '外键约束信息（单列外键）';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.id IS '主键ID（雪花算法）';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.constraint_name IS '约束名称';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.table_id IS '所属表ID';
-COMMENT ON COLUMN security_tablemodel_foreign_keys.column_id IS '字段ID';
-COMMENT ON COLUMN security_tablemodel_foreign_keys.referenced_table_id IS '引用表ID';
-COMMENT ON COLUMN security_tablemodel_foreign_keys.referenced_column_id IS '引用字段ID';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.column_name IS '字段名';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.referenced_table_name IS '引用表名';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.referenced_column_name IS '引用字段名';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.update_rule IS '更新规则';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_rule IS '删除规则';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.data_type IS '数据类型：0-采集 1-自定义添加';
+COMMENT ON COLUMN security_tablemodel_foreign_keys.remark IS '备注';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.create_op IS '创建人';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.create_time IS '创建时间';
@@ -804,5 +810,4 @@ COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_op IS '删除人';
 COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_time IS '删除时间';
 
 CREATE UNIQUE INDEX uk_security_tablemodel_foreign_keys_table_constraint ON security_tablemodel_foreign_keys (table_id, constraint_name);
-CREATE UNIQUE INDEX uk_security_tablemodel_foreign_keys_table_column ON security_tablemodel_foreign_keys (table_id, column_id);
-CREATE INDEX idx_security_tablemodel_foreign_keys_referenced_table ON security_tablemodel_foreign_keys (referenced_table_id);
+CREATE INDEX idx_security_tablemodel_foreign_keys_referenced_table_name ON security_tablemodel_foreign_keys (referenced_table_name);

@@ -24,14 +24,20 @@ public class TableModelForeignKeyVO extends BaseVO {
     @Schema(description = "所属表ID")
     private String tableId;
 
-    @Schema(description = "字段ID")
-    private String columnId;
+    @Schema(description = "字段名")
+    private String columnName;
 
-    @Schema(description = "引用表ID")
-    private String referencedTableId;
+    @Schema(description = "引用表名")
+    private String referencedTableName;
 
-    @Schema(description = "引用字段ID")
-    private String referencedColumnId;
+    @Schema(description = "引用字段名")
+    private String referencedColumnName;
+
+    @Schema(description = "数据类型：0-采集 1-自定义添加")
+    private Integer dataType;
+
+    @Schema(description = "备注")
+    private String remark;
 
     @Schema(description = "更新规则")
     private String updateRule;

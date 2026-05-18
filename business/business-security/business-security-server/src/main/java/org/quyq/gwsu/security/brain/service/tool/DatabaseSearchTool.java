@@ -116,7 +116,13 @@ public class DatabaseSearchTool {
             sb.append("\n### 外键约束\n");
             for (TableModelForeignKeyVO fk : foreignKeys) {
                 sb.append("- 约束名: ").append(fk.getConstraintName() != null ? fk.getConstraintName() : "-")
-                        .append("\n");
+                        .append(", 字段: ").append(fk.getColumnName() != null ? fk.getColumnName() : "-")
+                        .append(" -> ").append(fk.getReferencedTableName() != null ? fk.getReferencedTableName() : "-")
+                        .append(".").append(fk.getReferencedColumnName() != null ? fk.getReferencedColumnName() : "-");
+                if(StringUtils.isNotBlank(fk.getRemark())) {
+                    sb.append("  注释：").append(fk.getRemark());
+                }
+                sb.append("\n");
             }
         }
 

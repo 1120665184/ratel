@@ -30,6 +30,10 @@ public enum SecurityErrorCode implements ReturnCode {
     E03001("表名称不能为空"),
     E03002("数据源不能为空"),
     E03003("角色ID不能为空"),
+    E03004("所属服务（模块）不能为空") ,
+
+    E04001("所属服务不能为空") ,
+    E04002("表名不能为空"),
     ;
 
     private final String msg;

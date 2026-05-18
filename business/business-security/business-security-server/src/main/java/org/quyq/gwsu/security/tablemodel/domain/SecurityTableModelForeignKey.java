@@ -32,14 +32,20 @@ public class SecurityTableModelForeignKey extends BaseDO {
     @Schema(description = "所属表ID")
     private String tableId;
 
-    @Schema(description = "字段ID")
-    private String columnId;
+    @Schema(description = "字段名")
+    private String columnName;
 
-    @Schema(description = "引用表ID")
-    private String referencedTableId;
+    @Schema(description = "引用表名")
+    private String referencedTableName;
 
-    @Schema(description = "引用字段ID")
-    private String referencedColumnId;
+    @Schema(description = "引用字段名")
+    private String referencedColumnName;
+
+    @Schema(description = "数据类型：0-采集 1-自定义添加")
+    private Integer dataType;
+
+    @Schema(description = "备注")
+    private String remark;
 
     @Schema(description = "更新规则")
     private String updateRule;
@@ -57,11 +63,13 @@ public class SecurityTableModelForeignKey extends BaseDO {
         vo.setId(this.id);
         vo.setConstraintName(this.constraintName);
         vo.setTableId(this.tableId);
-        vo.setColumnId(this.columnId);
-        vo.setReferencedTableId(this.referencedTableId);
-        vo.setReferencedColumnId(this.referencedColumnId);
+        vo.setColumnName(this.columnName);
+        vo.setReferencedTableName(this.referencedTableName);
+        vo.setReferencedColumnName(this.referencedColumnName);
         vo.setUpdateRule(this.updateRule);
         vo.setDeleteRule(this.deleteRule);
+        vo.setDataType(this.dataType);
+        vo.setRemark(this.remark);
         vo.copyBaseProperties(this);
         return vo;
     }
@@ -77,11 +85,13 @@ public class SecurityTableModelForeignKey extends BaseDO {
         entity.setId(vo.getId());
         entity.setConstraintName(vo.getConstraintName());
         entity.setTableId(vo.getTableId());
-        entity.setColumnId(vo.getColumnId());
-        entity.setReferencedTableId(vo.getReferencedTableId());
-        entity.setReferencedColumnId(vo.getReferencedColumnId());
+        entity.setColumnName(vo.getColumnName());
+        entity.setReferencedTableName(vo.getReferencedTableName());
+        entity.setReferencedColumnName(vo.getReferencedColumnName());
         entity.setUpdateRule(vo.getUpdateRule());
         entity.setDeleteRule(vo.getDeleteRule());
+        entity.setDataType(vo.getDataType());
+        entity.setRemark(vo.getRemark());
         return entity;
     }
 }

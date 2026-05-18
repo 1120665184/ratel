@@ -5,11 +5,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
+import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryByTableModelDTO;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
 import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
+import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +35,23 @@ public class SecurityApiResourceController {
     @PostMapping("page")
     public R<IPage<ApiResourceVO>> page(@RequestBody ApiResourceQueryDTO query) {
         return R.ok(apiResourceService.pageByCondition(query));
+    }
+
+
+    @Operation(summary = "通过服务名获取数据源列表")
+    @GetMapping("getDatasourceList")
+    public R<List<String>> getDatasourceList(@RequestParam String serverName) {
+        return R.ok(apiResourceService.getAllDatasource(serverName));
+    }
+
+    @Operation(summary = "获取指定表模型关联的api接口资源")
+    @PostMapping("listByTableModel")
+    public R<List<ApiResourceVO>> selectByTableModel(ApiResourceQueryByTableModelDTO queryDTO) {
+        AssertUtils.hasText(queryDTO.modulePrefix(), SecurityErrorCode.E03004);
+        AssertUtils.hasText(queryDTO.datasource(), SecurityErrorCode.E03002);
+        AssertUtils.hasText(queryDTO.tableName(), SecurityErrorCode.E03001);
+        return R.ok(apiResourceService.selectByTableModel(queryDTO));
+
     }
 
     @Operation(summary = "根据ID查询")

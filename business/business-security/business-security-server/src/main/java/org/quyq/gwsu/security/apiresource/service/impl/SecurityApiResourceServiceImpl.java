@@ -7,24 +7,32 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.cache.utils.lock.DistributedLock;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.quyq.gwsu.common.database.utils.DatabaseHelper;
 import org.quyq.gwsu.common.security.collector.ApiEndpointCollector;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
 import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
-import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
-import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
+import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryByTableModelDTO;
 import org.quyq.gwsu.security.api.apiresource.dto.ApiResourceQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
+import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.apiresource.mapper.SecurityApiResourceMapper;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
-import org.quyq.gwsu.security.api.apiresource.vo.ApiResourceVO;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.redisson.RedissonShutdownException;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestClient;
 
 import java.util.Collection;
 import java.util.List;
@@ -49,6 +57,10 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
 
     private final ISecurityApiTableModelService apiTableModelService;
 
+    private final RestClient.Builder clientBuilder;
+
+    private final DatabaseHelper databaseHelper;
+
     @PostConstruct
     public void init() {
         new Thread(new HandleAllServerPermissionRunner(cacheUtils)).start();
@@ -69,6 +81,25 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
     }
 
     @Override
+    public List<String> getAllDatasource(String serverName) {
+
+        if (DeployUtils.isSingle()) {
+            return databaseHelper.getAllDatasourceKeys();
+        }
+
+
+        RestClient restClient = clientBuilder.clone()
+                .baseUrl("http://%s".formatted(serverName))
+                .build();
+        return FeignUtils.data(restClient.post()
+                .uri(CoreConstants.EndPoint.ENDPOINT_DB_DATASOURCE)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                }));
+
+    }
+
+    @Override
     public List<ApiResourceVO> listByModulePrefix(String modulePrefix) {
         return list(new LambdaQueryWrapper<SecurityApiResource>()
                 .eq(SecurityApiResource::getModulePrefix, modulePrefix))
@@ -84,6 +115,11 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
                 .stream()
                 .map(SecurityApiResource::toVo)
                 .toList();
+    }
+
+    @Override
+    public List<ApiResourceVO> selectByTableModel(ApiResourceQueryByTableModelDTO queryDTO) {
+        return getBaseMapper().selectByTableModel(queryDTO.modulePrefix(), queryDTO.datasource(), queryDTO.tableName());
     }
 
     @Override

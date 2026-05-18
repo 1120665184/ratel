@@ -23,6 +23,7 @@ import org.quyq.gwsu.common.security.enums.DataResourceAssertType;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.exception.SecurityException;
 import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.springframework.core.Ordered;
 import org.springframework.util.CollectionUtils;
 
@@ -44,6 +45,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DataResourceInterceptor implements InnerInterceptor, Ordered {
 
+    private final SecurityUtils securityUtils;
     private final DataResourceRuleUtils ruleUtils;
     private final DataPermissionUtils dataPermissionUtils;
     private final DataResourceConditionBuilder<Expression, Expression> conditionBuilder = new DBDataResourceConditionBuilder();
@@ -88,7 +90,7 @@ public class DataResourceInterceptor implements InnerInterceptor, Ordered {
 
         if (DataScope.SELF_ONLY == userDataPermission.dataScope()) {
             // SELF_ONLY 模式：过滤出支持 SELF_ONLY 的规则，重构 conditions 复用已有逻辑
-            String currentUsername = dataPermissionUtils.getCurrentUsername();
+            String currentUsername = securityUtils.getUsername();
             if (currentUsername == null) {
                 return;
             }

@@ -15,6 +15,7 @@ public enum CommonErrorCode implements ReturnCode {
     E00001("资源未找到，请联系管理员"),
 
     E01001("获取数据库类型失败"),
+    E01002("表名不能为空"),
 
     E03001("TOKEN已失效,请重新登录"),
     E03002("鉴权失败，请联系管理员"),
