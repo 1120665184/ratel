@@ -53,7 +53,12 @@ public interface CoreConstants {
         /**
          * 查询指定表的的列信息
          */
-        String ENDPOINT_DB_COLUMNS = "db/columns";
+        String ENDPOINT_DB_COLUMNS = "/db/columns";
+
+        /**
+         * 获取指定数据源的数据名
+         */
+        String ENDPOINT_DB_NAME = "/db/name";
 
     }
 

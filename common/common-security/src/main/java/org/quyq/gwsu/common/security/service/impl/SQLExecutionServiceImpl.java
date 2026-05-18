@@ -94,4 +94,18 @@ public class SQLExecutionServiceImpl implements ISQLExecutionService {
             }
         }
     }
+
+    @Override
+    public String getDatabaseName(String datasource) {
+        if (StringUtils.hasText(datasource)) {
+            DynamicDataSourceContextHolder.push(datasource);
+        }
+        try {
+            return databaseHelper.getCurrentDatabaseType().getName();
+        } finally {
+            if (StringUtils.hasText(datasource)) {
+                DynamicDataSourceContextHolder.clear();
+            }
+        }
+    }
 }

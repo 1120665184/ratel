@@ -14,6 +14,7 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.subagent.SubAgentConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -117,7 +118,7 @@ public class DatabaseSearchAgent {
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .toolExecutionContext(ToolExecutionContext.builder()
-                        .register(DatabaseSearchAgent.class  , this)
+                        .register(DatabaseSearchAgent.class, this)
                         .build())
                 .build();
     }
@@ -131,7 +132,11 @@ public class DatabaseSearchAgent {
 
         return AgentSkill.builder()
                 .name("database_search")
-                .description("数据库自然语言查询技能，当用户需要用自然语言查询数据库数据时使用此技能。包含当前用户可访问的表模型信息。")
+                .description("""
+                        数据库自然语言查询技能，当有以下需求时使用此技能：
+                        - 以当前登录用户的权限为基础生成SQL语句
+                        - 生成SQL并执行返回结果
+                        """)
                 .skillContent(skillContent)
                 .build();
     }
@@ -170,18 +175,31 @@ public class DatabaseSearchAgent {
         }
 
         // 按所属服务+数据源分组
-        Map<String, List<TableModelTableVO>> groupedTables = allTables.stream()
-                .collect(Collectors.groupingBy(
-                        t -> t.getModulePrefix() + ":" + t.getDataSource(),
-                        LinkedHashMap::new,
-                        Collectors.toList()));
+        Map<String, List<TableModelTableVO>> groupedTables;
+        String groupCondition;
+        //单应用按照数据源分组 ， 微服务按照服务名+数据源分组
+        if (DeployUtils.isSingle()) {
+            groupedTables = allTables.stream()
+                    .collect(Collectors.groupingBy(
+                            TableModelTableVO::getDataSource,
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+            groupCondition = "同一数据源";
+        } else {
+            groupedTables = allTables.stream()
+                    .collect(Collectors.groupingBy(
+                            t -> t.getModulePrefix() + ":" + t.getDataSource(),
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+            groupCondition = "同一服务同一数据源";
+        }
 
         // 构建技能文档
         StringBuilder sb = new StringBuilder();
         sb.append("# 数据库自然语言查询技能\n\n");
 
         sb.append("## 重要约束\n");
-        sb.append("- 同一条SQL中只能关联**同一服务同一数据源**下的表，不同分组的表无法在一条SQL中关联查询\n");
+        sb.append("- 同一条SQL中只能关联**%s**下的表，不同分组的表无法在一条SQL中关联查询\n".formatted(groupCondition));
         sb.append("- 如果用户需求涉及不同分组的表，需要生成多条SQL分别执行\n");
         sb.append("- 生成SQL前必须先调用 `get_table_detail` 工具获取表的详细字段信息和权限\n");
         sb.append("- 仅允许生成SELECT语句，禁止任何修改操作\n");
@@ -191,9 +209,17 @@ public class DatabaseSearchAgent {
         sb.append("## 可用表模型列表\n\n");
 
         for (Map.Entry<String, List<TableModelTableVO>> entry : groupedTables.entrySet()) {
-            String[] parts = entry.getKey().split(":", 2);
-            String modulePrefix = parts[0];
-            String dataSource = parts.length > 1 ? parts[1] : "master";
+            String modulePrefix;
+            String dataSource;
+            if (DeployUtils.isSingle()) {
+                dataSource = entry.getKey();
+                modulePrefix = entry.getValue().getFirst().getModulePrefix();
+            } else {
+                String[] parts = entry.getKey().split(":", 2);
+                modulePrefix = parts[0];
+                dataSource = parts.length > 1 ? parts[1] : "master";
+            }
+
 
             sb.append("### 服务: ").append(modulePrefix)
                     .append(" | 数据源: ").append(dataSource).append("\n\n");
@@ -240,8 +266,8 @@ public class DatabaseSearchAgent {
                 - **基于真实字段**：你生成的SQL中引用的表名和字段名必须来自获取到的表结构信息，不得凭空捏造。
                 - **禁止使用 `SELECT *`**：所有查询必须明确列出所需的具体字段名，不允许使用 `*` 通配符。
                 - **权限感知**：只使用当前用户有查询权限的表和字段，无权限的字段不能出现在SQL中。
-                - **分组限制**：同一条SQL中只能关联同一服务(模块)同一数据源下的表。如果用户需求涉及不同分组（不同服务或数据源）的表，需要生成多条SQL分别执行。
-                - **结果展示**：生成SQL后，你需要调用 `execute_sql` 执行查询，并将查询结果以清晰的表格或列表形式返回给用户。
+                - **分组限制**：同一条SQL中只能关联同组下的表。如果用户需求涉及不同分组的表，需要生成多条SQL分别执行。
+                - **结果展示**：生成SQL后，如果没有明确要求只返回SQL语句，你需要调用 `execute_sql` 执行查询，并将查询结果以清晰的表格或列表形式返回给用户。
                 
                 # 工作流程
                 1. **加载技能**：首先加载 `database_search` 技能，了解当前用户可访问的所有表模型及其权限状态。
@@ -260,7 +286,7 @@ public class DatabaseSearchAgent {
                 
                 **你的响应步骤**：
                 1. 从技能中确认 `orders` 表属于 `order:master` 分组，且有权限。
-                2. 调用 `get_table_detail(tableName="orders", dataSource="master")` 获取字段详情，确认存在 `customer_name`、`amount`、`order_date` 字段且均有权限。
+                2. 调用 `get_table_detail(modulePrefix="order",tableName="orders", dataSource="master")` 获取字段详情，确认存在 `customer_name`、`amount`、`order_date` 字段且均有权限。
                 3. 生成SQL：
                    ```sql
                    SELECT customer_name, SUM(amount) AS total_amount
@@ -282,8 +308,9 @@ public class DatabaseSearchAgent {
         return SubAgentConfig.builder()
                 .toolName("SelectiveSQLAgent")
                 .description("""
-                        基于用户表结构与自然语言需求生成并执行只读SELECT查询的智能体。
-                        支持权限感知，自动校验当前用户对表和字段的访问权限。
+                        数据库自然语言查询技能，当有以下需求时使用此技能：
+                        - 以当前登录用户的权限为基础生成SQL语句（仅支持查询语句）
+                        - 生成SQL并执行返回结果
                         """)
                 .session(agentSession)
                 .forwardEvents(true)

@@ -69,4 +69,15 @@ public class DistributedSqlExecutionController {
     }
 
 
+    /**
+     * 获取指定数据源的数据库名
+     * @param datasource
+     * @return
+     */
+    @GetMapping(CoreConstants.EndPoint.ENDPOINT_DB_NAME)
+    public R<String> getDatabaseName(@RequestParam(required = false) String datasource) {
+        return R.ok(sqlExecutionService.getDatabaseName(datasource));
+    }
+
+
 }

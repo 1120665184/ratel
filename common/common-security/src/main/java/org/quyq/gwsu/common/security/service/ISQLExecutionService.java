@@ -48,4 +48,11 @@ public interface ISQLExecutionService {
      */
     List<ColumnInfo>  columnList(String datasource, String tableName);
 
+    /**
+     * 获取指定数据源的数据库名称
+     * @param datasource
+     * @return
+     */
+    String getDatabaseName(String datasource);
+
 }

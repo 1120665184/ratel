@@ -50,6 +50,8 @@ public class DatabaseSearchTool {
 
     private final RestClient.Builder restClientBuilder;
 
+    private final ISQLExecutionService sqlExecutionService;
+
 
     /**
      * 获取指定表的详细内容（字段信息），包含当前登录用户对该字段的权限
@@ -119,7 +121,7 @@ public class DatabaseSearchTool {
                         .append(", 字段: ").append(fk.getColumnName() != null ? fk.getColumnName() : "-")
                         .append(" -> ").append(fk.getReferencedTableName() != null ? fk.getReferencedTableName() : "-")
                         .append(".").append(fk.getReferencedColumnName() != null ? fk.getReferencedColumnName() : "-");
-                if(StringUtils.isNotBlank(fk.getRemark())) {
+                if (StringUtils.isNotBlank(fk.getRemark())) {
                     sb.append("  注释：").append(fk.getRemark());
                 }
                 sb.append("\n");
@@ -141,6 +143,31 @@ public class DatabaseSearchTool {
         }
 
         return sb.toString();
+    }
+
+
+    @Tool(name = "GetDatabaseName", description = """
+            获取指定数据源的数据库名。
+            生成SQL之前需要先调用该方法，获取对应的数据库名，根据数据库生成适配的SQL
+            示例：Mysql ,Oracle
+            """)
+    public String getDatabaseName(
+            @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
+            @ToolParam(name = "datasource", description = "数据源") String datasource) {
+        if (DeployUtils.isSingle()) {
+            return sqlExecutionService.getDatabaseName(datasource);
+        }
+        RestClient restClient = getRestClient(modulePrefix);
+
+        return FeignUtils.data(
+                restClient.get()
+                        .uri(CoreConstants.EndPoint.ENDPOINT_DB_NAME + "?datasource=%s".formatted(datasource))
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<>() {
+                        })
+        );
+
+
     }
 
     /**
@@ -225,6 +252,7 @@ public class DatabaseSearchTool {
         );
 
     }
+
 
     /**
      * 解析SQL元数据并校验权限
@@ -329,7 +357,8 @@ public class DatabaseSearchTool {
      * @param tableColumnMap  表名 -> 列名集合 的映射（用于权限校验）
      * @param resultColumnMap 结果列名 -> 列来源 的映射（用于脱敏处理）
      */
-    private record SqlParseResult(String error, Map<String, Set<String>> tableColumnMap, Map<String, ColumnSource> resultColumnMap) {
+    private record SqlParseResult(String error, Map<String, Set<String>> tableColumnMap,
+                                  Map<String, ColumnSource> resultColumnMap) {
     }
 
     // ==================== SQL解析辅助方法 ====================
@@ -637,42 +666,48 @@ public class DatabaseSearchTool {
             return SpringUtils.getBean(ISQLExecutionService.class).query(dataSource, sql, null);
         }
 
+        RestClient restClient = getRestClient(modulePrefix);
+
+        DistributedSqlQueryVO v = FeignUtils.data(restClient.post()
+                .uri(CoreConstants.EndPoint.ENDPOINT_DB_EXECUTION)
+                .body(Map.of("datasource", dataSource,
+                        "sql", sql))
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                }));
+
+        return new SqlQueryVO(v.executionSql, v.transformationData());
+    }
+
+    //专门用于解析分布式部署时的结果，使用LinkedHashMap接收
+    private record DistributedSqlQueryVO(
+            String executionSql,
+            List<LinkedHashMap<String, Object>> data
+    ) {
+
+        public List<Map<String, Object>> transformationData() {
+            if (CollectionUtils.isEmpty(data)) {
+                return Collections.emptyList();
+            }
+
+            return data.stream()
+                    .map(v -> (Map<String, Object>) v)
+                    .toList();
+
+        }
+
+    }
+
+
+    private RestClient getRestClient(String modulePrefix) {
         String serviceName = DeployUtils.getDistributedServerModuleMapping()
                 .get(modulePrefix);
         if (StringUtils.isBlank(serviceName)) {
             throw new AgentException("%s 服务未启动，请联系管理员".formatted(modulePrefix));
         }
-        RestClient resultClient = restClientBuilder.clone()
+        return restClientBuilder.clone()
                 .baseUrl("http://%s".formatted(serviceName))
                 .build();
-
-        DistributedSqlQueryVO v = FeignUtils.data(resultClient.post()
-                .uri(CoreConstants.EndPoint.ENDPOINT_DB_EXECUTION)
-                .body(Map.of("datasource", dataSource,
-                        "sql", sql))
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {}));
-
-        return new SqlQueryVO(v.executionSql ,v.transformationData());
-    }
-
-    //专门用于解析分布式部署时的结果，使用LinkedHashMap接收
-     private record DistributedSqlQueryVO(
-            String executionSql ,
-            List<LinkedHashMap<String, Object>> data
-    ){
-
-        public List<Map<String, Object>> transformationData(){
-            if(CollectionUtils.isEmpty(data)){
-                return Collections.emptyList();
-            }
-
-            return data.stream()
-                    .map(v ->(Map<String , Object>)v)
-                    .toList();
-
-        }
-
     }
 
 
