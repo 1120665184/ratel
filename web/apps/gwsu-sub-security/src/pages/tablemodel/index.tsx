@@ -31,6 +31,15 @@ import EditDrawer from './components/EditDrawer';
 import ChangeDatasourceModal from './components/ChangeDatasourceModal';
 import { SOURCE_TYPE_MAP } from './types';
 import type { TableModelInfo } from './types';
+import {
+  PERM_COLLECTED,
+  PERM_CUSTOM_ADD,
+  PERM_REMOVE,
+  PERM_EDIT,
+  PERM_SYNC,
+  PERM_CHANGE_DATASOURCE,
+} from './permissionConstants';
+import { AuthGate, useAuth } from '@gwsu/core';
 import styles from './index.module.less';
 
 const TableModelPage: React.FC = () => {
@@ -45,6 +54,11 @@ const TableModelPage: React.FC = () => {
     handleSync,
     handleBatchDelete,
   } = useTableModel();
+
+  /** 按钮权限 */
+  const canEdit = useAuth(PERM_EDIT);
+  const canSync = useAuth(PERM_SYNC);
+  const canChangeDatasource = useAuth(PERM_CHANGE_DATASOURCE);
 
   const [searchForm] = Form.useForm();
 
@@ -108,23 +122,30 @@ const TableModelPage: React.FC = () => {
   /** 获取更多下拉菜单项 */
   const getMoreMenuItems = (record: TableModelInfo): NonNullable<MenuProps['items']> => {
     const items: NonNullable<MenuProps['items']> = [];
-    items.push({
-      key: 'edit',
-      icon: <EditOutlined />,
-      label: '编辑',
-      onClick: () => handleEdit(record),
-    });
-    items.push({
-      key: 'sync',
-      icon: <SyncOutlined />,
-      label: '同步',
-      onClick: () => handleSync(record),
-    });
-    items.push({
-      key: 'changeDatasource',
-      label: '修改数据源',
-      onClick: () => handleChangeDatasource(record),
-    });
+    if (canEdit) {
+      items.push({
+        key: 'edit',
+        icon: <EditOutlined />,
+        label: '编辑',
+        onClick: () => handleEdit(record),
+      });
+    }
+    if (canSync) {
+      items.push({
+        key: 'sync',
+        icon: <SyncOutlined />,
+        label: '同步',
+        onClick: () => handleSync(record),
+        'data-ai-approval': true,
+      });
+    }
+    if (canChangeDatasource) {
+      items.push({
+        key: 'changeDatasource',
+        label: '修改数据源',
+        onClick: () => handleChangeDatasource(record),
+      });
+    }
     return items;
   };
 
@@ -183,25 +204,28 @@ const TableModelPage: React.FC = () => {
       title: '操作',
       width: 180,
       fixed: 'right',
-      render: (_: unknown, record: TableModelInfo) => (
-        <div className={styles.actionColumn}>
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetail(record)}
-          >
-            详情
-          </Button>
-          <Dropdown
-            menu={{ items: getMoreMenuItems(record) }}
-          >
-            <Button type="link" size="small" icon={<MoreOutlined />}>
-              更多
+      render: (_: unknown, record: TableModelInfo) => {
+        const moreItems = getMoreMenuItems(record);
+        return (
+          <div className={styles.actionColumn}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleViewDetail(record)}
+            >
+              详情
             </Button>
-          </Dropdown>
-        </div>
-      ),
+            {moreItems.length > 0 && (
+              <Dropdown menu={{ items: moreItems }}>
+                <Button type="link" size="small" icon={<MoreOutlined />}>
+                  更多
+                </Button>
+              </Dropdown>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -273,34 +297,40 @@ const TableModelPage: React.FC = () => {
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>表模型列表</span>
           <Space>
-            <Button
-              type="primary"
-              icon={<CloudDownloadOutlined />}
-              onClick={() => setCollectVisible(true)}
-            >
-              采集
-            </Button>
-            <Button
-              icon={<PlusOutlined />}
-              onClick={() => setCustomAddVisible(true)}
-            >
-              自定义添加
-            </Button>
-            <Popconfirm
-              title="批量删除"
-              description={`确定删除选中的 ${selectedRowKeys.length} 条记录？删除后将同时清除关联的字段和外键数据。`}
-              onConfirm={onBatchDelete}
-              disabled={selectedRowKeys.length === 0}
-            >
+            <AuthGate buttonKey={PERM_COLLECTED}>
               <Button
-                danger
-                icon={<DeleteOutlined />}
-                data-ai-approval
+                type="primary"
+                icon={<CloudDownloadOutlined />}
+                onClick={() => setCollectVisible(true)}
+              >
+                采集
+              </Button>
+            </AuthGate>
+            <AuthGate buttonKey={PERM_CUSTOM_ADD}>
+              <Button
+                icon={<PlusOutlined />}
+                onClick={() => setCustomAddVisible(true)}
+              >
+                自定义添加
+              </Button>
+            </AuthGate>
+            <AuthGate buttonKey={PERM_REMOVE}>
+              <Popconfirm
+                title="批量删除"
+                description={`确定删除选中的 ${selectedRowKeys.length} 条记录？删除后将同时清除关联的字段和外键数据。`}
+                onConfirm={onBatchDelete}
                 disabled={selectedRowKeys.length === 0}
               >
-                删除
-              </Button>
-            </Popconfirm>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  data-ai-approval
+                  disabled={selectedRowKeys.length === 0}
+                >
+                  删除
+                </Button>
+              </Popconfirm>
+            </AuthGate>
           </Space>
         </div>
         <Table<TableModelInfo>

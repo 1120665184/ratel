@@ -7,6 +7,8 @@ import type {
   ValidGroupSaveRequest,
   UserPageQuery,
   UserPageResult,
+  RolePermissionTableModelVO,
+  RoleTableModelSaveDTO,
 } from '../types';
 
 const BASE = '/security/role';
@@ -152,5 +154,31 @@ export async function allocateSubjectsToRole(
 /** 分页查询用户信息（用于穿梭框数据源，接口来自 business-system 模块，POST） */
 export async function getUserPage(query: UserPageQuery) {
   const res = await post<UserPageResult>('/system/basic/page/userInfo', query);
+  return res.data;
+}
+
+const TABLE_MODEL_BASE = '/security/roleTableModel';
+
+/** 获取角色表模型权限列表 */
+export async function getTableModelPermission(
+  roleId: string,
+): Promise<RolePermissionTableModelVO[]> {
+  const res = await get<RolePermissionTableModelVO[]>(
+    `${TABLE_MODEL_BASE}/getTableModelPermission/${roleId}`,
+  );
+  return res.data ?? [];
+}
+
+/** 保存或更新角色表模型权限 */
+export async function saveOrUpdateRoleTableModel(
+  data: RoleTableModelSaveDTO,
+): Promise<boolean> {
+  const res = await post<boolean>(TABLE_MODEL_BASE, data);
+  return res.data;
+}
+
+/** 批量删除角色表模型权限 */
+export async function deleteRoleTableModels(ids: string[]): Promise<boolean> {
+  const res = await del<boolean>(TABLE_MODEL_BASE, ids);
   return res.data;
 }

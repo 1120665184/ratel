@@ -82,7 +82,7 @@ public class AbacPermissionUrlWrapper {
     /**
      * 删除指定ID的权限
      */
-    public void removeByIds(List<Long> ids) {
+    public void removeByIds(List<String> ids) {
         abac().ifPresent(abac ->
                 permissionMapper.delete(new LambdaQueryWrapper<SecurityAbacPermission>()
                         .eq(SecurityAbacPermission::getAbacId, abac.getId())

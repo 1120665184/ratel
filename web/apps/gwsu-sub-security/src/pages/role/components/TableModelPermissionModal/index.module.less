@@ -1,0 +1,223 @@
+/* TableModelPermissionModal 样式 - 左右分栏 */
+
+.modal {
+  :global {
+    .ant-modal-body {
+      padding: 0;
+    }
+    .ant-modal-content {
+      overflow: hidden;
+    }
+  }
+}
+
+.container {
+  display: flex;
+  height: 680px;
+  min-height: 680px;
+}
+
+/* ==================== 左侧面板 ==================== */
+.leftPanel {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.leftHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leftTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.leftSearch {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.groupList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.groupItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+  border-left: 3px solid transparent;
+
+  &:hover {
+    background: var(--hover-color);
+  }
+}
+
+.groupItemActive {
+  background: color-mix(in srgb, var(--ant-primary-color, #1677ff) 8%, transparent);
+  border-left-color: var(--ant-primary-color, #1677ff);
+
+  .groupLabel {
+    color: var(--ant-primary-color, #1677ff);
+    font-weight: 600;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--ant-primary-color, #1677ff) 12%, transparent);
+  }
+}
+
+.groupInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupCount {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.groupDeleteBtn {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .groupItem:hover & {
+    opacity: 1;
+  }
+}
+
+.leftEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+}
+
+.leftEmptyText {
+  font-size: 13px;
+  color: var(--text-secondary-color);
+}
+
+/* ==================== 右侧面板 ==================== */
+.rightPanel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-color);
+}
+
+.tableInfoSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.tableInfoName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.tableInfoTableName {
+  font-weight: 400;
+  color: var(--text-secondary-color);
+  font-size: 13px;
+}
+
+.tableInfoMeta {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+}
+
+.fieldConfigWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fieldTableWrapper {
+  flex: 1;
+  min-height: 0;
+  padding: 0 16px 12px;
+  overflow-y: auto;
+}
+
+.lockedRow {
+  background: color-mix(in srgb, #000 3%, transparent) !important;
+
+  td {
+    color: var(--text-secondary-color);
+  }
+}
+
+.lockedText {
+  color: var(--text-secondary-color);
+}
+
+.customParams {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rightEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+}
+
+.rightEmptyText {
+  font-size: 14px;
+  color: var(--text-secondary-color);
+}
+
+/* ==================== 底部按钮区 ==================== */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-color);
+}

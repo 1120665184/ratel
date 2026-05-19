@@ -7,8 +7,18 @@ package org.quyq.gwsu.security.abac.enums;
  * @description  权限类型
  */
  public enum AbacPerType {
-
-   ROLE_BINDING_MENU , API_RESOURCE
+    /**
+     * 角色绑定菜单
+     */
+   ROLE_BINDING_MENU ,
+    /**
+     * API资源变更
+     */
+    API_RESOURCE ,
+    /**
+     * 菜单与API绑定关系变更
+     */
+    MENU_API_CHANGE
  ;
 
 }

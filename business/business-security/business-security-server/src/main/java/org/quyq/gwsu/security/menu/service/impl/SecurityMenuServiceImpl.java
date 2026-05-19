@@ -17,7 +17,11 @@ import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.abac.domain.ExpressionContext;
+import org.quyq.gwsu.security.abac.domain.SecurityAbacPermission;
+import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.loading.RoleBindingMenuAbacLoading;
+import org.quyq.gwsu.security.abac.mapper.SecurityAbacPermissionMapper;
+import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
 import org.quyq.gwsu.security.api.menu.dto.MenuQueryDTO;
 import org.quyq.gwsu.security.api.menu.dto.MenuSortDTO;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
@@ -28,14 +32,20 @@ import org.quyq.gwsu.security.menu.domain.SecurityMenu;
 import org.quyq.gwsu.security.menu.mapper.SecurityMenuMapper;
 import org.quyq.gwsu.security.menu.service.ISecurityMenuService;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
+import org.quyq.gwsu.security.role.domain.SecurityRoleMenuPermission;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
+import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuPermissionMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.quyq.gwsu.security.abac.loading.MenuApiChangeAbacReLoading.*;
 
 /**
  * 菜单服务实现
@@ -53,6 +63,10 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
     private final Model model;
     private final List<CustomFunction> enforcerFunctions;
     private Enforcer casbinEnforcer = null;
+    private final SecurityRoleMenuMapper securityRoleMenuMapper;
+    private final SecurityRoleMenuPermissionMapper securityRoleMenuPermissionMapper;
+    private final SecurityAbacPermissionMapper securityAbacPermissionMapper;
+    private final PermissionAlterationManager permissionAlterationManager;
 
     private Enforcer getEnforcer(){
         if(Objects.isNull(casbinEnforcer)){
@@ -148,12 +162,78 @@ public class SecurityMenuServiceImpl extends ServiceImpl<SecurityMenuMapper, Sec
 
 
     @Override
+    @Transactional
     public Boolean saveOrUpdateMenu(SecurityMenu menu) {
         if (StringUtils.hasText(menu.getId())) {
-            return super.updateById(menu);
+            SecurityMenu oldValue = super.getById(menu.getId());
+            boolean flag = super.updateById(menu);
+            if(apiPermissionChange(menu.getPermission(), oldValue.getPermission())){
+                apiPermissionHandler(menu.getId() , menu.getPermission());
+            }
+            return flag;
         }
         menu.setId(idGenerationUtils.generateNextIdStr(3));
         return super.save(menu);
+    }
+
+    /**
+     * 刷新角色和abac绑定的接口映射
+     * @param menuId
+     * @param permission
+     */
+    private void apiPermissionHandler(String menuId , String permission){
+        List<SecurityRoleMenu> roleMenus = securityRoleMenuMapper
+                .selectList(new LambdaQueryWrapper<SecurityRoleMenu>()
+                        .eq(SecurityRoleMenu::getMenuId, menuId));
+        if(CollectionUtils.isEmpty(roleMenus)){
+            return;
+        }
+        List<SecurityRoleMenuPermission> rmpMapping = securityRoleMenuPermissionMapper
+                .selectList(new LambdaQueryWrapper<>(SecurityRoleMenuPermission.class)
+                        .in(SecurityRoleMenuPermission::getRoleMenuId,
+                                roleMenus.stream().map(SecurityRoleMenu::getId).toList()));
+        if(CollectionUtils.isEmpty(rmpMapping)){
+            return;
+        }
+
+        Map<String, List<SecurityAbacPermission>> abacDatas = securityAbacPermissionMapper.selectList(
+                new LambdaQueryWrapper<>(SecurityAbacPermission.class)
+                        .in(SecurityAbacPermission::getId, rmpMapping.stream().map(SecurityRoleMenuPermission::getAbacPermissionId).toList())
+        ).stream().collect(Collectors.groupingBy(SecurityAbacPermission::getAbacId));
+
+        if(CollectionUtils.isEmpty(abacDatas)){
+            return;
+        }
+
+        abacDatas.forEach((key, value) -> {
+            ExpressionContext context = new ExpressionContext();
+            context.setValue(key);
+            context.putExtraParam(OLD_ABAC_PERMISSION , value);
+            context.putExtraParam(NEW_PERMISSION , permission);
+
+            context.putExtraParam(OLD_ROLE_MENU_PERMISSION ,rmpMapping);
+            permissionAlterationManager.alterationUrlPermission(AbacPerType.MENU_API_CHANGE , context);
+        });
+
+
+    }
+
+    private boolean apiPermissionChange(String newPermission , String oldPermission){
+        if(Objects.isNull(newPermission) || !StringUtils.hasText(oldPermission)){
+            return false;
+        }
+
+        Set<String> newPs = Stream.of(newPermission.split(";"))
+                .map(v -> v.replace("(main)", ""))
+                .collect(Collectors.toSet());
+
+        Set<String> oldPs = Stream.of(oldPermission.split(";"))
+                .map(v -> v.replace("(main)", ""))
+                .collect(Collectors.toSet());
+
+        return !newPs.equals(oldPs);
+
+
     }
 
     @Override

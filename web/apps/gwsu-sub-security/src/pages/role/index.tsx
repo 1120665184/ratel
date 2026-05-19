@@ -31,6 +31,7 @@ import RoleDetail from "./components/RoleDetail";
 import RoleFormModal from "./components/RoleFormModal";
 import MenuPermissionModal from "./components/MenuPermissionModal";
 import RelatedUserModal from "./components/RelatedUserModal";
+import TableModelPermissionModal from "./components/TableModelPermissionModal";
 import { useRole } from "./hooks/useRole";
 import type { RoleInfo, RoleQuery, EnumOption } from "./types";
 import { getRoleTypeOptions, getDataScopeOptions } from "./services/role";
@@ -98,6 +99,11 @@ const RolePage: React.FC = () => {
   const [relatedUserVisible, setRelatedUserVisible] = useState(false);
   const [relatedUserRoleId, setRelatedUserRoleId] = useState<string | null>(null);
   const [relatedUserRoleName, setRelatedUserRoleName] = useState<string>("");
+
+  // 表模型权限弹窗
+  const [tableModelPermVisible, setTableModelPermVisible] = useState(false);
+  const [tableModelPermRoleId, setTableModelPermRoleId] = useState<string | null>(null);
+  const [tableModelPermRoleName, setTableModelPermRoleName] = useState<string>("");
 
   // 表格选中行
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -177,6 +183,13 @@ const RolePage: React.FC = () => {
     setRelatedUserVisible(true);
   }, []);
 
+  /** 表模型权限配置 */
+  const handleTableModelPermission = useCallback((role: RoleInfo) => {
+    setTableModelPermRoleId(role.id ?? null);
+    setTableModelPermRoleName(role.roleName);
+    setTableModelPermVisible(true);
+  }, []);
+
   /** 批量删除 */
   const handleBatchDelete = useCallback(async () => {
     const ids = selectedRowKeys as string[];
@@ -234,8 +247,8 @@ const RolePage: React.FC = () => {
       buttons.push({
         key: "tablePermission",
         icon: <TableOutlined />,
-        label: "表模型权限",
-        onClick: () => handlePlaceholder("表模型权限"),
+        label: "AI表模型",
+        onClick: () => handleTableModelPermission(record),
       });
     }
 
@@ -489,6 +502,14 @@ const RolePage: React.FC = () => {
         roleId={relatedUserRoleId}
         roleName={relatedUserRoleName}
         onClose={() => setRelatedUserVisible(false)}
+      />
+
+      {/* 表模型权限配置弹窗 */}
+      <TableModelPermissionModal
+        visible={tableModelPermVisible}
+        roleId={tableModelPermRoleId}
+        roleName={tableModelPermRoleName}
+        onClose={() => setTableModelPermVisible(false)}
       />
     </div>
   );

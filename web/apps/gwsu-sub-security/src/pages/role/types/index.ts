@@ -117,3 +117,44 @@ export interface UserPageResult {
   current: number;
   size: number;
 }
+
+/** 字段配置项 */
+export interface FieldConfigItem {
+  fieldName: string;
+  show: boolean;
+  desensitize: boolean;
+  strategy: string;
+  prefixNoMaskLen?: number;
+  suffixNoMaskLen?: number;
+  symbol?: string;
+}
+
+/** 列信息 */
+export interface ColumnInfo {
+  columnName: string;
+  columnComment: string;
+  fixedFieldConfig?: FieldConfigItem;
+  customFieldConfig?: FieldConfigItem;
+}
+
+/** 角色表模型权限 VO */
+export interface RolePermissionTableModelVO {
+  type: number;
+  tableModelId: string;
+  id?: string;
+  modulePrefix: string;
+  datasource: string;
+  tableName: string;
+  tableComment: string;
+  columns: ColumnInfo[];
+}
+
+/** 角色表模型权限保存 DTO */
+export interface RoleTableModelSaveDTO {
+  id?: string;
+  roleId: string;
+  modulePrefix: string;
+  tableName: string;
+  datasource: string;
+  fields: FieldConfigItem[];
+}

@@ -63,6 +63,10 @@ public class AuthenticationFilter implements RequestResponseProcessor {
                 throw new SecurityException(CommonErrorCode.E03001);
             }
 
+            if(shouldAuthAllow(context.getPath())){
+                return Mono.just(true);
+            }
+
             RequestContext rc = buildContext(subject.get(), context);
             //权限校验
             boolean allowed = enforcer.enforce(rc.subject(), rc.resType(), rc.action(), rc.resUrl(), rc.env());
@@ -82,6 +86,10 @@ public class AuthenticationFilter implements RequestResponseProcessor {
      */
     private boolean shouldIgnoreAuthentication(String path) {
         return securityProperties != null && securityProperties.shouldIgnore(path);
+    }
+
+    private boolean shouldAuthAllow(String path) {
+        return securityProperties != null && securityProperties.shouldAuthAllow(path);
     }
 
     @Override

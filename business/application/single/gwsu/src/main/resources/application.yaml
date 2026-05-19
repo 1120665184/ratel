@@ -29,6 +29,8 @@ org.quyq:
   security:
     ignore-urls:
       - /system/auth/**
+    auth-allow-urls:
+      - /modules/list
   agent:
     enabled: true
     model:

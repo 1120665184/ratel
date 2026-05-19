@@ -58,6 +58,9 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
         setPermission(data.permission || '');
       } else {
         form.resetFields();
+        form.setFieldsValue({
+          description: '# 功能介绍\n请输入...\n# 界面布局\n暂无描述',
+        });
         setPermission('');
       }
     }
@@ -138,7 +141,7 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
           rules={[{ required: true, message: "请输入功能描述" }]}
         >
           <TextArea
-            rows={2}
+            rows={6}
             placeholder="描述该按钮的功能，用于AI提示词构建"
             showCount
             maxLength={1024}

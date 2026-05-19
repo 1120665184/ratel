@@ -36,6 +36,11 @@ public class SecurityProperties {
      */
     private List<String> ignoreUrls = new ArrayList<>();
 
+    /**
+     * 认证后便允许访问的url
+     */
+    private List<String> authAllowUrls = new ArrayList<>();
+
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
 
@@ -50,5 +55,18 @@ public class SecurityProperties {
             return false;
         }
         return ignoreUrls.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
+    /**
+     * 判断指定路径是否认证成功便能访问
+     *
+     * @param path 请求路径
+     * @return true 表示需要忽略认证（无需认证），false 表示需要认证
+     */
+    public boolean shouldAuthAllow(String path) {
+        if (authAllowUrls == null || authAllowUrls.isEmpty()) {
+            return false;
+        }
+        return authAllowUrls.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 }
