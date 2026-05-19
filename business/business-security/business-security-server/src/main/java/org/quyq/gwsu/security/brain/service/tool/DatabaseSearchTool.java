@@ -146,12 +146,11 @@ public class DatabaseSearchTool {
     }
 
 
-    @Tool(name = "GetDatabaseName", description = """
-            获取指定数据源的数据库名。
-            生成SQL之前需要先调用该方法，获取对应的数据库名，根据数据库生成适配的SQL
-            示例：Mysql ,Oracle
+    @Tool(name = "GetDatabaseVendor", description = """
+            返回当前数据源的数据库厂商名称，如 'MySQL', 'Oracle'
+            使用场景：生成SQL之前需要先调用该方法，获取对应的数据库厂商名，根据数据库生成适配的SQL
             """)
-    public String getDatabaseName(
+    public String getDatabaseVendor(
             @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
             @ToolParam(name = "datasource", description = "数据源") String datasource) {
         if (DeployUtils.isSingle()) {
