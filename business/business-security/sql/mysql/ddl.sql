@@ -445,6 +445,7 @@ CREATE TABLE security_tablemodel_columns
     default_value    TEXT                  DEFAULT NULL COMMENT '默认值',
     column_comment   TEXT                  DEFAULT NULL COMMENT '字段注释',
     ordinal_position INT                   DEFAULT 0 COMMENT '字段顺序',
+    field_config     VARCHAR(512)          DEFAULT NULL COMMENT '字段AI权限配置',
     tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op        VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
     create_time      DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -488,3 +489,9 @@ CREATE TABLE security_tablemodel_foreign_keys
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='外键约束信息（单列外键）';
+
+-- =============================================
+-- 变更：security_tablemodel_columns 增加 field_config 字段
+-- 说明：字段权限配置，JSON格式存储 FieldPermission 对象
+-- =============================================
+ALTER TABLE security_tablemodel_columns ADD COLUMN field_config TEXT DEFAULT NULL COMMENT '字段权限配置JSON，格式为 FieldPermission 对象';

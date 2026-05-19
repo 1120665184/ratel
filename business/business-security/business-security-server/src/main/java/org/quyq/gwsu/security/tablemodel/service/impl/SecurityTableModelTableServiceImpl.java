@@ -9,19 +9,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.quyq.gwsu.common.core.domain.R;
-import org.quyq.gwsu.common.core.provider.BusinessModuleInfoProvider;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
 import org.quyq.gwsu.common.database.metadata.model.ForeignKeyInfo;
 import org.quyq.gwsu.common.database.metadata.model.TableInfo;
+import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.service.ISQLExecutionService;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelChangeDatasourceDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelCollectDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelCustomSaveDTO;
-import org.quyq.gwsu.security.api.tablemodel.dto.TableModelTableQueryDTO;
+import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
+import org.quyq.gwsu.security.api.tablemodel.dto.*;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
-import org.quyq.gwsu.security.api.tablemodel.vo.TableModelForeignKeyVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModelConfig;
@@ -39,6 +35,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClient;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -66,7 +64,7 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
 
     private final SecurityApiTableModelConfigMapper configMapper;
 
-    private final List<BusinessModuleInfoProvider> providers;
+    private final ObjectMapper objectMapper;
 
     @Override
     public TableModelTableVO getById(String id) {
@@ -134,7 +132,20 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean removeByIds(List<String> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return false;
+        }
+        // 级联删除关联的字段
+        securityTableModelColumnService.remove(
+                new LambdaQueryWrapper<SecurityTableModelColumn>()
+                        .in(SecurityTableModelColumn::getTableId, ids));
+        // 级联删除关联的外键
+        securityTableModelForeignKeyService.remove(
+                new LambdaQueryWrapper<SecurityTableModelForeignKey>()
+                        .in(SecurityTableModelForeignKey::getTableId, ids));
+        // 删除表模型记录
         return removeBatchByIds(ids);
     }
 
@@ -213,39 +224,23 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
     @Override
     public List<TableModelTableVO> listUncollected(String modulePrefix) {
         // 从 security_api_table_model 按 modulePrefix 查询绑定记录
-        List<SecurityApiTableModel> apiTableModels = apiTableModelService.list(
-                new LambdaQueryWrapper<SecurityApiTableModel>()
-                        .eq(SecurityApiTableModel::getModulePrefix, modulePrefix));
+        TableModelQueryDTO form = new TableModelQueryDTO();
+        form.setModulePrefix(modulePrefix);
+        List<SecurityApiTableModel> apiTableModels = apiTableModelService.listByCondition(form);
 
         if (CollectionUtils.isEmpty(apiTableModels)) {
             return Collections.emptyList();
         }
 
-        // 查询所有关联的 config 记录，用于覆盖数据源
-        List<String> tableModelIds = apiTableModels.stream()
-                .map(SecurityApiTableModel::getId)
-                .toList();
-        Map<String, SecurityApiTableModelConfig> configMap = configMapper.selectList(
-                        new LambdaQueryWrapper<SecurityApiTableModelConfig>()
-                                .in(SecurityApiTableModelConfig::getTableModelId, tableModelIds))
-                .stream()
-                .collect(Collectors.toMap(
-                        SecurityApiTableModelConfig::getTableModelId,
-                        c -> c,
-                        (a, b) -> a));
 
         // 提取唯一的 (modulePrefix, datasource, tableName) 组合
         // 注意：config 表会覆盖 datasource
         Map<String, TableModelTableVO> uniqueMap = new LinkedHashMap<>();
         for (SecurityApiTableModel atm : apiTableModels) {
             String datasource = atm.getDatasource();
-            // 如果 config 中有覆盖数据源，则使用覆盖的数据源
-            SecurityApiTableModelConfig config = configMap.get(atm.getId());
-            if (config != null && StringUtils.isNotBlank(config.getDatasource())) {
-                datasource = config.getDatasource();
-            }
+
             String key = "%s:%s:%s".formatted(atm.getModulePrefix(), datasource, atm.getTableName());
-            uniqueMap.putIfAbsent(key, buildTableVO(atm.getModulePrefix(), datasource, atm.getTableName()));
+            uniqueMap.putIfAbsent(key, buildTableVO(atm.getModulePrefix(), datasource, atm.getTableName(), atm.getFieldConfig()));
         }
 
         // 与 security_tablemodel_tables 中已有记录做差集
@@ -292,9 +287,8 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
             tableEntity.setTableName(item.tableName());
             tableEntity.setSourceType(0);
 
-            // 获取服务名，从库中获取表注释
-            String applicationName = getApplicationName(item.modulePrefix());
-            List<TableInfo> tableInfos = tableList(applicationName, item.datasource());
+            // 从库中获取表注释
+            List<TableInfo> tableInfos = tableList(item.applicationName(), item.datasource());
             if (!CollectionUtils.isEmpty(tableInfos)) {
                 tableInfos.stream()
                         .filter(ti -> Objects.equals(ti.getName(), item.tableName()))
@@ -304,11 +298,14 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
 
             save(tableEntity);
 
+            // 解析模块字段配置 JSON -> Map<columnName, FieldPermission>
+            Map<String, FieldPermission> fieldConfigMap = parseModuleFieldConfig(item.moduleFieldConfig());
+
             // 从库中获取字段信息，批量保存
-            saveColumnsFromDb(applicationName, item.datasource(), item.tableName(), tableEntity.getId());
+            saveColumnsFromDb(item.applicationName(), item.datasource(), item.tableName(), tableEntity.getId(), fieldConfigMap);
 
             // 获取外键信息并保存
-            saveForeignKeysFromDb(item.datasource(), item.tableName(), tableEntity.getId());
+            saveForeignKeysFromDb(item.applicationName(), item.datasource(), item.tableName(), tableEntity.getId());
         }
 
         return true;
@@ -348,24 +345,32 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
         save(tableEntity);
 
         // 从库中获取字段信息并保存
-        saveColumnsFromDb(dto.applicationName(), dto.datasource(), dto.tableName(), tableEntity.getId());
+        saveColumnsFromDb(dto.applicationName(), dto.datasource(), dto.tableName(), tableEntity.getId(), null);
 
         // 获取外键信息并保存
-        saveForeignKeysFromDb(dto.datasource(), dto.tableName(), tableEntity.getId());
+        saveForeignKeysFromDb(dto.applicationName(), dto.datasource(), dto.tableName(), tableEntity.getId());
 
         return tableEntity.toVo();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean syncTableModel(String tableModelId) {
+    public Boolean syncTableModel(String tableModelId, String applicationName) {
         // 获取表记录
         SecurityTableModelTable tableEntity = super.getById(tableModelId);
         if (tableEntity == null) {
             throw new IllegalArgumentException("表模型不存在：id=" + tableModelId);
         }
 
-        String applicationName = getApplicationName(tableEntity.getModulePrefix());
+        TableModelQueryDTO form = new TableModelQueryDTO();
+        form.setModulePrefix(tableEntity.getModulePrefix());
+        form.setDatasource(tableEntity.getDataSource());
+        form.setTableName(tableEntity.getTableName());
+
+
+        List<SecurityApiTableModel> models = apiTableModelService.listByCondition(form);
+        Map<String, FieldPermission> fieldConfigMap = CollectionUtils.isEmpty(models) ? Map.of() : models.getFirst().getFieldConfig();
+
 
         // 从库中获取最新字段信息
         List<ColumnInfo> latestColumns = columnList(applicationName, tableEntity.getDataSource(), tableEntity.getTableName());
@@ -404,7 +409,7 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
         // 新增字段批量保存
         if (!CollectionUtils.isEmpty(columnsToAdd)) {
             List<SecurityTableModelColumn> newColumns = columnsToAdd.stream()
-                    .map(ci -> buildColumnEntity(ci, tableModelId))
+                    .map(ci -> buildColumnEntity(ci, tableModelId, fieldConfigMap))
                     .toList();
             securityTableModelColumnService.saveBatch(newColumns);
         }
@@ -429,17 +434,31 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
             throw new IllegalArgumentException("表模型不存在：id=" + dto.tableModelId());
         }
 
+        SecurityTableModelTable newV = getOne(new LambdaQueryWrapper<SecurityTableModelTable>()
+                .eq(SecurityTableModelTable::getModulePrefix, tableEntity.getModulePrefix())
+                .eq(SecurityTableModelTable::getDataSource, dto.newDatasource())
+                .eq(SecurityTableModelTable::getTableName, tableEntity.getTableName())
+                .eq(SecurityTableModelTable::getDeleted, false)
+        );
+
         // 查询所有关联的 api_table_model 记录（通过 modulePrefix + tableName 匹配）
-        List<SecurityApiTableModel> allRelatedApiModels = apiTableModelService.list(
-                new LambdaQueryWrapper<SecurityApiTableModel>()
-                        .eq(SecurityApiTableModel::getModulePrefix, tableEntity.getModulePrefix())
-                        .eq(SecurityApiTableModel::getTableName, tableEntity.getTableName()));
+        TableModelQueryDTO form = new TableModelQueryDTO();
+        form.setModulePrefix(tableEntity.getModulePrefix());
+        form.setDatasource(tableEntity.getDataSource());
+        form.setTableName(tableEntity.getTableName());
+
+        List<SecurityApiTableModel> allRelatedApiModels = apiTableModelService.listByCondition(form);
 
         if (CollectionUtils.isEmpty(dto.apiIds())) {
             // 场景1：apiIds 为空 → 修改所有关联接口的数据源
             // 直接修改 tablemodel_tables 的 dataSource
-            tableEntity.setDataSource(dto.newDatasource());
-            updateById(tableEntity);
+            if (Objects.isNull(newV)) {
+                tableEntity.setDataSource(dto.newDatasource());
+                updateById(tableEntity);
+            } else {
+                removeByIds(Collections.singletonList(tableEntity.getId()));
+            }
+
 
             // 为所有关联的 api_table_model 添加 config 记录
             for (SecurityApiTableModel apiModel : allRelatedApiModels) {
@@ -456,16 +475,9 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
             // 场景2：apiIds 不为空 → 只修改部分接口
             // 原始 tablemodel_tables 不变
 
-            // 检查新数据源的表模型是否已存在
-            SecurityTableModelTable newDatasourceTable = getOne(new LambdaQueryWrapper<SecurityTableModelTable>()
-                    .eq(SecurityTableModelTable::getModulePrefix, tableEntity.getModulePrefix())
-                    .eq(SecurityTableModelTable::getDataSource, dto.newDatasource())
-                    .eq(SecurityTableModelTable::getTableName, tableEntity.getTableName())
-                    .eq(SecurityTableModelTable::getDeleted, false));
 
-            if (newDatasourceTable == null) {
+            if (newV == null) {
                 // 如果不存在则复制表模型数据（table + columns + foreignKeys）
-                String applicationName = getApplicationName(tableEntity.getModulePrefix());
 
                 // 复制表记录
                 SecurityTableModelTable newTable = new SecurityTableModelTable();
@@ -477,10 +489,10 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
                 save(newTable);
 
                 // 从新数据源获取字段信息并保存
-                saveColumnsFromDb(applicationName, dto.newDatasource(), tableEntity.getTableName(), newTable.getId());
+                saveColumnsFromDb(dto.applicationName(), dto.newDatasource(), tableEntity.getTableName(), newTable.getId(), null);
 
                 // 从新数据源获取外键信息并保存
-                saveForeignKeysFromDb(dto.newDatasource(), tableEntity.getTableName(), newTable.getId());
+                saveForeignKeysFromDb(dto.applicationName(), dto.newDatasource(), tableEntity.getTableName(), newTable.getId());
             }
 
             // 为选中的 api_table_model 添加 config 记录
@@ -497,6 +509,12 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
                     configMapper.insert(config);
                 }
             }
+
+            if (targetApiIdSet.equals(allRelatedApiModels.stream()
+                    .map(SecurityApiTableModel::getApiId).collect(Collectors.toSet()))) {
+                removeByIds(Collections.singletonList(tableEntity.getId()));
+            }
+
         }
 
         return true;
@@ -512,34 +530,34 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
         return updateById(entity);
     }
 
-    // ==================== 辅助方法 ====================
+    @Override
+    public Map<String, Integer> uncollectedCount(TableModelUncollectedCountDTO dto) {
+        Map<String, Integer> result = new LinkedHashMap<>();
 
-    /**
-     * 通过 providers 查找 modulePrefix 对应的 applicationName
-     *
-     * @param modulePrefix 模块前缀
-     * @return 服务名
-     */
-    private String getApplicationName(String modulePrefix) {
-        if (CollectionUtils.isEmpty(providers)) {
-            return "";
+        if (dto == null || CollectionUtils.isEmpty(dto.modules())) {
+            return result;
         }
-        return providers.stream()
-                .filter(p -> p.module().prefix().equals(modulePrefix))
-                .findFirst()
-                .map(BusinessModuleInfoProvider::applicationName)
-                .orElse("");
+
+        for (TableModelUncollectedCountDTO.ModuleItem module : dto.modules()) {
+            List<TableModelTableVO> uncollected = listUncollected(module.modulePrefix());
+            result.put(module.modulePrefix(), uncollected.size());
+        }
+
+        return result;
     }
+
+    // ==================== 辅助方法 ====================
 
     /**
      * 构建未采集表模型的 VO 对象
      */
-    private TableModelTableVO buildTableVO(String modulePrefix, String datasource, String tableName) {
+    private TableModelTableVO buildTableVO(String modulePrefix, String datasource, String tableName, Map<String, FieldPermission> fieldConfig) {
         TableModelTableVO vo = new TableModelTableVO();
         vo.setModulePrefix(modulePrefix);
         vo.setDataSource(datasource);
         vo.setTableName(tableName);
         vo.setSourceType(0);
+        vo.setModuleFieldConfig(objectMapper.writeValueAsString(fieldConfig));
         return vo;
     }
 
@@ -550,15 +568,17 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
      * @param datasource      数据源
      * @param tableName       表名
      * @param tableId         表模型ID
+     * @param fieldConfigMap  模块字段配置，key=columnName
      */
-    private void saveColumnsFromDb(String applicationName, String datasource, String tableName, String tableId) {
+    private void saveColumnsFromDb(String applicationName, String datasource, String tableName, String tableId,
+                                   Map<String, FieldPermission> fieldConfigMap) {
         List<ColumnInfo> columnInfos = columnList(applicationName, datasource, tableName);
         if (CollectionUtils.isEmpty(columnInfos)) {
             return;
         }
 
         List<SecurityTableModelColumn> columns = columnInfos.stream()
-                .map(ci -> buildColumnEntity(ci, tableId))
+                .map(ci -> buildColumnEntity(ci, tableId, fieldConfigMap))
                 .toList();
         securityTableModelColumnService.saveBatch(columns);
     }
@@ -566,7 +586,8 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
     /**
      * 从 ColumnInfo 构建 SecurityTableModelColumn 实体
      */
-    private SecurityTableModelColumn buildColumnEntity(ColumnInfo ci, String tableId) {
+    private SecurityTableModelColumn buildColumnEntity(ColumnInfo ci, String tableId,
+                                                       Map<String, FieldPermission> fieldConfigMap) {
         SecurityTableModelColumn column = new SecurityTableModelColumn();
         column.setTableId(tableId);
         column.setColumnName(ci.getName());
@@ -578,6 +599,10 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
         column.setDefaultValue(ci.getDefaultValue());
         column.setColumnComment(ci.getRemark());
         column.setOrdinalPosition(ci.getPosition());
+        // 从模块配置中匹配当前列的字段权限
+        if (fieldConfigMap != null && fieldConfigMap.containsKey(ci.getName())) {
+            column.setFieldConfig(fieldConfigMap.get(ci.getName()));
+        }
         return column;
     }
 
@@ -588,13 +613,26 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
      * @param tableName  表名
      * @param tableId    表模型ID
      */
-    private void saveForeignKeysFromDb(String datasource, String tableName, String tableId) {
+    private void saveForeignKeysFromDb(String applicationName, String datasource, String tableName, String tableId) {
         List<ForeignKeyInfo> foreignKeyInfos;
         if (DeployUtils.isSingle()) {
             foreignKeyInfos = sqlExecutionService.foreignKeyList(datasource, tableName);
         } else {
-            // 分布式模式下通过 REST 接口获取外键（暂不支持，返回空列表）
-            foreignKeyInfos = Collections.emptyList();
+            RestClient restClient = clientBuilder.clone()
+                    .baseUrl("http://%s".formatted(applicationName))
+                    .build();
+
+            String uri = CoreConstants.EndPoint.ENDPOINT_DB_FOREIGN_KEY + "?tableName=%s".formatted(tableName);
+            if (StringUtils.isNotBlank(datasource)) {
+                uri += "&datasource=%s".formatted(datasource);
+            }
+            foreignKeyInfos = FeignUtils.data(restClient
+                    .get()
+                    .uri(uri)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    }));
+
         }
 
         if (CollectionUtils.isEmpty(foreignKeyInfos)) {
@@ -605,6 +643,26 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
                 .map(fki -> buildForeignKeyEntity(fki, tableId))
                 .toList();
         securityTableModelForeignKeyService.saveBatch(foreignKeys);
+    }
+
+    /**
+     * 解析模块字段配置 JSON 字符串为 Map
+     *
+     * @param moduleFieldConfig JSON 字符串，格式为 Map<columnName, FieldPermission>
+     * @return 解析后的 Map，解析失败返回空 Map
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, FieldPermission> parseModuleFieldConfig(String moduleFieldConfig) {
+        if (StringUtils.isBlank(moduleFieldConfig)) {
+            return Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(moduleFieldConfig, new TypeReference<Map<String, FieldPermission>>() {
+            });
+        } catch (Exception e) {
+            log.warn("解析 moduleFieldConfig 失败: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 
     /**

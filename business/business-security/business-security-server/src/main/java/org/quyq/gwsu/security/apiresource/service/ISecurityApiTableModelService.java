@@ -20,6 +20,8 @@ public interface ISecurityApiTableModelService extends IService<SecurityApiTable
      */
     IPage<TableModelVO> pageByCondition(TableModelQueryDTO query);
 
+    List<SecurityApiTableModel> listByCondition(TableModelQueryDTO query);
+
     /**
      * 根据接口资源ID查询表模型列表
      */

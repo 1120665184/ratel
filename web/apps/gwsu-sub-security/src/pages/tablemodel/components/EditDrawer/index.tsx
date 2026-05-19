@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Drawer, Table, Tag, Input, Button, Space, message, Form, Descriptions } from 'antd';
-import { PlusOutlined, EditOutlined } from '@ant-design/icons';
+import { Drawer, Table, Tag, Input, Button, Space, message, Form, Descriptions, Popconfirm } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { TableModelInfo, TableModelDetail, TableModelColumnInfo, TableModelForeignKeyInfo } from '../../types';
-import { getTableModelDetail, updateColumnComment, updateForeignKeyRemark, saveForeignKey, updateTableComment } from '../../services/tableModel';
+import { getTableModelDetail, updateColumnComment, updateForeignKeyRemark, saveForeignKey, deleteForeignKeys, updateTableComment } from '../../services/tableModel';
 import { SOURCE_TYPE_MAP } from '../../types';
 import styles from './index.module.less';
 
@@ -105,6 +105,27 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
     }
   }, [fkForm, editingFkData, record, loadDetail]);
 
+  /** 删除外键 */
+  const handleFkDelete = useCallback(async (fkId: string) => {
+    try {
+      await deleteForeignKeys([fkId]);
+      message.success('删除成功');
+      loadDetail();
+    } catch {
+      // request 层已自动提示
+    }
+  }, [loadDetail]);
+
+  /** 解析字段权限配置 */
+  const parseFieldConfig = (fieldConfig?: string) => {
+    if (!fieldConfig) return { show: true, desensitize: false };
+    try {
+      return JSON.parse(fieldConfig);
+    } catch {
+      return { show: true, desensitize: false };
+    }
+  };
+
   /** 字段表格列定义 */
   const columnDefs = [
     { title: '序号', dataIndex: 'ordinalPosition', key: 'ordinalPosition', width: 60 },
@@ -131,12 +152,31 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
       width: 60,
       render: (v: boolean) => v ? <Tag color="blue">PK</Tag> : '-',
     },
+    {
+      title: '允许查询',
+      key: 'show',
+      width: 80,
+      render: (_: unknown, r: TableModelColumnInfo) => {
+        const { show } = parseFieldConfig(r.fieldConfig);
+        return show ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag>;
+      },
+    },
+    {
+      title: '是否脱敏',
+      key: 'desensitize',
+      width: 80,
+      render: (_: unknown, r: TableModelColumnInfo) => {
+        const { desensitize } = parseFieldConfig(r.fieldConfig);
+        return desensitize ? <Tag color="orange">是</Tag> : <Tag color="default">否</Tag>;
+      },
+    },
     { title: '默认值', dataIndex: 'defaultValue', key: 'defaultValue', width: 100, ellipsis: true },
     {
       title: '注释',
       dataIndex: 'columnComment',
       key: 'columnComment',
       width: 200,
+      fixed: 'right' as const,
       render: (text: string | null, r: TableModelColumnInfo) => {
         if (editingColumnId === r.id) {
           return (
@@ -181,6 +221,7 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
       dataIndex: 'remark',
       key: 'remark',
       width: 180,
+      fixed: 'right' as const,
       render: (text: string | null, r: TableModelForeignKeyInfo) => {
         if (editingFkId === r.id) {
           return (
@@ -207,21 +248,33 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
     {
       title: '操作',
       key: 'action',
-      width: 80,
+      width: 120,
+      fixed: 'right' as const,
       render: (_: unknown, r: TableModelForeignKeyInfo) => {
         if (r.dataType === 1) {
           return (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => {
-                setEditingFkData(r);
-                fkForm.setFieldsValue(r);
-                setFkFormVisible(true);
-              }}
-            >
-              编辑
-            </Button>
+            <Space size={0}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => {
+                  setEditingFkData(r);
+                  fkForm.setFieldsValue(r);
+                  setFkFormVisible(true);
+                }}
+              >
+                编辑
+              </Button>
+              <Popconfirm
+                title="确认删除"
+                description="确定删除该外键？"
+                onConfirm={() => handleFkDelete(r.id)}
+              >
+                <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                  删除
+                </Button>
+              </Popconfirm>
+            </Space>
           );
         }
         return null;
@@ -285,7 +338,7 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
             dataSource={detail?.columns || []}
             columns={columnDefs}
             pagination={false}
-            scroll={{ y: 300 }}
+            scroll={{ x: 990, y: 300 }}
           />
         </div>
 
@@ -312,7 +365,7 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
             dataSource={detail?.foreignKeys || []}
             columns={fkColumnDefs}
             pagination={false}
-            scroll={{ y: 200 }}
+            scroll={{ x: 830, y: 200 }}
           />
         </div>
 

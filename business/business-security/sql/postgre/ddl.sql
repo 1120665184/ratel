@@ -728,6 +728,7 @@ CREATE TABLE security_tablemodel_columns
     default_value    TEXT                  DEFAULT NULL,
     column_comment   TEXT                  DEFAULT NULL,
     ordinal_position INT                   DEFAULT 0,
+    field_config     VARCHAR(512)          DEFAULT NULL,
     tenant_id        VARCHAR(50)           DEFAULT NULL,
     create_op        VARCHAR(50)           DEFAULT NULL,
     create_time      TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -751,6 +752,7 @@ COMMENT ON COLUMN security_tablemodel_columns.pk_position IS '主键位置';
 COMMENT ON COLUMN security_tablemodel_columns.default_value IS '默认值';
 COMMENT ON COLUMN security_tablemodel_columns.column_comment IS '字段注释';
 COMMENT ON COLUMN security_tablemodel_columns.ordinal_position IS '字段顺序';
+COMMENT ON COLUMN security_tablemodel_columns.field_config IS '字段AI权限配置';
 COMMENT ON COLUMN security_tablemodel_columns.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_tablemodel_columns.create_op IS '创建人';
 COMMENT ON COLUMN security_tablemodel_columns.create_time IS '创建时间';
@@ -811,3 +813,10 @@ COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_time IS '删除时间'
 
 CREATE UNIQUE INDEX uk_security_tablemodel_foreign_keys_table_constraint ON security_tablemodel_foreign_keys (table_id, constraint_name);
 CREATE INDEX idx_security_tablemodel_foreign_keys_referenced_table_name ON security_tablemodel_foreign_keys (referenced_table_name);
+
+-- =============================================
+-- 变更：security_tablemodel_columns 增加 field_config 字段
+-- 说明：字段权限配置，JSON格式存储 FieldPermission 对象
+-- =============================================
+ALTER TABLE security_tablemodel_columns ADD COLUMN field_config TEXT DEFAULT NULL;
+COMMENT ON COLUMN security_tablemodel_columns.field_config IS '字段权限配置JSON，格式为 FieldPermission 对象';

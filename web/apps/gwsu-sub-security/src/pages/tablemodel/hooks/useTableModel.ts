@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import type { TableModelQuery, TableModelPageResult, TableModelInfo, ModuleInfo } from '../types';
-import { getTableModelPage, getModuleList, syncTableModel } from '../services/tableModel';
+import { getTableModelPage, getModuleList, syncTableModel, batchDeleteTableModels } from '../services/tableModel';
 
 /**
  * 表模型管理 Hook
@@ -62,11 +62,24 @@ export function useTableModel() {
   /** 同步表模型 */
   const handleSync = useCallback(async (record: TableModelInfo) => {
     try {
-      await syncTableModel(record.id);
+      const mod = modules.find((m) => m.prefix === record.modulePrefix);
+      await syncTableModel(record.id, mod?.applicationName ?? '');
       message.success('同步成功');
       loadPageData();
     } catch {
       // request 层已自动提示
+    }
+  }, [loadPageData, modules]);
+
+  /** 批量删除表模型 */
+  const handleBatchDelete = useCallback(async (ids: string[]): Promise<boolean> => {
+    try {
+      await batchDeleteTableModels(ids);
+      message.success('删除成功');
+      loadPageData();
+      return true;
+    } catch {
+      return false;
     }
   }, [loadPageData]);
 
@@ -80,5 +93,6 @@ export function useTableModel() {
     handleSearch,
     handlePageChange,
     handleSync,
+    handleBatchDelete,
   };
 }

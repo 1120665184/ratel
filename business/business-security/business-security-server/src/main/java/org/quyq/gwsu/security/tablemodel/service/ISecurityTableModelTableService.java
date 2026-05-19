@@ -8,6 +8,7 @@ import org.quyq.gwsu.security.api.tablemodel.dto.TableModelChangeDatasourceDTO;
 import org.quyq.gwsu.security.api.tablemodel.dto.TableModelCollectDTO;
 import org.quyq.gwsu.security.api.tablemodel.dto.TableModelCustomSaveDTO;
 import org.quyq.gwsu.security.api.tablemodel.dto.TableModelTableQueryDTO;
+import org.quyq.gwsu.security.api.tablemodel.dto.TableModelUncollectedCountDTO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
@@ -123,10 +124,11 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
     /**
      * 同步表模型字段（与库中最新对比，增删字段）
      *
-     * @param tableModelId 表模型ID
+     * @param tableModelId    表模型ID
+     * @param applicationName 服务名
      * @return 是否成功
      */
-    Boolean syncTableModel(String tableModelId);
+    Boolean syncTableModel(String tableModelId, String applicationName);
 
     /**
      * 修改数据源
@@ -144,5 +146,13 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
      * @return 是否成功
      */
     Boolean updateTableComment(String tableId, String tableComment);
+
+    /**
+     * 统计各模块未采集表模型数量
+     *
+     * @param dto 模块列表（含 modulePrefix 和 applicationName）
+     * @return modulePrefix → 未采集数量
+     */
+    java.util.Map<String, Integer> uncollectedCount(TableModelUncollectedCountDTO dto);
 
 }

@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.quyq.gwsu.common.core.domain.BaseVO;
 
+import java.util.Map;
+
 /**
  * 表基本信息
  *
@@ -32,4 +34,8 @@ public class TableModelTableVO extends BaseVO {
 
     @Schema(description = "来源类型：0-采集 1-自定义添加")
     private Integer sourceType;
+
+    @Schema(description = "模型字段配置")
+    private String moduleFieldConfig;
+
 }

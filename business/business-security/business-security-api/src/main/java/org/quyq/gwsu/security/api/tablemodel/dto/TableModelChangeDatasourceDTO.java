@@ -12,6 +12,8 @@ import java.util.List;
  */
 @Schema(description = "修改表模型数据源DTO")
 public record TableModelChangeDatasourceDTO(
+        @Schema(description = "服务名")
+        String applicationName,
         @Schema(description = "表模型ID")
         String tableModelId,
         @Schema(description = "新数据源")

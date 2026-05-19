@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Modal, Steps, Select, Button, Tag, List, Spin, Progress, Empty } from 'antd';
 import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { ModuleInfo, TableModelInfo, CollectItem } from '../../types';
-import { listUncollected, collectTableModels } from '../../services/tableModel';
+import { listUncollected, collectTableModels, getUncollectedCount } from '../../services/tableModel';
 import styles from './index.module.less';
 
 interface CollectModalProps {
@@ -19,6 +19,23 @@ const CollectModal: React.FC<CollectModalProps> = ({ visible, modules, onClose, 
   const [loading, setLoading] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [collectProgress, setCollectProgress] = useState(0);
+  const [uncollectedCounts, setUncollectedCounts] = useState<Record<string, number>>({});
+  const [countsLoading, setCountsLoading] = useState(false);
+
+  /** 加载未采集数量 */
+  const loadUncollectedCounts = useCallback(async () => {
+    setCountsLoading(true);
+    try {
+      const counts = await getUncollectedCount(
+        modules.map((m) => ({ modulePrefix: m.prefix, applicationName: m.applicationName }))
+      );
+      setUncollectedCounts(counts);
+    } catch {
+      // request 层已自动提示
+    } finally {
+      setCountsLoading(false);
+    }
+  }, [modules]);
 
   /** 重置状态 */
   const resetState = useCallback(() => {
@@ -28,6 +45,7 @@ const CollectModal: React.FC<CollectModalProps> = ({ visible, modules, onClose, 
     setLoading(false);
     setCollecting(false);
     setCollectProgress(0);
+    setUncollectedCounts({});
   }, []);
 
   /** 关闭弹窗 */
@@ -35,6 +53,13 @@ const CollectModal: React.FC<CollectModalProps> = ({ visible, modules, onClose, 
     resetState();
     onClose();
   }, [resetState, onClose]);
+
+  /** 弹窗打开时加载未采集数量 */
+  useEffect(() => {
+    if (visible) {
+      loadUncollectedCounts();
+    }
+  }, [visible, loadUncollectedCounts]);
 
   /** 解析未采集的表模型 */
   const handleParse = useCallback(async () => {
@@ -57,11 +82,16 @@ const CollectModal: React.FC<CollectModalProps> = ({ visible, modules, onClose, 
     setCollecting(true);
     setCurrentStep(2);
 
-    const items: CollectItem[] = uncollectedList.map((item) => ({
-      modulePrefix: item.modulePrefix,
-      datasource: item.dataSource,
-      tableName: item.tableName,
-    }));
+    const items: CollectItem[] = uncollectedList.map((item) => {
+      const mod = modules.find((m) => m.prefix === item.modulePrefix);
+      return {
+        applicationName: mod?.applicationName ?? '',
+        modulePrefix: item.modulePrefix,
+        datasource: item.dataSource,
+        tableName: item.tableName,
+        moduleFieldConfig: item.moduleFieldConfig,
+      };
+    });
 
     try {
       // 模拟进度
@@ -99,8 +129,37 @@ const CollectModal: React.FC<CollectModalProps> = ({ visible, modules, onClose, 
               style={{ width: '100%' }}
               value={selectedModule}
               onChange={setSelectedModule}
-              options={modules.map((m) => ({ label: m.note || m.prefix, value: m.prefix }))}
+              options={modules.map((m) => {
+                const count = uncollectedCounts[m.prefix] ?? 0;
+                return {
+                  label: `${m.note || m.prefix}${count > 0 ? `（${count} 个未采集）` : ''}`,
+                  value: m.prefix,
+                };
+              })}
             />
+            {countsLoading ? (
+              <div className={styles.countsLoading}>
+                <Spin size="small" /> <span>加载未采集数量...</span>
+              </div>
+            ) : (
+              Object.keys(uncollectedCounts).length > 0 && (
+                <div className={styles.moduleCountList}>
+                  {modules.map((m) => {
+                    const count = uncollectedCounts[m.prefix] ?? 0;
+                    return (
+                      <div
+                        key={m.prefix}
+                        className={`${styles.moduleCountItem} ${selectedModule === m.prefix ? styles.moduleCountItemActive : ''}`}
+                        onClick={() => setSelectedModule(m.prefix)}
+                      >
+                        <span className={styles.moduleCountName}>{m.note || m.prefix}</span>
+                        <Tag color={count > 0 ? 'blue' : 'default'}>{count} 个未采集</Tag>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )}
           </div>
         );
       case 1:

@@ -1,4 +1,4 @@
-import { get, post } from '@gwsu/core';
+import { get, post,del } from '@gwsu/core';
 import type {
   TableModelQuery,
   TableModelPageResult,
@@ -8,6 +8,7 @@ import type {
   ApiResourceSimple,
   CollectItem,
   ChangeDatasourceRequest,
+  UncollectedCountModuleItem,
 } from '../types';
 
 /** 分页查询表模型列表 */
@@ -40,8 +41,8 @@ export async function customSaveTableModel(data: {
 }
 
 /** 同步表模型字段 */
-export async function syncTableModel(tableModelId: string): Promise<boolean> {
-  const res = await post<boolean>(`/security/tablemodel/sync/${tableModelId}`);
+export async function syncTableModel(tableModelId: string, applicationName: string): Promise<boolean> {
+  const res = await post<boolean>(`/security/tablemodel/sync/${tableModelId}?applicationName=${encodeURIComponent(applicationName)}`);
   return res.data;
 }
 
@@ -105,6 +106,12 @@ export async function updateForeignKeyRemark(fkId: string, remark: string): Prom
   return res.data;
 }
 
+/** 删除外键 */
+export async function deleteForeignKeys(ids: string[]): Promise<boolean> {
+  const res = await del<boolean>('/security/tablemodel/foreignKey/delete', ids);
+  return res.data;
+}
+
 /** 保存外键（新增/更新） */
 export async function saveForeignKey(data: Record<string, unknown>): Promise<boolean> {
   const res = await post<boolean>('/security/tablemodel/foreignKey/save', data);
@@ -114,5 +121,17 @@ export async function saveForeignKey(data: Record<string, unknown>): Promise<boo
 /** 更新表注释 */
 export async function updateTableComment(tableId: string, tableComment: string): Promise<boolean> {
   const res = await post<boolean>('/security/tablemodel/updateTableComment', { tableId, tableComment });
+  return res.data;
+}
+
+/** 批量删除表模型 */
+export async function batchDeleteTableModels(ids: string[]): Promise<boolean> {
+  const res = await del<boolean>('/security/tablemodel/batchDelete', ids);
+  return res.data;
+}
+
+/** 统计各模块未采集表模型数量 */
+export async function getUncollectedCount(modules: UncollectedCountModuleItem[]): Promise<Record<string, number>> {
+  const res = await post<Record<string, number>>('/security/tablemodel/uncollectedCount', { modules });
   return res.data;
 }

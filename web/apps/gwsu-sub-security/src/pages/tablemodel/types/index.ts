@@ -6,6 +6,7 @@ export interface TableModelInfo {
   dataSource: string;
   tableComment: string;
   sourceType: number;
+  moduleFieldConfig?: string;
   createTime?: string;
   modifyTime?: string;
 }
@@ -31,6 +32,7 @@ export interface TableModelColumnInfo {
   defaultValue: string | null;
   columnComment: string | null;
   ordinalPosition: number;
+  fieldConfig?: string;
 }
 
 /** 外键信息 */
@@ -85,16 +87,25 @@ export interface ApiResourceSimple {
 
 /** 采集请求项 */
 export interface CollectItem {
+  applicationName: string;
   modulePrefix: string;
   datasource: string;
   tableName: string;
+  moduleFieldConfig?: string;
 }
 
 /** 修改数据源请求 */
 export interface ChangeDatasourceRequest {
+  applicationName: string;
   tableModelId: string;
   newDatasource: string;
   apiIds?: string[];
+}
+
+/** 未采集统计请求项 */
+export interface UncollectedCountModuleItem {
+  modulePrefix: string;
+  applicationName: string;
 }
 
 /** 来源类型映射 */

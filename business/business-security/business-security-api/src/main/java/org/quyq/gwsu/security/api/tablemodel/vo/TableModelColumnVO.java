@@ -50,4 +50,7 @@ public class TableModelColumnVO extends BaseVO {
 
     @Schema(description = "字段顺序")
     private Integer ordinalPosition;
+
+    @Schema(description = "字段权限配置")
+    private String fieldConfig;
 }

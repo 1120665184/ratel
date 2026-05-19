@@ -1,14 +1,19 @@
 package org.quyq.gwsu.security.tablemodel.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
+import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelColumnVO;
+import org.quyq.gwsu.security.apiresource.typehandler.FieldPermissionTypeHandler;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 字段详细信息
@@ -59,6 +64,12 @@ public class SecurityTableModelColumn extends BaseDO {
     @Schema(description = "字段顺序")
     private Integer ordinalPosition;
 
+    @TableField(typeHandler = FieldPermissionTypeHandler.class)
+    @Schema(description = "字段权限配置")
+    private FieldPermission fieldConfig;
+
+    private static final ObjectMapper MAPPER = Jackson3TypeHandler.getObjectMapper();
+
     /**
      * DO 转 VO
      *
@@ -78,6 +89,7 @@ public class SecurityTableModelColumn extends BaseDO {
         vo.setDefaultValue(this.defaultValue);
         vo.setColumnComment(this.columnComment);
         vo.setOrdinalPosition(this.ordinalPosition);
+        vo.setFieldConfig(this.fieldConfig != null ? MAPPER.writeValueAsString(this.fieldConfig) : null);
         vo.copyBaseProperties(this);
         return vo;
     }
@@ -102,6 +114,10 @@ public class SecurityTableModelColumn extends BaseDO {
         entity.setDefaultValue(vo.getDefaultValue());
         entity.setColumnComment(vo.getColumnComment());
         entity.setOrdinalPosition(vo.getOrdinalPosition());
+        if (vo.getFieldConfig() != null) {
+            entity.setFieldConfig(MAPPER.readValue(vo.getFieldConfig(), FieldPermission.class));
+        }
         return entity;
     }
+
 }

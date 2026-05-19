@@ -84,7 +84,10 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
       const values = await form.validateFields();
       setLoading(true);
 
+      const mod = modules.find((m) => m.prefix === record!.modulePrefix);
+
       await changeDatasource({
+        applicationName: mod?.applicationName ?? '',
         tableModelId: record!.id,
         newDatasource: values.newDatasource,
         apiIds: applyToAll ? undefined : selectedApiIds,
@@ -98,7 +101,7 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
     } finally {
       setLoading(false);
     }
-  }, [form, record, applyToAll, selectedApiIds, onSuccess, onClose]);
+  }, [form, record, modules, applyToAll, selectedApiIds, onSuccess, onClose]);
 
   return (
     <Modal

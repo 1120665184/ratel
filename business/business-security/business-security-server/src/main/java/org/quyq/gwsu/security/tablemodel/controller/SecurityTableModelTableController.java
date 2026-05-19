@@ -83,8 +83,9 @@ public class SecurityTableModelTableController {
 
     @Operation(summary = "同步表模型字段")
     @PostMapping("sync/{tableModelId}")
-    public R<Boolean> sync(@PathVariable String tableModelId) {
-        return R.ok(securityTableModelTableService.syncTableModel(tableModelId));
+    public R<Boolean> sync(@PathVariable String tableModelId,
+                            @RequestParam String applicationName) {
+        return R.ok(securityTableModelTableService.syncTableModel(tableModelId, applicationName));
     }
 
     @Operation(summary = "修改数据源")
@@ -119,10 +120,28 @@ public class SecurityTableModelTableController {
         return R.ok(securityTableModelForeignKeyService.saveOrUpdateForeignKey(vo));
     }
 
+    @Operation(summary = "删除外键")
+    @DeleteMapping("foreignKey/delete")
+    public R<Boolean> deleteForeignKey(@RequestBody List<String> ids) {
+        return R.ok(securityTableModelForeignKeyService.removeByIds(ids));
+    }
+
     @Operation(summary = "更新表注释")
     @PostMapping("updateTableComment")
     public R<Boolean> updateTableComment(@RequestBody java.util.Map<String, String> params) {
         return R.ok(securityTableModelTableService.updateTableComment(params.get("tableId"), params.get("tableComment")));
+    }
+
+    @Operation(summary = "批量删除表模型")
+    @DeleteMapping("batchDelete")
+    public R<Boolean> batchDelete(@RequestBody List<String> ids) {
+        return R.ok(securityTableModelTableService.removeByIds(ids));
+    }
+
+    @Operation(summary = "统计各模块未采集表模型数量")
+    @PostMapping("uncollectedCount")
+    public R<java.util.Map<String, Integer>> uncollectedCount(@RequestBody TableModelUncollectedCountDTO dto) {
+        return R.ok(securityTableModelTableService.uncollectedCount(dto));
     }
 
 }

@@ -1,7 +1,6 @@
 package org.quyq.gwsu.security.apiresource.service.impl;
 
 import cn.hutool.crypto.digest.MD5;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -13,16 +12,12 @@ import org.quyq.gwsu.common.security.domain.TableModelInfo;
 import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
 import org.quyq.gwsu.security.api.apiresource.vo.TableModelVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
-import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModelConfig;
-import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelConfigMapper;
 import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelMapper;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -30,34 +25,23 @@ import java.util.stream.Collectors;
 public class SecurityApiTableModelServiceImpl extends ServiceImpl<SecurityApiTableModelMapper, SecurityApiTableModel>
         implements ISecurityApiTableModelService {
 
-    private final SecurityApiTableModelConfigMapper configMapper;
-
     @Override
     public IPage<TableModelVO> pageByCondition(TableModelQueryDTO query) {
-        Page<SecurityApiTableModel> page = new Page<>(query.getPageNum(), query.getPageSize());
-        LambdaQueryWrapper<SecurityApiTableModel> wrapper = new LambdaQueryWrapper<>();
-        if (query.getModulePrefix() != null) {
-            wrapper.eq(SecurityApiTableModel::getModulePrefix, query.getModulePrefix());
-        }
-        if (query.getTableName() != null) {
-            wrapper.like(SecurityApiTableModel::getTableName, query.getTableName());
-        }
-        if (query.getApiId() != null) {
-            wrapper.eq(SecurityApiTableModel::getApiId, query.getApiId());
-        }
-        IPage<TableModelVO> result = page(page, wrapper).convert(SecurityApiTableModel::toVo);
-        applyConfigOverride(result.getRecords());
-        return result;
+        Page<SecurityApiTableModel> page = Page.of(query.getPageNum(), query.getPageSize());
+        return getBaseMapper().pageByCondition(page, query).convert(SecurityApiTableModel::toVo);
+    }
+
+    @Override
+    public List<SecurityApiTableModel> listByCondition(TableModelQueryDTO query) {
+        return getBaseMapper().listTableModelByCondition(query);
     }
 
     @Override
     public List<TableModelVO> listByApiId(String apiId) {
-        List<TableModelVO> list = list(new LambdaQueryWrapper<SecurityApiTableModel>()
-                .eq(SecurityApiTableModel::getApiId, apiId))
-                .stream()
-                .map(SecurityApiTableModel::toVo)
-                .toList();
-        return applyConfigOverride(list);
+        TableModelQueryDTO form = new TableModelQueryDTO();
+        form.setApiId(apiId);
+        return getBaseMapper().listTableModelByCondition(form)
+                .stream().map(SecurityApiTableModel::toVo).toList();
     }
 
     private static final int BATCH_SIZE = 500;
@@ -72,13 +56,11 @@ public class SecurityApiTableModelServiceImpl extends ServiceImpl<SecurityApiTab
         List<TableModelVO> allVos = new ArrayList<>();
         for (int i = 0; i < apiIdList.size(); i += BATCH_SIZE) {
             List<String> batch = apiIdList.subList(i, Math.min(i + BATCH_SIZE, apiIdList.size()));
-            List<TableModelVO> batchVos = list(new LambdaQueryWrapper<SecurityApiTableModel>()
-                            .in(SecurityApiTableModel::getApiId, batch))
-                    .stream()
-                    .map(SecurityApiTableModel::toVo)
-                    .collect(Collectors.toCollection(ArrayList::new));
-            applyConfigOverride(batchVos);
-            allVos.addAll(batchVos);
+
+            TableModelQueryDTO form = new TableModelQueryDTO();
+            form.setApiIds(batch);
+            allVos.addAll(getBaseMapper().listTableModelByCondition(form)
+                    .stream().map(SecurityApiTableModel::toVo).toList());
         }
         if (allVos.isEmpty()) {
             return Collections.emptyList();
@@ -94,43 +76,12 @@ public class SecurityApiTableModelServiceImpl extends ServiceImpl<SecurityApiTab
 
     @Override
     public List<TableModelVO> listByModulePrefix(String modulePrefix) {
-        List<TableModelVO> list = list(new LambdaQueryWrapper<SecurityApiTableModel>()
-                .eq(SecurityApiTableModel::getModulePrefix, modulePrefix))
-                .stream()
-                .map(SecurityApiTableModel::toVo)
-                .toList();
-        return applyConfigOverride(list);
+        TableModelQueryDTO form = new TableModelQueryDTO();
+        form.setModulePrefix(modulePrefix);
+        return getBaseMapper().listTableModelByCondition(form)
+                .stream().map(SecurityApiTableModel::toVo).toList();
     }
 
-    /**
-     * 根据 security_api_table_model_config 覆盖数据源配置
-     * 优先级：config 中的 datasource > 采集默认的 datasource
-     */
-    private List<TableModelVO> applyConfigOverride(List<TableModelVO> list) {
-        if (CollectionUtils.isEmpty(list)) {
-            return list;
-        }
-        // 批量查询所有关联的 config 记录
-        List<String> tableModelIds = list.stream()
-                .map(TableModelVO::getId)
-                .toList();
-        Map<String, SecurityApiTableModelConfig> configMap = configMapper.selectList(
-                        new LambdaQueryWrapper<SecurityApiTableModelConfig>()
-                                .in(SecurityApiTableModelConfig::getTableModelId, tableModelIds))
-                .stream()
-                .collect(Collectors.toMap(
-                        SecurityApiTableModelConfig::getTableModelId,
-                        c -> c,
-                        (a, b) -> a));
-        // 回填覆盖值
-        for (TableModelVO vo : list) {
-            SecurityApiTableModelConfig config = configMap.get(vo.getId());
-            if (config != null) {
-                vo.setDatasource(config.getDatasource());
-            }
-        }
-        return list;
-    }
 
     @Override
     public void handleTableModel(String applicationName, ApiEndpointCollector.ApiEndpointWrapper permissions) {

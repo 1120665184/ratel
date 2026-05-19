@@ -38,6 +38,16 @@ const DetailDrawer: React.FC<DetailDrawerProps> = ({ visible, record, onClose })
     }
   }, [visible, record, loadDetail]);
 
+  /** 解析字段权限配置 */
+  const parseFieldConfig = (fieldConfig?: string) => {
+    if (!fieldConfig) return { show: true, desensitize: false };
+    try {
+      return JSON.parse(fieldConfig);
+    } catch {
+      return { show: true, desensitize: false };
+    }
+  };
+
   /** 字段表格列定义 */
   const columnDefs = [
     { title: '序号', dataIndex: 'ordinalPosition', key: 'ordinalPosition', width: 60 },
@@ -63,6 +73,24 @@ const DetailDrawer: React.FC<DetailDrawerProps> = ({ visible, record, onClose })
       key: 'isPrimaryKey',
       width: 60,
       render: (v: boolean) => v ? <Tag color="blue">PK</Tag> : '-',
+    },
+    {
+      title: '允许查询',
+      key: 'show',
+      width: 80,
+      render: (_: unknown, r: TableModelColumnInfo) => {
+        const { show } = parseFieldConfig(r.fieldConfig);
+        return show ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag>;
+      },
+    },
+    {
+      title: '是否脱敏',
+      key: 'desensitize',
+      width: 80,
+      render: (_: unknown, r: TableModelColumnInfo) => {
+        const { desensitize } = parseFieldConfig(r.fieldConfig);
+        return desensitize ? <Tag color="orange">是</Tag> : <Tag color="default">否</Tag>;
+      },
     },
     { title: '默认值', dataIndex: 'defaultValue', key: 'defaultValue', width: 100, ellipsis: true },
     { title: '注释', dataIndex: 'columnComment', key: 'columnComment', width: 180, ellipsis: true },

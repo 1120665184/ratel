@@ -60,4 +60,48 @@
     color: var(--text-color-secondary);
     padding: 40px 0;
   }
+
+  .countsLoading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 16px 0;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+  }
+
+  .moduleCountList {
+    margin-top: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .moduleCountItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid var(--border-color);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: var(--hover-color, rgba(0, 0, 0, 0.04));
+    }
+  }
+
+  .moduleCountItemActive {
+    background-color: var(--selected-color, rgba(22, 119, 255, 0.06));
+  }
+
+  .moduleCountName {
+    font-size: 14px;
+    color: var(--text-color);
+  }
 }

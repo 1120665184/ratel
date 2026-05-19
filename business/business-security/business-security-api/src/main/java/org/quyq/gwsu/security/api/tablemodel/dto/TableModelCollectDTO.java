@@ -17,11 +17,15 @@ public record TableModelCollectDTO(
 ) {
     @Schema(description = "采集项")
     public record TableModelCollectItem(
+            @Schema(description = "服务名")
+            String applicationName,
             @Schema(description = "模块前缀")
             String modulePrefix,
             @Schema(description = "数据源")
             String datasource,
             @Schema(description = "表名")
-            String tableName
+            String tableName,
+            @Schema(description = "模块字段配置JSON，格式为 Map<columnName, FieldPermission>")
+            String moduleFieldConfig
     ) {}
 }

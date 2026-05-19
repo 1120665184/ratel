@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.database.metadata.model.ColumnInfo;
+import org.quyq.gwsu.common.database.metadata.model.ForeignKeyInfo;
 import org.quyq.gwsu.common.database.metadata.model.TableInfo;
 import org.quyq.gwsu.common.deploy.dto.SQLQueryDTO;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
@@ -68,6 +69,12 @@ public class DistributedSqlExecutionController {
     @GetMapping(CoreConstants.EndPoint.ENDPOINT_DB_COLUMNS)
     public R<List<ColumnInfo>> queryColumns(@RequestParam(required = false) String datasource, @RequestParam String tableName) {
         return R.ok(sqlExecutionService.columnList(datasource, tableName));
+    }
+
+
+    @GetMapping(CoreConstants.EndPoint.ENDPOINT_DB_FOREIGN_KEY)
+    public R<List<ForeignKeyInfo>> queryForeignKeys(@RequestParam(required = false) String datasource, @RequestParam String tableName) {
+        return R.ok(sqlExecutionService.foreignKeyList(datasource, tableName));
     }
 
 

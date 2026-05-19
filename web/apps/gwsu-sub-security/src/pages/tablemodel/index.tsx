@@ -21,6 +21,7 @@ import {
   EditOutlined,
   MoreOutlined,
   SyncOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { useTableModel } from './hooks/useTableModel';
 import CollectModal from './components/CollectModal';
@@ -42,6 +43,7 @@ const TableModelPage: React.FC = () => {
     handleSearch,
     handlePageChange,
     handleSync,
+    handleBatchDelete,
   } = useTableModel();
 
   const [searchForm] = Form.useForm();
@@ -52,6 +54,16 @@ const TableModelPage: React.FC = () => {
   const [editVisible, setEditVisible] = useState(false);
   const [changeDatasourceVisible, setChangeDatasourceVisible] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<TableModelInfo | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  /** 批量删除 */
+  const onBatchDelete = useCallback(async () => {
+    const ids = selectedRowKeys as string[];
+    const success = await handleBatchDelete(ids);
+    if (success) {
+      setSelectedRowKeys([]);
+    }
+  }, [selectedRowKeys, handleBatchDelete]);
 
   useEffect(() => {
     loadModules();
@@ -102,14 +114,12 @@ const TableModelPage: React.FC = () => {
       label: '编辑',
       onClick: () => handleEdit(record),
     });
-    if (record.sourceType === 0) {
-      items.push({
-        key: 'sync',
-        icon: <SyncOutlined />,
-        label: '同步',
-        onClick: () => handleSync(record),
-      });
-    }
+    items.push({
+      key: 'sync',
+      icon: <SyncOutlined />,
+      label: '同步',
+      onClick: () => handleSync(record),
+    });
     items.push({
       key: 'changeDatasource',
       label: '修改数据源',
@@ -120,6 +130,7 @@ const TableModelPage: React.FC = () => {
 
   /** 表格列定义 */
   const columns: TableProps<TableModelInfo>['columns'] = [
+    Table.SELECTION_COLUMN,
     {
       title: '序号',
       width: 60,
@@ -275,10 +286,26 @@ const TableModelPage: React.FC = () => {
             >
               自定义添加
             </Button>
+            <Popconfirm
+              title="批量删除"
+              description={`确定删除选中的 ${selectedRowKeys.length} 条记录？删除后将同时清除关联的字段和外键数据。`}
+              onConfirm={onBatchDelete}
+              disabled={selectedRowKeys.length === 0}
+            >
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                data-ai-approval
+                disabled={selectedRowKeys.length === 0}
+              >
+                删除
+              </Button>
+            </Popconfirm>
           </Space>
         </div>
         <Table<TableModelInfo>
           rowKey="id"
+          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           loading={loading}
           dataSource={pageData.records}
           columns={columns}

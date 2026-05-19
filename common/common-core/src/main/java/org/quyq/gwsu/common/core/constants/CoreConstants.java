@@ -56,6 +56,11 @@ public interface CoreConstants {
         String ENDPOINT_DB_COLUMNS = "/db/columns";
 
         /**
+         * 查询指定表的外键
+         */
+        String ENDPOINT_DB_FOREIGN_KEY = "/db/foreign_key";
+
+        /**
          * 获取指定数据源的数据名
          */
         String ENDPOINT_DB_NAME = "/db/name";
