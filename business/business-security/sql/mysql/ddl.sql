@@ -408,7 +408,7 @@ CREATE TABLE security_role_table_model
 -- =============================================
 CREATE TABLE security_tablemodel_tables
 (
-    id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
+    id            VARCHAR(64) PRIMARY KEY COMMENT '主键ID（雪花算法）',
     table_name    VARCHAR(128) NOT NULL COMMENT '表名',
     module_prefix VARCHAR(64)           DEFAULT NULL COMMENT '模块前缀',
     data_source   VARCHAR(64)  NOT NULL COMMENT '数据源',
@@ -434,7 +434,7 @@ CREATE TABLE security_tablemodel_tables
 CREATE TABLE security_tablemodel_columns
 (
     id               VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
-    table_id         VARCHAR(24)  NOT NULL COMMENT '关联表ID',
+    table_id         VARCHAR(64)  NOT NULL COMMENT '关联表ID',
     column_name      VARCHAR(128) NOT NULL COMMENT '字段名',
     column_type      VARCHAR(64)  NOT NULL COMMENT '字段类型',
     column_length    INT                   DEFAULT NULL COMMENT '字段长度',
@@ -468,7 +468,7 @@ CREATE TABLE security_tablemodel_foreign_keys
 (
     id                     VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
     constraint_name        VARCHAR(128) NOT NULL COMMENT '约束名称',
-    table_id               VARCHAR(24)  NOT NULL COMMENT '所属表ID',
+    table_id               VARCHAR(64)  NOT NULL COMMENT '所属表ID',
     column_name            VARCHAR(128) NOT NULL COMMENT '字段名',
     referenced_table_name  VARCHAR(128) NOT NULL COMMENT '引用表名',
     referenced_column_name VARCHAR(128) NOT NULL COMMENT '引用字段名',

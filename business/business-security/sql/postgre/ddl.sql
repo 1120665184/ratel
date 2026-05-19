@@ -676,7 +676,7 @@ CREATE UNIQUE INDEX uk_security_role_table_model ON security_role_table_model (r
 -- =============================================
 CREATE TABLE security_tablemodel_tables
 (
-    id            VARCHAR(24) PRIMARY KEY,
+    id            VARCHAR(64) PRIMARY KEY,
     table_name    VARCHAR(128) NOT NULL,
     module_prefix VARCHAR(64)           DEFAULT NULL,
     data_source   VARCHAR(64)  NOT NULL,
@@ -717,7 +717,7 @@ CREATE UNIQUE INDEX uk_security_tablemodel_tables_table_datasource ON security_t
 CREATE TABLE security_tablemodel_columns
 (
     id               VARCHAR(24) PRIMARY KEY,
-    table_id         VARCHAR(24)  NOT NULL,
+    table_id         VARCHAR(64)  NOT NULL,
     column_name      VARCHAR(128) NOT NULL,
     column_type      VARCHAR(64)  NOT NULL,
     column_length    INT                   DEFAULT NULL,
@@ -773,7 +773,7 @@ CREATE TABLE security_tablemodel_foreign_keys
 (
     id                     VARCHAR(24) PRIMARY KEY,
     constraint_name        VARCHAR(128) NOT NULL,
-    table_id               VARCHAR(24)  NOT NULL,
+    table_id               VARCHAR(64)  NOT NULL,
     column_name            VARCHAR(128) NOT NULL,
     referenced_table_name  VARCHAR(128) NOT NULL,
     referenced_column_name VARCHAR(128) NOT NULL,

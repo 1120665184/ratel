@@ -285,6 +285,7 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
             tableEntity.setModulePrefix(item.modulePrefix());
             tableEntity.setDataSource(item.datasource());
             tableEntity.setTableName(item.tableName());
+            tableEntity.setId(tableEntity.genId());
             tableEntity.setSourceType(0);
 
             // 从库中获取表注释
@@ -331,6 +332,7 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
         tableEntity.setModulePrefix(dto.modulePrefix());
         tableEntity.setDataSource(dto.datasource());
         tableEntity.setTableName(dto.tableName());
+        tableEntity.setId(tableEntity.genId());
         tableEntity.setSourceType(1);
 
         // 从库中获取表注释

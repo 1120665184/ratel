@@ -2,6 +2,7 @@ package org.quyq.gwsu.security.api.role.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.util.List;
 
@@ -28,6 +29,7 @@ public class RoleTableModelSaveDTO {
     private List<FieldConfigItem> fields;
 
     @Data
+    @Accessors(chain = true)
     @Schema(description = "字段配置项")
     public static class FieldConfigItem {
         @Schema(description = "字段名")

@@ -1,14 +1,12 @@
 package org.quyq.gwsu.security.role.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
-import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
-import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.api.role.vo.RolePermissionTableModelVO;
 import org.quyq.gwsu.security.role.domain.SecurityRoleTableModel;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.springframework.web.bind.annotation.*;
@@ -27,16 +25,11 @@ public class SecurityRoleTableModelController {
 
     private final ISecurityRoleTableModelService roleTableModelService;
 
-    @Operation(summary = "分页查询")
-    @PostMapping("page")
-    public R<IPage<RoleTableModelVO>> page(@RequestBody TableModelQueryDTO query) {
-        return R.ok(roleTableModelService.pageByCondition(query));
-    }
 
-    @Operation(summary = "根据角色ID查询表模型权限列表")
-    @GetMapping("list/by-role/{roleId}")
-    public R<List<RoleTableModelVO>> listByRoleId(@PathVariable String roleId) {
-        return R.ok(roleTableModelService.listByRoleId(roleId));
+    @Operation(summary = "获取指定角色的表模型权限信息")
+    @GetMapping("getTableModelPermission/{roleId}")
+    public R<List<RolePermissionTableModelVO>> getTableModelPermission(@PathVariable String roleId) {
+        return R.ok(roleTableModelService.getTableModelPermission(roleId));
     }
 
     @Operation(summary = "保存或更新角色表模型权限")

@@ -2,8 +2,7 @@ package org.quyq.gwsu.security.role.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,11 +12,11 @@ import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
-import org.quyq.gwsu.security.api.role.vo.RoleTableModelVO;
+import org.quyq.gwsu.security.api.role.vo.RolePermissionTableModelVO;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiResource;
 import org.quyq.gwsu.security.apiresource.domain.SecurityApiTableModel;
-import org.quyq.gwsu.security.apiresource.mapper.SecurityApiTableModelMapper;
 import org.quyq.gwsu.security.apiresource.service.ISecurityApiResourceService;
+import org.quyq.gwsu.security.apiresource.service.ISecurityApiTableModelService;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.role.domain.SecurityRole;
 import org.quyq.gwsu.security.role.domain.SecurityRoleMenu;
@@ -28,7 +27,9 @@ import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleMenuPermissionMapper;
 import org.quyq.gwsu.security.role.mapper.SecurityRoleTableModelMapper;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
+import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelColumn;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
+import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelColumnService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -46,36 +47,12 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
     private final SecurityRoleMenuMapper roleMenuMapper;
     private final SecurityRoleMapper roleMapper;
     private final SecurityRoleMenuPermissionMapper roleMenuPermissionMapper;
-    private final SecurityApiTableModelMapper apiTableModelMapper;
+    private final ISecurityApiTableModelService apiTableModelService;
     private final ISecurityApiResourceService apiResourceService;
     private final ISecurityTableModelTableService modelTableService;
+    private final ISecurityTableModelColumnService modelColumnService;
 
     private static final int BATCH_SIZE = 500;
-
-    @Override
-    public IPage<RoleTableModelVO> pageByCondition(TableModelQueryDTO query) {
-        Page<SecurityRoleTableModel> page = new Page<>(query.getPageNum(), query.getPageSize());
-        LambdaQueryWrapper<SecurityRoleTableModel> wrapper = new LambdaQueryWrapper<>();
-        if (query.getRoleId() != null) {
-            wrapper.eq(SecurityRoleTableModel::getRoleId, query.getRoleId());
-        }
-        if (query.getModulePrefix() != null) {
-            wrapper.eq(SecurityRoleTableModel::getModulePrefix, query.getModulePrefix());
-        }
-        if (query.getTableName() != null) {
-            wrapper.like(SecurityRoleTableModel::getTableName, query.getTableName());
-        }
-        return page(page, wrapper).convert(SecurityRoleTableModel::toVo);
-    }
-
-    @Override
-    public List<RoleTableModelVO> listByRoleId(String roleId) {
-        return list(new LambdaQueryWrapper<SecurityRoleTableModel>()
-                .eq(SecurityRoleTableModel::getRoleId, roleId))
-                .stream()
-                .map(SecurityRoleTableModel::toVo)
-                .toList();
-    }
 
     @Override
     public Boolean saveOrUpdateRoleTableModel(RoleTableModelSaveDTO dto) {
@@ -149,7 +126,7 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
             modelTableService.list(new LambdaQueryWrapper<>(SecurityTableModelTable.class)
                             //获取所有自定义添加的表模型
                             .eq(SecurityTableModelTable::getSourceType, 1)
-                            .eq(SecurityTableModelTable::getDeleted, 0)
+                            .eq(SecurityTableModelTable::getDeleted, false)
                     ).stream().map(v -> v.getModulePrefix() + ":" + v.getDataSource() + ":" + v.getTableName())
                     .forEach(table -> result.put(table, Map.of()));
         } else {
@@ -192,6 +169,154 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         }
 
         return result;
+    }
+
+    @Override
+    public List<RolePermissionTableModelVO> getTableModelPermission(String roleId) {
+        SecurityRole role = roleMapper.selectById(roleId);
+        if (Objects.isNull(role)) {
+            return Collections.emptyList();
+        }
+
+        boolean isAdmin = SecurityConstants.Authentication.ROLE_SUPER_ADMIN_FLAG.equals(role.getRoleCode());
+
+        List<String> apiIds = getApiIdsByRoleIds(Collections.singletonList(roleId), isAdmin);
+        if (CollectionUtils.isEmpty(apiIds)) {
+            return Collections.emptyList();
+        }
+        List<String> tableIds = listApiTableModelsByApiIds(apiIds).stream()
+                .map(v -> SecurityTableModelTable.genId(v.getModulePrefix(), v.getDatasource(), v.getTableName()))
+                .distinct()
+                .toList();
+        if (CollectionUtils.isEmpty(tableIds)) {
+            return Collections.emptyList();
+        }
+
+        List<SecurityTableModelTable> tables = listTableModelTableByIds(tableIds);
+        Map<String, List<SecurityTableModelColumn>> columns = tableModelColumnByTableIds(tableIds);
+        //拥有的接口权限关联的表模型权限
+        List<RolePermissionTableModelVO> datas = buildPermissionTableModel(tables, columns);
+
+        //开始补充自定义配置数据
+        //超级管理员添加所有的自定义表模型
+        if(isAdmin){
+            List<SecurityTableModelTable> customDatas = modelTableService.list(new LambdaQueryWrapper<>(SecurityTableModelTable.class)
+                    //获取所有自定义添加的表模型
+                    .eq(SecurityTableModelTable::getSourceType, 1)
+                    .eq(SecurityTableModelTable::getDeleted, false)
+            );
+
+            Map<String, List<SecurityTableModelColumn>> customColumns= tableModelColumnByTableIds(customDatas.stream().map(SecurityTableModelTable::getId).toList());
+            datas.addAll(
+                    buildPermissionTableModel(customDatas , customColumns)
+            );
+        }
+        //查询角色自定义配置的数据
+        else {
+            Map<String, SecurityRoleTableModel> customPermisson = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
+                    .eq(SecurityRoleTableModel::getRoleId, roleId))
+                    .stream().collect(Collectors.toMap(v ->SecurityTableModelTable.genId(v.getModulePrefix(), v.getDatasource(), v.getTableName()) , Function.identity()));
+
+            if(!customPermisson.isEmpty()){
+                List<String> tIds = new ArrayList<>();
+                customPermisson.forEach((k,v)->{
+                    Optional<RolePermissionTableModelVO> match = datas.stream().filter(d -> d.getTableModelId().equals(k))
+                            .findFirst();
+                    if(match.isEmpty()){
+                        tIds.add(k);
+                    }else {
+                        RolePermissionTableModelVO vo = match.get();
+                        vo.setId(v.getId());
+                        vo.setType(1);
+                        Map<String, FieldPermission> fieldConfig = v.getFieldConfig();
+                        if(!CollectionUtils.isEmpty(fieldConfig)){
+                            vo.getColumns().forEach(column -> {
+                                FieldPermission fieldPermission = fieldConfig.get(column.getColumnName());
+                                if(Objects.nonNull(fieldPermission)){
+                                    column.setCustomFieldConfig(buildFieldConfigItem(column.getColumnName(), fieldPermission));
+                                }
+                            });
+                        }
+                    }
+                });
+
+                if(!tIds.isEmpty()){
+                    //自定义配置的表模型权限
+                    List<RolePermissionTableModelVO> cusD = buildPermissionTableModel(
+                            listTableModelTableByIds(tIds),
+                            tableModelColumnByTableIds(tIds));
+                    cusD.forEach(model ->{
+                        SecurityRoleTableModel m = customPermisson.get(model.getTableModelId());
+                        model.setType(1);
+                        model.setId(m.getId());
+
+                        Map<String, FieldPermission> fieldConfig = m.getFieldConfig();
+                        if(!CollectionUtils.isEmpty(fieldConfig)){
+                            model.getColumns().forEach(column -> {
+                                FieldPermission fieldPermission = fieldConfig.get(column.getColumnName());
+                                if(Objects.nonNull(fieldPermission)){
+                                    column.setCustomFieldConfig(buildFieldConfigItem(column.getColumnName(), fieldPermission));
+                                }
+                            });
+                        }
+
+                    });
+                    datas.addAll(cusD);
+                }
+
+            }
+
+        }
+
+        return datas;
+    }
+
+    private RoleTableModelSaveDTO.FieldConfigItem buildFieldConfigItem(String columnName ,FieldPermission field){
+        if(Objects.isNull(field)){
+            return null;
+        }
+        RoleTableModelSaveDTO.FieldConfigItem item = new RoleTableModelSaveDTO.FieldConfigItem();
+        item.setFieldName(columnName)
+                .setShow(field.show())
+                .setDesensitize(field.desensitize())
+                .setStrategy(field.strategy().name())
+                .setPrefixNoMaskLen(field.prefixNoMaskLen())
+                .setSuffixNoMaskLen(field.suffixNoMaskLen())
+                .setSymbol(field.symbol());
+
+        return item;
+    }
+
+
+    private List<RolePermissionTableModelVO> buildPermissionTableModel(List<SecurityTableModelTable> tables, Map<String, List<SecurityTableModelColumn>> columns) {
+        if (CollectionUtils.isEmpty(tables)) {
+            return Collections.emptyList();
+        }
+
+        return tables.stream()
+                .map(t -> {
+                    RolePermissionTableModelVO tmp = new RolePermissionTableModelVO();
+                    tmp.setTableModelId(t.getId())
+                            .setTableName(t.getTableName())
+                            .setModulePrefix(t.getModulePrefix())
+                            .setDatasource(t.getDataSource())
+                            .setTableComment(t.getTableComment());
+                    List<SecurityTableModelColumn> cs = columns.get(t.getId());
+                    if (!CollectionUtils.isEmpty(cs)) {
+                        tmp.setColumns(
+                                cs.stream().map(c -> {
+                                    RolePermissionTableModelVO.ColumnInfo columnInfo = new RolePermissionTableModelVO.ColumnInfo();
+                                    columnInfo.setColumnName(c.getColumnName())
+                                            .setColumnComment(c.getColumnComment())
+                                            .setFixedFieldConfig(buildFieldConfigItem(c.getColumnName() , c.getFieldConfig()));
+                                    return columnInfo;
+                                }).toList()
+                        );
+                    }
+
+                    return tmp;
+                }).toList();
+
     }
 
     /**
@@ -244,9 +369,49 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         List<SecurityApiTableModel> all = new ArrayList<>();
         for (int i = 0; i < apiIds.size(); i += BATCH_SIZE) {
             List<String> batch = apiIds.subList(i, Math.min(i + BATCH_SIZE, apiIds.size()));
-            all.addAll(apiTableModelMapper.listTableModelByApiId(batch));
+            TableModelQueryDTO form = new TableModelQueryDTO();
+            form.setApiIds(batch);
+            all.addAll(apiTableModelService.listByCondition(form));
         }
         return all;
+    }
+
+    /**
+     * 获取所有表模型
+     *
+     * @param tableIds
+     * @return
+     */
+    private List<SecurityTableModelTable> listTableModelTableByIds(List<String> tableIds) {
+        if (CollectionUtils.isEmpty(tableIds)) {
+            return Collections.emptyList();
+        }
+        List<SecurityTableModelTable> all = new ArrayList<>();
+        for (int i = 0; i < tableIds.size(); i += BATCH_SIZE) {
+            List<String> batch = tableIds.subList(i, Math.min(i + BATCH_SIZE, tableIds.size()));
+            all.addAll(modelTableService.listByIds(batch));
+        }
+        return all;
+    }
+
+    /**
+     * 获取列数据
+     *
+     * @param tableIds
+     * @return
+     */
+    private Map<String, List<SecurityTableModelColumn>> tableModelColumnByTableIds(List<String> tableIds) {
+        if (CollectionUtils.isEmpty(tableIds)) {
+            return Collections.emptyMap();
+        }
+        List<SecurityTableModelColumn> all = new ArrayList<>();
+        for (int i = 0; i < tableIds.size(); i += BATCH_SIZE) {
+            List<String> batch = tableIds.subList(i, Math.min(i + BATCH_SIZE, tableIds.size()));
+            all.addAll(modelColumnService.list(new LambdaQueryWrapper<>(SecurityTableModelColumn.class)
+                    .in(SecurityTableModelColumn::getTableId, batch)));
+        }
+        return all.stream().collect(Collectors.groupingBy(SecurityTableModelColumn::getTableId));
+
     }
 
     /**

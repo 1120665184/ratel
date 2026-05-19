@@ -1,5 +1,6 @@
 package org.quyq.gwsu.security.tablemodel.domain;
 
+import cn.hutool.crypto.digest.MD5;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -41,6 +42,14 @@ public class SecurityTableModelTable extends BaseDO {
     @Schema(description = "来源类型：0-采集 1-自定义添加")
     private Integer sourceType;
 
+
+    public String genId(){
+        return MD5.create().digestHex("%s:%s:%s".formatted(modulePrefix, dataSource, tableName));
+    }
+
+    public static String genId(String modulePrefix, String dataSource, String tableName) {
+        return MD5.create().digestHex("%s:%s:%s".formatted(modulePrefix, dataSource, tableName));
+    }
     /**
      * DO 转 VO
      *
