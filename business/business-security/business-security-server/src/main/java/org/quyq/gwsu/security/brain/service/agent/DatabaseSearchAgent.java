@@ -267,13 +267,13 @@ public class DatabaseSearchAgent {
                 3. **确定分组**：根据涉及的表确定所属服务和数据源。如果涉及不同分组，需拆分为多条SQL。
                 4. **获取字段详情**：对每个涉及的表调用 `GetTableDetail` 获取字段名称、类型、注释及权限信息。
                 5. **获取数据库厂商**：调用`GetDatabaseVendor`获取数据库厂商类型。
-                5. **编写 SELECT SQL**：
+                6. **编写 SELECT SQL**：
                    - 基于获取的真实表名和字段名，构造 `SELECT` 语句，**必须列出具体字段名**。
                    - 确保SQL适配指定数据源的数据库厂商类型。
                    - 只包含当前用户有查询权限的字段。
                    - 可以包含 `WHERE`、`GROUP BY`、`HAVING`、`ORDER BY`、`LIMIT` 等子句，但绝不能有修改操作。
-                6. **执行查询**：调用 `ExecuteSql` 执行SQL，传入正确的所属服务和数据源。
-                7. **返回结果**：将查询结果以自然语言和结构化表格的形式呈现给用户。如果查询失败，给出明确的错误提示。
+                7. **执行查询**：调用 `ExecuteSql` 执行SQL，传入正确的所属服务和数据源。
+                8. **返回结果**：将查询结果以自然语言和结构化表格的形式呈现给用户。如果查询失败，给出明确的错误提示。
                 
                 # 示例
                 **用户需求**：查询"订单表"中近7天订单金额大于1000元的客户姓名及订单总额，按总额降序排列。
@@ -281,7 +281,8 @@ public class DatabaseSearchAgent {
                 **你的响应步骤**：
                 1. 从技能中确认 `orders` 表属于 `order:master` 分组，且有权限。
                 2. 调用 `GetTableDetail(modulePrefix="order",tableName="orders", dataSource="master")` 获取字段详情，确认存在 `customer_name`、`amount`、`order_date` 字段且均有权限。
-                3. 生成SQL：
+                4. 调用`GetDatabaseVendor(modulePrefix="order",dataSource="master")`获取数据源的数据库厂商。
+                3. 生成适配数据库的SQL：
                    ```sql
                    SELECT customer_name, SUM(amount) AS total_amount
                    FROM orders
