@@ -72,17 +72,18 @@ public class AguiRequestProcessor {
      *
      * <p>Contains the resolved agent (for interrupt handling) and the event stream.
      *
-     * @param agent The resolved agent instance
+     * @param agent  The resolved agent instance
      * @param events The event stream
      */
-    public record ProcessResult(Agent agent, Flux<AguiEvent> events) {}
+    public record ProcessResult(Agent agent, Flux<AguiEvent> events) {
+    }
 
     /**
      * Process an AG-UI request and return the result containing agent and event stream.
      *
-     * @param input The run agent input
+     * @param input         The run agent input
      * @param headerAgentId The agent ID from HTTP header (may be null)
-     * @param pathAgentId The agent ID from URL path variable (may be null)
+     * @param pathAgentId   The agent ID from URL path variable (may be null)
      * @return A ProcessResult containing the agent and event stream
      */
     public ProcessResult process(RunAgentInput input, String headerAgentId, String pathAgentId) {
@@ -111,6 +112,17 @@ public class AguiRequestProcessor {
     }
 
     /**
+     * 中断消息
+     *
+     * @param agentId
+     * @param threadId
+     */
+    public void interrupt(String agentId, String threadId) {
+        Agent agent = agentResolver.resolveAgent(agentId, threadId);
+        agent.interrupt();
+    }
+
+    /**
      * Resolve the agent ID from multiple sources.
      *
      * <p>The agent ID is resolved in the following priority order:
@@ -122,9 +134,9 @@ public class AguiRequestProcessor {
      *   <li>"default"</li>
      * </ol>
      *
-     * @param input The request input
+     * @param input         The request input
      * @param headerAgentId The agent ID from HTTP header (may be null)
-     * @param pathAgentId The agent ID from URL path variable (may be null)
+     * @param pathAgentId   The agent ID from URL path variable (may be null)
      * @return The resolved agent ID
      */
     public String resolveAgentId(RunAgentInput input, String headerAgentId, String pathAgentId) {
@@ -210,7 +222,9 @@ public class AguiRequestProcessor {
         return new Builder();
     }
 
-    /** Builder for AguiRequestProcessor. */
+    /**
+     * Builder for AguiRequestProcessor.
+     */
     public static class Builder {
 
         private AgentResolver agentResolver;

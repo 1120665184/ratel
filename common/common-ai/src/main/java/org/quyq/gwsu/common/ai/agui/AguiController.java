@@ -95,7 +95,7 @@ public abstract class AguiController {
                     .body(handleAgentRun(request, headerAgentId));
             case "agent/stop" -> ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(handleAgentStop(request));
+                    .body(handleAgentStop(request , headerAgentId));
             default -> ResponseEntity.badRequest().body(R.fail("未知的方法：%s".formatted(request.method())));
         };
 
@@ -257,14 +257,14 @@ public abstract class AguiController {
     /**
      * 处理 agent/stop 请求
      */
-    protected Map<String, Object> handleAgentStop(ChatDTO request) {
+    protected Map<String, Object> handleAgentStop(ChatDTO request , String headerAgentId) {
         Map<String, Object> p = request.params();
         // 从 params 中获取 agentId 和 threadId
-        String agentId = Optional.ofNullable(p.get("agentId")).map(String::valueOf).orElse(null);
+        String agentId = Optional.ofNullable(p.get("agentId")).map(String::valueOf).orElse(headerAgentId);
         Optional<String> threadId = Optional.ofNullable(p.get("threadId")).map(String::valueOf);
 
         log.info("Agent stop requested: agentId={}, threadId={}", agentId, threadId.orElse(null));
-
+        processor.interrupt(agentId , threadId.orElse(null));
 
         return Map.of("success", true);
     }

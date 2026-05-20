@@ -299,6 +299,9 @@ export function CopilotChatPanel({
             initial: '我是你的平台助手，有什么问题可以问我哦^_^',
           }}
           className={styles.copilotChat}
+          onStopGeneration={() => {
+            agent.abortRun();
+          }}
         />
       </div>
     </>
