@@ -21,6 +21,7 @@ import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
 import org.quyq.gwsu.security.brain.service.IBrainHistoryService;
 import org.quyq.gwsu.security.brain.service.IBrainService;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +38,7 @@ import java.util.List;
 @RequestMapping("brain")
 @Tag(name = "智能助手模块")
 @Slf4j
-public class BrainController {
+public class BrainController implements DisposableBean {
 
     private static final String DEFAULT_AGENT_ID_HEADER = "X-Agent-Id";
 
@@ -65,6 +66,7 @@ public class BrainController {
         this.aguiController.setAgentSession(agentSession);
 
     }
+
 
     /**
      * 中央大脑统一入口
@@ -119,5 +121,10 @@ public class BrainController {
     @GetMapping("approval/status/{threadId}")
     public R<HumanApprovalInfo> getApprovalStatus(@PathVariable String threadId) {
         return aguiController.handleApprovalStatus(threadId);
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        aguiController.destroy();
     }
 }

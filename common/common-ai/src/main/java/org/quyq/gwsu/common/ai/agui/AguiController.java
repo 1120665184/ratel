@@ -14,8 +14,7 @@ import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.session.Session;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
@@ -27,10 +26,16 @@ import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
+import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.utils.DeployUtils;
+import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
@@ -47,7 +52,9 @@ import java.util.concurrent.Executors;
  */
 @RequiredArgsConstructor
 @Slf4j
-public abstract class AguiController {
+public abstract class AguiController implements DisposableBean {
+
+    private final static String AGENT_STOP_EVENT_TOPIC = "AGENT_STOP_EVENT_TOPIC:";
 
     private final AguiRequestProcessor processor;
 
@@ -63,6 +70,8 @@ public abstract class AguiController {
 
     private final Gson gson = new Gson();
 
+    private RedisMessageListenerContainer listenerContainer = null;
+
 
     @Setter
     private Session agentSession;
@@ -71,6 +80,15 @@ public abstract class AguiController {
     public static AIRunnerInstanceWrapper getCurrEmitter(String threadId) {
         return CURR_EMITTER.get(threadId);
     }
+
+
+    @Override
+    public void destroy() throws Exception {
+        if (listenerContainer != null) {
+            listenerContainer.stop();
+        }
+    }
+
 
     /**
      * CopilotKit Single Endpoint 统一入口
@@ -95,7 +113,7 @@ public abstract class AguiController {
                     .body(handleAgentRun(request, headerAgentId));
             case "agent/stop" -> ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(handleAgentStop(request , headerAgentId));
+                    .body(handleAgentStop(request, headerAgentId));
             default -> ResponseEntity.badRequest().body(R.fail("未知的方法：%s".formatted(request.method())));
         };
 
@@ -243,6 +261,10 @@ public abstract class AguiController {
      * 返回 SSE 流
      */
     protected SseEmitter handleAgentRun(ChatDTO request, String headerAgentId) {
+        if (!DeployUtils.isSingle()) {
+            initStopListenerContainer();
+        }
+
         RunAgentInput input = request.body();
 
         // 从 params 中获取 agentId（如果有）
@@ -257,16 +279,33 @@ public abstract class AguiController {
     /**
      * 处理 agent/stop 请求
      */
-    protected Map<String, Object> handleAgentStop(ChatDTO request , String headerAgentId) {
+    protected Map<String, Object> handleAgentStop(ChatDTO request, String headerAgentId) {
         Map<String, Object> p = request.params();
         // 从 params 中获取 agentId 和 threadId
         String agentId = Optional.ofNullable(p.get("agentId")).map(String::valueOf).orElse(headerAgentId);
-        Optional<String> threadId = Optional.ofNullable(p.get("threadId")).map(String::valueOf);
+        String threadId = Optional.ofNullable(p.get("threadId")).map(String::valueOf).orElse(null);
 
-        log.info("Agent stop requested: agentId={}, threadId={}", agentId, threadId.orElse(null));
-        processor.interrupt(agentId , threadId.orElse(null));
+        log.info("Agent stop requested: agentId={}, threadId={}", agentId, threadId);
+        if (StringUtils.hasText(threadId) && Objects.isNull(getCurrEmitter(threadId))) {
+            SpringUtils.getBean(CacheUtils.class)
+                    .convertAndSend(getStopEventTopic(), new StopEventInfo(agentId, threadId));
+        } else {
+            stopAgent(agentId, threadId);
+        }
+
 
         return Map.of("success", true);
+    }
+
+    private void stopAgent(String agentId, String threadId) {
+        if (StringUtils.hasText(threadId)) {
+            AIRunnerInstanceWrapper currEmitter = getCurrEmitter(threadId);
+            if (Objects.nonNull(currEmitter)) {
+                processor.interrupt(agentId, threadId);
+                currEmitter.emitter().complete();
+            }
+
+        }
     }
 
     /**
@@ -377,6 +416,43 @@ public abstract class AguiController {
                 log.debug("Failed to complete emitter with error: {}", ex.getMessage());
             }
         }
+    }
+
+
+    /**
+     * 初始化智能体停止事件监听器
+     * 为了解决分布式部署时，停止事件发送到其他微服务实例导致停止失败的问题
+     */
+    private void initStopListenerContainer() {
+        if (Objects.nonNull(listenerContainer)) {
+            return;
+        }
+        synchronized (AguiController.class) {
+            if (Objects.isNull(listenerContainer)) {
+                CacheUtils cacheUtils = SpringUtils.getBean(CacheUtils.class);
+                listenerContainer = cacheUtils.addListener(getStopEventTopic(),
+                        (message, pattern) -> {
+                            Object msg = cacheUtils.getSerializer().deserialize(message.getBody());
+                            if (msg instanceof StopEventInfo event) {
+                                stopAgent(event.agentId, event.threadId);
+                            }
+
+                        });
+            }
+        }
+    }
+
+    private String getStopEventTopic() {
+        return AGENT_STOP_EVENT_TOPIC + this.getClass().getName();
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class StopEventInfo {
+        private String agentId;
+        private String threadId;
+
     }
 
 
