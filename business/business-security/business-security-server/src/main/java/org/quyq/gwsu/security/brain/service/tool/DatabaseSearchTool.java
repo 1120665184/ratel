@@ -16,11 +16,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.quyq.gwsu.common.ai.AgentException;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
+import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
 import org.quyq.gwsu.common.security.service.ISQLExecutionService;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelColumnVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelForeignKeyVO;
@@ -51,6 +54,8 @@ public class DatabaseSearchTool {
     private final RestClient.Builder restClientBuilder;
 
     private final ISQLExecutionService sqlExecutionService;
+
+    private final SecurityUtils securityUtils;
 
 
     /**
@@ -214,9 +219,15 @@ public class DatabaseSearchTool {
         List<String> desensitizedFields = Collections.emptyList();
 
         StringBuilder dataStr = new StringBuilder("查询无数据");
+
         if (CollUtil.isNotEmpty(queryResult)) {
-            // 4. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
-            desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.resultColumnMap());
+            Optional<Subject<Visitor>> subject = securityUtils.getSubject();
+            //超级管理员跳过脱敏阶段
+            if(subject.isEmpty() || !subject.get().isAdmin() ){
+                // 4. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
+                desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.resultColumnMap());
+            }
+
 
             dataStr = new StringBuilder();
             // 表头

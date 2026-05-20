@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.DefaultAgentResolver;
 import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
-import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.utils.AIMsgUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -61,7 +60,6 @@ public class BrainServiceImpl implements IBrainService {
 
     private final SecurityUtils securityUtils;
 
-    private final WebToolUtils webToolUtils;
 
     private final ISecurityMenuService menuService;
 

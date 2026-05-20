@@ -39,7 +39,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ user, onRefresh, re
     try {
       const values = await form.validateFields();
       setSaving(true);
-      await saveOrUpdateUser({ id: user.userId, ...values });
+      await saveOrUpdateUser({ userId: user.userId, ...values });
       message.success('保存成功');
       setEditing(false);
       onRefresh();

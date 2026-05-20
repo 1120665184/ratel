@@ -201,34 +201,52 @@ public class DatabaseSearchAgent {
         sb.append("## 可用表模型列表\n\n");
 
         for (Map.Entry<String, List<TableModelTableVO>> entry : groupedTables.entrySet()) {
-            String modulePrefix;
-            String dataSource;
+
             if (DeployUtils.isSingle()) {
-                dataSource = entry.getKey();
-                modulePrefix = entry.getValue().getFirst().getModulePrefix();
+                String dataSource = entry.getKey();
+                sb.append("### 数据源: ").append(dataSource).append("\n\n");
+
+                sb.append("| 服务 | 表名 | 表注释 | 有权限 |\n");
+                sb.append("|------|------|--------|--------|\n");
+
+                for (TableModelTableVO table : entry.getValue()) {
+                    String key = table.getModulePrefix() + ":" + table.getDataSource() + ":" + table.getTableName();
+                    boolean hasPermission = tablePermissionMap.getOrDefault(key, true);
+
+                    sb.append("| ").append(table.getModulePrefix())
+                            .append("| ").append(table.getTableName())
+                            .append(" | ").append(table.getTableComment() != null ? table.getTableComment() : "-")
+                            .append(" | ").append(hasPermission ? "是" : "否")
+                            .append(" |\n");
+                }
+                sb.append("\n");
             } else {
                 String[] parts = entry.getKey().split(":", 2);
-                modulePrefix = parts[0];
-                dataSource = parts.length > 1 ? parts[1] : "master";
+                String modulePrefix = parts[0];
+                String dataSource = parts.length > 1 ? parts[1] : "master";
+
+
+                sb.append("### 服务: ").append(modulePrefix)
+                        .append(" | 数据源: ").append(dataSource).append("\n\n");
+
+                sb.append("| 表名 | 表注释 | 有权限 |\n");
+                sb.append("|------|--------|--------|\n");
+
+                for (TableModelTableVO table : entry.getValue()) {
+                    String key = table.getModulePrefix() + ":" + table.getDataSource() + ":" + table.getTableName();
+                    boolean hasPermission = tablePermissionMap.getOrDefault(key, true);
+
+                    sb.append("| ").append(table.getTableName())
+                            .append(" | ").append(table.getTableComment() != null ? table.getTableComment() : "-")
+                            .append(" | ").append(hasPermission ? "是" : "否")
+                            .append(" |\n");
+                }
+                sb.append("\n");
+
             }
 
 
-            sb.append("### 服务: ").append(modulePrefix)
-                    .append(" | 数据源: ").append(dataSource).append("\n\n");
 
-            sb.append("| 表名 | 表注释 | 有权限 |\n");
-            sb.append("|------|--------|--------|\n");
-
-            for (TableModelTableVO table : entry.getValue()) {
-                String key = table.getModulePrefix() + ":" + table.getDataSource() + ":" + table.getTableName();
-                boolean hasPermission = tablePermissionMap.getOrDefault(key, true);
-
-                sb.append("| ").append(table.getTableName())
-                        .append(" | ").append(table.getTableComment() != null ? table.getTableComment() : "-")
-                        .append(" | ").append(hasPermission ? "是" : "否")
-                        .append(" |\n");
-            }
-            sb.append("\n");
         }
 
         sb.append("## 使用流程\n");

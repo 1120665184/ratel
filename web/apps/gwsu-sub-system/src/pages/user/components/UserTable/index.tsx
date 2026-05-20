@@ -137,6 +137,7 @@ const UserTable: React.FC<UserTableProps> = ({
       title: '操作',
       key: 'action',
       width: 120,
+      fixed: 'right' as const,
       render: (_: unknown, record: SysUserVO) => (
         <div className={styles.actionCell}>
           <a onClick={() => onDetail(record.userId)}>详情</a>
@@ -212,7 +213,7 @@ const UserTable: React.FC<UserTableProps> = ({
           onChange: (page, size) =>
             onQueryChange({ pageNum: page, pageSize: size }),
         }}
-        scroll={{ y: "calc(100vh - 280px)" }}
+        scroll={{ x: 800, y: "calc(100vh - 280px)" }}
       />
     </div>
   );
