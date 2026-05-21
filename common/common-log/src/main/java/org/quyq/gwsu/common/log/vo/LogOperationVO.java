@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
 @Data
-public class CloudseaOperLogVO extends BaseVO {
+public class LogOperationVO extends BaseVO {
 
     @Schema(description = "日志标识")
     private String operId;

@@ -18,6 +18,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.quyq.gwsu</groupId>
+            <artifactId>common-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-http</artifactId>
         </dependency>

@@ -22,7 +22,7 @@ import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.log.config.properties.LogInfoConfigProperties;
 import org.quyq.gwsu.common.log.constants.LogInfoConstants;
 import org.quyq.gwsu.common.log.service.AccessLogHandlerService;
-import org.quyq.gwsu.common.log.vo.CloudseaOperLogVO;
+import org.quyq.gwsu.common.log.vo.LogOperationVO;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.AntPathMatcher;
@@ -98,7 +98,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
     }
 
     private Object startRecordLog(MethodInvocation invocation, HttpServletRequest request , String modulePrefix , String uri) throws Throwable {
-        CloudseaOperLogVO log = createLog(invocation, request , modulePrefix , uri);
+        LogOperationVO log = createLog(invocation, request , modulePrefix , uri);
         //推送请求日志
         this.put(log);
         Object result;
@@ -144,7 +144,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
      * @param result
      * @param ex
      */
-    private void setResponse(CloudseaOperLogVO loger, Object result, Throwable ex) {
+    private void setResponse(LogOperationVO loger, Object result, Throwable ex) {
         try {
             LocalDateTime nowDate = LocalDateTime.now();
             loger.setResponseTime(nowDate).setModifyTime(nowDate);
@@ -186,8 +186,8 @@ public class LogAspectInterceptor implements MethodInterceptor {
      * @param request
      * @return
      */
-    private CloudseaOperLogVO createLog(MethodInvocation invocation, HttpServletRequest request , String modulePrefix , String uri) {
-        CloudseaOperLogVO accessLog = new CloudseaOperLogVO();
+    private LogOperationVO createLog(MethodInvocation invocation, HttpServletRequest request , String modulePrefix , String uri) {
+        LogOperationVO accessLog = new LogOperationVO();
         LocalDateTime now = LocalDateTime.now();
 
         JsonNode requestParam = extractor.getRequestParam(request, invocation);
@@ -283,7 +283,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
         return path.startsWith("/") ? path.substring(1) : path;
     }
 
-    private void setApiDescription(MethodInvocation invocation, CloudseaOperLogVO log) {
+    private void setApiDescription(MethodInvocation invocation, LogOperationVO log) {
         Operation operation = invocation.getMethod().getAnnotation(Operation.class);
         Tag apiAnn = invocation.getMethod().getDeclaringClass().getAnnotation(Tag.class);
         if (Objects.nonNull(operation)) {
@@ -320,7 +320,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
     }
 
 
-    private void put(CloudseaOperLogVO log) {
+    private void put(LogOperationVO log) {
         logService.save(log);
     }
 

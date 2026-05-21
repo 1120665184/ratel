@@ -98,6 +98,8 @@ public interface CoreConstants {
 
         String SYSTEM_NAME = "gwsu-system";
 
+        String LOG_NAME = "gwsu-log";
+
     }
 
 
