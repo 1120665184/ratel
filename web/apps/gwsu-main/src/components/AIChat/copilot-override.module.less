@@ -17,7 +17,7 @@
   position: fixed;
   top: 60px;
   left: 0;
-  z-index: 100000;
+  z-index: var(--ai-panel-z-index);
 
   /* 隐藏状态 */
   &.hidden {
@@ -33,7 +33,7 @@
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  z-index: 100000;
+  z-index: var(--ai-panel-z-index);
   resize: both;
   overflow: hidden;
   min-width: 380px;

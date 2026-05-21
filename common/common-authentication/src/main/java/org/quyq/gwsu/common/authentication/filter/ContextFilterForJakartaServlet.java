@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.authentication.constants.AuthenticationConstants;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.enums.AccountType;
@@ -73,9 +74,9 @@ public class ContextFilterForJakartaServlet implements Filter {
 
 
     private String getToken(HttpServletRequest request) {
-        String authenInfo = request.getHeader(SecurityConstants.Authentication.HTTP_HEADER_TOKEN_KEY);
+        String authenInfo = request.getHeader(CoreConstants.Headers.HTTP_HEADER_TOKEN_KEY);
         if (StringUtils.hasText(authenInfo)) {
-            return authenInfo.replace(SecurityConstants.Authentication.TOKEN_PREFIX, "");
+            return authenInfo.replace(CoreConstants.Headers.TOKEN_PREFIX, "");
         }
 
         return null;

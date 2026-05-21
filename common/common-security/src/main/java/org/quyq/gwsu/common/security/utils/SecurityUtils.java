@@ -10,6 +10,7 @@ import com.google.gson.reflect.TypeToken;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.config.GsonConfiguration;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
@@ -52,7 +53,7 @@ public class SecurityUtils {
      */
     public String getUsername() {
         return Optional.ofNullable(ServletUtils.getHeaders())
-                .map(h -> h.get(SecurityConstants.Authentication.AUTHORIZATION_USER_NAME))
+                .map(h -> h.get(CoreConstants.Headers.AUTHORIZATION_USER_NAME))
                 .orElse(null);
     }
 
@@ -63,8 +64,8 @@ public class SecurityUtils {
      */
     public String getToken() {
         return Optional.ofNullable(ServletUtils.getHeaders())
-                .map(headers -> headers.get(SecurityConstants.Authentication.HTTP_HEADER_TOKEN_KEY))
-                .map(token -> token.replace(SecurityConstants.Authentication.TOKEN_PREFIX, ""))
+                .map(headers -> headers.get(CoreConstants.Headers.HTTP_HEADER_TOKEN_KEY))
+                .map(token -> token.replace(CoreConstants.Headers.TOKEN_PREFIX, ""))
                 .map(token -> {
                     if (JWTUtil.verify(token, SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))) {
                         return token;

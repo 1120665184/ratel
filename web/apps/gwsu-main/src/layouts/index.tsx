@@ -2,6 +2,7 @@ import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { CopilotChatPanel } from '@/components/AIChat/CopilotChatPanel';
 import AssistantOperationArea from '@/components/AssistantOperationArea';
 import { RouteTracker } from '@/components/RouteTracker';
+import RouteSelector from '@/components/RouteSelector';
 import {
   PanelProvider,
   usePanelContext,
@@ -25,6 +26,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { history, Outlet, useLocation } from 'umi';
 import { logout } from '@/services/auth';
+import { useOperationTabStore} from '@/stores/operationTab';
 import styles from './index.module.less';
 
 export default function LayoutComponent() {
@@ -95,11 +97,18 @@ function MainLayoutContent({
   currentTheme: ReturnType<typeof useThemeContext>['currentTheme'];
 }) {
   const { panelState, setPanelMode, togglePanel } = usePanelContext();
+  const { activeTab, setActiveTab } = useOperationTabStore();
+  const location = useLocation();
   // 悬浮提示相关状态
   const [showGuide, setShowGuide] = useState(false);
   const guideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const robotBtnRef = useRef<HTMLDivElement>(null);
   const { message, modal } = App.useApp();
+
+  // 路由变化 → 自动切到界面 Tab
+  useEffect(() => {
+    setActiveTab('interface');
+  }, [location.pathname, setActiveTab]);
   // 当面板收起时，显示引导提示
   useEffect(() => {
     if (panelState.mode === 'hidden') {
@@ -181,6 +190,24 @@ function MainLayoutContent({
               alt="logo"
             />
             <span style={{ color: currentTheme.colors.text }}>GWSU</span>
+          </div>
+          {/* 操作区 Tab 切换 */}
+          <div className={styles.headerTabs}>
+            {/* Tab1: 界面 - 包含路由选择器 */}
+            <button
+              className={`${styles.headerTab} ${activeTab === 'interface' ? styles.headerTabActive : ''}`}
+              onClick={() => setActiveTab('interface')}
+            >
+              <RouteSelector isActive={activeTab === 'interface'} />
+            </button>
+            {/* Tab2: AI 输出 */}
+            <button
+              className={`${styles.headerTab} ${activeTab === 'ai-output' ? styles.headerTabActive : ''}`}
+              onClick={() => setActiveTab('ai-output')}
+            >
+              <RobotOutlined className={styles.headerTabIcon} />
+              <span>AI 输出</span>
+            </button>
           </div>
         </div>
         <div className={styles.headerRight}>

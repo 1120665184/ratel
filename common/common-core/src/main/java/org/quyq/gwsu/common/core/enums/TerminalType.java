@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.security.enums;
+package org.quyq.gwsu.common.core.enums;
 
 
 /**

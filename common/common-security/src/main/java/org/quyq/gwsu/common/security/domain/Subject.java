@@ -16,6 +16,7 @@ import org.quyq.gwsu.common.security.domain.deserializer.VisitorDeserializer;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.springframework.util.CollectionUtils;
+import org.quyq.gwsu.common.core.enums.TerminalType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,7 @@ public class Subject<T extends Visitor> {
      */
     private final String loginType;
 
+    private TerminalType terminalType;
     /**
      * 角色信息
      */
@@ -59,6 +61,7 @@ public class Subject<T extends Visitor> {
      * 数据权限作用域
      */
     private DataScope dataScope;
+
 
 
     /**

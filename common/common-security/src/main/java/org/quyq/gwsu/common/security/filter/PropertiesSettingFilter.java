@@ -6,6 +6,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
@@ -74,11 +75,11 @@ public class PropertiesSettingFilter implements Filter {
     private void putUserName(Subject<Visitor> subject, Map<String, String> headers) {
         if (VisitorType.USER == subject.getSubjectType()) {
             subject.userInfo().ifPresent(userInfo ->
-                    headers.put(SecurityConstants.Authentication.AUTHORIZATION_USER_NAME, userInfo.getUserName())
+                    headers.put(CoreConstants.Headers.AUTHORIZATION_USER_NAME, userInfo.getUserName())
             );
         } else {
             subject.clientInfo().ifPresent(clientInfo ->
-                    headers.put(SecurityConstants.Authentication.AUTHORIZATION_USER_NAME, clientInfo.getClientName())
+                    headers.put(CoreConstants.Headers.AUTHORIZATION_USER_NAME, clientInfo.getClientName())
             );
         }
 
@@ -86,9 +87,9 @@ public class PropertiesSettingFilter implements Filter {
 
 
     private String getToken(Map<String, String> headers) {
-        String authenInfo = headers.get(SecurityConstants.Authentication.HTTP_HEADER_TOKEN_KEY);
+        String authenInfo = headers.get(CoreConstants.Headers.HTTP_HEADER_TOKEN_KEY);
         if (StringUtils.hasText(authenInfo)) {
-            return authenInfo.replace(SecurityConstants.Authentication.TOKEN_PREFIX, "");
+            return authenInfo.replace(CoreConstants.Headers.TOKEN_PREFIX, "");
         }
 
         return null;

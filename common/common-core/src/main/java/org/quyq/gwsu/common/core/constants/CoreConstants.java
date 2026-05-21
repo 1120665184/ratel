@@ -75,6 +75,20 @@ public interface CoreConstants {
         List<String> REQUEST_IGNORE_HEADER = Arrays.asList("content-length", "connection", "origin", "cookie", "accept", "request-origion", "referer", //NOSONAR
                 "host", "forwarded", "content-md5", "cache-control", "etag", "server", "accept-encoding", "content-encoding", "transfer-encoding");
 
+        /**
+         * 认证主体的用户名
+         */
+        String AUTHORIZATION_USER_NAME = "x-username";
+
+        /**
+         * 请求头认证令牌键
+         */
+        String HTTP_HEADER_TOKEN_KEY = "authorization";
+
+        /**
+         * 令牌前缀
+         */
+        String TOKEN_PREFIX = "Bearer ";
     }
 
 

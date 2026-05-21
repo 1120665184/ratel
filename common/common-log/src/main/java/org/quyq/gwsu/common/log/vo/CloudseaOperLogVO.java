@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseVO;
+import org.quyq.gwsu.common.core.enums.TerminalType;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
  * @description 操作日志VO对象
  */
 @EqualsAndHashCode(callSuper = true)
+@Accessors(chain = true)
 @Data
 public class CloudseaOperLogVO extends BaseVO {
 
@@ -36,8 +39,8 @@ public class CloudseaOperLogVO extends BaseVO {
     /**
      * 服务名
      */
-    @Schema(description = "服务名")
-    private String application;
+    @Schema(description = "所属服务前缀")
+    private String modulePrefix;
 
     /**
      * 链路来源服务
@@ -85,7 +88,7 @@ public class CloudseaOperLogVO extends BaseVO {
      * 请求终端
      */
     @Schema(description = "请求终端")
-    private String terminal;
+    private TerminalType terminal;
 
     /**
      * 请求终端详情

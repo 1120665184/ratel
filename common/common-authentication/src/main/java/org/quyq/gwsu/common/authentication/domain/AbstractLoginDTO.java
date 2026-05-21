@@ -2,7 +2,7 @@ package org.quyq.gwsu.common.authentication.domain;
 
 
 import lombok.Data;
-import org.quyq.gwsu.common.security.enums.TerminalType;
+import org.quyq.gwsu.common.core.enums.TerminalType;
 import org.springframework.util.MultiValueMap;
 
 /**

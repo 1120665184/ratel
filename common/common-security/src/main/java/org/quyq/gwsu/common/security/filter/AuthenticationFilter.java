@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.casbin.jcasbin.main.Enforcer;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.filter.RequestResponseContext;
 import org.quyq.gwsu.common.core.utils.filter.RequestResponseProcessor;
@@ -296,9 +297,9 @@ public class AuthenticationFilter implements RequestResponseProcessor {
     }
 
     private String getToken(RequestResponseContext request) {
-        String authenInfo = request.getHeader(SecurityConstants.Authentication.HTTP_HEADER_TOKEN_KEY);
+        String authenInfo = request.getHeader(CoreConstants.Headers.HTTP_HEADER_TOKEN_KEY);
         if (StringUtils.hasText(authenInfo)) {
-            return authenInfo.replace(SecurityConstants.Authentication.TOKEN_PREFIX, "");
+            return authenInfo.replace(CoreConstants.Headers.TOKEN_PREFIX, "");
         }
 
         return null;

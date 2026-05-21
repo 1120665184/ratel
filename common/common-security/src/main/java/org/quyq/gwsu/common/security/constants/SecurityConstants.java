@@ -59,25 +59,12 @@ public interface SecurityConstants {
          */
         UnaryOperator<String> TOKEN_SPLICING_KEY_TOKEN_SESSION = loginType -> AUTH_INFO_KEY_PREFIX + ":" + loginType + ":token-session:";
 
-        /**
-         * 请求头认证令牌键
-         */
-        String HTTP_HEADER_TOKEN_KEY = "authorization";
-
-        /**
-         * 令牌前缀
-         */
-        String TOKEN_PREFIX = "Bearer ";
 
         /**
          * 超级管理员角色标识
          */
         String ROLE_SUPER_ADMIN_FLAG = "super_admin";
 
-        /**
-         * 认证主体的用户名
-         */
-        String AUTHORIZATION_USER_NAME = "x-username";
 
     }
 

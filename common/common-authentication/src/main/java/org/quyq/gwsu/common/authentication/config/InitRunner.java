@@ -48,7 +48,7 @@ public class InitRunner implements ApplicationRunner {
     public InitRunner(SaTokenConfig tokenConfig) {
         //固定该值，禁止修改
         tokenConfig.setTokenName(SecurityConstants.Authentication.AUTH_INFO_KEY_PREFIX);
-        tokenConfig.setTokenPrefix(SecurityConstants.Authentication.TOKEN_PREFIX.trim());
+        tokenConfig.setTokenPrefix(CoreConstants.Headers.TOKEN_PREFIX.trim());
         SaManager.setConfig(tokenConfig);
 
         StpUtil.stpLogic = new ProxyLogic();

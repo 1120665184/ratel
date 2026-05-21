@@ -1,0 +1,51 @@
+/* AI 输出面板样式 */
+
+.aiOutputPanel {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--background-color, #f8fafc);
+}
+
+.iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: #ffffff;
+}
+
+/* 空状态 - 叠加在 iframe 上方 */
+.emptyState {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary-color, #6b7280);
+  text-align: center;
+  padding: 48px 28px;
+  background: var(--background-color, #f8fafc);
+  z-index: 1;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: var(--primary-color, #1a5fb4);
+  opacity: 0.3;
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color, #374151);
+  margin-bottom: 8px;
+}
+
+.emptySubtitle {
+  font-size: 14px;
+  color: var(--text-secondary-color, #6b7280);
+  line-height: 1.6;
+}

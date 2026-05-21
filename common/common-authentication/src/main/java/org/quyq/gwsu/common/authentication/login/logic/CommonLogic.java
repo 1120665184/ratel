@@ -8,6 +8,7 @@ import cn.dev33.satoken.context.model.SaStorage;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.util.SaFoxUtil;
 import cn.dev33.satoken.util.SaTokenConsts;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 
 /**
@@ -32,7 +33,7 @@ public class CommonLogic extends StpLogic {
         SaStorage storage = SaHolder.getStorage();
         SaRequest request = SaHolder.getRequest();
         SaTokenConfig config = getConfigOrGlobal();
-        String keyTokenName = SecurityConstants.Authentication.HTTP_HEADER_TOKEN_KEY;
+        String keyTokenName = CoreConstants.Headers.HTTP_HEADER_TOKEN_KEY;
         String tokenValue = null;
 
         // 1. 先尝试从 Storage 存储器里读取
