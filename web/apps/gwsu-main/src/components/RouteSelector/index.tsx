@@ -175,12 +175,20 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({ isActive = true }) => {
       content={dropdownContent}
       trigger="click"
       placement="bottomLeft"
-      overlayClassName={styles.popover}
-      destroyTooltipOnHide
+      classNames={
+        {
+          root: styles.popover
+        }
+      }
+      destroyOnHidden
     >
       <div className={styles.selector}>
         <span className={styles.selectorLabel}>{currentLabel || '界面'}</span>
-        <DownOutlined className={`${styles.selectorArrow} ${open ? styles.selectorArrowOpen : ''}`} />
+        <DownOutlined
+          className={`${styles.selectorArrow} ${
+            open ? styles.selectorArrowOpen : ''
+          }`}
+        />
       </div>
     </Popover>
   );

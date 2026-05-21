@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Drawer, Table, Tag, Descriptions } from 'antd';
-import type { TableModelInfo, TableModelDetail, TableModelColumnInfo, TableModelForeignKeyInfo } from '../../types';
+import type { TableModelInfo, TableModelDetail, TableModelColumnInfo } from '../../types';
 import { getTableModelDetail } from '../../services/tableModel';
 import { SOURCE_TYPE_MAP } from '../../types';
 import styles from './index.module.less';
@@ -117,10 +117,10 @@ const DetailDrawer: React.FC<DetailDrawerProps> = ({ visible, record, onClose })
     <Drawer
       title="表模型详情"
       open={visible}
-      width={900}
+      size={900}
       onClose={onClose}
       loading={loading}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className={styles.drawerContent}>
         {/* 基本信息 */}
@@ -131,16 +131,24 @@ const DetailDrawer: React.FC<DetailDrawerProps> = ({ visible, record, onClose })
             size="small"
             style={{ marginBottom: 24 }}
           >
-            <Descriptions.Item label="表名">{record.tableName}</Descriptions.Item>
-            <Descriptions.Item label="所属模块">{record.modulePrefix}</Descriptions.Item>
-            <Descriptions.Item label="数据源">{record.dataSource}</Descriptions.Item>
+            <Descriptions.Item label="表名">
+              {record.tableName}
+            </Descriptions.Item>
+            <Descriptions.Item label="所属模块">
+              {record.modulePrefix}
+            </Descriptions.Item>
+            <Descriptions.Item label="数据源">
+              {record.dataSource}
+            </Descriptions.Item>
             <Descriptions.Item label="来源类型">
               <Tag color={SOURCE_TYPE_MAP[record.sourceType]?.color}>
                 {SOURCE_TYPE_MAP[record.sourceType]?.text}
               </Tag>
             </Descriptions.Item>
             {record.tableComment && (
-              <Descriptions.Item label="表注释" span={2}>{record.tableComment}</Descriptions.Item>
+              <Descriptions.Item label="表注释" span={2}>
+                {record.tableComment}
+              </Descriptions.Item>
             )}
           </Descriptions>
         )}

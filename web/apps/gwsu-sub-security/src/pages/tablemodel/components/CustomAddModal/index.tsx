@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Modal, Form, Select, Input, message } from 'antd';
+import { Modal, Form, Select, message } from 'antd';
 import type { ModuleInfo } from '../../types';
 import { customSaveTableModel, getDatasourceList, getTableList } from '../../services/tableModel';
 import styles from './index.module.less';
@@ -101,25 +101,28 @@ const CustomAddModal: React.FC<CustomAddModalProps> = ({ visible, modules, onClo
       onOk={handleSubmit}
       onCancel={handleClose}
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
       className={styles.customAddModal}
     >
       <Form form={form} layout="vertical">
         <Form.Item
           name="modulePrefix"
           label="所属模块"
-          rules={[{ required: true, message: '请选择所属模块' }]}
+          rules={[{ required: true, message: "请选择所属模块" }]}
         >
           <Select
             placeholder="请选择所属模块"
             onChange={handleModuleChange}
-            options={modules.map((m) => ({ label: m.note || m.prefix, value: m.prefix }))}
+            options={modules.map((m) => ({
+              label: m.note || m.prefix,
+              value: m.prefix,
+            }))}
           />
         </Form.Item>
         <Form.Item
           name="datasource"
           label="数据源"
-          rules={[{ required: true, message: '请选择数据源' }]}
+          rules={[{ required: true, message: "请选择数据源" }]}
         >
           <Select
             placeholder="请选择数据源"
@@ -131,15 +134,20 @@ const CustomAddModal: React.FC<CustomAddModalProps> = ({ visible, modules, onClo
         <Form.Item
           name="tableName"
           label="表名"
-          rules={[{ required: true, message: '请选择表名' }]}
+          rules={[{ required: true, message: "请选择表名" }]}
         >
           <Select
             placeholder="请选择表名"
             showSearch
             disabled={!tableOptions.length}
-            options={tableOptions.map((t) => ({ label: t.remark ? `${t.name}（${t.remark}）` : t.name, value: t.name }))}
+            options={tableOptions.map((t) => ({
+              label: t.remark ? `${t.name}（${t.remark}）` : t.name,
+              value: t.name,
+            }))}
             filterOption={(input, option) =>
-              (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              (option?.label as string)
+                ?.toLowerCase()
+                .includes(input.toLowerCase())
             }
           />
         </Form.Item>

@@ -286,19 +286,25 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
     <Drawer
       title="编辑表模型"
       open={visible}
-      width={900}
+      size={900}
       onClose={onClose}
       loading={loading}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className={styles.drawerContent}>
         {/* 基本信息（表注释可编辑） */}
         {record && detail && (
           <div className={styles.basicInfoSection}>
             <Descriptions column={2} bordered size="small">
-              <Descriptions.Item label="表名">{record.tableName}</Descriptions.Item>
-              <Descriptions.Item label="所属模块">{record.modulePrefix}</Descriptions.Item>
-              <Descriptions.Item label="数据源">{record.dataSource}</Descriptions.Item>
+              <Descriptions.Item label="表名">
+                {record.tableName}
+              </Descriptions.Item>
+              <Descriptions.Item label="所属模块">
+                {record.modulePrefix}
+              </Descriptions.Item>
+              <Descriptions.Item label="数据源">
+                {record.dataSource}
+              </Descriptions.Item>
               <Descriptions.Item label="来源类型">
                 <Tag color={SOURCE_TYPE_MAP[record.sourceType]?.color}>
                   {SOURCE_TYPE_MAP[record.sourceType]?.text}
@@ -308,9 +314,13 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
                 {editingTableComment ? (
                   <Input
                     size="small"
-                    defaultValue={record.tableComment || ''}
+                    defaultValue={record.tableComment || ""}
                     autoFocus
-                    onPressEnter={(e) => handleTableCommentSave((e.target as HTMLInputElement).value)}
+                    onPressEnter={(e) =>
+                      handleTableCommentSave(
+                        (e.target as HTMLInputElement).value
+                      )
+                    }
                     onBlur={(e) => handleTableCommentSave(e.target.value)}
                   />
                 ) : (
@@ -318,8 +328,14 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
                     className={styles.editableCell}
                     onClick={() => setEditingTableComment(true)}
                   >
-                    {record.tableComment || '-'}
-                    <EditOutlined style={{ marginLeft: 4, fontSize: 12, color: 'var(--text-secondary-color)' }} />
+                    {record.tableComment || "-"}
+                    <EditOutlined
+                      style={{
+                        marginLeft: 4,
+                        fontSize: 12,
+                        color: "var(--text-secondary-color)",
+                      }}
+                    />
                   </span>
                 )}
               </Descriptions.Item>
@@ -371,9 +387,9 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
 
         {/* 外键编辑弹窗 */}
         <Drawer
-          title={editingFkData ? '编辑外键' : '添加外键'}
+          title={editingFkData ? "编辑外键" : "添加外键"}
           open={fkFormVisible}
-          width={420}
+          size={420}
           onClose={() => {
             setFkFormVisible(false);
             setEditingFkData(null);
@@ -382,22 +398,52 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
           extra={
             <Space>
               <Button onClick={() => setFkFormVisible(false)}>取消</Button>
-              <Button type="primary" onClick={handleFkSave}>保存</Button>
+              <Button type="primary" onClick={handleFkSave}>
+                保存
+              </Button>
             </Space>
           }
         >
           <Form form={fkForm} layout="vertical">
-            <Form.Item name="constraintName" label="约束名" rules={[{ required: true, message: '请输入约束名' }]}>
-              <Input placeholder="请输入约束名" disabled={editingFkData?.dataType === 0} />
+            <Form.Item
+              name="constraintName"
+              label="约束名"
+              rules={[{ required: true, message: "请输入约束名" }]}
+            >
+              <Input
+                placeholder="请输入约束名"
+                disabled={editingFkData?.dataType === 0}
+              />
             </Form.Item>
-            <Form.Item name="columnName" label="字段名" rules={[{ required: true, message: '请输入字段名' }]}>
-              <Input placeholder="请输入字段名" disabled={editingFkData?.dataType === 0} />
+            <Form.Item
+              name="columnName"
+              label="字段名"
+              rules={[{ required: true, message: "请输入字段名" }]}
+            >
+              <Input
+                placeholder="请输入字段名"
+                disabled={editingFkData?.dataType === 0}
+              />
             </Form.Item>
-            <Form.Item name="referencedTableName" label="引用表" rules={[{ required: true, message: '请输入引用表' }]}>
-              <Input placeholder="请输入引用表" disabled={editingFkData?.dataType === 0} />
+            <Form.Item
+              name="referencedTableName"
+              label="引用表"
+              rules={[{ required: true, message: "请输入引用表" }]}
+            >
+              <Input
+                placeholder="请输入引用表"
+                disabled={editingFkData?.dataType === 0}
+              />
             </Form.Item>
-            <Form.Item name="referencedColumnName" label="引用字段" rules={[{ required: true, message: '请输入引用字段' }]}>
-              <Input placeholder="请输入引用字段" disabled={editingFkData?.dataType === 0} />
+            <Form.Item
+              name="referencedColumnName"
+              label="引用字段"
+              rules={[{ required: true, message: "请输入引用字段" }]}
+            >
+              <Input
+                placeholder="请输入引用字段"
+                disabled={editingFkData?.dataType === 0}
+              />
             </Form.Item>
             <Form.Item name="remark" label="备注">
               <Input.TextArea placeholder="请输入备注" rows={3} />

@@ -257,7 +257,9 @@ const CollectModal: React.FC<CollectModalProps> = ({ visible, modules, onClose, 
       width={680}
       footer={renderFooter()}
       onCancel={handleClose}
-      maskClosable={false}
+      mask={
+      {closable: false}
+      }
       className={styles.collectModal}
     >
       <Steps

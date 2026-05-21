@@ -111,7 +111,7 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
       onOk={handleSubmit}
       onCancel={onClose}
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Form.Item label="当前数据源">
@@ -120,7 +120,7 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
         <Form.Item
           name="newDatasource"
           label="新数据源"
-          rules={[{ required: true, message: '请选择新数据源' }]}
+          rules={[{ required: true, message: "请选择新数据源" }]}
         >
           <Select
             placeholder="请选择新数据源"
@@ -136,7 +136,7 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
             message="此表模型关联了接口，请选择修改范围"
             description={
               applyToAll
-                ? '将修改所有关联接口的数据源'
+                ? "将修改所有关联接口的数据源"
                 : `已选择 ${selectedApiIds.length} / ${apiList.length} 个接口`
             }
             type="info"
@@ -158,7 +158,10 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
               <div className={styles.selectAllRow}>
                 <Checkbox
                   checked={selectedApiIds.length === apiList.length}
-                  indeterminate={selectedApiIds.length > 0 && selectedApiIds.length < apiList.length}
+                  indeterminate={
+                    selectedApiIds.length > 0 &&
+                    selectedApiIds.length < apiList.length
+                  }
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 >
                   全选
@@ -168,17 +171,25 @@ const ChangeDatasourceModal: React.FC<ChangeDatasourceModalProps> = ({ visible, 
                 {apiList.length === 0 ? (
                   <Empty description="暂无关联接口" />
                 ) : (
-                  <div style={{ maxHeight: 200, overflow: 'auto' }}>
+                  <div style={{ maxHeight: 200, overflow: "auto" }}>
                     {apiList.map((api) => (
                       <div key={api.id} className={styles.apiItem}>
                         <Checkbox
                           checked={selectedApiIds.includes(api.id)}
-                          onChange={(e) => handleSelectApi(api.id, e.target.checked)}
+                          onChange={(e) =>
+                            handleSelectApi(api.id, e.target.checked)
+                          }
                         >
                           <Space size={4}>
                             <span>{api.reqMethod}</span>
                             <span>{api.reqPath}</span>
-                            {api.summary && <span style={{ color: 'var(--text-color-secondary)' }}>- {api.summary}</span>}
+                            {api.summary && (
+                              <span
+                                style={{ color: "var(--text-color-secondary)" }}
+                              >
+                                - {api.summary}
+                              </span>
+                            )}
                           </Space>
                         </Checkbox>
                       </div>

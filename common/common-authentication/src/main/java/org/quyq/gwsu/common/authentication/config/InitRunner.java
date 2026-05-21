@@ -14,6 +14,7 @@ import org.quyq.gwsu.common.authentication.login.interceptor.LoginInterceptorUti
 import org.quyq.gwsu.common.authentication.login.logic.CommonLogic;
 import org.quyq.gwsu.common.authentication.login.logic.ProxyLogic;
 import org.quyq.gwsu.common.authentication.login.token.SaJsonTemplateForJackson3;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationArguments;

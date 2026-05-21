@@ -72,9 +72,12 @@ public class LogAspectInterceptor implements MethodInterceptor {
         if (Objects.isNull(request)) {
             return invocation.proceed();
         }
+        String requestURI = request.getRequestURI();
+        String modulePrefix = getModulePrefix(requestURI);
+        String uri = Objects.isNull(modulePrefix) ? requestURI : getUrl(requestURI);
+
 
         if (!CollectionUtils.isEmpty(logProperties.ignoreList())) {
-            String uri = getUrl(request.getRequestURI());
             //如果是指定忽略的接口，则跳过
             if (logProperties.ignoreList().stream().anyMatch(i -> {
                 if (CharSequenceUtil.isBlank(i)) {
@@ -91,11 +94,11 @@ public class LogAspectInterceptor implements MethodInterceptor {
 
 
         return ScopedValue.where(LogInfoConstants.LID_SCOPED, IdUtil.getSnowflakeNextIdStr())
-                .call(() -> startRecordLog(invocation, request));
+                .call(() -> startRecordLog(invocation, request , modulePrefix , uri));
     }
 
-    private Object startRecordLog(MethodInvocation invocation, HttpServletRequest request) throws Throwable {
-        CloudseaOperLogVO log = createLog(invocation, request);
+    private Object startRecordLog(MethodInvocation invocation, HttpServletRequest request , String modulePrefix , String uri) throws Throwable {
+        CloudseaOperLogVO log = createLog(invocation, request , modulePrefix , uri);
         //推送请求日志
         this.put(log);
         Object result;
@@ -183,7 +186,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
      * @param request
      * @return
      */
-    private CloudseaOperLogVO createLog(MethodInvocation invocation, HttpServletRequest request) {
+    private CloudseaOperLogVO createLog(MethodInvocation invocation, HttpServletRequest request , String modulePrefix , String uri) {
         CloudseaOperLogVO accessLog = new CloudseaOperLogVO();
         LocalDateTime now = LocalDateTime.now();
 
@@ -196,8 +199,8 @@ public class LogAspectInterceptor implements MethodInterceptor {
                 .setMethod(getMethodName(invocation))
                 .setRequestMethod(request.getMethod().toUpperCase())
                 .setRequestParam(objectMapper.writeValueAsString(requestParam))
-                .setModulePrefix(getModulePrefix(request.getRequestURI()))
-                .setRequestUrl(Objects.isNull(accessLog.getModulePrefix()) ? request.getRequestURI() : getUrl(request.getRequestURI()))
+                .setModulePrefix(modulePrefix)
+                .setRequestUrl(uri)
                 .setCreateTime(now);
 
         Map<String, String> headers = ServletUtils.getHeaders();
