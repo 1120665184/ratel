@@ -98,6 +98,18 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.quyq.gwsu</groupId>
+                <artifactId>business-log-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.quyq.gwsu</groupId>
+                <artifactId>business-log-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

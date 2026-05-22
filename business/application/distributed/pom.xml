@@ -16,6 +16,7 @@
         <module>gwsu-gateway</module>
         <module>gwsu-security</module>
         <module>gwsu-system</module>
+        <module>gwsu-log</module>
     </modules>
 
     <dependencies>

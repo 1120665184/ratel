@@ -23,4 +23,9 @@ public interface ErrorCodeConstants {
      */
     String SYSTEM_ERROR_CODE_MODULE = "02";
 
+    /**
+     * 日志模块错误码
+     */
+    String LOG_ERROR_CODE_MODULE = "03";
+
 }

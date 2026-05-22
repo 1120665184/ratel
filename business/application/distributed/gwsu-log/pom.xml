@@ -5,29 +5,17 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.quyq.gwsu</groupId>
-        <artifactId>single</artifactId>
+        <artifactId>distributed</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>gwsu</artifactId>
+    <artifactId>gwsu-log</artifactId>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.quyq.gwsu</groupId>
-            <artifactId>business-security-server</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.quyq.gwsu</groupId>
-            <artifactId>business-system-server</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.quyq.gwsu</groupId>
             <artifactId>business-log-server</artifactId>
         </dependency>
-
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
