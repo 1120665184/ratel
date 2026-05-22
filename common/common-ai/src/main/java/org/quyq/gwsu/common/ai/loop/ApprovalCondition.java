@@ -37,6 +37,32 @@ public interface ApprovalCondition {
             @Nullable
             String tip
     ) {
+
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+            private boolean needApproval;
+            private String tip;
+
+            public Builder needApproval(boolean needApproval) {
+                this.needApproval = needApproval;
+                return this;
+            }
+
+            public Builder tip(String tip) {
+                this.tip = tip;
+                return this;
+            }
+
+            public Outcome build() {
+                return new Outcome(needApproval, tip);
+            }
+
+        }
+
     }
 
 }

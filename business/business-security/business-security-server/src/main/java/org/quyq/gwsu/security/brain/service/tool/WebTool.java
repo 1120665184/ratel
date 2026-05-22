@@ -7,10 +7,14 @@ import io.agentscope.core.tool.ToolEmitter;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.loop.ApprovalCondition;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -131,4 +135,39 @@ public class WebTool {
         return webToolUtils.webExecuteTool(emitter, "ScrollPage",
                 Map.of("direction", direction, "amount", amount));
     }
+
+
+    public static class NeedClickApprovalCondition implements ApprovalCondition {
+        private static final String APPROVAL_TAG = "approval";
+
+        @Override
+        public Outcome invoke(Map<String, Object> args) {
+            Object tags = args.get("tags");
+            String operationDescription = (String) args.get("operationDescription");
+            String tipStart = "敏感操作审批：";
+            String tip = null;
+            boolean needApproval = false;
+            if (Objects.nonNull(tags)) {
+                if (StringUtils.hasText(operationDescription)) {
+                    tip = tipStart + operationDescription;
+                }
+
+                if (tags instanceof String tagsStr && StringUtils.hasText(tagsStr)) {
+                    needApproval = tagsStr.contains(APPROVAL_TAG);
+                }
+                // tags 为 List 类型时（某些LLM可能传数组）
+                else if (tags instanceof List<?> tagsList) {
+                    needApproval = tagsList.stream().anyMatch(t -> APPROVAL_TAG.equals(String.valueOf(t)));
+                }
+            }
+
+
+            return Outcome.builder()
+                    .needApproval(needApproval)
+                    .tip(tip)
+                    .build();
+        }
+
+    }
+
 }
