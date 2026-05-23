@@ -1,58 +1,86 @@
 import { RobotOutlined } from '@ant-design/icons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Renderer } from '@json-render/react';
+import { createSpecStreamCompiler } from '@json-render/core';
+import type { Spec } from '@json-render/core';
+import { registry } from './registry';
+import { onAgentOutput, clearAgentOutput } from '@/services/agent-output';
 import styles from './index.module.less';
 
 /**
  * AI 输出面板组件
- * 用于展示智能助手输出的 HTML 内容
+ * 使用 json-render Renderer 流式渲染 AI 输出的可视化内容
  * 组件不会被销毁，切换 Tab 时仅隐藏
  */
 const AiOutputPanel: React.FC = () => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [spec, setSpec] = useState<Spec | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [hasContent, setHasContent] = useState(false);
+  const compilerRef = useRef<ReturnType<typeof createSpecStreamCompiler> | null>(null);
 
-  // 监听 AI 输出事件，将 HTML 渲染到 iframe 中
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'AI_HTML_OUTPUT') {
-        const html = e.data.payload as string;
-        if (html && iframeRef.current) {
-          const doc = iframeRef.current.contentDocument;
-          if (doc) {
-            doc.open();
-            doc.write(html);
-            doc.close();
-            setHasContent(true);
-          }
-        }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+  // 确保编译器只创建一次
+  if (!compilerRef.current) {
+    compilerRef.current = createSpecStreamCompiler();
+  }
+
+  const handleClear = useCallback(() => {
+    compilerRef.current = createSpecStreamCompiler();
+    setSpec(null);
+    setHasContent(false);
+    setIsStreaming(false);
+    clearAgentOutput();
   }, []);
 
-  // 清空输出
-  // const handleClear = useCallback(() => {
-  //   if (iframeRef.current) {
-  //     const doc = iframeRef.current.contentDocument;
-  //     if (doc) {
-  //       doc.open();
-  //       doc.write('');
-  //       doc.close();
-  //       setHasContent(false);
-  //     }
-  //   }
-  // }, []);
+  useEffect(() => {
+    const unsubscribe = onAgentOutput(({ text }) => {
+      if (!text) {
+        handleClear();
+        return;
+      }
+
+      setIsStreaming(true);
+
+      try {
+        // 尝试作为完整 spec JSON 解析
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object' && parsed.root && parsed.elements) {
+          compilerRef.current = createSpecStreamCompiler();
+          setSpec(parsed);
+          setHasContent(true);
+          setIsStreaming(false);
+          return;
+        }
+      } catch {
+        // 不是完整 JSON，尝试作为 JSONL patch
+      }
+
+      // 尝试作为 JSONL patch 行处理
+      try {
+        const { result } = compilerRef.current.push(text);
+        if (result && result.root && Object.keys(result.elements || {}).length > 0) {
+          setSpec({ ...result });
+          setHasContent(true);
+        }
+      } catch {
+        // patch 解析失败，忽略
+      }
+    });
+
+    return unsubscribe;
+  }, [handleClear]);
 
   return (
     <div className={styles.aiOutputPanel}>
-      <iframe
-        ref={iframeRef}
-        className={styles.iframe}
-        title="AI 输出内容"
-        sandbox="allow-scripts allow-same-origin"
-      />
-      {!hasContent && (
+      {hasContent && spec && (
+        <Renderer spec={spec} registry={registry} />
+      )}
+      {isStreaming && (
+        <div className={styles.loadingIndicator}>
+          <span className={styles.loadingDot} />
+          生成中...
+        </div>
+      )}
+      {!hasContent && !isStreaming && (
         <div className={styles.emptyState}>
           <RobotOutlined className={styles.emptyIcon} />
           <div className={styles.emptyTitle}>AI 输出区</div>
