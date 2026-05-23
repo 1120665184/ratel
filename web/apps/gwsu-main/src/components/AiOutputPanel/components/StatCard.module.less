@@ -1,0 +1,51 @@
+.statCard {
+  background: var(--surface-color, #ffffff);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.title {
+  font-size: 13px;
+  color: var(--text-secondary-color, #6b7280);
+  margin: 0 0 6px;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-color, #1f2937);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.trend {
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.trendUp {
+  color: #16a34a;
+}
+
+.trendDown {
+  color: #dc2626;
+}
+
+.trendFlat {
+  color: var(--text-secondary-color, #6b7280);
+}
