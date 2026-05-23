@@ -10,6 +10,8 @@ import { dispatchHumanApproval } from '@/services/human-approval';
 import type { HumanApprovalPayload } from '@/services/human-approval';
 import { dispatchAskUserQuestion } from '@/services/ask-user-question';
 import type { QuestionParam, QuestionOption } from '@/services/ask-user-question';
+import { dispatchAgentOutput } from '@/services/agent-output';
+import type { AgentOutputPayload } from '@/services/agent-output';
 import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfirmModal';
 import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
 // 确保 route-navigation 工具被注册
@@ -81,6 +83,10 @@ function WebToolEventListener() {
         //人工干预审批
         else if (event.name === 'HUMAN_APPROVAL') {
           dispatchHumanApproval(event.value as HumanApprovalPayload);
+        }
+        // AI 输出视图
+        else if (event.name === 'AGENT_OUTPUT') {
+          dispatchAgentOutput(event.value as AgentOutputPayload);
         }
       },
       onToolCallEndEvent: ({ toolCallName, toolCallArgs, event }): void => {
