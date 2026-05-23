@@ -42,7 +42,7 @@ public class SecurityCatalogServiceImpl extends ServiceImpl<SecurityCatalogMappe
         List<SecurityCatalog> list = list(new LambdaQueryWrapper<SecurityCatalog>()
                 .eq(SecurityCatalog::getDeleted, false)
                 .orderByDesc(SecurityCatalog::getActive)
-                .orderByDesc(SecurityCatalog::getCreatedAt));
+                .orderByDesc(SecurityCatalog::getCreateTime));
         return list.stream()
                 .map(SecurityCatalog::toVo)
                 .toList();

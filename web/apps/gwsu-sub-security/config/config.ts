@@ -6,6 +6,7 @@ export default defineConfig({
   base: '/sub-security',
   mountElementId: 'sub-security-root',
   plugins: ['@umijs/plugins/dist/qiankun'],
+  esbuildMinifyIIFE: true,
   qiankun: {
     slave: {},
   },
