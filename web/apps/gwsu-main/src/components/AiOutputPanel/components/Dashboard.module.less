@@ -1,0 +1,53 @@
+.dashboard {
+  padding: 20px;
+  min-height: 100%;
+  background: var(--background-color, #f6f8fc);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color, #1f2937);
+  margin: 0 0 4px;
+}
+
+.description {
+  font-size: 14px;
+  color: var(--text-secondary-color, #6b7280);
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color, #1f2937);
+  margin: 0 0 4px;
+}
+
+.sectionDesc {
+  font-size: 13px;
+  color: var(--text-secondary-color, #6b7280);
+  margin: 0 0 12px;
+}
+
+.sectionRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  & > * {
+    flex: 1;
+    min-width: 160px;
+  }
+}
+
+.sectionColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
