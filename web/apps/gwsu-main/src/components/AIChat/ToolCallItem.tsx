@@ -160,7 +160,7 @@ export function ToolCallItem(props: ToolCallItemProps) {
                 const annotation = questionAnswer?.annotations?.[questionText];
                 return (
                   <div key={idx} className={styles.detailSection}>
-                    <div className={styles.detailLabel}>问题 {args && args.questions && args.questions.length > 1 ? `${idx + 1}` : ''}</div>
+                    <div className={styles.detailLabel}>问题 {(args?.questions as Record<string, unknown>[])?.length && (args?.questions as Record<string, unknown>[]).length > 1 ? `${idx + 1}` : ''}</div>
                     <div className={styles.questionText}>{questionText}</div>
                     {options && options.length > 0 && (
                       <div className={styles.questionOptions}>
