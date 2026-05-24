@@ -1,0 +1,138 @@
+<h2>修订版架构设计</h2>
+<p class="subtitle">根据反馈调整：无新微服务、AiOutputPanel 重写、SkillBox 按需加载组件文档</p>
+
+<div class="section">
+  <h3>1. 前端服务层（pub/sub 模式）</h3>
+  <div class="mockup">
+    <div class="mockup-header">与现有 human-approval 同模式</div>
+    <div class="mockup-body" style="padding:16px;font-family:monospace;font-size:13px;line-height:1.8">
+      <div style="color:#6b7280">// services/agent-output/index.ts</div>
+      <div style="color:#2d6a4f">type AgentOutputPayload = {</div>
+      <div style="margin-left:16px;color:#2d6a4f">patch: string; <span style="color:#6b7280">// JSONL patch 行</span></div>
+      <div style="color:#2d6a4f">};</div>
+      <div style="margin-top:8px;color:#6b7280">// 监听器集合</div>
+      <div style="color:#2d6a4f">const listeners = new Set&lt;(p: AgentOutputPayload) =&gt; void&gt;();</div>
+      <div style="margin-top:8px;color:#2d6a4f">export function dispatchAgentOutput(p: AgentOutputPayload) {</div>
+      <div style="margin-left:16px;color:#2d6a4f">listeners.forEach(fn =&gt; fn(p));</div>
+      <div style="color:#2d6a4f">}</div>
+      <div style="margin-top:8px;color:#2d6a4f">export function onAgentOutput(fn: (p: AgentOutputPayload) =&gt; void) {</div>
+      <div style="margin-left:16px;color:#2d6a4f">listeners.add(fn);</div>
+      <div style="margin-left:16px;color:#2d6a4f">return () =&gt; listeners.delete(fn);</div>
+      <div style="color:#2d6a4f">}</div>
+    </div>
+  </div>
+  <p style="color:var(--text-secondary-color,#6b7280);margin-top:8px;font-size:13px">
+    与 <code>human-approval</code>、<code>ask-user-question</code> 完全同模式，只是数据类型不同。
+  </p>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>2. AiOutputPanel 重写方案</h3>
+  <div class="mockup">
+    <div class="mockup-header">去掉 iframe，直接用 json-render Renderer</div>
+    <div class="mockup-body" style="padding:16px;font-family:monospace;font-size:13px;line-height:1.8">
+      <div style="color:#6b7280">// AiOutputPanel/index.tsx</div>
+      <div style="color:#2d6a4f">import { Renderer, createSpecStreamCompiler } from '@json-render/react';</div>
+      <div style="color:#2d6a4f">import { registry } from './registry'; <span style="color:#6b7280">// catalog+registry</span></div>
+      <div style="color:#2d6a4f">import { onAgentOutput } from '@/services/agent-output';</div>
+      <div style="margin-top:8px;color:#6b7280">// 流式编译器</div>
+      <div style="color:#2d6a4f">const compiler = createSpecStreamCompiler();</div>
+      <div style="margin-top:8px;color:#6b7280">// 监听 AGENT_OUTPUT 事件，逐 patch 应用</div>
+      <div style="color:#2d6a4f">useEffect(() =&gt; {</div>
+      <div style="margin-left:16px;color:#2d6a4f">return onAgentOutput(({ patch }) =&gt; {</div>
+      <div style="margin-left:32px;color:#2d6a4f">compiler.push(patch);</div>
+      <div style="margin-left:16px;color:#2d6a4f">});</div>
+      <div style="color:#2d6a4f">}, []);</div>
+      <div style="margin-top:8px;color:#6b7280">// 渲染</div>
+      <div style="color:#2d6a4f">return &lt;Renderer spec={compiler.getResult()} registry={registry} /&gt;;</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>3. 后端 SkillBox 组件技能</h3>
+  <div class="mockup">
+    <div class="mockup-header">按需加载，减少上下文消耗</div>
+    <div class="mockup-body" style="padding:16px">
+      <div style="display:flex;gap:12px">
+        <div style="flex:1">
+          <div style="font-weight:600;color:#6b4c9a;margin-bottom:8px">resources 目录结构</div>
+          <div style="font-family:monospace;font-size:12px;line-height:2;background:#1e293b;color:#e2e8f0;padding:12px;border-radius:6px">
+            <div>resources/</div>
+            <div style="margin-left:16px">output-view/</div>
+            <div style="margin-left:32px">dashboard.md</div>
+            <div style="margin-left:32px">section.md</div>
+            <div style="margin-left:32px">stat-card.md</div>
+            <div style="margin-left:32px">chart.md</div>
+            <div style="margin-left:32px">data-table.md</div>
+            <div style="margin-left:32px">text-block.md</div>
+            <div style="margin-left:32px">flow-chart.md</div>
+            <div style="margin-left:32px">spec-format.md <span style="color:#6b7280"># spec 格式说明</span></div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:600;color:#6b4c9a;margin-bottom:8px">SkillBox 注册</div>
+          <div style="font-family:monospace;font-size:12px;line-height:1.8;background:#1e293b;color:#e2e8f0;padding:12px;border-radius:6px">
+            <div><span style="color:#6b7280">// OutputViewAgent.build()</span></div>
+            <div>SkillBox skillBox = new SkillBox(toolkit);</div>
+            <div style="margin-top:4px">skillBox.registration()</div>
+            <div style="margin-left:16px">.skill(loadSkill(</div>
+            <div style="margin-left:32px">"stat_card",</div>
+            <div style="margin-left:32px">"展示统计指标时加载",</div>
+            <div style="margin-left:32px">"stat-card.md"))</div>
+            <div style="margin-left:16px">.skill(loadSkill(</div>
+            <div style="margin-left:32px">"chart",</div>
+            <div style="margin-left:32px">"展示图表时加载",</div>
+            <div style="margin-left:32px">"chart.md"))</div>
+            <div style="margin-left:16px"><span style="color:#6b7280">// ... 其他组件技能</span></div>
+            <div style="margin-left:16px">.skill(loadSkill(</div>
+            <div style="margin-left:32px">"spec_format",</div>
+            <div style="margin-left:32px">"必须加载: spec格式说明",</div>
+            <div style="margin-left:32px">"spec-format.md"))</div>
+            <div style="margin-left:16px">.apply();</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px;background:#fffbeb;border-radius:6px;font-size:13px;color:#92400e;border-left:3px solid #f59e0b">
+        <strong>spec_format 技能</strong>始终标记为"必须加载"，确保 LLM 了解 spec 格式。其他组件技能按需加载，只在 LLM 判断需要时才读取，大幅减少上下文消耗。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>修订版端到端流程</h3>
+  <div class="mockup">
+    <div class="mockup-header">简化后的数据流</div>
+    <div class="mockup-body" style="padding:20px;font-size:13px;line-height:2">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="background:#6b4c9a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">1</span>
+        <span>CentralBrain 调用 OutputViewAgent</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;margin-left:24px">
+        <span style="background:#6b4c9a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">2</span>
+        <span>LLM <strong>按需加载</strong>相关组件 skill（如 chart.md、data-table.md）</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;margin-left:24px">
+        <span style="background:#6b4c9a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">3</span>
+        <span>LLM 输出 json-render spec（JSONL patch 逐行）</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="background:#6b4c9a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">4</span>
+        <span>OutputViewEventHandlerHook 拦截 → 发送 <code>AGENT_OUTPUT</code> Custom 事件</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">5</span>
+        <span>前端 <code>WebToolEventListener</code> 接收 → <code>dispatchAgentOutput()</code></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">6</span>
+        <span>AiOutputPanel 监听 → <code>createSpecStreamCompiler.push()</code> 渐进渲染</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">7</span>
+        <span>Renderer (catalog + registry) → 7组件主题化渲染</span>
+      </div>
+    </div>
+  </div>
+</div>

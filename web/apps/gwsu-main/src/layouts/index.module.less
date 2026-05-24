@@ -7,9 +7,20 @@
    - 优雅的过渡动画
    ============================================ */
 
+/* 全局 CSS 变量 - z-index 层级管理
+   定义在 :root 上确保 createPortal 挂载到 body 的元素也能访问
+   - Ant Design 弹窗/Dropdown 使用 --ant-popover-z-index-popup=1030
+   - 面板(1029) 低于弹窗(1030)，弹窗在面板上面可正常交互
+   - 遮罩层(1028) 低于面板(1029)，不会遮挡面板
+   - 弹窗(1030) > 面板(1029) > 遮罩层(1028) > 内容区(auto)
+*/
+:global(:root) {
+  --ai-panel-z-index: 1029;
+  --ai-overlay-z-index: 1028;
+}
+
 /* 主布局 */
 .mainLayout {
-  --ai-panel-z-index: 100000;
   display: flex;
   flex-direction: column;
   min-height: 100vh;

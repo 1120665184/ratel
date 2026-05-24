@@ -1,35 +1,33 @@
-export type { AgentOutputPayload } from './types';
+import type { AgentOutputPayload, AgentOutputEndPayload } from './types';
 
-import type { AgentOutputPayload } from './types';
+export type { AgentOutputPayload, AgentOutputEndPayload } from './types';
 
 /** 输出事件监听器列表 */
 const outputListeners = new Set<(payload: AgentOutputPayload) => void>();
 
-/** 当前展示的 spec 内容 */
-let currentSpec: string | null = null;
+/** 输出结束事件监听器列表 */
+const outputEndListeners = new Set<(payload: AgentOutputEndPayload) => void>();
 
 /**
  * 分发 AI 输出事件
  * 由 CopilotKitProvider 中的 CUSTOM 事件监听调用
  */
 export function dispatchAgentOutput(payload: AgentOutputPayload): void {
-  currentSpec = payload.text;
   outputListeners.forEach((listener) => listener(payload));
+}
+
+/**
+ * 分发 AI 输出结束事件
+ */
+export function dispatchAgentOutputEnd(payload: AgentOutputEndPayload): void {
+  outputEndListeners.forEach((listener) => listener(payload));
 }
 
 /**
  * 清除当前输出内容
  */
 export function clearAgentOutput(): void {
-  currentSpec = null;
   outputListeners.forEach((listener) => listener({ text: '' }));
-}
-
-/**
- * 获取当前输出内容
- */
-export function getCurrentOutput(): string | null {
-  return currentSpec;
 }
 
 /**
@@ -40,5 +38,16 @@ export function onAgentOutput(listener: (payload: AgentOutputPayload) => void): 
   outputListeners.add(listener);
   return () => {
     outputListeners.delete(listener);
+  };
+}
+
+/**
+ * 注册输出结束事件监听器
+ * @returns 取消监听的函数
+ */
+export function onAgentOutputEnd(listener: (payload: AgentOutputEndPayload) => void): () => void {
+  outputEndListeners.add(listener);
+  return () => {
+    outputEndListeners.delete(listener);
   };
 }

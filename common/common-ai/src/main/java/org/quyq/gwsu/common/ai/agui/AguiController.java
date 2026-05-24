@@ -29,6 +29,7 @@ import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
+import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
@@ -41,7 +42,6 @@ import reactor.core.Disposable;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -66,7 +66,7 @@ public abstract class AguiController implements DisposableBean {
 
     private final AguiEventEncoder encoder = new AguiEventEncoder();
 
-    private final static Map<String, AIRunnerInstanceWrapper> CURR_EMITTER = new ConcurrentHashMap<>();
+    private final static EmitterWrapperManager CURR_EMITTER = new EmitterWrapperManager();
 
     private final Gson gson = new Gson();
 
@@ -79,6 +79,10 @@ public abstract class AguiController implements DisposableBean {
 
     public static AIRunnerInstanceWrapper getCurrEmitter(String threadId) {
         return CURR_EMITTER.get(threadId);
+    }
+
+    public static AIRunnerInstanceWrapper getCurrEmitter() {
+        return CURR_EMITTER.get();
     }
 
 
@@ -100,7 +104,6 @@ public abstract class AguiController implements DisposableBean {
      * - agent/stop: 停止 agent（JSON）
      */
     public ResponseEntity<?> handleCopilotKitRequest(ChatDTO request, String headerAgentId) {
-
         return switch (request.method()) {
             case "info" -> ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -266,6 +269,8 @@ public abstract class AguiController implements DisposableBean {
         }
 
         RunAgentInput input = request.body();
+        //将线程ID放入请求头
+        ServletUtils.getHeaders().put("thread-id", input.getThreadId());
 
         // 从 params 中获取 agentId（如果有）
         String pathAgentId = null;

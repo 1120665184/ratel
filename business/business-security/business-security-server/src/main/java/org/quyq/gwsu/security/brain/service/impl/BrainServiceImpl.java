@@ -29,6 +29,8 @@ import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.menu.vo.MenuVO;
 import org.quyq.gwsu.security.brain.service.IBrainService;
 import org.quyq.gwsu.security.brain.service.agent.DatabaseSearchAgent;
+import org.quyq.gwsu.security.brain.service.agent.OutputViewAgent;
+import org.quyq.gwsu.security.brain.service.hook.OutputViewEventHandlerHook;
 import org.quyq.gwsu.security.brain.service.tool.WebTool;
 import org.quyq.gwsu.security.menu.service.ISecurityMenuService;
 import org.springframework.ai.template.st.StTemplateRenderer;
@@ -36,6 +38,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 
@@ -54,6 +57,8 @@ public class BrainServiceImpl implements IBrainService {
 
     private final DatabaseSearchAgent databaseSearchAgent;
 
+    private final OutputViewAgent outputViewAgent;
+
     private final Session agentSession;
 
     private final Model model;
@@ -64,6 +69,8 @@ public class BrainServiceImpl implements IBrainService {
     private final ISecurityMenuService menuService;
 
     private final WebTool webTool;
+
+    private final ObjectMapper objectMapper;
 
 
     public Agent buildAgent() {
@@ -204,7 +211,10 @@ public class BrainServiceImpl implements IBrainService {
         //数据库智能查询智能体
         toolkit.registration()
                 .subAgent(databaseSearchAgent::build, databaseSearchAgent.getSubAgentConfig())
+                .subAgent(outputViewAgent::build, outputViewAgent.getSubAgentConfig())
                 .apply();
+
+        OutputViewEventHandlerHook outputViewEventHandlerHook = new OutputViewEventHandlerHook(objectMapper);
 
         return ReActAgent.builder()
                 .name("CentralBrain")
@@ -212,6 +222,7 @@ public class BrainServiceImpl implements IBrainService {
                 .model(model)
                 .hook(new ForwardedPropsHook())
                 .memory(memory)
+                .hook(outputViewEventHandlerHook)
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .maxIters(50)

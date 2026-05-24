@@ -7,17 +7,22 @@ import io.agentscope.core.model.Model;
 import io.agentscope.core.session.Session;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.SkillBox;
+import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.subagent.SubAgentConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.AgentException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -32,7 +37,7 @@ public class OutputViewAgent {
 
     public static final String AGENT_NAME = "OutputViewAgent";
 
-    private static final String SKILL_RESOURCE_PATH = "output-view/skill.md";
+    private static final String SKILL_RESOURCE_PATH = "skills";
 
     private final ObjectProvider<Memory> memoryProvider;
 
@@ -69,16 +74,17 @@ public class OutputViewAgent {
     private SkillBox buildSkillBox(Toolkit toolkit) {
         SkillBox skillBox = new SkillBox(toolkit);
 
-        String skillContent = loadResource(SKILL_RESOURCE_PATH);
 
-        AgentSkill outputViewSkill = AgentSkill.builder()
-                .name("output_view")
-                .description("将回复内容以可视化界面展示给用户时加载此技能，包含支持的组件列表和 spec 格式规范")
-                .skillContent(skillContent)
-                .build();
+        AgentSkill skill;
+        try (ClasspathSkillRepository repository = new ClasspathSkillRepository(SKILL_RESOURCE_PATH)) {
+            skill = repository.getSkill("output-view");
+        } catch (IOException e) {
+            throw new AgentException(e);
+        }
+
 
         skillBox.registration()
-                .skill(outputViewSkill)
+                .skill(skill)
                 .apply();
 
         return skillBox;
@@ -94,39 +100,41 @@ public class OutputViewAgent {
 
                 # 工作流程
                 1. 分析用户需要展示的内容类型
-                2. 加载 output_view 技能，了解支持的组件和 spec 格式
-                3. 根据内容选择合适的组件，阅读对应的详细文档
-                4. 输出符合 spec 格式的 JSON
+                2. 加载 output_view 技能，了解支持的组件和输出格式
+                3. 根据内容选择合适的组件
+                4. 输出 JSONL 格式的 JSON Patch 操作
 
-                # 输出要求
-                1. 必须输出纯 JSON 格式，不要包含 markdown 代码块标记
-                2. 根元素必须是 Dashboard 类型
-                3. 使用 Section 对内容进行分组
-                4. 合理使用布局：并排展示用 layout="row"，垂直排列用 layout="column"
-                5. 选择最合适的组件类型展示数据
+                # 输出格式（极其重要）
+                你必须输出 JSONL 格式（每行一个 JSON 对象），使用 RFC 6902 JSON Patch 操作：
+                - 第一行设置 root：{"op":"add","path":"/root","value":"<key>"}
+                - 后续行逐个添加元素：{"op":"add","path":"/elements/<key>","value":{"type":"组件名","props":{...},"children":[...]}}
 
-                # 重要提示
-                - 你输出的 JSON 会被前端流式渲染，请确保格式正确
-                - 不要输出任何 JSON 之外的额外文字说明
-                - 如果数据量大，优先用 DataTable；如果需要展示趋势，用 Chart
+                严禁输出以下格式：
+                - 嵌套的 JSON 树结构（如 {"type":"Dashboard","sections":[...]}）
+                - markdown 代码块（如 ```json ... ```）
+                - 任何 JSON 之外的额外文字说明
+
+                正确示例：
+                {"op":"add","path":"/root","value":"d1"}
+                {"op":"add","path":"/elements/d1","value":{"type":"Dashboard","props":{"title":"示例"},"children":["s1"]}}
+                {"op":"add","path":"/elements/s1","value":{"type":"Section","props":{"title":"指标","layout":"row"},"children":["c1"]}}
+                {"op":"add","path":"/elements/c1","value":{"type":"StatCard","props":{"title":"总数","value":"100"},"children":[]}}
+
+                # 可用组件
+                只能使用以下组件：Dashboard、Section、StatCard、Chart、DataTable、TextBlock、FlowChart
+                不要使用任何不在此列表中的组件名。
+
+                # 布局规则
+                - 必须以 Dashboard 作为根元素
+                - 使用 Section 分组：layout="row" 并排展示，layout="column" 垂直排列
+                - 叶子组件（StatCard、Chart、DataTable、TextBlock、FlowChart）的 children 为空数组 []
+
+                # 完整性规则
+                - 引用子元素前必须先添加该子元素
+                - 如果元素有 children: ['a', 'b']，则元素 a 和 b 必须存在
                 """;
     }
 
-    /**
-     * 从 classpath 加载资源文件内容
-     */
-    private String loadResource(String path) {
-        try {
-            ClassPathResource resource = new ClassPathResource(path);
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                return reader.lines().collect(Collectors.joining("\n"));
-            }
-        } catch (Exception e) {
-            log.error("加载资源文件失败: {}", path, e);
-            return "";
-        }
-    }
 
     /**
      * 获取子智能体配置（供其他智能体调用）
@@ -135,12 +143,13 @@ public class OutputViewAgent {
         return SubAgentConfig.builder()
                 .toolName(AGENT_NAME)
                 .description("""
-                        将回复内容以漂亮的UI形式展示给用户。
+                        将回复内容以漂亮的UI形式展示给用户，调用后内容会直接渲染到用户界面，无需你再重复输出相同内容。
                         以下场景适合调用：
                         - 数据统计展示
                         - 数据分析报表展示
                         - 流程图展示
                         - 对比分析展示
+                        注意：调用此工具后，内容已直接在可视化面板中展示给用户，你不需要再以文字形式重复输出相同信息。
                         """)
                 .session(agentSession)
                 .forwardEvents(true)

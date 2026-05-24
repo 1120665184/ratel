@@ -1,16 +1,20 @@
 import { RobotOutlined } from '@ant-design/icons';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Renderer } from '@json-render/react';
+import { Renderer, JSONUIProvider } from '@json-render/react';
 import { createSpecStreamCompiler } from '@json-render/core';
 import type { Spec } from '@json-render/core';
 import { registry } from './registry';
-import { onAgentOutput, clearAgentOutput } from '@/services/agent-output';
+import { onAgentOutput, onAgentOutputEnd, clearAgentOutput } from '@/services/agent-output';
+import { useOperationTabStore } from '@/stores/operationTab';
 import styles from './index.module.less';
 
 /**
  * AI 输出面板组件
  * 使用 json-render Renderer 流式渲染 AI 输出的可视化内容
- * 组件不会被销毁，切换 Tab 时仅隐藏
+ *
+ * 流程：
+ * 1. AGENT_OUTPUT 事件携带完整 JSONL Patch 行 → createSpecStreamCompiler.push() 逐行应用 → Renderer 流式渲染
+ * 2. AGENT_OUTPUT_END 事件 → 隐藏"生成中"状态
  */
 const AiOutputPanel: React.FC = () => {
   const [spec, setSpec] = useState<Spec | null>(null);
@@ -18,7 +22,7 @@ const AiOutputPanel: React.FC = () => {
   const [hasContent, setHasContent] = useState(false);
   const compilerRef = useRef<ReturnType<typeof createSpecStreamCompiler> | null>(null);
 
-  // 确保编译器只创建一次
+  // 确保编译器初始化
   if (!compilerRef.current) {
     compilerRef.current = createSpecStreamCompiler();
   }
@@ -32,32 +36,25 @@ const AiOutputPanel: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAgentOutput(({ text }) => {
+    // 监听 AGENT_OUTPUT：后端已按行缓冲，每个事件是完整的 JSONL Patch 行
+    const unsubOutput = onAgentOutput(({ text }) => {
+      // 收到AI输出事件，自动切换到AI输出Tab，让用户能看到输出内容
+      useOperationTabStore.getState().switchToAiOutput();
+
       if (!text) {
-        handleClear();
+        // 新一轮输出开始，重置编译器和状态
+        compilerRef.current = createSpecStreamCompiler();
+        setSpec(null);
+        setHasContent(false);
+        setIsStreaming(true);
         return;
       }
 
       setIsStreaming(true);
 
       try {
-        // 尝试作为完整 spec JSON 解析
-        const parsed = JSON.parse(text);
-        if (parsed && typeof parsed === 'object' && parsed.root && parsed.elements) {
-          compilerRef.current = createSpecStreamCompiler();
-          setSpec(parsed);
-          setHasContent(true);
-          setIsStreaming(false);
-          return;
-        }
-      } catch {
-        // 不是完整 JSON，尝试作为 JSONL patch
-      }
-
-      // 尝试作为 JSONL patch 行处理
-      try {
-        const { result } = compilerRef.current.push(text);
-        if (result && result.root && Object.keys(result.elements || {}).length > 0) {
+        const { result, newPatches } = compilerRef.current.push(text + '\n');
+        if (newPatches.length > 0 && result && result.root && Object.keys(result.elements || {}).length > 0) {
           setSpec({ ...result });
           setHasContent(true);
         }
@@ -66,13 +63,23 @@ const AiOutputPanel: React.FC = () => {
       }
     });
 
-    return unsubscribe;
+    // 监听 AGENT_OUTPUT_END：输出结束，隐藏生成中状态
+    const unsubOutputEnd = onAgentOutputEnd(() => {
+      setIsStreaming(false);
+    });
+
+    return () => {
+      unsubOutput();
+      unsubOutputEnd();
+    };
   }, [handleClear]);
 
   return (
     <div className={styles.aiOutputPanel}>
       {hasContent && spec && (
-        <Renderer spec={spec} registry={registry} />
+        <JSONUIProvider>
+          <Renderer spec={spec} registry={registry} />
+        </JSONUIProvider>
       )}
       {isStreaming && (
         <div className={styles.loadingIndicator}>

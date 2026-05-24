@@ -1,0 +1,129 @@
+<h2>菜单权限配置 - 修正版</h2>
+<p class="subtitle">按相同时效值分组 + 菜单树展示 + 简化配置流程</p>
+
+<div class="mockup">
+  <div class="mockup-header">入口：点击"菜单权限" → 展示已配置权限（按相同时效值分组）</div>
+  <div class="mockup-body">
+    <div style="background:#fff;border-radius:8px;padding:16px;font-size:11px;color:#333">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="margin:0;font-size:14px">菜单权限 - 系统管理员</h3>
+        <div style="background:#1677ff;color:#fff;border-radius:4px;padding:4px 12px;font-size:11px">+ 配置菜单权限</div>
+      </div>
+
+      <!-- 分组1：永久 -->
+      <div style="margin-bottom:12px;border:1px solid #f0f0f0;border-radius:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f6ffed;border-bottom:1px solid #f0f0f0">
+          <span style="display:inline-block;width:6px;height:6px;background:#52c41a;border-radius:50%"></span>
+          <b style="font-size:11px">永久</b>
+          <span style="color:#999;font-size:10px;margin-left:auto">3项</span>
+        </div>
+        <div style="padding:8px 12px;font-size:10px">
+          <div style="margin-bottom:2px">📁 系统管理</div>
+          <div style="margin-left:16px;margin-bottom:2px">📄 部门管理</div>
+          <div style="margin-left:32px">🔘 新增部门</div>
+        </div>
+      </div>
+
+      <!-- 分组2：绝对时间 -->
+      <div style="margin-bottom:12px;border:1px solid #f0f0f0;border-radius:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#e6f7ff;border-bottom:1px solid #f0f0f0">
+          <span style="display:inline-block;width:6px;height:6px;background:#1677ff;border-radius:50%"></span>
+          <b style="font-size:11px">2026-05-01 08:00 ~ 2026-12-31 18:00</b>
+          <span style="color:#999;font-size:10px;margin-left:auto">2项</span>
+        </div>
+        <div style="padding:8px 12px;font-size:10px">
+          <div style="margin-bottom:2px">📄 用户管理</div>
+          <div style="margin-left:16px">🔘 新增用户</div>
+        </div>
+      </div>
+
+      <!-- 分组3：周期性-按周 -->
+      <div style="margin-bottom:12px;border:1px solid #f0f0f0;border-radius:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f9f0ff;border-bottom:1px solid #f0f0f0">
+          <span style="display:inline-block;width:6px;height:6px;background:#722ed1;border-radius:50%"></span>
+          <b style="font-size:11px">每周一至周五 09:00 ~ 18:00</b>
+          <span style="color:#999;font-size:10px;margin-left:auto">1项</span>
+        </div>
+        <div style="padding:8px 12px;font-size:10px">
+          <div style="margin-left:16px">🔘 编辑用户</div>
+        </div>
+      </div>
+
+      <!-- 分组4：周期性-按月 -->
+      <div style="margin-bottom:12px;border:1px solid #f0f0f0;border-radius:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#fff7e6;border-bottom:1px solid #f0f0f0">
+          <span style="display:inline-block;width:6px;height:6px;background:#fa8c16;border-radius:50%"></span>
+          <b style="font-size:11px">每月1日、15日 全天</b>
+          <span style="color:#999;font-size:10px;margin-left:auto">1项</span>
+        </div>
+        <div style="padding:8px 12px;font-size:10px">
+          <div style="margin-bottom:2px">📄 报表查看</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;margin:16px 0;font-size:20px;color:#999">⬇ 点击"配置菜单权限"后</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">第一步：勾选菜单（已配置的禁用）</div>
+    <div class="mockup-body">
+      <div style="background:#fff;border-radius:8px;padding:12px;font-size:11px;color:#333">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:500;font-size:12px">选择菜单和按钮</span>
+          <div style="background:#1677ff;color:#fff;border-radius:4px;padding:3px 10px;font-size:10px">下一步</div>
+        </div>
+        <div style="border:1px solid #f0f0f0;border-radius:4px;padding:8px;font-size:10px">
+          <div style="margin-bottom:4px"><label style="color:#bbb;cursor:not-allowed"><input type="checkbox" disabled checked> 📁 系统管理 <span style="color:#d9d9d9;font-size:9px">已配置</span></label></div>
+          <div style="margin-left:16px;margin-bottom:4px"><label style="color:#bbb;cursor:not-allowed"><input type="checkbox" disabled checked> 📄 用户管理 <span style="color:#d9d9d9;font-size:9px">已配置</span></label></div>
+          <div style="margin-left:32px;font-size:9px;color:#bbb">
+            <label style="cursor:not-allowed"><input type="checkbox" disabled checked> 新增用户 <span style="color:#d9d9d9;font-size:8px">已配置</span></label>
+            <label style="margin-left:8px;cursor:not-allowed"><input type="checkbox" disabled checked> 编辑用户 <span style="color:#d9d9d9;font-size:8px">已配置</span></label>
+            <label style="margin-left:8px"><input type="checkbox"> 删除用户</label>
+          </div>
+          <div style="margin-left:16px;margin-bottom:4px"><label style="color:#bbb;cursor:not-allowed"><input type="checkbox" disabled checked> 📄 部门管理 <span style="color:#d9d9d9;font-size:9px">已配置</span></label></div>
+          <div style="margin-left:32px;font-size:9px;color:#bbb">
+            <label style="cursor:not-allowed"><input type="checkbox" disabled checked> 新增部门 <span style="color:#d9d9d9;font-size:8px">已配置</span></label>
+            <label style="margin-left:8px"><input type="checkbox"> 删除部门</label>
+          </div>
+          <div style="margin-bottom:4px"><label><input type="checkbox"> <b>安全中心</b></label></div>
+          <div style="margin-left:16px"><label><input type="checkbox"> 📄 菜单管理</label></div>
+          <div style="margin-left:16px"><label><input type="checkbox"> 📄 角色管理</label></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">第二步：配置时效（统一应用）</div>
+    <div class="mockup-body">
+      <div style="background:#fff;border-radius:8px;padding:12px;font-size:11px;color:#333">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:500;font-size:12px">时效配置</span>
+          <div style="display:flex;gap:6px">
+            <div style="border:1px solid #d9d9d9;border-radius:4px;padding:3px 10px;font-size:10px">上一步</div>
+            <div style="background:#1677ff;color:#fff;border-radius:4px;padding:3px 10px;font-size:10px">保存</div>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;padding:6px 8px;background:#e6f7ff;border-radius:4px;color:#1677ff;font-size:9px">
+          将为以下 3 项统一配置时效：删除用户、删除部门、菜单管理
+        </div>
+        <div style="border:1px solid #f0f0f0;border-radius:4px;padding:12px">
+          <div style="margin-bottom:8px">
+            <label style="font-size:10px;font-weight:500">时效类型</label>
+            <div style="margin-top:4px;display:flex;gap:12px">
+              <label style="font-size:10px"><input type="radio" name="valid" checked> 永久</label>
+              <label style="font-size:10px"><input type="radio" name="valid"> 绝对时间范围</label>
+              <label style="font-size:10px"><input type="radio" name="valid"> 周期性</label>
+            </div>
+          </div>
+          <div style="padding:8px;background:#fafafa;border-radius:4px;color:#999;font-size:10px;text-align:center">
+            选择时效类型后展示对应配置
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

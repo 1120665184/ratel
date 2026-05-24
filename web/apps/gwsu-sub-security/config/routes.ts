@@ -19,8 +19,4 @@ export default [
     path: '/tablemodel',
     component: '@/pages/tablemodel',
   },
-  {
-    path: '/catalog',
-    component: '@/pages/catalog',
-  },
 ];

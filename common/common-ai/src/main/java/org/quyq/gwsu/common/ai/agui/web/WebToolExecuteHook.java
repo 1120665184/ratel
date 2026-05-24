@@ -42,28 +42,50 @@ public class WebToolExecuteHook implements Hook {
     public <T extends HookEvent> Mono<T> onEvent(T event) {
         if (event instanceof ActingChunkEvent e && !CollectionUtils.isEmpty(e.getChunk().getOutput())) {
             ContentBlock block = e.getChunk().getOutput().getFirst();
-            if (block instanceof TextBlock t && t.getText().startsWith(WebToolUtils.WEB_TOOL_IDENTIFICATION)) {
-
-                WebToolInfo info = gson.fromJson(
-                        t.getText().replace(WebToolUtils.WEB_TOOL_IDENTIFICATION, ""),
-                        WebToolInfo.class
-                );
-                AIRunnerInstanceWrapper sseEmitter = AguiController.getCurrEmitter(threadId);
-                if (Objects.isNull(sseEmitter)) {
-                    return Mono.just(event);
+            if (block instanceof TextBlock t) {
+                //调用view端工具事件处理
+                if (t.getText().startsWith(WebToolUtils.WEB_TOOL_IDENTIFICATION)) {
+                    Mono<T> tMono = handlerWebHandlerEvent(t, event);
+                    if (Objects.nonNull(tMono)) {
+                        return tMono;
+                    }
                 }
 
-                //发送工具执行自定义事件
-                AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(threadId, sseEmitter.input().getRunId(),
-                        AIConstants.AguiCustomEvent.TOOL_EXECUTE
-                        , info);
-                sendEvent(sseEmitter.emitter(), customAguiEvent);
             }
 
         }
 
         return Mono.just(event);
     }
+
+    /**
+     * 处理调用web视图端工具事件
+     *
+     * @param t
+     * @param event
+     * @param <T>
+     * @return
+     */
+    private <T extends HookEvent> Mono<T> handlerWebHandlerEvent(TextBlock t, T event) {
+
+        WebToolInfo info = gson.fromJson(
+                t.getText().replace(WebToolUtils.WEB_TOOL_IDENTIFICATION, ""),
+                WebToolInfo.class
+        );
+        AIRunnerInstanceWrapper sseEmitter = AguiController.getCurrEmitter(threadId);
+        if (Objects.isNull(sseEmitter)) {
+            return Mono.just(event);
+        }
+
+        //发送工具执行自定义事件
+        AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(threadId, sseEmitter.input().getRunId(),
+                AIConstants.AguiCustomEvent.TOOL_EXECUTE
+                , info);
+        sendEvent(sseEmitter.emitter(), customAguiEvent);
+
+        return null;
+    }
+
 
     private void sendEvent(SseEmitter emitter, AguiEvent event) {
         try {

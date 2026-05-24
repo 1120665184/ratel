@@ -1,0 +1,86 @@
+<h2>OutputViewAgent 实现方案对比</h2>
+<p class="subtitle">三种方案的核心区别在于后端如何生成 spec 和前端如何消费</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>方案A：后端直出完整 spec + 前端流式渲染</h3>
+      <p><strong>核心思路：</strong>OutputViewAgent 的系统提示词包含 catalog 定义的完整描述，让 LLM 直接输出符合 json-render schema 的 spec JSON。后端通过 AGENT_OUTPUT 事件逐 chunk 发送 JSONL patch，前端用 <code>createSpecStreamCompiler</code> 渐进渲染。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优势</h4><ul><li>LLM 直接输出 spec，无需额外转换层</li><li>天然支持流式 — JSONL patch 逐行应用</li><li>catalog.prompt() 可自动生成 AI 提示词</li></ul></div>
+        <div class="cons"><h4>劣势</h4><ul><li>LLM 必须严格遵循 spec 格式，输出质量依赖提示词</li><li>图表组件需要前端自行实现渲染逻辑</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>方案B：后端输出结构化数据 + 前端模板映射</h3>
+      <p><strong>核心思路：</strong>后端 LLM 输出简洁的结构化 JSON（如 <code>{"type": "bar_chart", "data": {...}}</code>），后端或前端将其转换为 json-render spec。LLM 只需关心数据内容，不需要理解 spec 结构。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优势</h4><ul><li>LLM 输出更简洁，格式错误率低</li><li>解耦数据与渲染，灵活调整展示方式</li></ul></div>
+        <div class="cons"><h4>劣势</h4><ul><li>需要额外的转换层（后端或前端）</li><li>流式支持更复杂 — 需要等待完整 JSON 再转换</li><li>自定义数据格式需要额外维护</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>方案C：混合方案（推荐）</h3>
+      <p><strong>核心思路：</strong>结合 A 和 B 的优点。定义一套精简的"视图描述协议"（View Description Protocol），LLM 输出该协议格式的 JSON，同时该协议格式就是 json-render spec 的子集。通过 catalog 的 prompt 引导 LLM 输出正确的 spec，关键约束用 Zod schema 强制校验。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优势</h4><ul><li>catalog.prompt() 自动生成提示词，LLM 输出质量可控</li><li>支持流式渲染 — spec 本身就是 JSONL patch 兼容</li><li>前端 catalog 定义 + registry 实现解耦，可独立迭代组件样式</li><li>图表用 ECharts 组件封装，spec 只描述数据，渲染逻辑在前端</li></ul></div>
+        <div class="cons"><h4>劣势</h4><ul><li>需要同时维护前端 catalog 和后端提示词同步</li><li>首次实现工作量稍大</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:32px">
+  <h3>方案对比总结</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border-color,#e5e7eb)">
+        <th style="text-align:left;padding:8px">维度</th>
+        <th style="text-align:left;padding:8px">A: 直出 spec</th>
+        <th style="text-align:left;padding:8px">B: 数据+模板</th>
+        <th style="text-align:left;padding:8px">C: 混合(推荐)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--border-color,#e5e7eb)">
+        <td style="padding:8px;font-weight:600">流式渲染</td>
+        <td style="padding:8px;color:#16a34a">原生支持</td>
+        <td style="padding:8px;color:#dc2626">需要额外处理</td>
+        <td style="padding:8px;color:#16a34a">原生支持</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-color,#e5e7eb)">
+        <td style="padding:8px;font-weight:600">LLM 输出质量</td>
+        <td style="padding:8px;color:#eab308">依赖提示词</td>
+        <td style="padding:8px;color:#16a34a">格式简洁可控</td>
+        <td style="padding:8px;color:#16a34a">catalog引导+Zod校验</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-color,#e5e7eb)">
+        <td style="padding:8px;font-weight:600">实现复杂度</td>
+        <td style="padding:8px">中</td>
+        <td style="padding:8px;color:#eab308">中高</td>
+        <td style="padding:8px">中</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-color,#e5e7eb)">
+        <td style="padding:8px;font-weight:600">可扩展性</td>
+        <td style="padding:8px;color:#16a34a">高</td>
+        <td style="padding:8px;color:#eab308">中</td>
+        <td style="padding:8px;color:#16a34a">高</td>
+      </tr>
+      <tr>
+        <td style="padding:8px;font-weight:600">与json-render契合度</td>
+        <td style="padding:8px;color:#16a34a">完美</td>
+        <td style="padding:8px;color:#dc2626">需要转换层</td>
+        <td style="padding:8px;color:#16a34a">完美</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

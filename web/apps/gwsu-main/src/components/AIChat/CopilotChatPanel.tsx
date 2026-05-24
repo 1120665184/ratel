@@ -234,7 +234,7 @@ export function CopilotChatPanel({
           <span>智能助手</span>
         </div>
         <div className={styles.chatHeaderActions}>
-          <Tooltip title="新会话" zIndex={100001}>
+          <Tooltip title="新会话" zIndex={1029}>
             <Button
               type="text"
               size="small"
@@ -243,7 +243,7 @@ export function CopilotChatPanel({
               icon={<PlusOutlined />}
             />
           </Tooltip>
-          <Tooltip title="历史记录" zIndex={100001}>
+          <Tooltip title="历史记录" zIndex={1029}>
             <Button
               type="text"
               size="small"
@@ -253,7 +253,7 @@ export function CopilotChatPanel({
             />
           </Tooltip>
           {isDraggableMode ? (
-            <Tooltip title="固定模式" zIndex={100001}>
+            <Tooltip title="固定模式" zIndex={1029}>
               <Button
                 type="text"
                 size="small"
@@ -263,7 +263,7 @@ export function CopilotChatPanel({
               />
             </Tooltip>
           ) : (
-            <Tooltip title="拖拽模式" zIndex={100001}>
+            <Tooltip title="拖拽模式" zIndex={1029}>
               <Button
                 type="text"
                 size="small"
@@ -273,7 +273,7 @@ export function CopilotChatPanel({
               />
             </Tooltip>
           )}
-          <Tooltip title="收起面板" zIndex={100001}>
+          <Tooltip title="收起面板" zIndex={1029}>
             <Button
               type="text"
               size="small"

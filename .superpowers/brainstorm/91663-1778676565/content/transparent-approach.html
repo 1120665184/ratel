@@ -1,0 +1,100 @@
+<h2>拖拽模式毛玻璃透明方案对比</h2>
+<p class="subtitle">点击选项可选中，在终端告诉我你的偏好</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">方案A：整体毛玻璃（推荐）</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <!-- 模拟桌面背景 -->
+      <div style="position:relative;width:100%;height:360px;background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%);display:flex;align-items:center;justify-content:center;">
+        <div style="color:#fff;font-size:14px;opacity:0.6;">桌面背景内容</div>
+        <!-- 毛玻璃面板 -->
+        <div style="position:absolute;right:20px;top:20px;width:260px;height:320px;background:rgba(255,255,255,0.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:12px;border:1px solid rgba(255,255,255,0.3);box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;flex-direction:column;overflow:hidden;">
+          <!-- Header -->
+          <div style="padding:10px 14px;background:rgba(255,255,255,0.15);border-bottom:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:13px;font-weight:600;color:#fff;">🤖 智能助手</span>
+            <div style="display:flex;gap:4px;">
+              <div style="width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,0.2);"></div>
+              <div style="width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,0.2);"></div>
+            </div>
+          </div>
+          <!-- Messages -->
+          <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px;">
+            <div style="align-self:flex-end;background:rgba(99,102,241,0.5);color:#fff;padding:6px 10px;border-radius:10px 10px 4px 10px;font-size:11px;max-width:80%;">查询用户列表</div>
+            <div style="align-self:flex-start;background:rgba(255,255,255,0.25);color:#fff;padding:6px 10px;border-radius:10px 10px 10px 4px;font-size:11px;max-width:80%;">已找到 25 条记录</div>
+          </div>
+          <!-- Input -->
+          <div style="padding:8px 10px;border-top:1px solid rgba(255,255,255,0.2);">
+            <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,0.5);">输入消息...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">方案B：Header不透明 + 内容区毛玻璃</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="position:relative;width:100%;height:360px;background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%);display:flex;align-items:center;justify-content:center;">
+        <div style="color:#fff;font-size:14px;opacity:0.6;">桌面背景内容</div>
+        <div style="position:absolute;right:20px;top:20px;width:260px;height:320px;background:rgba(255,255,255,0.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:12px;border:1px solid rgba(255,255,255,0.3);box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;flex-direction:column;overflow:hidden;">
+          <!-- Header 不透明 -->
+          <div style="padding:10px 14px;background:rgba(255,255,255,0.92);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:13px;font-weight:600;color:#1a1a2e;">🤖 智能助手</span>
+            <div style="display:flex;gap:4px;">
+              <div style="width:18px;height:18px;border-radius:4px;background:rgba(0,0,0,0.06);"></div>
+              <div style="width:18px;height:18px;border-radius:4px;background:rgba(0,0,0,0.06);"></div>
+            </div>
+          </div>
+          <!-- Messages 毛玻璃 -->
+          <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px;">
+            <div style="align-self:flex-end;background:rgba(99,102,241,0.55);color:#fff;padding:6px 10px;border-radius:10px 10px 4px 10px;font-size:11px;max-width:80%;">查询用户列表</div>
+            <div style="align-self:flex-start;background:rgba(255,255,255,0.3);color:#fff;padding:6px 10px;border-radius:10px 10px 10px 4px;font-size:11px;max-width:80%;">已找到 25 条记录</div>
+          </div>
+          <!-- Input 不透明 -->
+          <div style="padding:8px 10px;border-top:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.88);">
+            <div style="background:#f1f5f9;border-radius:8px;padding:6px 10px;font-size:11px;color:#9ca3af;">输入消息...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:24px;">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>整体毛玻璃</h3>
+      <p>Header + 消息区 + 输入框全部半透明毛玻璃，视觉一致性强，透出桌面背景。文字颜色需适配为浅色以保证可读性。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>视觉统一、高端感强</li><li>透明效果最明显</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>暗色桌面时文字可能不清晰</li><li>需要调整文字/按钮颜色</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Header/输入框不透明 + 内容区毛玻璃</h3>
+      <p>操作区域（Header、输入框）保持不透明确保可用性，仅消息内容区域使用毛玻璃效果。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>可读性好，操作区始终清晰</li><li>改动量小，兼容现有样式</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>视觉统一性稍弱</li><li>透明效果不够明显</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>自适应毛玻璃（深色桌面浅色文字 / 浅色桌面深色文字）</h3>
+      <p>整体毛玻璃 + 自动检测背景亮度动态切换文字颜色，兼顾美观和可读性。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>视觉统一 + 可读性好</li><li>智能适配不同背景</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>实现复杂度较高</li><li>背景快速变化时可能闪烁</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

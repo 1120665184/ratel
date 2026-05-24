@@ -1,0 +1,82 @@
+<h2>流程图组件集成方案</h2>
+<p class="subtitle">流程图数据结构（节点+边）与普通图表（分类+系列）差异较大</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>扩展现有 Chart 组件</h3>
+      <p>在 chartType 中新增 <code>flowchart</code> 类型，通过 data 字段区分数据结构</p>
+      <div style="margin-top:12px;font-family:monospace;font-size:12px;line-height:1.5;background:#1e293b;color:#e2e8f0;padding:12px;border-radius:6px;white-space:pre">{
+  "type": "Chart",
+  "props": {
+    "chartType": "flowchart",
+    "title": "安全事件处理流程",
+    "data": {
+      "nodes": [
+        { "id": "start", "label": "事件上报", "type": "start" },
+        { "id": "review", "label": "安全评审", "type": "process" },
+        { "id": "approve", "label": "审批通过", "type": "decision" },
+        { "id": "handle", "label": "执行处理", "type": "process" },
+        { "id": "end", "label": "归档完成", "type": "end" }
+      ],
+      "edges": [
+        { "source": "start", "target": "review" },
+        { "source": "review", "target": "approve" },
+        { "source": "approve", "target": "handle", "label": "是" },
+        { "source": "approve", "target": "review", "label": "否" },
+        { "source": "handle", "target": "end" }
+      ]
+    }
+  }
+}</div>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>优势</h4><ul><li>catalog 组件数不变，简洁</li><li>一个 Chart 组件覆盖所有可视化</li></ul></div>
+        <div class="cons"><h4>劣势</h4><ul><li>data 结构根据 chartType 变化大，Zod 校验复杂</li><li>AI prompt 中需要解释不同 chartType 对应不同的 data 格式</li><li>前端渲染逻辑分支多</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>新增独立 FlowChart 组件</h3>
+      <p>流程图有独立的 props schema，与 Chart 组件解耦</p>
+      <div style="margin-top:12px;font-family:monospace;font-size:12px;line-height:1.5;background:#1e293b;color:#e2e8f0;padding:12px;border-radius:6px;white-space:pre">{
+  "type": "FlowChart",
+  "props": {
+    "title": "安全事件处理流程",
+    "direction": "vertical",
+    "nodes": [
+      { "id": "start", "label": "事件上报", "type": "start" },
+      { "id": "review", "label": "安全评审", "type": "process" },
+      { "id": "approve", "label": "审批通过", "type": "decision" },
+      { "id": "handle", "label": "执行处理", "type": "process" },
+      { "id": "end", "label": "归档完成", "type": "end" }
+    ],
+    "edges": [
+      { "source": "start", "target": "review" },
+      { "source": "review", "target": "approve" },
+      { "source": "approve", "target": "handle", "label": "是" },
+      { "source": "approve", "target": "review", "label": "否" },
+      { "source": "handle", "target": "end" }
+    ]
+  }
+}</div>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>优势</h4><ul><li>props schema 独立清晰，Zod 校验简单</li><li>AI prompt 独立描述，输出更准确</li><li>前端渲染逻辑独立，可用专用引擎（如 ECharts graph 或 @ant-design/charts）</li><li>可扩展：支持 direction、节点样式等流程图特有属性</li></ul></div>
+        <div class="cons"><h4>劣势</h4><ul><li>catalog 多一个组件定义</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>推荐方案B：独立组件</h3>
+  <p style="color:var(--text-secondary-color,#6b7280);line-height:1.8">
+    流程图和统计图表的本质差异在于<strong>数据模型不同</strong>：
+    统计图表是「分类+数值序列」，流程图是「节点+有向边」。
+    独立组件让 AI 提示词更精准、Zod 校验更严格、前端渲染更清晰。
+    catalog 多一个组件的开销极小，但换来的是每个组件职责单一、易于维护。
+  </p>
+</div>
