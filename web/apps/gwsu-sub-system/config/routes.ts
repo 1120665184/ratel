@@ -23,4 +23,8 @@ export default [
     path: '/user',
     component: '@/pages/user',
   },
+  {
+    path: '/profile',
+    component: '@/pages/profile',
+  },
 ];

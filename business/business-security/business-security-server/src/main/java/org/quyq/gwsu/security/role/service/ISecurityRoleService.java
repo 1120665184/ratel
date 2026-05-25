@@ -52,6 +52,13 @@ public interface ISecurityRoleService extends IService<SecurityRole> {
     List<RoleVO> listByCondition(RoleQueryDTO query);
 
     /**
+     * 通过角色标识获取角色
+     * @param idents
+     * @return
+     */
+    List<RoleVO> roleByIdents(List<String> idents);
+
+    /**
      * 根据主体ID查询角色列表
      *
      * @param subjectId 主体ID

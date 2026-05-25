@@ -1,4 +1,5 @@
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UserDropdown from '@/components/UserDropdown';
 import { CopilotChatPanel } from '@/components/AIChat/CopilotChatPanel';
 import AssistantOperationArea from '@/components/AssistantOperationArea';
 import { RouteTracker } from '@/components/RouteTracker';
@@ -10,22 +11,17 @@ import {
 import { GwsuCopilotKitProvider } from '@/providers/CopilotKitProvider';
 import {
   ArrowDownOutlined,
-  LogoutOutlined,
   RobotOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
-import { App, Button } from 'antd';
+import { Button } from 'antd';
 import {
   EventType,
   onEvent,
   ThemeLayout,
   useThemeContext,
-  useUserStore,
-  useMenuStore,
 } from '@gwsu/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { history, Outlet, useLocation } from 'umi';
-import { logout } from '@/services/auth';
 import { useOperationTabStore} from '@/stores/operationTab';
 import styles from './index.module.less';
 
@@ -103,7 +99,6 @@ function MainLayoutContent({
   const [showGuide, setShowGuide] = useState(false);
   const guideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const robotBtnRef = useRef<HTMLDivElement>(null);
-  const { message, modal } = App.useApp();
 
   // 路由变化 → 自动切到界面 Tab
   useEffect(() => {
@@ -137,32 +132,6 @@ function MainLayoutContent({
     setShowGuide(false);
     togglePanel();
   }, [togglePanel]);
-
-  // 处理退出登录
-  const handleLogout = () => {
-    modal.confirm({
-      title: '确认退出',
-      content: '确定要退出登录吗？',
-      okText: '确定',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          await logout();
-          // 通过 userStore 清除认证数据
-          useUserStore.getState().logout();
-          useMenuStore.getState().clearMenus();
-
-          message.success('退出成功');
-
-          const loginPath =
-            process.env.UMI_APP_LOGIN_PATH || '/sub-system/login';
-          history.push(loginPath);
-        } catch (error) {
-          // 错误提示已在 request.ts 中统一处理
-        }
-      },
-    });
-  };
 
   // 判断显示模式
   const isHidden = panelState.mode === 'hidden';
@@ -232,17 +201,7 @@ function MainLayoutContent({
             </div>
           )}
           <ThemeSwitcher />
-          <span className={`${styles.actionItem} ${styles.userInfo}`}>
-            <UserOutlined />
-            管理员
-          </span>
-          <a
-            onClick={handleLogout}
-            className={`${styles.actionItem} ${styles.logoutBtn}`}
-          >
-            <LogoutOutlined />
-            退出登录
-          </a>
+          <UserDropdown />
         </div>
       </header>
 

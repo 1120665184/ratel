@@ -3,7 +3,7 @@ import React, {useState, useEffect} from 'react';
 import {history} from 'umi';
 import {App} from 'antd';
 import InteractiveCat from '../components/InteractiveCat';
-import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo} from '@gwsu/core';
+import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo, encryptPassword} from '@gwsu/core';
 import {login, TerminalType} from '../services/login';
 import styles from './login.module.less';
 
@@ -57,7 +57,7 @@ export default function Login() {
                 type: 'password',
                 terminal: TerminalType.WEB,
                 username: username.trim(),
-                password,
+                password: encryptPassword(password),
             });
 
             // 计算 token 过期时间

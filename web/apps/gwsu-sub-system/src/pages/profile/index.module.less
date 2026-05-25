@@ -1,0 +1,155 @@
+/* 个人信息页面样式 */
+
+.profilePage {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 用户头像卡片 */
+.profileCard {
+  background: var(--surface-color);
+  border-radius: 12px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 0;
+}
+
+.profileHeaderInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.profileName {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 8px;
+}
+
+.profileMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.profileMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-secondary-color);
+}
+
+/* 分区卡片 */
+.sectionCard {
+  background: var(--surface-color);
+  border-radius: 12px;
+}
+
+/* 角色列表 */
+.roleList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.roleItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--background-color);
+  border-radius: 8px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  :global([data-theme="midnight"]) & {
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+}
+
+.roleItemMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roleTag {
+  font-size: 13px;
+  margin: 0;
+}
+
+.roleCode {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  font-family: monospace;
+}
+
+.roleDesc {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  padding-left: 2px;
+}
+
+/* 空状态 */
+.emptyText {
+  color: var(--text-secondary-color);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+/* 部门列表 */
+.deptList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deptItem {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--background-color);
+  border-radius: 8px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  :global([data-theme="midnight"]) & {
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+}
+
+.deptItemMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deptName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.primaryTag {
+  font-size: 12px;
+  margin: 0;
+}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Drawer, Form, Input, Button, App } from 'antd';
 import styles from './index.module.less';
 import { resetPassword } from '@/services/user';
+import { encryptPassword } from '@gwsu/core';
 
 interface PasswordDrawerProps {
   visible: boolean;
@@ -27,7 +28,7 @@ const PasswordDrawer: React.FC<PasswordDrawerProps> = ({
       const values = await form.validateFields();
       if (!userId) return;
       setLoading(true);
-      await resetPassword(userId, values.newPassword);
+      await resetPassword(userId, encryptPassword(values.newPassword));
       message.success('密码修改成功');
       form.resetFields();
       onSuccess();

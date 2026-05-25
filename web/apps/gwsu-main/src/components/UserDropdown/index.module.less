@@ -1,0 +1,143 @@
+/* 用户下拉菜单样式 - 面板式设计 */
+
+/* 触发器：头像 + 用户名 */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  :global([data-theme="midnight"]) & {
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+.triggerAvatar {
+  flex-shrink: 0;
+}
+
+.triggerName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary-color);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 下拉面板 */
+.dropdownPanel {
+  min-width: 240px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 20px 25px -5px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* 信息头 */
+.infoHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.infoAvatar {
+  flex-shrink: 0;
+}
+
+.infoDetail {
+  flex: 1;
+  min-width: 0;
+}
+
+.infoName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.infoEmail {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settingsBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary-color);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    color: var(--primary-color);
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  :global([data-theme="midnight"]) & {
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+/* 菜单项 */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  :global([data-theme="midnight"]) & {
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+.menuItemIcon {
+  font-size: 14px;
+  color: var(--text-secondary-color);
+}
+
+.dangerItem {
+  color: var(--ant-color-error, #ef4444);
+
+  .menuItemIcon {
+    color: var(--ant-color-error, #ef4444);
+  }
+}

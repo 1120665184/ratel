@@ -156,13 +156,12 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
                 .in(SecurityApiResource::getModulePrefix, modules)
                 .list();
 
-        // 处理表模型绑定数据（在 hasChanged 判断之前，与接口资源共享同一事务和分布式锁）
-        apiTableModelService.handleTableModel(applicationName, permissions);
-
         // 判断是否有变动：数量不同或内容不同
         boolean hasChanged = isResourceChanged(newResources, oldResources);
 
         if (!hasChanged) {
+            // 即使资源未变，表模型绑定也可能变化，仍需处理
+            apiTableModelService.handleTableModel(applicationName, permissions);
             return;
         }
 
@@ -181,6 +180,10 @@ public class SecurityApiResourceServiceImpl extends ServiceImpl<SecurityApiResou
         if (!CollectionUtils.isEmpty(newResources)) {
             saveBatch(newResources);
         }
+
+        // 处理表模型绑定数据（必须在 resource 插入之后，因为 table_model 有外键依赖 resource）
+        apiTableModelService.handleTableModel(applicationName, permissions);
+
         //变更url权限
         permissionAlterationManager.alterationUrlPermission(AbacPerType.API_RESOURCE, new ExpressionContext());
     }

@@ -89,6 +89,13 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
     }
 
     @Override
+    public List<RoleVO> roleByIdents(List<String> idents) {
+        return baseMapper.selectList(new LambdaQueryWrapper<SecurityRole>()
+                .in(SecurityRole::getRoleCode , idents)
+        ).stream().map(SecurityRole::toVo).toList();
+    }
+
+    @Override
     public List<RoleVO> listBySubjectId(String subjectId) {
         List<SecurityRole> roles = baseMapper.selectRolesBySubjectId(subjectId);
         return roles.stream()

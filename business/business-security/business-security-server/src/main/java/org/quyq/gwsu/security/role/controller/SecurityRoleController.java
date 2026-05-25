@@ -5,10 +5,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.domain.visitor.Visitor;
+import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
+import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
 import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.role.RoleClientApi;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
@@ -25,8 +29,10 @@ import org.quyq.gwsu.security.role.domain.SecurityRoleSubject;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 角色管理控制器
@@ -37,10 +43,12 @@ import java.util.List;
 @RequestMapping("role")
 @Tag(name = "角色管理", description = "角色管理接口")
 @RequiredArgsConstructor
-@TableModelPermission({SecurityRole.class , SecurityRoleMenu.class , SecurityRoleMenuPermission.class , SecurityRoleSubject.class})
+@TableModelPermission({SecurityRole.class, SecurityRoleMenu.class, SecurityRoleMenuPermission.class, SecurityRoleSubject.class})
 public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi {
 
     private final ISecurityRoleService roleService;
+
+    private final SecurityUtils securityUtils;
 
     @Operation(summary = "根据ID查询角色")
     @GetMapping("/{id}")
@@ -54,6 +62,14 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
     @PostMapping("/page")
     public R<IPage<RoleVO>> page(@RequestBody RoleQueryDTO query) {
         return R.ok(roleService.pageByCondition(query));
+    }
+
+    @Operation(summary = "获取当前登录用户的角色信息")
+    @LoginAllowAccess
+    @GetMapping("rolesByCurrUser")
+    public R<List<RoleVO>> rolesByIdents() {
+        Optional<Subject<Visitor>> subject = securityUtils.getSubject();
+        return subject.map(visitorSubject -> R.ok(roleService.roleByIdents(visitorSubject.getRoles()))).orElseGet(() -> R.ok(Collections.emptyList()));
     }
 
 

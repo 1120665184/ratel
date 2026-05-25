@@ -31,6 +31,18 @@ export interface TokenInfo {
     expireTime?: number;
 }
 
+/** 用户所属部门 */
+export interface UserDept {
+    /** 关联记录 ID */
+    id?: string;
+    /** 部门 ID */
+    deptId: string;
+    /** 部门名称 */
+    deptName: string;
+    /** 是否主部门 */
+    isPrimary?: boolean;
+}
+
 /** 用户信息 */
 export interface UserInfo {
     /** 用户 ID */
@@ -45,12 +57,16 @@ export interface UserInfo {
     email?: string;
     /** 手机号 */
     phone?: string;
+    /** 性别 */
+    gender?: number;
     /** 状态 */
     status?: number;
-    /** 部门 ID */
+    /** 部门 ID（主部门） */
     deptId?: number;
-    /** 部门名称 */
+    /** 部门名称（主部门） */
     deptName?: string;
+    /** 所属部门列表 */
+    depts?: UserDept[];
     /** 角色列表 */
     roles?: string[];
     /** 权限列表 */
@@ -152,10 +168,14 @@ function createOrGetStore(): StoreApi<UserState> {
         return rawWindow[STORE_KEY] as StoreApi<UserState>;
     }
 
+    // 从 localStorage 恢复初始状态，避免页面刷新后丢失
+    const initialToken = loadTokenFromStorage();
+    const initialUser = loadUserFromStorage();
+
     const store = createStore<UserState>((set, get) => ({
-        tokenInfo: null,
-        userInfo: null,
-        isLoggedIn: false,
+        tokenInfo: initialToken,
+        userInfo: initialUser,
+        isLoggedIn: !!initialToken,
 
         setTokenInfo: (tokenInfo) => {
             saveTokenToStorage(tokenInfo);
