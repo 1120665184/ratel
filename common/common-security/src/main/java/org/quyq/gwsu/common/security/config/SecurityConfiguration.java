@@ -4,6 +4,7 @@ package org.quyq.gwsu.common.security.config;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
+import org.quyq.gwsu.common.database.metadata.DdlFactory;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.dataresource.DataResourceInterceptor;
 import org.quyq.gwsu.common.security.dataresource.DataResourceRuleUtils;
@@ -65,8 +66,8 @@ public class SecurityConfiguration {
 
     @Bean
     public DataPermissionUtils dataPermissionUtils(DataResourceRuleUtils ruleUtils, SecurityUtils securityUtils,
-                                                   SessionUtils sessionUtils) {
-        return new DataPermissionUtils(ruleUtils, securityUtils, sessionUtils);
+                                                   SessionUtils sessionUtils, DdlFactory ddlFactory) {
+        return new DataPermissionUtils(ruleUtils, securityUtils, sessionUtils, ddlFactory);
     }
 
 
@@ -84,11 +85,8 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public DataResourceInterceptor dataResourceInterceptor(
-            SecurityUtils securityUtils ,
-            DataResourceRuleUtils ruleUtils,
-            DataPermissionUtils dataPermissionUtils) {
-        return new DataResourceInterceptor(securityUtils ,ruleUtils, dataPermissionUtils);
+    public DataResourceInterceptor dataResourceInterceptor(DataPermissionUtils dataPermissionUtils) {
+        return new DataResourceInterceptor(dataPermissionUtils);
     }
 
 

@@ -100,7 +100,7 @@ public class BrainServiceImpl implements IBrainService {
 
         AgentSkill userMenuSkill = AgentSkill.builder()
                 .name("user_menu_permissions")
-                .description("当需要操作用户界面,了解用户拥有的功能权限、决定跳转哪个页面、判断用户能执行什么操作时，加载此技能查看用户的完整菜单和功能列表以及操作界面相关工具")
+                .description("当需要操作用户可视化界面时，加载此技能查看用户的完整菜单和功能列表以及获取操作界面相关工具")
                 .skillContent(menuContent)
                 .build();
 
@@ -243,7 +243,9 @@ public class BrainServiceImpl implements IBrainService {
     private ReActAgent getAgent(Memory memory, Toolkit toolkit, SkillBox skillBox) {
         //数据库智能查询智能体
         toolkit.registration()
+                //数据库搜索子智能体
                 .subAgent(databaseSearchAgent::build, databaseSearchAgent.getSubAgentConfig())
+                //内容输出子智能体
                 .subAgent(outputViewAgent::build, outputViewAgent.getSubAgentConfig())
                 .apply();
 

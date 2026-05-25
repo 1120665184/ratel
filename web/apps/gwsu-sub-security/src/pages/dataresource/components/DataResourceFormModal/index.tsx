@@ -276,7 +276,7 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
       destroyOnHidden
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="databaseName" label="库名">
+        <Form.Item name="databaseName" label="库名/模式">
           <Input placeholder="留空则匹配所有库" />
         </Form.Item>
         <Form.Item

@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,13 @@ public class DdlFactory {
     private final DatabaseHelper databaseHelper;
     private final DataSource dataSource;
     private final Map<DatabaseType, MetadataDialect> dialectMap;
+
+    /**
+     * 数据源库名/模式名缓存
+     * key: 数据源名称（如 master、mysql 等）
+     * value: 库名（MySQL）或模式名（PostgreSQL），小写形式
+     */
+    private final ConcurrentHashMap<String, String> databaseNameCache = new ConcurrentHashMap<>();
 
     public DdlFactory(DatabaseHelper databaseHelper, DataSource dataSource, List<MetadataDialect> dialects) {
         this.databaseHelper = databaseHelper;
@@ -80,6 +88,25 @@ public class DdlFactory {
      */
     public List<ForeignKeyInfo> showForeignKeys(String databaseOrSchema, String tableName) {
         return executeWithDialect((dialect, connection) -> dialect.showForeignKeys(connection, databaseOrSchema, tableName));
+    }
+
+    /**
+     * 获取当前数据源的库名或模式名，结果已缓存
+     * <p>
+     * MySQL 返回 catalog（库名），PostgreSQL 返回 schema（模式名），统一小写形式
+     *
+     * @return 库名/模式名；无法获取时返回 null
+     */
+    public String getCurrentDatabaseOrSchema() {
+        String dsKey = databaseHelper.getCurrentDatasourceKey();
+        return databaseNameCache.computeIfAbsent(dsKey, key -> {
+            try {
+                return executeWithDialect(MetadataDialect::getCurrentDatabaseOrSchema);
+            } catch (Exception e) {
+                log.warn("获取数据源 [{}] 的库名/模式名失败", key, e);
+                return null;
+            }
+        });
     }
 
     /**

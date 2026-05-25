@@ -52,7 +52,7 @@ public class MysqlMetadataDialect extends AbstractMetadataDialect {
     }
 
     @Override
-    protected String getCurrentDatabaseOrSchema(Connection connection) throws SQLException {
+    protected String doGetCurrentDatabaseOrSchema(Connection connection) throws SQLException {
         // MySQL 使用 catalog 表示数据库
         return connection.getCatalog();
     }
