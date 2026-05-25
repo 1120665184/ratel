@@ -41,6 +41,7 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Quyq
@@ -115,36 +116,39 @@ public class BrainServiceImpl implements IBrainService {
      * 将菜单树构建为技能内容文本
      */
     private String buildMenuContent(List<MenuVO> menuTree) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("# 用户拥有的的功能权限信息\n\n");
-        sb.append("  以下是当前登录用户拥有的所有菜单、页面和操作按钮信息。");
-        sb.append("当用户请求跳转界面或执行操作时，请参考此列表判断用户是否有对应功能，并使用路由地址进行导航。\n\n");
-
         if (menuTree == null || menuTree.isEmpty()) {
-            sb.append("当前用户没有任何菜单权限。\n");
-            return sb.toString();
+            return "当前用户没有任何菜单权限。";
         }
 
-        for (MenuVO menu : menuTree) {
-            appendMenuNode(sb, menu, 0);
-        }
+        String menuSections = menuTree.stream()
+                .map(menu -> buildMenuSection(menu, 2))
+                .collect(Collectors.joining("\n"));
 
-        sb.append("""
+        return """
+                # 用户功能权限信息
+
+                以下是当前登录用户拥有的所有菜单、页面和操作按钮信息。
+                当用户请求跳转界面或执行操作时，请参考此列表判断用户是否有对应功能，并使用路由地址进行导航。
+
+                ---
+
+                %s
+
+                ---
+
                 # 备注
-                - 路由：前端视图层界面跳转地址。
-                - 位置：菜单在视图层的展示位置。
-                - 接口权限：菜单或按钮对应的后端接口权限标识，有(main)标注的接口为对应功能的主要接口，多个权限用`;`分割。
-                - 按钮标识：对应按钮的唯一标识，用于判定视图层按钮的显示权限
-                """);
-
-        return sb.toString();
+                - **路由**：前端视图层界面跳转地址
+                - **位置**：菜单在视图层的展示位置
+                - **接口权限**：菜单或按钮对应的后端接口权限标识，`(main)` 标注的为对应功能的主要接口，多个权限用 `;` 分割
+                - **按钮标识**：对应按钮的唯一标识，用于判定视图层按钮的显示权限
+                """.formatted(menuSections);
     }
 
     /**
-     * 递归构建菜单节点描述
+     * 构建单个菜单/目录节点的 markdown 段落
      */
-    private void appendMenuNode(StringBuilder sb, MenuVO menu, int depth) {
-        String indent = "  ".repeat(depth);
+    private String buildMenuSection(MenuVO menu, int headingLevel) {
+        String heading = "#".repeat(headingLevel);
         String typeLabel = switch (menu.getMenuType()) {
             case 1 -> "目录";
             case 2 -> "菜单";
@@ -152,58 +156,87 @@ public class BrainServiceImpl implements IBrainService {
             default -> "未知";
         };
 
-        sb.append(indent).append("- **").append(menu.getMenuName()).append("**")
-                .append(" [").append(typeLabel).append("]");
+        StringBuilder sb = new StringBuilder();
 
-        if (2 == menu.getMenuType()) {
-            sb.append(" 路由: `").append(menu.getPath()).append("`");
+        // 标题行：名称 [类型]
+        sb.append(heading).append(" ").append(menu.getMenuName())
+                .append(" `").append(typeLabel).append("`\n\n");
+
+        // 基本信息（非按钮类型）
+        if (menu.getMenuType() != 3) {
+            sb.append("| 属性 | 值 |\n|------|----|\n");
+            sb.append("| 类型 | ").append(typeLabel).append(" |\n");
+            if (2 == menu.getMenuType() && menu.getPath() != null) {
+                sb.append("| 路由 | `").append(menu.getPath()).append("` |\n");
+            }
+            if (Arrays.asList(1, 2).contains(menu.getMenuType()) && menu.getPosition() != null) {
+                sb.append("| 位置 | ").append(menu.getPosition().getDescription()).append(" |\n");
+            }
+            if (StringUtils.hasText(menu.getPermission())) {
+                sb.append("| 接口权限 | `").append(menu.getPermission()).append("` |\n");
+            }
+            sb.append("\n");
         }
-
-        if (Arrays.asList(1, 2).contains(menu.getMenuType())) {
-            sb.append(" 位置: ").append(menu.getPosition().getDescription());
-        }
-
-
-        if (StringUtils.hasText(menu.getPermission())) {
-            sb.append(" 接口权限: `").append(menu.getPermission()).append("`");
-        }
-
-        sb.append("\n");
 
         // 功能描述
-        if (menu.getDescription() != null && !menu.getDescription().isEmpty()) {
-            sb.append(indent).append("  > ").append(menu.getDescription()).append("\n");
+        if (StringUtils.hasText(menu.getDescription())) {
+            sb.append(formatDescription(menu.getDescription())).append("\n\n");
         }
 
-        // 子菜单
+        // 按钮操作表格
         if (menu.getChildren() != null && !menu.getChildren().isEmpty()) {
             List<MenuVO> buttons = menu.getChildren().stream()
                     .filter(child -> child.getMenuType() != null && child.getMenuType() == 3)
                     .toList();
-            List<MenuVO> nonButtons = menu.getChildren().stream()
-                    .filter(child -> child.getMenuType() == null || child.getMenuType() != 3)
-                    .toList();
 
-            // 按钮操作归组
             if (!buttons.isEmpty()) {
-                sb.append(indent).append("  操作按钮:\n");
+                sb.append("**操作按钮：**\n\n");
+                sb.append("| 按钮 | 标识 | 接口权限 | 说明 |\n");
+                sb.append("|------|------|----------|------|\n");
                 for (MenuVO btn : buttons) {
-                    sb.append(indent).append("    - ").append(btn.getMenuName());
-                    if (btn.getDescription() != null && !btn.getDescription().isEmpty()) {
-                        sb.append(": ").append(btn.getDescription());
-                    }
-                    if (StringUtils.hasText(btn.getPermission())) {
-                        sb.append(" (接口权限: `").append(btn.getPermission()).append("`  按钮标识：`").append(btn.getButtonKey()).append("`)");
-                    }
-                    sb.append("\n");
+                    String desc = StringUtils.hasText(btn.getDescription()) ? btn.getDescription().replace("|", "\\|").replace("\n", " ") : "-";
+                    String perm = StringUtils.hasText(btn.getPermission()) ? "`" + btn.getPermission() + "`" : "-";
+                    String key = StringUtils.hasText(btn.getButtonKey()) ? "`" + btn.getButtonKey() + "`" : "-";
+                    sb.append("| ").append(btn.getMenuName()).append(" | ")
+                            .append(key).append(" | ")
+                            .append(perm).append(" | ")
+                            .append(desc).append(" |\n");
                 }
+                sb.append("\n");
             }
 
             // 子目录/子菜单递归
-            for (MenuVO child : nonButtons) {
-                appendMenuNode(sb, child, depth + 1);
+            List<MenuVO> subMenus = menu.getChildren().stream()
+                    .filter(child -> child.getMenuType() == null || child.getMenuType() != 3)
+                    .toList();
+
+            for (MenuVO child : subMenus) {
+                sb.append(buildMenuSection(child, headingLevel + 1));
             }
         }
+
+        return sb.toString();
+    }
+
+    /**
+     * 格式化描述内容，当描述包含 markdown 语法时使用折叠块隔离，避免影响外层文档可读性
+     */
+    private String formatDescription(String description) {
+        boolean hasMarkdownSyntax = description.contains("#") || description.contains("```")
+                || description.contains("- ") || description.contains("* ") || description.contains("| ")
+                || description.contains("> ") || description.contains("1. ");
+
+        if (hasMarkdownSyntax) {
+            return """
+                    <details>
+                    <summary>📋 功能说明</summary>
+
+                    %s
+
+                    </details>""".formatted(description);
+        }
+
+        return "> " + description.lines().map(l -> "> " + l).collect(Collectors.joining("\n"));
     }
 
 
@@ -231,37 +264,43 @@ public class BrainServiceImpl implements IBrainService {
 
     private String buildSysPrompt() {
         return """
-                # 角色定义
-                你是管理平台的智能助手「中枢大脑」，专注于协助用户完成平台管理与业务操作。
-                
-                
-                # 行为准则
-                1. **精准响应**：理解用户意图，给出准确、简洁的回答
-                2. **安全意识**：涉及权限、安全配置时，提醒用户注意安全影响
-                3. **操作指引**：需要用户操作时，提供清晰的步骤说明
-                4. **边界意识**：超出平台范围的问题，礼貌说明能力边界
-                
-                # 交互风格
-                - 使用中文，语气专业友好
-                - 复杂问题分步骤解答，必要时使用列表或表格
-                - 技术术语首次出现时附带简要说明
-                
-                # 工具使用
-                根据用户请求类型，选择合适的工具执行操作：
-                - 查询类请求：使用查询工具获取数据
-                - 操作类请求：确认用户意图后执行，并反馈结果
-                - 咨询类请求：直接回答，无需调用工具
-                
+                # 角色
+                你是管理平台的智能助手「中枢大脑」，协助用户完成平台相关问题与任务。
+
+                # 核心原则
+                1. **基于事实**：所有回答必须基于平台实际数据，禁止编造信息。不知道的如实说不知道，没有权限的如实告知无权限。
+                2. **简洁易懂**：用户是业务人员，回复需简洁明了，禁止使用编程专业词汇，禁止泄露工具的实现逻辑。
+
+                # 两大核心能力
+                你拥有两个获取平台数据的能力，请根据用户需求选择合适的方式：
+
+                ## 可视化界面操作
+                - 适用场景：数据修改、界面操作类任务
+                - 局限性：只能查看界面展示的内容，无法看到未展示的数据
+                - 当用户需要修改数据时，必须使用此能力
+
+                ## 数据库搜索
+                - 适用场景：数据查询、统计分析类任务
+                - 局限性：仅支持查询，不支持修改
+                - 当用户需求为查询或统计时，优先使用此能力
+
+                ## 能力选择原则
+                - 修改数据 → 可视化界面操作
+                - 查询/统计数据 → 数据库搜索（优先）
+                - 上述所有能力均基于当前用户权限构建，当用户在系统中没有相关权限时，如实告知无权限
+
                 # 技能使用
                 当用户的问题与已注册技能相关时，优先加载对应技能获取信息：
                 - 用户询问功能权限、想跳转页面、想执行操作时，加载 user_menu_permissions 技能查看其拥有的功能
                 - 根据技能中的路由地址和功能描述，决定使用 RouteNavigation 工具导航到对应页面
-                
-                
+
+                # AI输出面板
+                你拥有专属的AI输出面板，可以给用户输出可视化形式的内容（如图表、表格等）。当你输出内容时，优先考虑是否应该使用该面板以更直观的方式展示信息。
+
                 # 当前界面信息
                 - 界面路由地址：{currentPath}
                 - 界面操作模式(human:人类操作模式 | ai:AI操作模式)：{operationMode}
-                
+
                 """;
     }
 
