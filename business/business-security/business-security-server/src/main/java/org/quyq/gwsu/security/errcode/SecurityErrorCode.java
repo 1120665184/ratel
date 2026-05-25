@@ -35,12 +35,6 @@ public enum SecurityErrorCode implements ReturnCode {
     E04001("所属服务不能为空") ,
     E04002("表名不能为空"),
 
-    E05001("Catalog唯一标识已存在"),
-    E05002("Catalog名称不能为空"),
-    E05003("组件名已存在"),
-    E05004("组件描述不能为空"),
-    E05005("组件属性Schema不能为空"),
-    E05006("激活Catalog失败，不存在ID为{0}的Catalog"),
     ;
 
     private final String msg;

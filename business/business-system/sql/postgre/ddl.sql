@@ -104,6 +104,8 @@ COMMENT ON COLUMN sys_account.delete_time IS '删除时间';
 -- 索引
 CREATE UNIQUE INDEX idx_sys_account_identity ON sys_account(identity_type, identifier) WHERE deleted = FALSE;
 CREATE INDEX idx_sys_account_user ON sys_account(user_id) WHERE deleted = FALSE;
+-- 外键
+ALTER TABLE sys_account add CONSTRAINT account_userid_fk FOREIGN key (user_id) REFERENCES sys_user(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 
 -- =============================================
@@ -166,6 +168,9 @@ COMMENT ON COLUMN sys_dept_parent.parent_id IS '额外父部门ID';
 
 CREATE UNIQUE INDEX idx_sys_dept_parent_unique ON sys_dept_parent(dept_id, parent_id) WHERE deleted = 0;
 CREATE INDEX idx_sys_dept_parent_parent ON sys_dept_parent(parent_id) WHERE deleted = 0;
+-- 外键
+ALTER TABLE sys_dept_parent add CONSTRAINT dept_parent_deptid_fk FOREIGN key (dept_id) REFERENCES sys_dept(id) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE sys_dept_parent add CONSTRAINT dept_parent_parentid_fk FOREIGN key (parent_id) REFERENCES sys_dept(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 
 -- =============================================
@@ -196,3 +201,5 @@ COMMENT ON COLUMN sys_user_dept.is_primary IS '是否主部门';
 CREATE UNIQUE INDEX idx_sys_user_dept_unique ON sys_user_dept(user_id, dept_id) WHERE deleted = 0;
 CREATE INDEX idx_sys_user_dept_dept ON sys_user_dept(dept_id) WHERE deleted = 0;
 CREATE INDEX idx_sys_user_dept_primary ON sys_user_dept(user_id, is_primary) WHERE deleted = 0;
+-- 外键
+ALTER TABLE sys_user_dept add CONSTRAINT user_dept_userid_fk FOREIGN key (user_id) REFERENCES sys_user(id) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -148,6 +148,8 @@ COMMENT ON COLUMN security_role_subject.delete_time IS '删除时间';
 -- 索引
 CREATE UNIQUE INDEX uk_security_role_subject ON security_role_subject (subject_id, role_id);
 CREATE INDEX idx_security_role_subject_id ON security_role_subject (role_id);
+-- 外键
+ALTER TABLE security_role_subject add CONSTRAINT role_subject_fk FOREIGN key (role_id) REFERENCES security_role(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_role_menu
@@ -199,6 +201,9 @@ COMMENT ON COLUMN security_role_menu.delete_time IS '删除时间';
 
 -- 索引
 CREATE INDEX idx_security_role_menu_id ON security_role_menu (menu_id);
+-- 外键
+ALTER TABLE security_role_menu add CONSTRAINT role_menu_role_menu_id_fk FOREIGN key (menu_id) REFERENCES security_menu(id) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE security_role_menu add CONSTRAINT role_menu_roleid_fk FOREIGN key (role_id) REFERENCES security_role(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_abac
@@ -283,6 +288,8 @@ COMMENT ON COLUMN security_abac_permission.delete_time IS '删除时间';
 CREATE INDEX idx_security_abac_permission_abac_id ON security_abac_permission (abac_id);
 CREATE INDEX idx_security_abac_permission_resource_type ON security_abac_permission (resource_type);
 CREATE INDEX idx_security_abac_permission_url_pattern ON security_abac_permission (url_pattern);
+-- 外键
+alter table security_abac_permission add CONSTRAINT abac_permission_fk FOREIGN key (abac_id) REFERENCES security_abac(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_abac_field
@@ -331,6 +338,8 @@ COMMENT ON COLUMN security_abac_field.delete_time IS '删除时间';
 CREATE INDEX idx_security_abac_field_abac_id ON security_abac_field (abac_id);
 CREATE INDEX idx_security_abac_field_resource_type ON security_abac_field (resource_type);
 CREATE INDEX idx_security_abac_field_url_pattern ON security_abac_field (url_pattern);
+-- 外键
+alter table security_abac_field add CONSTRAINT abac_field_fk FOREIGN key (abac_id) REFERENCES security_abac(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_api_resource
@@ -476,6 +485,8 @@ COMMENT ON COLUMN security_data_resource_condition.delete_time IS '删除时间'
 
 -- 索引
 CREATE INDEX idx_security_data_resource_condition_data_resource_id ON security_data_resource_condition (data_resource_id);
+-- 外键
+ALTER TABLE security_data_resource_condition add CONSTRAINT data_resource_condition_fk FOREIGN key (data_resource_id) REFERENCES security_data_resource(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_brain_sessions
@@ -544,6 +555,8 @@ COMMENT ON COLUMN security_role_menu_permission.delete_time IS '删除时间';
 -- 索引
 CREATE INDEX idx_security_role_menu_permission_role_menu_id ON security_role_menu_permission (role_menu_id);
 CREATE INDEX idx_security_role_menu_permission_abac_permission_id ON security_role_menu_permission (abac_permission_id);
+-- 外键
+ALTER TABLE security_role_menu_permission add CONSTRAINT role_menu_permission_fk FOREIGN key (role_menu_id) REFERENCES security_role_menu(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_api_table_model
@@ -589,6 +602,8 @@ CREATE INDEX idx_security_api_table_model_api_id ON security_api_table_model (ap
 CREATE INDEX idx_security_api_table_model_table_name ON security_api_table_model (table_name);
 CREATE INDEX idx_security_api_table_model_module_prefix ON security_api_table_model (module_prefix);
 CREATE INDEX idx_security_api_table_model_module_datasource_table ON security_api_table_model (module_prefix, datasource, table_name);
+-- 外键
+alter table security_api_table_model add CONSTRAINT table_model_fk FOREIGN key (api_id) REFERENCES security_api_resource(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_api_table_model_config
@@ -625,6 +640,8 @@ COMMENT ON COLUMN security_api_table_model_config.delete_time IS '删除时间';
 
 -- 索引
 CREATE INDEX idx_security_api_table_model_config_table_model_id ON security_api_table_model_config (table_model_id);
+-- 外键
+alter table security_api_table_model_config add CONSTRAINT table_model_config_fk FOREIGN key (table_model_id) REFERENCES security_api_table_model(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_role_table_model
@@ -669,6 +686,8 @@ COMMENT ON COLUMN security_role_table_model.delete_time IS '删除时间';
 CREATE INDEX idx_security_role_table_model_role_id ON security_role_table_model (role_id);
 CREATE INDEX idx_security_role_table_model_table_name ON security_role_table_model (table_name);
 CREATE UNIQUE INDEX uk_security_role_table_model ON security_role_table_model (role_id, module_prefix, datasource, table_name);
+-- 外键
+ALTER TABLE security_role_table_model add CONSTRAINT role_table_model_roleid_fk FOREIGN key (role_id) REFERENCES security_role(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_tablemodel_tables
@@ -764,6 +783,8 @@ COMMENT ON COLUMN security_tablemodel_columns.delete_time IS '删除时间';
 
 CREATE UNIQUE INDEX uk_security_tablemodel_columns_table_column ON security_tablemodel_columns (table_id, column_name);
 CREATE INDEX idx_security_tablemodel_columns_table_id ON security_tablemodel_columns (table_id);
+-- 外键
+ALTER TABLE security_tablemodel_columns add CONSTRAINT tablemodel_column_fk FOREIGN key (table_id) REFERENCES security_tablemodel_tables(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 表名：security_tablemodel_foreign_keys
@@ -813,6 +834,8 @@ COMMENT ON COLUMN security_tablemodel_foreign_keys.delete_time IS '删除时间'
 
 CREATE UNIQUE INDEX uk_security_tablemodel_foreign_keys_table_constraint ON security_tablemodel_foreign_keys (table_id, constraint_name);
 CREATE INDEX idx_security_tablemodel_foreign_keys_referenced_table_name ON security_tablemodel_foreign_keys (referenced_table_name);
+-- 外键
+ALTER TABLE security_tablemodel_foreign_keys add CONSTRAINT tablemodel_foreign_fk FOREIGN key (table_id) REFERENCES security_tablemodel_tables(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- =============================================
 -- 变更：security_tablemodel_columns 增加 field_config 字段
