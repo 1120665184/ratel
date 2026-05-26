@@ -14,6 +14,7 @@ import org.quyq.gwsu.security.api.dataresource.dto.DataResourceSaveDTO;
 import org.quyq.gwsu.security.api.dataresource.vo.DataResourceVO;
 import org.quyq.gwsu.security.api.dataresource.vo.StringEnumOptionVO;
 import org.quyq.gwsu.security.dataresource.domain.SecurityDataResource;
+import org.quyq.gwsu.security.dataresource.domain.SecurityDataResourceCondition;
 import org.quyq.gwsu.security.dataresource.service.ISecurityDataResourceService;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +29,7 @@ import java.util.List;
 @Tag(name = "数据资源配置")
 @RestController
 @RequestMapping("data-resource")
-@TableModelPermission({SecurityDataResource.class})
+@TableModelPermission({SecurityDataResource.class , SecurityDataResourceCondition.class})
 @RequiredArgsConstructor
 public class SecurityDataResourceController implements DataResourceClientApi {
 

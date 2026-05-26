@@ -4,6 +4,7 @@ import styles from './index.module.less';
 import type {SysUserVO} from '../../types';
 import type {DeptTreeNode} from '../../../dept/types';
 import {saveOrUpdateUser} from '@/services/user';
+import {encryptPassword} from '@gwsu/core';
 
 interface UserFormProps {
     visible: boolean;
@@ -32,7 +33,11 @@ const UserForm: React.FC<UserFormProps> = ({visible, onClose, onSuccess, treeDat
         try {
             const values = await form.validateFields();
             setLoading(true);
-            await saveOrUpdateUser(values as SysUserVO);
+            const submitData = {
+                ...values,
+                password: values.password ? encryptPassword(values.password) : undefined,
+            };
+            await saveOrUpdateUser(submitData as SysUserVO);
             message.success('创建成功');
             form.resetFields();
             onSuccess();

@@ -322,9 +322,7 @@ public class DatabaseSearchAgent {
         return SubAgentConfig.builder()
                 .toolName("SelectiveSQLAgent")
                 .description("""
-                        数据库自然语言查询技能，当有以下需求时使用此技能：
-                        - 以当前登录用户的权限为基础生成SQL语句（仅支持查询语句）
-                        - 生成SQL并执行返回结果
+                        数据库自然语言查询技能，通过数据库查询用户需求
                         """)
                 .session(agentSession)
                 .forwardEvents(true)

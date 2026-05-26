@@ -241,12 +241,15 @@ public class BrainServiceImpl implements IBrainService {
 
 
     private ReActAgent getAgent(Memory memory, Toolkit toolkit, SkillBox skillBox) {
+        //内容输出子智能体
+        toolkit.registration()
+
+                .subAgent(outputViewAgent::build, outputViewAgent.getSubAgentConfig())
+                .apply();
         //数据库智能查询智能体
         toolkit.registration()
                 //数据库搜索子智能体
                 .subAgent(databaseSearchAgent::build, databaseSearchAgent.getSubAgentConfig())
-                //内容输出子智能体
-                .subAgent(outputViewAgent::build, outputViewAgent.getSubAgentConfig())
                 .apply();
 
         OutputViewEventHandlerHook outputViewEventHandlerHook = new OutputViewEventHandlerHook(objectMapper);
