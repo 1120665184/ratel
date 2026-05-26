@@ -1,8 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 // @ts-ignore
 import {history} from 'umi';
 import {App} from 'antd';
-import InteractiveCat from '../components/InteractiveCat';
 import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo, encryptPassword} from '@gwsu/core';
 import {login, TerminalType} from '../services/login';
 import styles from './login.module.less';
@@ -12,35 +11,6 @@ export default function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
-
-    // 检测输入状态
-    useEffect(() => {
-        return () => {
-            if (typingTimeout) {
-                clearTimeout(typingTimeout);
-            }
-        };
-    }, [typingTimeout]);
-
-    const handleInputChange = (setter: (value: string) => void) => (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        setter(e.target.value);
-        setIsTyping(true);
-
-        // 清除之前的定时器
-        if (typingTimeout) {
-            clearTimeout(typingTimeout);
-        }
-
-        // 1.5秒后停止输入状态
-        const timeout = setTimeout(() => {
-            setIsTyping(false);
-        }, 1500);
-        setTypingTimeout(timeout);
-    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,10 +30,8 @@ export default function Login() {
                 password: encryptPassword(password),
             });
 
-            // 计算 token 过期时间
             const expireTime = Date.now() + loginToken.expires * 1000;
 
-            // 使用 userStore 存储 token 信息
             useUserStore.getState().setTokenInfo({
                 token: loginToken.token,
                 userId: loginToken.userId,
@@ -71,19 +39,15 @@ export default function Login() {
                 expireTime,
             });
 
-            // 获取用户详细信息
             const userInfo = await fetchCurrentUserInfo();
             useUserStore.getState().setUserInfo(userInfo);
 
-            // 显示告警消息（如有）
             if (loginToken.alterMsg) {
                 message.warning(loginToken.alterMsg);
             }
 
-            // 加载菜单数据
             await useMenuStore.getState().loadMenus();
 
-            // 通知主应用登录成功，显示菜单
             emitEvent(EventType.LOGIN_SUCCESS);
 
             message.success('登录成功');
@@ -96,25 +60,44 @@ export default function Login() {
 
     return (
         <div className={styles.container}>
-            <div className={styles.bgPattern}/>
+            {/* 左侧展示区 */}
+            <div className={styles.showcase}>
+                <div className={styles.brandName}>Ratel</div>
 
-            {/* 交互式小猫 */}
-            <div className={styles.catWrapper}>
-                <InteractiveCat isTyping={isTyping} size={180}/>
+                <div className={styles.quoteSection}>
+                    <div className={styles.quoteBar}/>
+                    <div className={styles.quoteContent}>
+                        <div className={styles.chineseText}>
+                            {'载营魄抱一'.split('').map((char, i) => (
+                                <span key={i} className={styles.bounceChar} style={{animationDelay: `${i * 0.15}s`}}>{char}</span>
+                            ))}
+                        </div>
+                        <div className={styles.chineseText}>
+                            {'能无离乎'.split('').map((char, i) => (
+                                <span key={i} className={styles.bounceChar} style={{animationDelay: `${(i + 5) * 0.15}s`}}>{char}</span>
+                            ))}
+                        </div>
+                        <div className={styles.englishText}>
+                            Adhere to the <span className={styles.highlightLetter}>G</span>reat{' '}
+                            <span className={styles.highlightLetter}>W</span>ay, remain{' '}
+                            <span className={styles.highlightLetter}>S</span>ingle-minded and{' '}
+                            <span className={styles.highlightLetter}>U</span>navering
+                        </div>
+                    </div>
+                </div>
+
+                {/* 装饰元素 */}
+                <div className={styles.decoCircle}/>
+                <div className={styles.decoDot1}/>
+                <div className={styles.decoDot2}/>
             </div>
 
-            <div className={styles.card}>
-                <div className={styles.logoSection}>
-                    <div className={styles.logoIcon}>
-                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                            <rect width="48" height="48" rx="12" fill="#1a1a2e"/>
-                            <path d="M14 24L24 14L34 24L24 34L14 24Z" stroke="#e94560" strokeWidth="2" fill="none"/>
-                            <circle cx="24" cy="24" r="4" fill="#e94560"/>
-                        </svg>
-                    </div>
-                    <h1 className={styles.title}>GWSU</h1>
-                    <p className={styles.subtitle}>子系统管理平台</p>
+            {/* 右侧登录区 */}
+            <div className={styles.loginSection}>
+                <div className={styles.logoIcon}>
+                    <div className={styles.diamond}/>
                 </div>
+                <div className={styles.loginTitle}>登 录</div>
 
                 <form onSubmit={handleLogin} className={styles.form}>
                     <div className={styles.inputGroup}>
@@ -122,7 +105,7 @@ export default function Login() {
                         <input
                             type="text"
                             value={username}
-                            onChange={handleInputChange(setUsername)}
+                            onChange={(e) => setUsername(e.target.value)}
                             placeholder="请输入用户名"
                             className={styles.input}
                             required
@@ -134,7 +117,7 @@ export default function Login() {
                         <input
                             type="password"
                             value={password}
-                            onChange={handleInputChange(setPassword)}
+                            onChange={(e) => setPassword(e.target.value)}
                             placeholder="请输入密码"
                             className={styles.input}
                             required

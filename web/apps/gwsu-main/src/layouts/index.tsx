@@ -155,10 +155,10 @@ function MainLayoutContent({
         <div className={styles.headerLeft}>
           <div className={styles.logo}>
             <img
-              src="https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg"
+              src="/favicon.jpg"
               alt="logo"
             />
-            <span style={{ color: currentTheme.colors.text }}>GWSU</span>
+            <span style={{ color: currentTheme.colors.text }}>Ratel</span>
           </div>
           {/* 操作区 Tab 切换 */}
           <div className={styles.headerTabs}>

@@ -4,6 +4,7 @@ import routes from './routes';
 export default defineConfig({
   npmClient: 'pnpm',
   mfsu: false,
+  favicons: ['/favicon.jpg'],
   plugins: ['@umijs/plugins/dist/qiankun'],
   qiankun: {
     master: {
