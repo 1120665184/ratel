@@ -40,12 +40,9 @@ org.quyq:
     model:
       provider: openai
     openai:
-#      api-key: a8d0f33c274435643ca2ea47baac367c:NTBjOGE3OTkzNzJmZGFhNzNmZTRhNmU0
-#      base-url: https://maas-coding-api.cn-huabei-1.xf-yun.com/v2
-#      model-name: astron-code-latest
-      api-key: sk-1IhNkXlU5JiiIZyuaiyxyvFFMp3D4ywMw2Yeexp7ILwE7ogF
-      base-url: http://192.168.101.200:3000/v1
-      model-name: Qwen3.6-35B-A3B
+      api-key: ${AI_API_KEY:sk-1IhNkXlU5JiiIZyuaiyxyvFFMp3D4ywMw2Yeexp7ILwE7ogF}
+      base-url: ${AI_BASE_URL:http://192.168.101.200:3000/v1}
+      model-name: ${AI_MODEL_NAME:Qwen3.6-35B-A3B}
 logging:
   level:
     org.springframework.context.support: ERROR

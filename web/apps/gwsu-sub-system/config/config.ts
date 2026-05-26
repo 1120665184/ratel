@@ -4,6 +4,7 @@ import routes from './routes';
 export default defineConfig({
   npmClient: 'pnpm',
   base: '/sub-system',
+  publicPath: '/sub-system/',
   mountElementId: 'sub-system-root',
   mfsu: false,
   esbuildMinifyIIFE: true,

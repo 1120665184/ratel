@@ -47,9 +47,9 @@ COMMENT ON COLUMN sys_user.delete_op IS '删除人';
 COMMENT ON COLUMN sys_user.delete_time IS '删除时间';
 
 -- 索引
-CREATE UNIQUE INDEX idx_sys_user_username ON sys_user(username) WHERE deleted = FALSE;
-CREATE INDEX idx_sys_user_phone ON sys_user(phone) WHERE deleted = FALSE;
-CREATE INDEX idx_sys_user_email ON sys_user(email) WHERE deleted = FALSE;
+CREATE UNIQUE INDEX idx_sys_user_username ON sys_user(username) WHERE deleted = 0;
+CREATE INDEX idx_sys_user_phone ON sys_user(phone) WHERE deleted = 0;
+CREATE INDEX idx_sys_user_email ON sys_user(email) WHERE deleted = 0;
 CREATE INDEX idx_sys_user_tenant ON sys_user(tenant_id);
 
 
@@ -65,7 +65,7 @@ CREATE TABLE sys_account (
     identifier      VARCHAR(100) NOT NULL,                     -- 登录标识（用户名/手机号/邮箱/OpenID等）
     credential      VARCHAR(500),                              -- 凭证（密码hash/token等）
     status          SMALLINT DEFAULT 1,                        -- 状态：0-禁用 1-正常
-    verified        BOOLEAN DEFAULT FALSE,                     -- 是否已验证
+    verified        INT2 DEFAULT 0,                     -- 是否已验证
     verified_time   TIMESTAMP,                                 -- 验证时间
     bind_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,       -- 绑定时间
     tenant_id       VARCHAR(50),                               -- 租户ID
@@ -102,8 +102,8 @@ COMMENT ON COLUMN sys_account.delete_op IS '删除人';
 COMMENT ON COLUMN sys_account.delete_time IS '删除时间';
 
 -- 索引
-CREATE UNIQUE INDEX idx_sys_account_identity ON sys_account(identity_type, identifier) WHERE deleted = FALSE;
-CREATE INDEX idx_sys_account_user ON sys_account(user_id) WHERE deleted = FALSE;
+CREATE UNIQUE INDEX idx_sys_account_identity ON sys_account(identity_type, identifier) WHERE deleted = 0;
+CREATE INDEX idx_sys_account_user ON sys_account(user_id) WHERE deleted = 0;
 -- 外键
 ALTER TABLE sys_account add CONSTRAINT account_userid_fk FOREIGN key (user_id) REFERENCES sys_user(id) ON DELETE CASCADE ON UPDATE CASCADE;
 

@@ -4,7 +4,7 @@ import routes from './routes';
 export default defineConfig({
   npmClient: 'pnpm',
   base: '/sub-security',
-  mountElementId: 'sub-security-root',
+  publicPath: '/sub-security/',
   plugins: ['@umijs/plugins/dist/qiankun'],
   esbuildMinifyIIFE: true,
   qiankun: {

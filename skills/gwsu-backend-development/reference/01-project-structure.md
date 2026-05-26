@@ -16,20 +16,33 @@ common/                      # 公共基础设施模块
 business/                    # 业务领域模块
 ├── business-xxx/            # 业务模块
 │   ├── business-xxx-api/    # API 模块（接口、VO、DTO）
-│   ├── business-xxx-server/ # 服务模块（实现、控制器）
-│   └── sql/                 # SQL 脚本目录
-│       ├── mysql/           # MySQL 数据库脚本
-│       │   ├── ddl.sql      # 表结构定义
-│       │   └── dml.sql      # 初始化数据
-│       └── postgre/         # PostgreSQL 数据库脚本
-│           ├── ddl.sql      # 表结构定义
-│           └── dml.sql      # 初始化数据
+│   └── business-xxx-server/ # 服务模块（实现、控制器）
 └── application/
     ├── distributed/         # 微服务应用
     │   ├── gwsu-gateway     # API 网关
     │   ├── gwsu-xxx         # 各业务微服务
     │   └── ...
     └── single/gwsu          # 单体应用
+docker/                      # Docker 部署配置
+├── nginx/
+│   └── gwsu.conf            # nginx 配置
+├── initdb/                  # 数据库初始化脚本
+│   ├── mysql/               # MySQL 脚本
+│   │   ├── system_ddl.sql
+│   │   ├── system_dml.sql
+│   │   ├── security_ddl.sql
+│   │   └── security_dml.sql
+│   └── postgre/             # PostgreSQL 脚本
+│       ├── system_ddl.sql
+│       ├── system_dml.sql
+│       ├── security_ddl.sql
+│       └── security_dml.sql
+├── single/                  # 单机版部署
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   ├── entrypoint.sh
+│   └── .env
+└── distributed/             # 分布式版部署（暂不实现）
 ```
 
 ## 1.2 包命名规范
@@ -91,14 +104,6 @@ business-xxx/
 │       └── resources/
 │           └── mapper/{业务名}/            # MyBatis XML
 │               └── XxxMapper.xml
-│
-└── sql/                                 # SQL 脚本目录
-    ├── mysql/                           # MySQL 数据库脚本
-    │   ├── ddl.sql                      # 表结构定义
-    │   └── dml.sql                      # 初始化数据
-    └── postgre/                         # PostgreSQL 数据库脚本
-        ├── ddl.sql                      # 表结构定义
-        └── dml.sql                      # 初始化数据
 ```
 
 ## 1.4 模块与微服务对应关系

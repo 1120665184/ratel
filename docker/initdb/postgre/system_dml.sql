@@ -8,4 +8,4 @@ VALUES ('1', 'admin', '系统管理员', 1, 1, CURRENT_TIMESTAMP);
 
 -- 初始化管理员账号
 INSERT INTO sys_account (id, user_id, identity_type, identifier, credential, status, verified, bind_time)
-VALUES ('1', 1, 'password', 'admin', '$2a$10$YRRHnxMXy/qYoDcc8QuKV.K2E.4AZMFiZN9rqqr41CQMvt8YVFAd.', 1, TRUE, CURRENT_TIMESTAMP);
+VALUES ('1', 1, 'password', 'admin', '$2a$10$2QdERKkWEV15RxjMNRYGiuSowpPtdwPCnpEHqbhiD3Qrt4lyfwhpm', 1, 1, CURRENT_TIMESTAMP);

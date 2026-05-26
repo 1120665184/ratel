@@ -82,17 +82,31 @@ export async function getDeptTree() {
 
 ### 2.4.1 SQL 目录结构
 
-每个业务模块的表结构脚本统一放在 `business-xxx/sql/` 目录下：
+所有业务模块的数据库脚本统一放在 `docker/initdb/` 目录下，按数据库类型分目录，按模块命名文件：
 
 ```
-business-xxx/sql/
-├── mysql/                   # MySQL 数据库脚本
-│   ├── ddl.sql              # 表结构定义（CREATE TABLE）
-│   └── dml.sql              # 初始化数据（INSERT）
-└── postgre/                 # PostgreSQL 数据库脚本
-    ├── ddl.sql              # 表结构定义（CREATE TABLE）
-    └── dml.sql              # 初始化数据（INSERT）
+docker/initdb/
+├── mysql/                           # MySQL 数据库脚本
+│   ├── system_ddl.sql               # 系统模块表结构（CREATE TABLE）
+│   ├── system_dml.sql               # 系统模块初始化数据（INSERT）
+│   ├── security_ddl.sql             # 安全模块表结构
+│   ├── security_dml.sql             # 安全模块初始化数据
+│   └── ...                          # 其他模块
+└── postgre/                         # PostgreSQL 数据库脚本
+    ├── system_ddl.sql
+    ├── system_dml.sql
+    ├── security_ddl.sql
+    ├── security_dml.sql
+    └── ...
 ```
+
+**命名规则**：`{模块前缀}_ddl.sql` / `{模块前缀}_dml.sql`
+
+- 模块前缀与 `BusinessModuleInfoProvider` 中定义的 `prefix` 一致
+- `ddl.sql`：表结构定义（CREATE TABLE、索引等）
+- `dml.sql`：初始化数据（INSERT 等）
+
+**Docker 部署自动初始化**：PostgreSQL 容器首次启动时会自动执行 `docker/initdb/postgre/` 目录下的 `.sql` 文件（通过 `/docker-entrypoint-initdb.d` 机制）。
 
 ### 2.4.2 布尔字段类型规范（重要）
 

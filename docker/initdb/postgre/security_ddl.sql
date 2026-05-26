@@ -19,7 +19,7 @@ CREATE TABLE security_menu
     micro_app   VARCHAR(50)          DEFAULT NULL,
     visible     SMALLINT    NOT NULL DEFAULT 1,
     status      SMALLINT    NOT NULL DEFAULT 1,
-    permission  VARCHAR(100)         DEFAULT NULL,
+    permission  VARCHAR(500)         DEFAULT NULL,
     position    INT                  DEFAULT NULL,
     owner       INT                  DEFAULT NULL,
     button_key  VARCHAR(100)         DEFAULT NULL,
@@ -837,10 +837,4 @@ CREATE INDEX idx_security_tablemodel_foreign_keys_referenced_table_name ON secur
 -- 外键
 ALTER TABLE security_tablemodel_foreign_keys add CONSTRAINT tablemodel_foreign_fk FOREIGN key (table_id) REFERENCES security_tablemodel_tables(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- =============================================
--- 变更：security_tablemodel_columns 增加 field_config 字段
--- 说明：字段权限配置，JSON格式存储 FieldPermission 对象
--- =============================================
-ALTER TABLE security_tablemodel_columns ADD COLUMN field_config TEXT DEFAULT NULL;
-COMMENT ON COLUMN security_tablemodel_columns.field_config IS '字段权限配置JSON，格式为 FieldPermission 对象';
 
