@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Avatar, Card, Descriptions, Tag, Spin, App } from 'antd';
+import { Avatar, Card, Descriptions, Tag, Spin, App, Button } from 'antd';
 import {
   UserOutlined,
   MailOutlined,
@@ -9,11 +9,14 @@ import {
   ManOutlined,
   WomanOutlined,
   StarOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
-import { useUserStore } from '@gwsu/core';
+import { useUserStore, AuthGate } from '@gwsu/core';
 import { getCurrentUserRoles } from '@/services/profile';
 import type { RoleVO } from '@/services/profile';
 import { GENDER_MAP, USER_STATUS_MAP } from '@/pages/user/types';
+import { PERM_CHANGE_PASSWORD } from './permissionConstants';
+import ChangePasswordModal from './components/ChangePasswordModal';
 import styles from './index.module.less';
 
 /** 获取用户名首字母 */
@@ -28,6 +31,7 @@ const ProfilePage: React.FC = () => {
 
   const [roles, setRoles] = useState<RoleVO[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
 
   const displayName = userInfo?.nickname || userInfo?.username || '用户';
   const avatarUrl = userInfo?.avatar;
@@ -92,7 +96,22 @@ const ProfilePage: React.FC = () => {
       </Card>
 
       {/* 基本信息 */}
-      <Card title="基本信息" className={styles.sectionCard} variant="borderless">
+      <Card
+        title="基本信息"
+        className={styles.sectionCard}
+        variant="borderless"
+        extra={
+          <AuthGate buttonKey={PERM_CHANGE_PASSWORD}>
+            <Button
+              type="link"
+              icon={<LockOutlined />}
+              onClick={() => setPasswordModalVisible(true)}
+            >
+              修改密码
+            </Button>
+          </AuthGate>
+        }
+      >
         <Descriptions column={{ xs: 1, sm: 2 }} colon={false} labelStyle={{ color: 'var(--text-secondary-color)' }}>
           <Descriptions.Item label="用户名">{userInfo?.username ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="昵称">{userInfo?.nickname ?? '-'}</Descriptions.Item>
@@ -213,6 +232,13 @@ const ProfilePage: React.FC = () => {
           )}
         </Spin>
       </Card>
+
+      {/* 修改密码弹窗 */}
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+        onSuccess={() => setPasswordModalVisible(false)}
+      />
     </div>
   );
 };

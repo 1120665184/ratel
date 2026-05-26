@@ -209,8 +209,9 @@ const RolePage: React.FC = () => {
    * @param record
    */
   const getButtonItem = (record: RoleInfo): MenuProps["items"] => {
+    const isCommon = record.roleCode === "common";
     let buttons = [];
-    if(canEdit){
+    if(canEdit && !isCommon){
       buttons.push({
         key: "edit",
         icon: <EditOutlined />,
@@ -218,7 +219,7 @@ const RolePage: React.FC = () => {
         onClick: () => handleEdit(record),
       });
     }
-    if(canAssociationUser){
+    if(canAssociationUser && !isCommon){
       buttons.push({
         key: "relatedUser",
         icon: <UserOutlined />,

@@ -14,6 +14,7 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.subagent.SubAgentConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.AgentException;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.Subject;
@@ -150,7 +151,7 @@ public class DatabaseSearchAgent {
         // 获取所有表模型
         List<TableModelTableVO> allTables = tableModelTableService.listAll();
         if (CollectionUtils.isEmpty(allTables)) {
-            return "# 数据库查询技能\n\n当前无可用的表模型信息。";
+           throw new AgentException("表模型未初始化，请联系管理员在'AI表模型管理'中采集所有表模型");
         }
 
         // 获取当前用户合并后的表模型权限

@@ -8,6 +8,7 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
+import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
@@ -29,10 +30,8 @@ import org.quyq.gwsu.security.role.domain.SecurityRoleSubject;
 import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 角色管理控制器
@@ -65,7 +64,6 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
     }
 
     @Operation(summary = "获取当前登录用户的角色信息")
-    @LoginAllowAccess
     @GetMapping("rolesByCurrUser")
     public R<List<RoleVO>> rolesByIdents() {
         Optional<Subject<Visitor>> subject = securityUtils.getSubject();
@@ -78,17 +76,18 @@ public class SecurityRoleController implements RoleClientApi, IRoleInfoClientApi
     @Override
     public R<UserRoleInfo> getRoleListBySubject(@PathVariable String subjectId) {
         List<RoleVO> roles = roleService.listBySubjectId(subjectId);
-        List<String> roleCodes = roles.stream().map(RoleVO::getRoleCode)
-                .toList();
+        Set<String> roleCodes = roles.stream().map(RoleVO::getRoleCode)
+                .collect(Collectors.toSet());
+        //添加通用角色
+        roleCodes.add(SecurityConstants.Authentication.ROLE_COMMON_FLAG);
 
         DataScope dataScope = roles.stream()
                 .filter(role -> role.getDataScope() != null)   // 忽略 null 值
                 .min(Comparator.comparing(RoleVO::getDataScope))
                 .map(role -> DataScope.of(role.getDataScope()))
-                .orElse(null);
+                .orElse(DataScope.SELF_ONLY);
 
-
-        return R.ok(new UserRoleInfo(dataScope, roleCodes));
+        return R.ok(new UserRoleInfo(dataScope, new ArrayList<>(roleCodes)));
     }
 
     @Operation(summary = "新增或更新角色")

@@ -70,7 +70,7 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
     @Override
     public IPage<RoleVO> pageByCondition(RoleQueryDTO query) {
         LambdaQueryWrapper<SecurityRole> wrapper = buildQueryWrapper(query);
-        wrapper.orderByAsc(SecurityRole::getSort);
+        wrapper.orderByAsc( SecurityRole::getRoleType,SecurityRole::getSort);
 
         Page<SecurityRole> page = new Page<>(query.getPageNum(), query.getPageSize());
         IPage<SecurityRole> rolePage = page(page, wrapper);

@@ -65,6 +65,11 @@ public interface SecurityConstants {
          */
         String ROLE_SUPER_ADMIN_FLAG = "super_admin";
 
+        /**
+         * 通用角色标识，所有用户都默认有该角色
+         */
+        String ROLE_COMMON_FLAG = "common";
+
 
     }
 

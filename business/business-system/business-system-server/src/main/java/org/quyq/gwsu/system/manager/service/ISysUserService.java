@@ -29,4 +29,6 @@ public interface ISysUserService extends IService<SysUser> {
     void removeUsers(List<String> ids);
 
     void resetPassword(String userId, String newPassword);
+
+    void changePassword(String userId, String oldPassword, String newPassword);
 }

@@ -1,19 +1,17 @@
-import React, { useCallback } from 'react';
-import { Input, Button, Tree, Spin, Space, App } from 'antd';
+import React from 'react';
+import { Input, Button, Tree, Spin, Space } from 'antd';
 import type { TreeProps } from 'antd';
 import {
   SearchOutlined,
   PlusOutlined,
   FolderOutlined,
   FileOutlined,
-  HolderOutlined,
 } from '@ant-design/icons';
 import styles from './index.module.less';
 import { useMenuTree } from '../../hooks/useMenuTree';
-import { batchSortMenu } from '../../services/menu';
-import type { EnumOption, MenuTreeNode, MenuSortItem } from '../../types';
-import {AuthGate , useAuth} from '@gwsu/core'
-import { PERM_ADD, PERM_EDIT } from '../../permissionConstants';
+import type { EnumOption, MenuTreeNode } from '../../types';
+import {AuthGate} from '@gwsu/core'
+import { PERM_ADD } from '../../permissionConstants';
 
 interface MenuTreeProps {
   treeData: MenuTreeNode[];
@@ -42,8 +40,6 @@ const MenuTree: React.FC<MenuTreeProps> = ({
   onCreateChild,
   onRefresh,
 }) => {
-  const { message } = App.useApp();
-  const canDraggable = useAuth(PERM_EDIT);
   const { searchValue, setSearchValue, expandedKeys, setExpandedKeys, filteredTreeData } =
     useMenuTree(treeData);
 
@@ -52,7 +48,6 @@ const MenuTree: React.FC<MenuTreeProps> = ({
       key: node.id,
       title: (
         <div className={styles.treeNode}>
-          <HolderOutlined className={styles.dragHandle} />
           <span className={styles.nodeIcon}>
             {node.menuType === 1 ? <FolderOutlined /> : <FileOutlined />}
           </span>
@@ -98,58 +93,6 @@ const MenuTree: React.FC<MenuTreeProps> = ({
     }
   };
 
-  /** 拖拽排序处理 */
-  const handleDrop: TreeProps['onDrop'] = useCallback(
-    async (info:any) => {
-      const dragNodeId = info.dragNode.key as string;
-      const dropNodeId = info.node.key as string;
-      const { dropToGap, dropPosition } = info;
-
-      // 构建排序数据
-      const sortItems: MenuSortItem[] = [];
-
-      if (dropToGap) {
-        // 拖到目标节点同级（上方或下方）
-        // 需要找到目标节点的父级
-        const findParentId = (nodes: MenuTreeNode[], targetId: string): string => {
-          for (const node of nodes) {
-            if (node.children) {
-              for (const child of node.children) {
-                if (child.id === targetId) return node.id;
-              }
-              const found = findParentId(node.children, targetId);
-              if (found) return found;
-            }
-          }
-          return '0';
-        };
-
-        const parentId = findParentId(treeData, dropNodeId);
-        sortItems.push({
-          id: dragNodeId,
-          parentId,
-          sort: dropPosition,
-        });
-      } else {
-        // 拖入目标节点内部（成为子节点）
-        sortItems.push({
-          id: dragNodeId,
-          parentId: dropNodeId,
-          sort: 0,
-        });
-      }
-
-      try {
-        await batchSortMenu(sortItems);
-        message.success('排序已更新');
-        onRefresh();
-      } catch {
-        // request 层已自动提示
-      }
-    },
-    [treeData, onRefresh],
-  );
-
   return (
     <div className={styles.menuTreePanel}>
       <div className={styles.header}>
@@ -188,14 +131,12 @@ const MenuTree: React.FC<MenuTreeProps> = ({
         <div className={styles.treeWrapper}>
           <Tree
             showLine
-            draggable={canDraggable}
             blockNode
             treeData={convertToTreeData(filteredTreeData)}
             selectedKeys={selectedKey ? [selectedKey] : []}
             expandedKeys={expandedKeys}
             onExpand={setExpandedKeys}
             onSelect={handleSelect}
-            onDrop={handleDrop}
           />
         </div>
       </Spin>

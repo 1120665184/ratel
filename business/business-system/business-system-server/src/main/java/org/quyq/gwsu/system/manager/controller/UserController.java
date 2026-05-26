@@ -5,10 +5,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.core.exception.BusinessException;
+import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
+import org.quyq.gwsu.system.api.manager.dto.ChangePasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.ResetPasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
@@ -30,7 +34,7 @@ import java.util.List;
 @RestController
 @RequestMapping("manager")
 @Tag(name = "用户管理")
-@TableModelPermission({SysUser.class , SysAccount.class})
+@TableModelPermission({SysUser.class, SysAccount.class})
 @RequiredArgsConstructor
 public class UserController {
 
@@ -102,6 +106,20 @@ public class UserController {
     public R<Void> resetPassword(@PathVariable String id, @RequestBody ResetPasswordDTO dto) {
         AssertUtils.hasText(dto.getNewPassword(), SystemErrorCode.E02009);
         userService.resetPassword(id, dto.getNewPassword());
+        return R.ok();
+    }
+
+    @PutMapping("/password")
+    @TableModelPermission
+    @Operation(summary = "修改当前用户密码")
+    public R<Void> changePassword(@RequestBody ChangePasswordDTO dto) {
+        AssertUtils.hasText(dto.getOldPassword(), SystemErrorCode.E02010);
+        AssertUtils.hasText(dto.getNewPassword(), SystemErrorCode.E02009);
+
+        String userId = securityUtils.userInfo()
+                .map(UserInfo::getUserId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.E03001));
+        userService.changePassword(userId, dto.getOldPassword(), dto.getNewPassword());
         return R.ok();
     }
 }

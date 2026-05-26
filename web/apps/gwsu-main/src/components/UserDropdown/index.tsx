@@ -1,6 +1,7 @@
-import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
+import { LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { App, Avatar, Dropdown, Tooltip } from 'antd';
-import { useUserStore, useMenuStore } from '@gwsu/core';
+import { useUserStore, useMenuStore, MenuPosition, getIconComponent } from '@gwsu/core';
+import type { MenuItem } from '@gwsu/core';
 import { history } from 'umi';
 import { logout } from '@/services/auth';
 import styles from './index.module.less';
@@ -11,14 +12,28 @@ function getInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
 
+/**
+ * 从菜单树中提取 position=HEADER 的顶级菜单项
+ * 只取 menuType !== 3 且 visible 的菜单，按 sort 排序
+ */
+function extractHeaderMenus(menus: MenuItem[]): MenuItem[] {
+  return menus
+    .filter((m) => m.menuType !== 3 && m.visible && m.position === MenuPosition.HEADER)
+    .sort((a, b) => a.sort - b.sort);
+}
+
 export default function UserDropdown() {
   const userInfo = useUserStore((s) => s.userInfo);
+  const menus = useMenuStore((s) => s.menus);
   const { message, modal } = App.useApp();
 
   const displayName = userInfo?.nickname || userInfo?.username || '用户';
   const email = userInfo?.email;
   const avatarUrl = userInfo?.avatar;
   const initial = getInitial(displayName);
+
+  // 提取 position=2 (HEADER) 的菜单项
+  const headerMenus = extractHeaderMenus(menus);
 
   // 退出登录
   const handleLogout = () => {
@@ -42,9 +57,9 @@ export default function UserDropdown() {
     });
   };
 
-  // 个人信息
-  const handleProfile = () => {
-    history.push('/sub-system/profile');
+  // 菜单项点击
+  const handleMenuClick = (menu: MenuItem) => {
+    history.push(menu.path);
   };
 
   // 下拉面板内容
@@ -80,11 +95,23 @@ export default function UserDropdown() {
         </Tooltip>
       </div>
 
-      {/* 菜单项 */}
-      <div className={styles.menuItem} onClick={handleProfile}>
-        <UserOutlined className={styles.menuItemIcon} />
-        <span>个人信息</span>
-      </div>
+      {/* 动态菜单项：position=2 的路由 */}
+      {headerMenus.map((menu) => (
+        <div
+          key={menu.id}
+          className={styles.menuItem}
+          onClick={() => handleMenuClick(menu)}
+        >
+          {getIconComponent(menu.icon) ? (
+            <span className={styles.menuItemIcon}>{getIconComponent(menu.icon)}</span>
+          ) : (
+            <span className={styles.menuItemDot} />
+          )}
+          <span>{menu.menuName}</span>
+        </div>
+      ))}
+
+      {/* 退出登录（固定） */}
       <div
         className={`${styles.menuItem} ${styles.dangerItem}`}
         onClick={handleLogout}

@@ -224,4 +224,20 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         account.setCredential(BCrypt.hashpw(newPassword, BCrypt.gensalt()));
         accountMapper.updateById(account);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changePassword(String userId, String oldPassword, String newPassword) {
+        SysAccount account = accountMapper.selectOne(new LambdaQueryWrapper<SysAccount>()
+                .eq(SysAccount::getUserId, userId)
+                .eq(SysAccount::getIdentityType, AuthenticationConstants.LoginType.PASSWORD));
+        if (account == null) {
+            throw new BusinessException(SystemErrorCode.E02008);
+        }
+        if (!BCrypt.checkpw(oldPassword, account.getCredential())) {
+            throw new BusinessException(SystemErrorCode.E02011);
+        }
+        account.setCredential(BCrypt.hashpw(newPassword, BCrypt.gensalt()));
+        accountMapper.updateById(account);
+    }
 }
