@@ -13,6 +13,7 @@ import io.agentscope.core.memory.Memory;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.model.ExecutionConfig;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.session.Session;
 import io.agentscope.core.skill.AgentSkill;
@@ -40,6 +41,9 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -263,7 +267,10 @@ public class BrainServiceImpl implements IBrainService {
                 .hook(outputViewEventHandlerHook)
                 .toolkit(toolkit)
                 .skillBox(skillBox)
-                .maxIters(50)
+                .maxIters(100)
+                .toolExecutionConfig(ExecutionConfig.builder()
+                        .timeout(Duration.of(10 , ChronoUnit.MINUTES))
+                        .build())
                 .build();
     }
 

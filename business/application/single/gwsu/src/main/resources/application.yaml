@@ -26,6 +26,10 @@ mybatis-plus:
   type-handlers-package: org.quyq.gwsu.common.database.typehandler
 
 org.quyq:
+  auth:
+    # 登录超时
+    timeout: 18000
+    is-concurrent: true
   security:
     ignore-urls:
       - /system/auth/**
@@ -44,4 +48,5 @@ org.quyq:
       model-name: Qwen3.6-35B-A3B
 logging:
   level:
+    org.springframework.context.support: ERROR
     org.quyq: DEBUG

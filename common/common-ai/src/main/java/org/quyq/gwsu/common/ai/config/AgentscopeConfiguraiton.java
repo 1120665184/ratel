@@ -7,6 +7,7 @@ import io.agentscope.core.memory.InMemoryMemory;
 import io.agentscope.core.memory.Memory;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.core.tool.ToolkitConfig;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.config.properties.AgentProperties;
 import org.quyq.gwsu.common.ai.config.properties.AgentscopeProperties;
@@ -45,7 +46,9 @@ public class AgentscopeConfiguraiton {
     @ConditionalOnMissingBean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public Toolkit agentscopeToolkit() {
-        return new Toolkit();
+        return new Toolkit(ToolkitConfig.builder()
+                .parallel(true)
+                .build());
     }
 
 

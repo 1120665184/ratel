@@ -63,8 +63,8 @@ function buildOption(props: ChartProps): EChartsOption {
   return {
     color: colorPalette,
     tooltip: { trigger: 'axis' },
-    legend: { data: data.series.map((s) => s.name), textStyle: { color: '#6b7280' } },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    legend: { data: data.series.map((s) => s.name), bottom: 0, textStyle: { color: '#6b7280' } },
+    grid: { left: '3%', right: '4%', top: 16, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: data.categories, axisLabel: { color: '#6b7280' } },
     yAxis: { type: 'value', axisLabel: { color: '#6b7280' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
     series: data.series.map((s) => ({

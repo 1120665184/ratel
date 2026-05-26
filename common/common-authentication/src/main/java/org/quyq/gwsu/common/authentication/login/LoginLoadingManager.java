@@ -7,6 +7,8 @@ import org.quyq.gwsu.common.authentication.exception.AuthException;
 import org.quyq.gwsu.common.security.enums.AccountType;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.Ordered;
+import org.springframework.core.PriorityOrdered;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -18,7 +20,7 @@ import java.util.Map;
  * @date 2026/4/8
  * @description 所有的登录类型的参数类型和字符串匹配
  */
-public class LoginLoadingManager implements BeanPostProcessor {
+public class LoginLoadingManager implements BeanPostProcessor , PriorityOrdered {
 
 
     private static final Map<String, Class<? extends AbstractLoginDTO>> LOGIN_SUPPORTS = new HashMap<>();
@@ -98,4 +100,8 @@ public class LoginLoadingManager implements BeanPostProcessor {
         return null;
     }
 
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE;
+    }
 }

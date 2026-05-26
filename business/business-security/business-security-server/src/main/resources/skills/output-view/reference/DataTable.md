@@ -38,30 +38,49 @@
 
 ## 使用示例
 
-基础表格：
+基础表格（行级输出，必须使用此格式）：
 
 ```jsonl
-{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"},{"key":"level","label":"级别"}],"data":[{"time":"05-22 14:30","type":"登录异常","level":"高"},{"time":"05-22 10:15","type":"权限变更","level":"中"}],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"},{"key":"level","label":"级别"}],"data":[],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/t1/props/data/-","value":{"time":"05-22 14:30","type":"登录异常","level":"高"}}
+{"op":"add","path":"/elements/t1/props/data/-","value":{"time":"05-22 10:15","type":"权限变更","level":"中"}}
 ```
 
 含数组字段的表格（methods、paths 等数组需拼接为字符串）：
 
 ```jsonl
-{"op":"add","path":"/elements/t2","value":{"type":"DataTable","props":{"title":"模块接口清单","columns":[{"key":"module","label":"模块"},{"key":"count","label":"接口数"},{"key":"methods","label":"请求方式"},{"key":"paths","label":"路径"}],"data":[{"module":"用户管理","count":9,"methods":"POST, GET, DELETE, PUT","paths":"/manager, /dept/tree, /user-dept"},{"module":"角色管理","count":18,"methods":"GET, POST, DELETE, PUT","paths":"/role/page, /role, /role/tree"}],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/t2","value":{"type":"DataTable","props":{"title":"模块接口清单","columns":[{"key":"module","label":"模块"},{"key":"count","label":"接口数"},{"key":"methods","label":"请求方式"},{"key":"paths","label":"路径"}],"data":[],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/t2/props/data/-","value":{"module":"用户管理","count":9,"methods":"POST, GET, DELETE, PUT","paths":"/manager, /dept/tree, /user-dept"}}
+{"op":"add","path":"/elements/t2/props/data/-","value":{"module":"角色管理","count":18,"methods":"GET, POST, DELETE, PUT","paths":"/role/page, /role, /role/tree"}}
 ```
+
+## ⚠️ 行级输出规则（必读）
+
+DataTable 组件**必须**拆分为多行输出，实现流式渲染：
+
+1. **第一步**：输出 DataTable 元素，`data` 设为空数组 `[]`（前端此时只渲染表头）
+2. **第二步**：逐行追加数据，使用 RFC 6902 的 `add` 操作向数组末尾追加
+3. **追加路径格式**：`/elements/<key>/props/data/-`（`-` 是 RFC 6902 标准中追加到数组末尾的写法）
+
+**禁止**将所有 data 一次性放在 DataTable 元素中输出！
 
 ## 常见错误
 
 ```jsonl
 // ❌ 错误：columns 使用字符串数组
-{"type":"DataTable","props":{"columns":["module","count","methods"],"data":[...]},"children":[]}
+{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"columns":["module","count","methods"],"data":[]},"children":[]}}
 
 // ❌ 错误：columns 中省略 label
-{"type":"DataTable","props":{"columns":[{"key":"module"},{"key":"count"}],"data":[...]},"children":[]}
+{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"columns":[{"key":"module"},{"key":"count"}],"data":[]},"children":[]}}
 
 // ❌ 错误：data 中嵌套数组
-{"type":"DataTable","props":{"columns":[{"key":"module","label":"模块"},{"key":"methods","label":"请求方式"}],"data":[{"module":"用户管理","methods":["POST","GET","DELETE"]}],"children":[]}
+{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"columns":[{"key":"module","label":"模块"},{"key":"methods","label":"请求方式"}],"data":[]},"children":[]}}
+{"op":"add","path":"/elements/t1/props/data/-","value":{"module":"用户管理","methods":["POST","GET","DELETE"]}}
 
-// ✅ 正确：数组拼接为字符串
-{"type":"DataTable","props":{"columns":[{"key":"module","label":"模块"},{"key":"methods","label":"请求方式"}],"data":[{"module":"用户管理","methods":"POST, GET, DELETE"}],"children":[]}
+// ❌ 错误：将所有 data 一次性放在 DataTable 元素中
+{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"}],"data":[{"time":"05-22 14:30","type":"登录异常"},{"time":"05-22 10:15","type":"权限变更"}],"bordered":true,"striped":true},"children":[]}}
+
+// ✅ 正确：data 为空数组，逐行追加，数组拼接为字符串
+{"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"columns":[{"key":"module","label":"模块"},{"key":"methods","label":"请求方式"}],"data":[],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/t1/props/data/-","value":{"module":"用户管理","methods":"POST, GET, DELETE"}}
 ```

@@ -5,6 +5,7 @@ export default defineConfig({
   npmClient: 'pnpm',
   mfsu: false,
   favicons: ['/favicon.jpg'],
+  title: 'Ratel Management',
   plugins: ['@umijs/plugins/dist/qiankun'],
   qiankun: {
     master: {

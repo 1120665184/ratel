@@ -14,7 +14,7 @@ import java.util.Map;
  * @description 三方平台认证信息
  */
 @Data
-@ConfigurationProperties(value = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".login")
+@ConfigurationProperties(value = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".auth.platform")
 public class LoginProperties {
 
     /**

@@ -25,7 +25,9 @@ type: skill
 {"op":"add","path":"/elements/card-3","value":{"type":"StatCard","props":{"title":"待处理","value":"128","trend":"down","changeRate":"-5.2%"},"children":[]}}
 {"op":"add","path":"/elements/section-chart","value":{"type":"Section","props":{"title":"趋势分析","layout":"column"},"children":["chart-1","table-1"]}}
 {"op":"add","path":"/elements/chart-1","value":{"type":"Chart","props":{"chartType":"bar","title":"月度事件趋势","data":{"categories":["1月","2月","3月","4月","5月"],"series":[{"name":"事件数","values":[320,410,380,520,490]}]}},"children":[]}}
-{"op":"add","path":"/elements/table-1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"},{"key":"level","label":"级别"}],"data":[{"time":"05-22 14:30","type":"登录异常","level":"高"},{"time":"05-22 10:15","type":"权限变更","level":"中"}],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/table-1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"},{"key":"level","label":"级别"}],"data":[],"bordered":true,"striped":true},"children":[]}}
+{"op":"add","path":"/elements/table-1/props/data/-","value":{"time":"05-22 14:30","type":"登录异常","level":"高"}}
+{"op":"add","path":"/elements/table-1/props/data/-","value":{"time":"05-22 10:15","type":"权限变更","level":"中"}}
 ```
 
 ## 支持的组件（7个）
@@ -58,11 +60,13 @@ Dashboard（根）
 
 以下是最容易出错的格式问题，输出前务必检查：
 
-1. **Chart.data 必须是 `{ categories: string[], series: [{ name, values }] }` 结构**，禁止使用扁平数组 `[{ module, count }]` 格式
+1. **Chart.data 必须是 `{ categories: string[], series: [{ name, values }] }` 结构**，禁止使用扁平数组 `[{ label, value, color }]` 格式
 2. **Chart 的图表类型字段名必须是 `chartType`**，禁止使用 `type`
 3. **DataTable.columns 必须是 `[{ key, label }]` 对象数组**，禁止使用字符串数组 `["module", "count"]`
 4. **DataTable.data 中的数组值必须拼接为字符串**，如 `"POST, GET, DELETE"` 而非 `["POST", "GET", "DELETE"]`
 5. **StatCard.value 必须是字符串类型**，如 `"1,284"` 而非 `1284`
+6. **禁止编造未定义的 props 字段** — 每个组件只允许使用其文档中定义的字段。Chart 不支持 legend/width/height/area/yAxisLabel，Dashboard 不支持 background，Section 不支持 border/padding
+7. **禁止重复输出** — 每个 patch 操作只输出一次，不要将整个输出重复输出两遍`
 
 ## 规则
 
@@ -80,3 +84,4 @@ Dashboard（根）
 12. **数据硬编码在 props 中** — 不需要 state、$bindState、$state、on、visible、watch、repeat 等交互功能
 13. **统计数据用 StatCard**，趋势用 Chart，明细用 DataTable，提示用 TextBlock，流程用 FlowChart
 14. **严格遵循各组件文档中的 Props 格式** — 禁止使用任何简化或替代格式
+15. **DataTable 必须行级输出** — 先输出 DataTable 元素（data 为空数组 []），然后逐行通过 `{"op":"add","path":"/elements/<key>/props/data/-","value":{...}}` 追加数据行。禁止将所有 data 一次性放在 DataTable 元素中

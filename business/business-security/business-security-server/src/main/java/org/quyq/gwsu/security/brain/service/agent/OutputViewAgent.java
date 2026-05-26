@@ -2,6 +2,7 @@ package org.quyq.gwsu.security.brain.service.agent;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.StreamOptions;
 import io.agentscope.core.memory.Memory;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.session.Session;
@@ -113,6 +114,7 @@ public class OutputViewAgent {
                 - 嵌套的 JSON 树结构（如 {"type":"Dashboard","sections":[...]}）
                 - markdown 代码块（如 ```json ... ```）
                 - 任何 JSON 之外的额外文字说明
+                - 重复输出相同内容（每个 patch 操作只输出一次）
 
                 正确示例：
                 {"op":"add","path":"/root","value":"d1"}
@@ -124,6 +126,12 @@ public class OutputViewAgent {
                 只能使用以下组件：Dashboard、Section、StatCard、Chart、DataTable、TextBlock、FlowChart
                 不要使用任何不在此列表中的组件名。
 
+                # Props 严格规则（极其重要）
+                - 每个组件只能使用其文档中定义的 props 字段，禁止编造任何未定义的字段
+                - Chart 组件的图表类型字段名必须是 chartType（禁止使用 type）
+                - Chart 组件的 data 格式必须是 {"categories": [...], "series": [{"name": "...", "values": [...]}]}（禁止使用 [{label, value}] 格式）
+                - 所有组件都不支持 background、border、padding、width、height、legend、area、yAxisLabel 等未定义字段
+
                 # 布局规则
                 - 必须以 Dashboard 作为根元素
                 - 使用 Section 分组：layout="row" 并排展示，layout="column" 垂直排列
@@ -132,6 +140,20 @@ public class OutputViewAgent {
                 # 完整性规则
                 - 引用子元素前必须先添加该子元素
                 - 如果元素有 children: ['a', 'b']，则元素 a 和 b 必须存在
+
+                # DataTable 行级输出规则（重要）
+                DataTable 组件必须拆分为多行输出，实现流式渲染：
+                1. 先输出 DataTable 元素，data 设为空数组 []（此时前端只渲染表头）
+                2. 然后逐行追加数据，使用 RFC 6902 的 add 操作向数组末尾追加
+                3. 追加路径格式：`/elements/<key>/props/data/-`（`-` 表示追加到数组末尾）
+
+                示例：
+                {"op":"add","path":"/elements/t1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"},{"key":"level","label":"级别"}],"data":[],"bordered":true,"striped":true},"children":[]}}
+                {"op":"add","path":"/elements/t1/props/data/-","value":{"time":"05-22 14:30","type":"登录异常","level":"高"}}
+                {"op":"add","path":"/elements/t1/props/data/-","value":{"time":"05-22 10:15","type":"权限变更","level":"中"}}
+                {"op":"add","path":"/elements/t1/props/data/-","value":{"time":"05-21 09:00","type":"配置修改","level":"低"}}
+
+                禁止将所有 data 一次性放在 DataTable 元素中输出！
                 """;
     }
 

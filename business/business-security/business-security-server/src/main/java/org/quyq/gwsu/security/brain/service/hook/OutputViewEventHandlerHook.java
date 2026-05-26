@@ -51,6 +51,9 @@ public class OutputViewEventHandlerHook implements Hook {
     /** 行缓冲区：累积 LLM 输出直到形成完整行 */
     private final StringBuilder lineBuffer = new StringBuilder();
 
+    /** 上一行发送的 patch，用于去重（防止 LLM 重复输出相同内容） */
+    private String lastSentLine = null;
+
     @Override
     public <T extends HookEvent> Mono<T> onEvent(T event) {
 
@@ -98,9 +101,10 @@ public class OutputViewEventHandlerHook implements Hook {
 
     /**
      * 处理流式 chunk
-     * 累积到行缓冲区，遇到换行符时发送完整的 JSONL Patch 行
+     * 累积到行缓冲区，按 JSON 边界拆分发送完整的 JSONL Patch 行
      */
     private void handleChunk(TextBlock textBlock ,AIRunnerInstanceWrapper sseEmitter){
+        log.info("json:{}" , objectMapper.writeValueAsString(textBlock));
         String text = textBlock.getText();
         if(text == null || text.isEmpty()){
             return;
@@ -108,22 +112,8 @@ public class OutputViewEventHandlerHook implements Hook {
 
         lineBuffer.append(text);
 
-        // 按换行符拆分，发送完整的行
-        String buffer = lineBuffer.toString();
-        int newlineIdx;
-        while((newlineIdx = buffer.indexOf('\n')) >= 0){
-            String line = buffer.substring(0, newlineIdx).trim();
-            buffer = buffer.substring(newlineIdx + 1);
-
-            // 跳过空行和 markdown 代码块标记
-            if(!line.isEmpty() && !line.startsWith("```")){
-                sendAgentOutput(line, sseEmitter);
-            }
-        }
-
-        // 未消耗的部分保留在缓冲区
-        lineBuffer.setLength(0);
-        lineBuffer.append(buffer);
+        // 按 JSON 边界拆分并发送完整的 patch 行
+        flushBuffer(sseEmitter, false);
     }
 
     /**
@@ -137,13 +127,8 @@ public class OutputViewEventHandlerHook implements Hook {
             lineBuffer.append(text);
         }
 
-        // 刷新缓冲区剩余内容
-        String remaining = lineBuffer.toString().trim();
-        lineBuffer.setLength(0);
-
-        if(!remaining.isEmpty() && !remaining.startsWith("```")){
-            sendAgentOutput(remaining, sseEmitter);
-        }
+        // 发送所有剩余内容
+        flushBuffer(sseEmitter, true);
 
         // 发送结束事件
         RunAgentInput input = sseEmitter.input();
@@ -153,9 +138,96 @@ public class OutputViewEventHandlerHook implements Hook {
     }
 
     /**
+     * 刷新缓冲区：按 JSON 花括号边界拆分，逐个发送完整的 JSON Patch
+     *
+     * 不依赖 \n 作为分隔符，而是通过花括号深度计数识别完整的 JSON 对象边界。
+     * 这样可以同时处理：
+     * 1. 正常的 \n 分隔 JSONL
+     * 2. 粘连的 }}{ JSON（无换行分隔）
+     * 3. JSON 字符串值中包含换行符的情况
+     *
+     * 同时跳过 JSON 字符串内部的花括号（避免误判），处理转义字符。
+     *
+     * @param isEnd 是否为输出结束（true 时将不完整的尾部也作为容错发送，false 时保留到缓冲区）
+     */
+    private void flushBuffer(AIRunnerInstanceWrapper sseEmitter, boolean isEnd){
+        String buffer = lineBuffer.toString();
+        lineBuffer.setLength(0);
+
+        int len = buffer.length();
+        int jsonStart = -1;
+        int braceDepth = 0;
+        boolean inString = false;
+        boolean escape = false;
+
+        for(int i = 0; i < len; i++){
+            char c = buffer.charAt(i);
+
+            if(escape){
+                escape = false;
+                continue;
+            }
+
+            if(c == '\\' && inString){
+                escape = true;
+                continue;
+            }
+
+            if(c == '"'){
+                inString = !inString;
+                continue;
+            }
+
+            if(inString){
+                continue;
+            }
+
+            if(c == '{'){
+                if(braceDepth == 0){
+                    jsonStart = i;
+                }
+                braceDepth++;
+            } else if(c == '}'){
+                braceDepth--;
+                if(braceDepth == 0 && jsonStart >= 0){
+                    String json = buffer.substring(jsonStart, i + 1).trim();
+                    if(!json.isEmpty() && !json.startsWith("```")){
+                        sendAgentOutput(json, sseEmitter);
+                    }
+                    jsonStart = -1;
+                }
+            }
+        }
+
+        // 处理剩余内容
+        if(braceDepth > 0 && jsonStart >= 0){
+            // 不完整的 JSON
+            if(isEnd){
+                // 结束模式：容错发送
+                String remaining = buffer.substring(jsonStart).trim();
+                if(!remaining.isEmpty() && !remaining.startsWith("```")){
+                    sendAgentOutput(remaining, sseEmitter);
+                }
+            } else {
+                // 非结束模式：保留到缓冲区等待后续 chunk
+                lineBuffer.append(buffer.substring(jsonStart));
+            }
+        }
+        // braceDepth == 0 且 jsonStart < 0：所有 JSON 已闭合，无剩余内容需保留
+    }
+
+    /**
      * 发送单行完整的 JSONL Patch
+     * 跳过与上一行相同的 patch（防止 LLM 重复输出）
      */
     private void sendAgentOutput(String line, AIRunnerInstanceWrapper sseEmitter){
+        // 去重：跳过与上一行完全相同的 patch
+        if(line.equals(lastSentLine)){
+            log.debug("Skipping duplicate patch: {}", line);
+            return;
+        }
+        lastSentLine = line;
+
         RunAgentInput input = sseEmitter.input();
         AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(input.getThreadId(), input.getRunId(),
                 "AGENT_OUTPUT", TextBlock.builder().text(line).build());

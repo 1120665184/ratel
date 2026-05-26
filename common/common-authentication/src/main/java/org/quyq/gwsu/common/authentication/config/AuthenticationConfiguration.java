@@ -51,7 +51,7 @@ public class AuthenticationConfiguration {
     }
 
     @Bean
-    public LoginLoadingManager loginLoadingManager() {
+    public static LoginLoadingManager loginLoadingManager() {
         return new LoginLoadingManager();
     }
 
