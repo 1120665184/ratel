@@ -76,8 +76,8 @@ export const catalog = defineCatalog(schema, {
           type: z.enum(['start', 'process', 'decision', 'end']).describe('节点类型'),
         })).describe('流程节点列表'),
         edges: z.array(z.object({
-          source: z.string().describe('起始节点 id'),
-          target: z.string().describe('目标节点 id'),
+          from: z.string().describe('起始节点 id'),
+          to: z.string().describe('目标节点 id'),
           label: z.string().nullable().describe('边标签'),
         })).describe('节点连线列表'),
       }),

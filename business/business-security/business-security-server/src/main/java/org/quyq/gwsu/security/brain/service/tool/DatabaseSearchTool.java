@@ -14,10 +14,12 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
 import org.apache.commons.lang3.StringUtils;
 import org.quyq.gwsu.common.ai.AgentException;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
+import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.Subject;
@@ -34,8 +36,10 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClient;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * 数据库查询工具集
@@ -62,92 +66,89 @@ public class DatabaseSearchTool {
      * 获取指定表的详细内容（字段信息），包含当前登录用户对该字段的权限
      *
      * @param tableName  表名
-     * @param dataSource 数据源
+     * @param ds 数据源
      * @return 表详细信息（含字段权限）
      */
     @Tool(name = "GetTableDetail", description = "获取指定表的详细结构信息，包括字段名、类型、注释及当前用户是否拥有该字段的查询权限。在生成SQL之前必须先调用此工具了解表结构。")
-    public String getTableDetail(
+    public Mono<String> getTableDetail(
             @ToolParam(name = "modelPrefix", description = "所属模块/服务") String modelPrefix,
             @ToolParam(name = "tableName", description = "表名") String tableName,
-            @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String dataSource,
+            @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds,
             DatabaseSearchAgent databaseSearchAgent) {
-
-        if (dataSource == null || dataSource.isBlank()) {
-            dataSource = "master";
-        }
-
-
-        // 获取表信息
-        TableModelDetailVO tableDetail = tableModelTableService.getTableDetail(modelPrefix, dataSource, tableName);
-        if (tableDetail == null) {
-            return "未找到表 [" + tableName + "]（所属服务：" + modelPrefix + " ,数据源: " + dataSource + "），请检查表名和数据源是否正确。";
-        }
-
-        TableModelTableVO tableVO = tableDetail.getTable();
-        // 获取字段列表
-        List<TableModelColumnVO> columns = tableDetail.getColumns();
-
-        // 获取外键列表
-        List<TableModelForeignKeyVO> foreignKeys = tableDetail.getForeignKeys();
-
-        // 获取当前用户的字段权限
-        Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(databaseSearchAgent,
-                modelPrefix, dataSource, tableName);
-
-        // 构建结果
-        StringBuilder sb = new StringBuilder();
-        sb.append("## 表: ").append(tableName).append("（数据源: ").append(dataSource).append("）\n");
-        sb.append("表注释: ").append(tableVO.getTableComment() != null ? tableVO.getTableComment() : "无").append("\n");
-        sb.append("所属服务: ").append(tableVO.getModulePrefix()).append("\n\n");
-
-        sb.append("### 字段列表\n");
-        sb.append("| 字段名 | 类型 | 长度 | 可空 | 主键 | 注释 | 用户是否有权限 |\n");
-        sb.append("|--------|------|------|------|------|------|------------|\n");
-
-        for (TableModelColumnVO column : columns) {
-            FieldPermission perm = fieldPermissions.get(column.getColumnName());
-            boolean hasPermission = perm == null || perm.show();
-
-            sb.append("| ").append(column.getColumnName())
-                    .append(" | ").append(column.getColumnType() != null ? column.getColumnType() : "-")
-                    .append(" | ").append(column.getColumnLength() != null ? column.getColumnLength() : "-")
-                    .append(" | ").append(column.getIsNullable() != null && column.getIsNullable() ? "是" : "否")
-                    .append(" | ").append(column.getIsPrimaryKey() != null && column.getIsPrimaryKey() ? "是" : "否")
-                    .append(" | ").append(column.getColumnComment() != null ? column.getColumnComment() : "-")
-                    .append(" | ").append(hasPermission ? "是" : "否")
-                    .append(" |\n");
-        }
-
-        // 外键信息
-        if (!CollectionUtils.isEmpty(foreignKeys)) {
-            sb.append("\n### 外键约束\n");
-            for (TableModelForeignKeyVO fk : foreignKeys) {
-                sb.append("- 约束名: ").append(fk.getConstraintName() != null ? fk.getConstraintName() : "-")
-                        .append(", 字段: ").append(fk.getColumnName() != null ? fk.getColumnName() : "-")
-                        .append(" -> ").append(fk.getReferencedTableName() != null ? fk.getReferencedTableName() : "-")
-                        .append(".").append(fk.getReferencedColumnName() != null ? fk.getReferencedColumnName() : "-");
-                if (StringUtils.isNotBlank(fk.getRemark())) {
-                    sb.append("  注释：").append(fk.getRemark());
-                }
-                sb.append("\n");
+        String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
+        return monoHandler(() ->{
+            // 获取表信息
+            TableModelDetailVO tableDetail = tableModelTableService.getTableDetail(modelPrefix, dataSource, tableName);
+            if (tableDetail == null) {
+                return Mono.just("未找到表 [" + tableName + "]（所属服务：" + modelPrefix + " ,数据源: " + dataSource + "），请检查表名和数据源是否正确。");
             }
-        }
 
-        // 权限提示
-        List<String> deniedFields = columns.stream()
-                .map(TableModelColumnVO::getColumnName)
-                .filter(fieldName -> {
-                    FieldPermission perm = fieldPermissions.get(fieldName);
-                    return perm != null && !perm.show();
-                })
-                .toList();
+            TableModelTableVO tableVO = tableDetail.getTable();
+            // 获取字段列表
+            List<TableModelColumnVO> columns = tableDetail.getColumns();
 
-        if (!deniedFields.isEmpty()) {
-            sb.append("\n> **权限提示**: 以下字段当前用户无查询权限: ").append(String.join(", ", deniedFields))
-                    .append("。生成SQL时请勿包含这些字段。\n");
-        }
+            // 获取外键列表
+            List<TableModelForeignKeyVO> foreignKeys = tableDetail.getForeignKeys();
 
-        return sb.toString();
+            // 获取当前用户的字段权限
+            Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(databaseSearchAgent,
+                    modelPrefix, dataSource, tableName);
+
+            // 构建结果
+            StringBuilder sb = new StringBuilder();
+            sb.append("## 表: ").append(tableName).append("（数据源: ").append(dataSource).append("）\n");
+            sb.append("表注释: ").append(tableVO.getTableComment() != null ? tableVO.getTableComment() : "无").append("\n");
+            sb.append("所属服务: ").append(tableVO.getModulePrefix()).append("\n\n");
+
+            sb.append("### 字段列表\n");
+            sb.append("| 字段名 | 类型 | 长度 | 可空 | 主键 | 注释 | 用户是否有权限 |\n");
+            sb.append("|--------|------|------|------|------|------|------------|\n");
+
+            for (TableModelColumnVO column : columns) {
+                FieldPermission perm = fieldPermissions.get(column.getColumnName());
+                boolean hasPermission = perm == null || perm.show();
+
+                sb.append("| ").append(column.getColumnName())
+                        .append(" | ").append(column.getColumnType() != null ? column.getColumnType() : "-")
+                        .append(" | ").append(column.getColumnLength() != null ? column.getColumnLength() : "-")
+                        .append(" | ").append(column.getIsNullable() != null && column.getIsNullable() ? "是" : "否")
+                        .append(" | ").append(column.getIsPrimaryKey() != null && column.getIsPrimaryKey() ? "是" : "否")
+                        .append(" | ").append(column.getColumnComment() != null ? column.getColumnComment() : "-")
+                        .append(" | ").append(hasPermission ? "是" : "否")
+                        .append(" |\n");
+            }
+
+            // 外键信息
+            if (!CollectionUtils.isEmpty(foreignKeys)) {
+                sb.append("\n### 外键约束\n");
+                for (TableModelForeignKeyVO fk : foreignKeys) {
+                    sb.append("- 约束名: ").append(fk.getConstraintName() != null ? fk.getConstraintName() : "-")
+                            .append(", 字段: ").append(fk.getColumnName() != null ? fk.getColumnName() : "-")
+                            .append(" -> ").append(fk.getReferencedTableName() != null ? fk.getReferencedTableName() : "-")
+                            .append(".").append(fk.getReferencedColumnName() != null ? fk.getReferencedColumnName() : "-");
+                    if (StringUtils.isNotBlank(fk.getRemark())) {
+                        sb.append("  注释：").append(fk.getRemark());
+                    }
+                    sb.append("\n");
+                }
+            }
+
+            // 权限提示
+            List<String> deniedFields = columns.stream()
+                    .map(TableModelColumnVO::getColumnName)
+                    .filter(fieldName -> {
+                        FieldPermission perm = fieldPermissions.get(fieldName);
+                        return perm != null && !perm.show();
+                    })
+                    .toList();
+
+            if (!deniedFields.isEmpty()) {
+                sb.append("\n> **权限提示**: 以下字段当前用户无查询权限: ").append(String.join(", ", deniedFields))
+                        .append("。生成SQL时请勿包含这些字段。\n");
+            }
+
+            return Mono.just(sb.toString());
+        });
     }
 
 
@@ -155,21 +156,25 @@ public class DatabaseSearchTool {
             返回当前数据源的数据库厂商名称，如 'MySQL', 'Oracle'
             使用场景：生成SQL之前需要先调用该方法，获取对应的数据库厂商名，根据数据库生成适配的SQL
             """)
-    public String getDatabaseVendor(
+    public Mono<String> getDatabaseVendor(
             @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
             @ToolParam(name = "datasource", description = "数据源") String datasource) {
-        if (DeployUtils.isSingle()) {
-            return sqlExecutionService.getDatabaseName(datasource);
-        }
-        RestClient restClient = getRestClient(modulePrefix);
+        return monoHandler(() ->{
+            if (DeployUtils.isSingle()) {
+                return Mono.just(sqlExecutionService.getDatabaseName(datasource));
+            }
+            RestClient restClient = getRestClient(modulePrefix);
 
-        return FeignUtils.data(
-                restClient.get()
-                        .uri(CoreConstants.EndPoint.ENDPOINT_DB_NAME + "?datasource=%s".formatted(datasource))
-                        .retrieve()
-                        .body(new ParameterizedTypeReference<>() {
-                        })
-        );
+            return Mono.just(FeignUtils.data(
+                    restClient.get()
+                            .uri(CoreConstants.EndPoint.ENDPOINT_DB_NAME + "?datasource=%s".formatted(datasource))
+                            .retrieve()
+                            .body(new ParameterizedTypeReference<>() {
+                            })
+            ));
+        });
+
+
 
 
     }
@@ -180,72 +185,71 @@ public class DatabaseSearchTool {
      * 步骤：1. 校验SQL中的表和字段当前用户是否都有权限  2. 追加权限过滤条件  3. 执行SQL
      *
      * @param modulePrefix 所属服务（模块前缀）
-     * @param dataSource   数据源名称
+     * @param ds   数据源名称
      * @param sql          SQL语句（仅限SELECT）
      */
     @Tool(name = "ExecuteSql", description = "执行只读SQL查询（仅限SELECT语句）。会自动校验当前用户对SQL中涉及的表和字段的权限，并自动追加数据权限过滤条件。不同服务/数据源的表无法在同一条SQL中关联查询，请确保SQL中所有表属于同一服务同一数据源。")
-    public String executeSql(
+    public Mono<String> executeSql(
             @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
-            @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String dataSource,
+            @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds,
             @ToolParam(name = "sql", description = "要执行的SELECT SQL语句") String sql,
             DatabaseSearchAgent databaseSearchAgent) {
+        String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
 
-        if (dataSource == null || dataSource.isBlank()) {
-            dataSource = "master";
-        }
+        return monoHandler(() ->{
 
-        Map<String, Map<String, FieldPermission>> userTableModelPermission = databaseSearchAgent.getUserTableModelPermission();
+            Map<String, Map<String, FieldPermission>> userTableModelPermission = databaseSearchAgent.getUserTableModelPermission();
 
-        // 1. 校验SQL是否为SELECT语句
-        String trimmedSql = sql.trim();
-        if (!trimmedSql.toUpperCase().startsWith("SELECT")) {
-            return "错误：仅允许执行SELECT查询语句，禁止执行任何修改操作（INSERT/UPDATE/DELETE等）。";
-        }
-
-        // 2. 校验SQL中涉及的表和字段当前用户是否都有权限（同时解析出 表名->列名 映射供脱敏使用）
-        SqlParseResult parseResult = parseSqlMeta(userTableModelPermission, modulePrefix, dataSource, sql);
-        if (parseResult.error() != null) {
-            return "权限校验失败: " + parseResult.error();
-        }
-
-        // 3. 执行SQL
-        SqlQueryVO result = doExecuteSql(modulePrefix, dataSource, sql);
-        if (Objects.isNull(result)) {
-            return "执行失败";
-        }
-        List<Map<String, Object>> queryResult = result.data();
-        String finSql = result.executionSql();
-
-        List<String> desensitizedFields = Collections.emptyList();
-
-        StringBuilder dataStr = new StringBuilder("查询无数据");
-
-        if (CollUtil.isNotEmpty(queryResult)) {
-            Optional<Subject<Visitor>> subject = securityUtils.getSubject();
-            //超级管理员跳过脱敏阶段
-            if(subject.isEmpty() || !subject.get().isAdmin() ){
-                // 4. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
-                desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.resultColumnMap());
+            // 1. 校验SQL是否为SELECT语句
+            String trimmedSql = sql.trim();
+            if (!trimmedSql.toUpperCase().startsWith("SELECT")) {
+                return Mono.just("错误：仅允许执行SELECT查询语句，禁止执行任何修改操作（INSERT/UPDATE/DELETE等）。");
             }
 
+            // 2. 校验SQL中涉及的表和字段当前用户是否都有权限（同时解析出 表名->列名 映射供脱敏使用）
+            SqlParseResult parseResult = parseSqlMeta(userTableModelPermission, modulePrefix, dataSource, sql);
+            if (parseResult.error() != null) {
+                return Mono.just("权限校验失败: " + parseResult.error());
+            }
 
-            dataStr = new StringBuilder();
-            // 表头
-            List<String> headers = new ArrayList<>(queryResult.getFirst().keySet());
-            dataStr.append("| ").append(String.join(" | ", headers)).append(" |\n");
-            dataStr.append("| ").append(Collections.nCopies(headers.size(), "---").stream().reduce((a, b) -> a + " | " + b).orElse("")).append(" |\n");
-            // 数据行
-            for (Map<String, Object> row : queryResult) {
-                dataStr.append("| ");
-                for (String header : headers) {
-                    Object val = row.get(header);
-                    dataStr.append(val != null ? val.toString() : "NULL").append(" | ");
+            // 3. 执行SQL
+            SqlQueryVO result = doExecuteSql(modulePrefix, dataSource, sql);
+            if (Objects.isNull(result)) {
+                return Mono.just("执行失败");
+            }
+            List<Map<String, Object>> queryResult = result.data();
+            String finSql = result.executionSql();
+
+            List<String> desensitizedFields = Collections.emptyList();
+
+            StringBuilder dataStr = new StringBuilder("查询无数据");
+
+            if (CollUtil.isNotEmpty(queryResult)) {
+                Optional<Subject<Visitor>> subject = securityUtils.getSubject();
+                //超级管理员跳过脱敏阶段
+                if(subject.isEmpty() || !subject.get().isAdmin() ){
+                    // 4. 根据字段脱敏配置对结果进行脱敏处理（基于表名->列名映射精确定位字段所属表）
+                    desensitizedFields = applyDesensitization(queryResult, userTableModelPermission, modulePrefix, dataSource, parseResult.resultColumnMap());
                 }
-                dataStr.append("\n");
-            }
-        }
 
-        return """
+
+                dataStr = new StringBuilder();
+                // 表头
+                List<String> headers = new ArrayList<>(queryResult.getFirst().keySet());
+                dataStr.append("| ").append(String.join(" | ", headers)).append(" |\n");
+                dataStr.append("| ").append(Collections.nCopies(headers.size(), "---").stream().reduce((a, b) -> a + " | " + b).orElse("")).append(" |\n");
+                // 数据行
+                for (Map<String, Object> row : queryResult) {
+                    dataStr.append("| ");
+                    for (String header : headers) {
+                        Object val = row.get(header);
+                        dataStr.append(val != null ? val.toString() : "NULL").append(" | ");
+                    }
+                    dataStr.append("\n");
+                }
+            }
+
+            return Mono.just("""
                 ## SQL执行结果
                 
                 **执行的SQL**:
@@ -258,8 +262,12 @@ public class DatabaseSearchTool {
                 
                 %s
                 """.formatted(finSql, dataStr.toString(),
-                desensitizedFields.isEmpty() ? "" : "> **脱敏提示**: 以下字段因权限配置已做脱敏处理: " + String.join(", ", desensitizedFields)
-        );
+                    desensitizedFields.isEmpty() ? "" : "> **脱敏提示**: 以下字段因权限配置已做脱敏处理: " + String.join(", ", desensitizedFields)
+            ));
+
+        });
+
+
 
     }
 
@@ -812,4 +820,18 @@ public class DatabaseSearchTool {
         String key = modulePrefix + ":" + dataSource + ":" + tableName;
         return mergedPermissions.getOrDefault(key, Map.of());
     }
+
+
+    private <T> Mono<T> monoHandler(Supplier<Mono<T>> supplier) {
+        return Mono.deferContextual(cnx -> {
+            //将当前请求信息放入上下文
+            ServletUtils.LOCAL_HEADERS.set(cnx.get(AIConstants.Param.SERVLET_HEADERS));
+            try {
+                return supplier.get();
+            }finally {
+                ServletUtils.LOCAL_HEADERS.remove();
+            }
+        });
+    }
+
 }

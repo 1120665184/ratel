@@ -27,4 +27,9 @@ public interface AIConstants {
 
     }
 
+    interface Param {
+        String THREAD_ID = "threadId";
+        String SERVLET_HEADERS = "servletHeaders";
+    }
+
 }

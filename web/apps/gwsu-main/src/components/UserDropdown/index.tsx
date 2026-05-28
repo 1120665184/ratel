@@ -124,7 +124,7 @@ export default function UserDropdown() {
 
   return (
     <Dropdown
-      dropdownRender={() => dropdownContent}
+      popupRender={() => dropdownContent}
       placement="bottomRight"
       trigger={['click']}
     >

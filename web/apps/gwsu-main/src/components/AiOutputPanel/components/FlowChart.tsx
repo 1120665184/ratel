@@ -19,8 +19,8 @@ interface FlowNode {
 }
 
 interface FlowEdge {
-  source: string;
-  target: string;
+  from: string;
+  to: string;
   label?: string | null;
 }
 
@@ -69,11 +69,11 @@ function calculateNodePositions(
   const backEdgeSources = new Set<string>();
 
   edges.forEach((edge) => {
-    const sourceIdx = nodeIndexMap.get(edge.source);
-    const targetIdx = nodeIndexMap.get(edge.target);
+    const sourceIdx = nodeIndexMap.get(edge.from);
+    const targetIdx = nodeIndexMap.get(edge.to);
     if (sourceIdx !== undefined && targetIdx !== undefined && targetIdx < sourceIdx) {
-      // 回边：source 向右偏移
-      backEdgeSources.add(edge.source);
+      // 回边：from 向右偏移
+      backEdgeSources.add(edge.from);
     }
   });
 
@@ -154,13 +154,13 @@ function buildFlowOption(props: FlowChartProps): EChartsOption {
       }),
       links: props.edges.map((edge) => {
         const nodeIndexMap = new Map(props.nodes.map((n, i) => [n.id, i]));
-        const sourceIdx = nodeIndexMap.get(edge.source);
-        const targetIdx = nodeIndexMap.get(edge.target);
+        const sourceIdx = nodeIndexMap.get(edge.from);
+        const targetIdx = nodeIndexMap.get(edge.to);
         const isBackEdge = sourceIdx !== undefined && targetIdx !== undefined && targetIdx < sourceIdx;
 
         return {
-          source: edge.source,
-          target: edge.target,
+          source: edge.from,
+          target: edge.to,
           value: edge.label || '',
           lineStyle: {
             curveness: isBackEdge ? 0.3 : 0.1,

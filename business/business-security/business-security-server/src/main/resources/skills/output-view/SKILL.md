@@ -66,12 +66,13 @@ Dashboard（根）
 4. **DataTable.data 中的数组值必须拼接为字符串**，如 `"POST, GET, DELETE"` 而非 `["POST", "GET", "DELETE"]`
 5. **StatCard.value 必须是字符串类型**，如 `"1,284"` 而非 `1284`
 6. **禁止编造未定义的 props 字段** — 每个组件只允许使用其文档中定义的字段。Chart 不支持 legend/width/height/area/yAxisLabel，Dashboard 不支持 background，Section 不支持 border/padding
-7. **禁止重复输出** — 每个 patch 操作只输出一次，不要将整个输出重复输出两遍`
+7. **禁止重复输出** — 每个 patch 操作只输出一次，不要将整个输出重复输出两遍
+8. **FlowChart edges 必须使用 from/to 字段** — 禁止使用 source/target，使用 source/target 会导致连线完全不显示。正确：`{"from":"1","to":"2"}`，错误：`{"source":"1","target":"2"}`
 
 ## 规则
 
 1. **输出纯 JSONL** — 每行一个 JSON Patch 操作，不要输出 markdown 代码块标记
-2. **多个JSON Patch 操作必须使用`\n`换行符号来作为分割标识**
+2. **输出的内容中禁止出现换行符** - 换行符会影响到视图的渲染
 3. **先设置 root** — `{"op":"add","path":"/root","value":"<key>"}`
 4. **然后逐个添加元素** — `{"op":"add","path":"/elements/<key>","value":{"type":"组件名","props":{...},"children":[...]}}`
 5. **只能使用上面列出的 7 个组件**，不要使用任何不存在的组件

@@ -39,6 +39,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
+import reactor.util.context.Context;
 
 import java.io.IOException;
 import java.util.*;
@@ -269,8 +270,6 @@ public abstract class AguiController implements DisposableBean {
         }
 
         RunAgentInput input = request.body();
-        //将线程ID放入请求头
-        ServletUtils.getHeaders().put("thread-id", input.getThreadId());
 
         // 从 params 中获取 agentId（如果有）
         String pathAgentId = null;
@@ -321,6 +320,7 @@ public abstract class AguiController implements DisposableBean {
         SseEmitter emitter = new SseEmitter(sseTimeout);
         String threadId = input.getThreadId();
         String runId = input.getRunId();
+        Map<String, String> headers = ServletUtils.getHeaders();
         executorService.submit(
                 () -> {
                     Disposable subscription;
@@ -356,6 +356,8 @@ public abstract class AguiController implements DisposableBean {
                         // Subscribe to event stream
                         subscription =
                                 result.events()
+                                        .contextWrite(Context.of(AIConstants.Param.THREAD_ID, threadId,
+                                                AIConstants.Param.SERVLET_HEADERS, headers))
                                         .subscribe(
                                                 event -> sendEvent(emitter, event),
                                                 error -> {

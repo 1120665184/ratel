@@ -1,6 +1,7 @@
 package org.quyq.gwsu.common.ai.config;
 
 
+import com.alibaba.ttl.threadpool.TtlExecutors;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.AgentBase;
 import io.agentscope.core.memory.InMemoryMemory;
@@ -23,6 +24,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
+
+import java.util.concurrent.Executors;
 
 /**
  * @author Quyq
