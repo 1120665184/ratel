@@ -1,0 +1,46 @@
+.settingsPanel {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  overflow: hidden;
+}
+
+.settingsTabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  :global(.ant-tabs-nav) {
+    margin-bottom: 16px;
+
+    .ant-tabs-nav-wrap {
+      overflow-x: auto;
+
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: var(--border-color, #d9d9d9);
+        border-radius: 2px;
+      }
+    }
+  }
+
+  :global(.ant-tabs-content-holder) {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  :global(.ant-tabs-content) {
+    height: 100%;
+  }
+
+  :global(.ant-tabs-tabpane) {
+    height: 100%;
+  }
+}
