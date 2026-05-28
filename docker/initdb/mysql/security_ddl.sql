@@ -16,7 +16,6 @@ CREATE TABLE security_menu
     sort        INT        NOT NULL DEFAULT 0      COMMENT '排序号',
     icon        VARCHAR(100)         DEFAULT NULL COMMENT '菜单图标',
     path        VARCHAR(200)         DEFAULT NULL COMMENT '路由路径',
-    micro_app   VARCHAR(50)          DEFAULT NULL COMMENT '子应用名称',
     visible     SMALLINT   NOT NULL DEFAULT 1     COMMENT '是否显示：0-隐藏 1-显示',
     status      SMALLINT   NOT NULL DEFAULT 1     COMMENT '状态：0-禁用 1-正常',
     permission  VARCHAR(100)         DEFAULT NULL COMMENT '权限标识',
@@ -516,3 +515,79 @@ ALTER TABLE security_tablemodel_foreign_keys ADD CONSTRAINT tablemodel_foreign_f
 -- =============================================
 -- 注意：建表时已包含 field_config 字段，此 ALTER 仅作变更记录保留
 -- ALTER TABLE security_tablemodel_columns ADD COLUMN field_config TEXT DEFAULT NULL COMMENT '字段权限配置JSON，格式为 FieldPermission 对象';
+
+-- =============================================
+-- 表名：security_config
+-- 说明：配置表
+-- =============================================
+CREATE TABLE security_config
+(
+    id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    config_key    VARCHAR(100) NOT NULL              COMMENT '配置键',
+    config_name   VARCHAR(100) NOT NULL              COMMENT '配置名称',
+    config_value  TEXT                  DEFAULT NULL COMMENT '配置值，JSON字符串或基本类型值',
+    value_type    SMALLINT     NOT NULL DEFAULT 1    COMMENT '值类型：1-基本类型 2-JSON',
+    config_type   SMALLINT     NOT NULL DEFAULT 2    COMMENT '配置类型：1-系统 2-自定义',
+    description   VARCHAR(500)          DEFAULT NULL COMMENT '描述',
+    module_prefix VARCHAR(50)  NOT NULL DEFAULT 'security' COMMENT '所属模块前缀',
+    tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time   DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0    COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT '配置表';
+
+CREATE UNIQUE INDEX uk_security_config_key ON security_config (config_key, module_prefix);
+CREATE INDEX idx_security_config_type ON security_config (config_type);
+CREATE INDEX idx_security_config_module ON security_config (module_prefix);
+
+-- =============================================
+-- 表名：security_dict
+-- 说明：字典表
+-- =============================================
+CREATE TABLE security_dict
+(
+    id            VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    dict_key      VARCHAR(100) NOT NULL              COMMENT '字典键',
+    dict_name     VARCHAR(100) NOT NULL              COMMENT '字典名称',
+    dict_type     SMALLINT     NOT NULL DEFAULT 2    COMMENT '字典类型：1-系统 2-自定义',
+    description   VARCHAR(500)          DEFAULT NULL COMMENT '描述',
+    module_prefix VARCHAR(50)  NOT NULL DEFAULT 'security' COMMENT '所属模块前缀',
+    tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time   DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0    COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT '字典表';
+
+CREATE UNIQUE INDEX uk_security_dict_key ON security_dict (dict_key, module_prefix);
+CREATE INDEX idx_security_dict_type ON security_dict (dict_type);
+CREATE INDEX idx_security_dict_module ON security_dict (module_prefix);
+
+-- =============================================
+-- 表名：security_dict_value
+-- 说明：字典值表
+-- =============================================
+CREATE TABLE security_dict_value
+(
+    id          VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    dict_id     VARCHAR(24)  NOT NULL             COMMENT '关联字典ID',
+    dict_value  VARCHAR(500) NOT NULL              COMMENT '字典值',
+    sort        INT          NOT NULL DEFAULT 0    COMMENT '排序序号',
+    tenant_id   VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op   VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op   VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted     SMALLINT     NOT NULL DEFAULT 0    COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op   VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT '字典值表';
+
+CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_id);
