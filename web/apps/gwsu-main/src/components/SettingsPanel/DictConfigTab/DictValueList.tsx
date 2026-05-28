@@ -1,282 +1,140 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import {
-  Button,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Space,
-  Popconfirm,
-  List,
-  App,
-  Empty,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-} from '@ant-design/icons';
-import {
-  getDictValues,
-  saveOrUpdateDictValue,
-  deleteDictValues,
-  updateDictValueSort,
-} from '../services/dict';
+import { useState, useEffect, useCallback } from 'react';
+import { Button, Input, Space, Popconfirm, message, Empty } from 'antd';
+import { PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { getDictValues, saveOrUpdateDictValue, deleteDictValues, updateDictValueSort } from '../services/dict';
 import type { DictInfo, DictValueInfo } from '../services/dict';
 import styles from './index.module.less';
 
 interface DictValueListProps {
-  selectedDict: DictInfo | null;
+  dict: DictInfo | null;
 }
 
-const DictValueList: React.FC<DictValueListProps> = ({ selectedDict }) => {
-  const { message } = App.useApp();
-
+const DictValueList: React.FC<DictValueListProps> = ({ dict }) => {
   const [loading, setLoading] = useState(false);
-  const [dataSource, setDataSource] = useState<DictValueInfo[]>([]);
+  const [values, setValues] = useState<DictValueInfo[]>([]);
+  const [newValue, setNewValue] = useState('');
 
-  /** 加载字典值列表 */
-  const fetchDictValues = useCallback(async () => {
-    if (!selectedDict?.id) {
-      setDataSource([]);
+  const fetchValues = useCallback(async () => {
+    if (!dict?.id) {
+      setValues([]);
       return;
     }
     setLoading(true);
     try {
-      const list = await getDictValues(selectedDict.id);
-      setDataSource(list);
+      const result = await getDictValues(dict.id!);
+      setValues(result);
     } catch {
-      // request 层已自动提示
+      // error handled by request util
     } finally {
       setLoading(false);
     }
-  }, [selectedDict?.id]);
+  }, [dict?.id]);
 
   useEffect(() => {
-    fetchDictValues();
-  }, [fetchDictValues]);
+    fetchValues();
+    setNewValue('');
+  }, [dict?.id]);
 
-  // 新增/编辑弹窗
-  const [formModalVisible, setFormModalVisible] = useState(false);
-  const [formModalMode, setFormModalMode] = useState<'create' | 'edit'>('create');
-  const [formModalData, setFormModalData] = useState<DictValueInfo | null>(null);
-  const [form] = Form.useForm();
-  const [formLoading, setFormLoading] = useState(false);
-
-  /** 新增字典值 */
-  const handleCreate = useCallback(() => {
-    setFormModalMode('create');
-    setFormModalData(null);
-    form.resetFields();
-    form.setFieldsValue({
-      sort: dataSource.length + 1,
+  const handleAddValue = async () => {
+    if (!dict?.id || !newValue.trim()) return;
+    const success = await saveOrUpdateDictValue({
+      dictId: dict.id!,
+      dictValue: newValue.trim(),
     });
-    setFormModalVisible(true);
-  }, [form, dataSource.length]);
-
-  /** 编辑字典值 */
-  const handleEdit = useCallback(
-    (record: DictValueInfo) => {
-      setFormModalMode('edit');
-      setFormModalData(record);
-      form.setFieldsValue({
-        dictValue: record.dictValue,
-        sort: record.sort,
-      });
-      setFormModalVisible(true);
-    },
-    [form],
-  );
-
-  /** 保存字典值 */
-  const handleFormOk = async () => {
-    if (!selectedDict?.id) return;
-    try {
-      const values = await form.validateFields();
-      setFormLoading(true);
-      const isEdit = formModalMode === 'edit';
-      const reqData: Partial<DictValueInfo> = {
-        dictId: selectedDict.id,
-        dictValue: values.dictValue,
-        sort: values.sort,
-        id: isEdit ? formModalData?.id : undefined,
-      };
-      await saveOrUpdateDictValue(reqData);
-      message.success(isEdit ? '编辑成功' : '新增成功');
-      setFormModalVisible(false);
-      await fetchDictValues();
-    } catch {
-      // 表单校验失败或请求错误
-    } finally {
-      setFormLoading(false);
+    if (success) {
+      message.success('添加成功');
+      setNewValue('');
+      fetchValues();
     }
   };
 
-  /** 删除字典值 */
-  const handleDelete = useCallback(
-    async (id: string) => {
-      try {
-        await deleteDictValues([id]);
-        message.success('删除成功');
-        await fetchDictValues();
-      } catch {
-        // request 层已自动提示
-      }
-    },
-    [fetchDictValues],
-  );
+  const handleDeleteValue = async (id: string) => {
+    const success = await deleteDictValues([id]);
+    if (success) {
+      message.success('删除成功');
+      fetchValues();
+    }
+  };
 
-  /** 移动排序 */
-  const handleMove = useCallback(
-    async (index: number, direction: 'up' | 'down') => {
-      if (!selectedDict?.id) return;
-      const newList = [...dataSource];
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= newList.length) return;
+  const handleMoveSort = async (index: number, direction: 'up' | 'down') => {
+    if (!dict?.id) return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= values.length) return;
 
-      // 交换位置
-      [newList[index], newList[targetIndex]] = [newList[targetIndex], newList[index]];
-      const ids = newList.map((item) => item.id!);
+    const newValues = [...values];
+    [newValues[index], newValues[newIndex]] = [newValues[newIndex], newValues[index]];
+    const ids = newValues.map((v) => v.id!);
+    const success = await updateDictValueSort(ids);
+    if (success) {
+      fetchValues();
+    }
+  };
 
-      try {
-        await updateDictValueSort(ids);
-        await fetchDictValues();
-      } catch {
-        // request 层已自动提示
-      }
-    },
-    [dataSource, selectedDict?.id, fetchDictValues],
-  );
-
-  if (!selectedDict) {
+  if (!dict) {
     return (
-      <div className={styles.tableWrapper}>
-        <div className={styles.tableHeader}>
-          <span className={styles.tableTitle}>字典值</span>
+      <div className={styles.rightPanel}>
+        <div className={styles.panelHeader}>
+          <span className={styles.panelTitle}>字典值</span>
         </div>
-        <div className={styles.emptyState}>
-          <Empty description="请选择左侧字典" />
+        <div className={styles.panelBody}>
+          <div className={styles.emptyHint}>请从左侧选择字典</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.tableWrapper}>
-      {/* 表头 */}
-      <div className={styles.tableHeader}>
-        <span className={styles.tableTitle}>
-          字典值 - {selectedDict.dictName}
-        </span>
-        <Button
-          type="primary"
-          size="small"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
-          新增值
-        </Button>
+    <div className={styles.rightPanel}>
+      <div className={styles.panelHeader}>
+        <span className={styles.panelTitle}>{dict.dictName} - 字典值</span>
       </div>
-
-      {/* 字典值列表 */}
-      <div className={styles.valueListContainer}>
-        <List<DictValueInfo>
-          loading={loading}
-          dataSource={dataSource}
-          size="small"
-          renderItem={(item, index) => (
-            <List.Item
-              actions={[
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(item)}
-                  key="edit"
-                >
-                  编辑
-                </Button>,
-                <Popconfirm
-                  title="删除确认"
-                  description="确定删除该字典值？"
-                  onConfirm={() => handleDelete(item.id!)}
-                  okText="确定"
-                  cancelText="取消"
-                  key="delete"
-                >
-                  <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-                    删除
-                  </Button>
-                </Popconfirm>,
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color, #f0f0f0)' }}>
+        <Space.Compact style={{ width: '100%' }}>
+          <Input
+            size="small"
+            placeholder="输入新值后添加"
+            value={newValue}
+            onChange={(e) => setNewValue(e.target.value)}
+            onPressEnter={handleAddValue}
+          />
+          <Button size="small" type="primary" icon={<PlusOutlined />} onClick={handleAddValue}>
+            添加
+          </Button>
+        </Space.Compact>
+      </div>
+      <div className={styles.panelBody}>
+        {loading ? (
+          <div className={styles.emptyHint}>加载中...</div>
+        ) : values.length === 0 ? (
+          <Empty description="暂无字典值" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ) : (
+          values.map((item, index) => (
+            <div key={item.id} className={styles.valueItem}>
+              <span className={styles.valueItemSort}>{item.sort}</span>
+              <span className={styles.valueItemText}>{item.dictValue}</span>
+              <div className={styles.valueItemActions}>
                 <Button
                   type="link"
                   size="small"
                   icon={<ArrowUpOutlined />}
                   disabled={index === 0}
-                  onClick={() => handleMove(index, 'up')}
-                  key="up"
-                >
-                  上移
-                </Button>,
+                  onClick={() => handleMoveSort(index, 'up')}
+                />
                 <Button
                   type="link"
                   size="small"
                   icon={<ArrowDownOutlined />}
-                  disabled={index === dataSource.length - 1}
-                  onClick={() => handleMove(index, 'down')}
-                  key="down"
-                >
-                  下移
-                </Button>,
-              ]}
-            >
-              <List.Item.Meta
-                title={
-                  <Space>
-                    <span className={styles.sortBadge}>
-                      #{item.sort}
-                    </span>
-                    <span>{item.dictValue}</span>
-                  </Space>
-                }
-              />
-            </List.Item>
-          )}
-          locale={{ emptyText: '暂无字典值' }}
-        />
+                  disabled={index === values.length - 1}
+                  onClick={() => handleMoveSort(index, 'down')}
+                />
+                <Popconfirm title="确定删除？" onConfirm={() => handleDeleteValue(item.id!)}>
+                  <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+                </Popconfirm>
+              </div>
+            </div>
+          ))
+        )}
       </div>
-
-      {/* 新增/编辑弹窗 */}
-      <Modal
-        title={formModalMode === 'edit' ? '编辑字典值' : '新增字典值'}
-        open={formModalVisible}
-        okText="保存"
-        cancelText="取消"
-        okButtonProps={{ 'data-ai-approval': 'true' }}
-        onOk={handleFormOk}
-        onCancel={() => setFormModalVisible(false)}
-        confirmLoading={formLoading}
-        destroyOnHidden
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="dictValue"
-            label="字典值"
-            rules={[{ required: true, message: '请输入字典值' }]}
-          >
-            <Input placeholder="请输入字典值" />
-          </Form.Item>
-          <Form.Item
-            name="sort"
-            label="排序号"
-            rules={[{ required: true, message: '请输入排序号' }]}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} placeholder="请输入排序号" />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

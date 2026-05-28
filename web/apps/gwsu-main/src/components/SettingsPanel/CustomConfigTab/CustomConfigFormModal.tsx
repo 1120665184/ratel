@@ -1,72 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, App } from 'antd';
+import { useEffect } from 'react';
+import { Modal, Form, Input, Select, message } from 'antd';
 import type { ConfigInfo } from '../services/config';
-
-const { TextArea } = Input;
+import { saveOrUpdateConfig } from '../services/config';
 
 interface CustomConfigFormModalProps {
   visible: boolean;
-  mode: 'create' | 'edit';
-  data: ConfigInfo | null;
-  onSave: (data: Partial<ConfigInfo>) => Promise<boolean>;
+  config: ConfigInfo | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const VALUE_TYPE_OPTIONS = [
-  { label: '基本类型', value: 1 },
-  { label: 'JSON', value: 2 },
-];
-
-const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({
-  visible,
-  mode,
-  data,
-  onSave,
-  onClose,
-  onSuccess,
-}) => {
+const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({ visible, config, onClose, onSuccess }) => {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const { message } = App.useApp();
-  const isEdit = mode === 'edit';
-
-  const valueType = Form.useWatch('valueType', form);
+  const isEdit = !!config?.id;
 
   useEffect(() => {
     if (visible) {
-      if (data) {
+      if (config) {
         form.setFieldsValue({
-          configKey: data.configKey,
-          configName: data.configName,
-          valueType: data.valueType,
-          configValue: data.configValue,
-          description: data.description,
+          configKey: config.configKey,
+          configName: config.configName,
+          configValue: config.configValue,
+          valueType: config.valueType,
+          description: config.description,
         });
       } else {
         form.resetFields();
-        form.setFieldsValue({ valueType: 1, configType: 2 });
       }
     }
-  }, [visible, data, form]);
+    if (!visible) {
+      form.resetFields();
+    }
+  }, [visible, config, form]);
 
-  const handleOk = async () => {
+  const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
-      const reqData: Partial<ConfigInfo> = {
-        ...values,
-        id: isEdit ? data?.id : undefined,
-        configType: 2, // 自定义配置
-      };
-      const success = await onSave(reqData);
+      const success = await saveOrUpdateConfig({
+        id: config?.id,
+        configKey: values.configKey,
+        configName: values.configName,
+        configValue: values.configValue,
+        valueType: values.valueType,
+        configType: 2,
+        description: values.description,
+      });
+
       if (success) {
+        message.success(isEdit ? '更新成功' : '新增成功');
         onSuccess();
+        onClose();
       }
     } catch {
-      // 表单校验失败或请求错误
-    } finally {
-      setLoading(false);
+      // validation failed
     }
   };
 
@@ -74,56 +60,31 @@ const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({
     <Modal
       title={isEdit ? '编辑自定义配置' : '新增自定义配置'}
       open={visible}
-      okText="保存"
-      cancelText="取消"
-      okButtonProps={{ 'data-ai-approval': 'true' }}
-      onOk={handleOk}
+      onOk={handleSave}
       onCancel={onClose}
-      confirmLoading={loading}
-      destroyOnHidden
+      destroyOnClose
+      width={560}
     >
       <Form form={form} layout="vertical">
-        <Form.Item
-          name="configKey"
-          label="配置键"
-          rules={[{ required: true, message: '请输入配置键' }]}
-        >
-          <Input
-            placeholder="请输入配置键，如 custom.setting"
-            disabled={isEdit}
-          />
+        <Form.Item name="configKey" label="配置键" rules={[{ required: true, message: '请输入配置键' }]}>
+          <Input placeholder="请输入配置键" disabled={isEdit} />
         </Form.Item>
-        <Form.Item
-          name="configName"
-          label="配置名称"
-          rules={[{ required: true, message: '请输入配置名称' }]}
-        >
+        <Form.Item name="configName" label="配置名称" rules={[{ required: true, message: '请输入配置名称' }]}>
           <Input placeholder="请输入配置名称" />
         </Form.Item>
-        <Form.Item
-          name="valueType"
-          label="值类型"
-          rules={[{ required: true, message: '请选择值类型' }]}
-        >
-          <Select options={VALUE_TYPE_OPTIONS} placeholder="请选择值类型" />
+        <Form.Item name="valueType" label="值类型" rules={[{ required: true, message: '请选择值类型' }]} initialValue={1}>
+          <Select
+            options={[
+              { label: '基本类型', value: 1 },
+              { label: 'JSON对象', value: 2 },
+            ]}
+          />
         </Form.Item>
-        <Form.Item
-          name="configValue"
-          label="配置值"
-          rules={[{ required: true, message: '请输入配置值' }]}
-        >
-          {valueType === 2 ? (
-            <TextArea
-              rows={6}
-              placeholder="请输入 JSON 格式的配置值"
-              style={{ fontFamily: 'monospace' }}
-            />
-          ) : (
-            <Input placeholder="请输入配置值" />
-          )}
+        <Form.Item name="configValue" label="配置值" rules={[{ required: true, message: '请输入配置值' }]}>
+          <Input.TextArea rows={6} placeholder="请输入配置值" />
         </Form.Item>
         <Form.Item name="description" label="描述">
-          <TextArea rows={3} placeholder="请输入描述" showCount maxLength={256} />
+          <Input.TextArea rows={2} placeholder="请输入描述" />
         </Form.Item>
       </Form>
     </Modal>

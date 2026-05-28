@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import DictKeyList from './DictKeyList';
 import DictValueList from './DictValueList';
 import type { DictInfo } from '../services/dict';
@@ -9,15 +9,8 @@ const DictConfigTab: React.FC = () => {
 
   return (
     <div className={styles.dictConfigTab}>
-      <div className={styles.dictKeyPanel}>
-        <DictKeyList
-          selectedDict={selectedDict}
-          onSelect={setSelectedDict}
-        />
-      </div>
-      <div className={styles.dictValuePanel}>
-        <DictValueList selectedDict={selectedDict} />
-      </div>
+      <DictKeyList onSelect={setSelectedDict} selectedId={selectedDict?.id} />
+      <DictValueList dict={selectedDict} />
     </div>
   );
 };

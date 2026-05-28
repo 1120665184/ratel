@@ -1,391 +1,150 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Space,
-  Popconfirm,
-  App,
-} from 'antd';
-import type { TableProps } from 'antd';
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
-import {
-  getDictPage,
-  saveOrUpdateDict,
-  deleteDicts,
-} from '../services/dict';
+import { useState, useEffect, useCallback } from 'react';
+import { Button, Input, Space, Popconfirm, message, Pagination } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { getDictPage, saveOrUpdateDict, deleteDicts } from '../services/dict';
 import type { DictInfo, DictQuery } from '../services/dict';
+import DictFormModal from './DictFormModal';
 import styles from './index.module.less';
 
-const { TextArea } = Input;
-
 interface DictKeyListProps {
-  selectedDict: DictInfo | null;
-  onSelect: (dict: DictInfo | null) => void;
+  onSelect: (dict: DictInfo) => void;
+  selectedId?: string;
 }
 
-const DictKeyList: React.FC<DictKeyListProps> = ({
-  selectedDict,
-  onSelect,
-}) => {
-  const { message } = App.useApp();
-
+const DictKeyList: React.FC<DictKeyListProps> = ({ onSelect, selectedId }) => {
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<DictInfo[]>([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
+  const [searchKey, setSearchKey] = useState('');
 
-  const queryRef = useRef<DictQuery>({});
-  const initializedRef = useRef(false);
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingDict, setEditingDict] = useState<DictInfo | null>(null);
 
-  // 搜索表单
-  const [searchForm] = Form.useForm<DictQuery>();
-
-  /** 分页查询 */
-  const fetchDictPage = useCallback(
-    async (query?: DictQuery) => {
-      if (query) {
-        queryRef.current = query;
+  const fetchData = useCallback(async (pageNum = currentPage, pSize = pageSize, keyword = searchKey) => {
+    setLoading(true);
+    try {
+      const query: DictQuery = { pageNum, pageSize: pSize };
+      if (keyword) {
+        query.dictKey = keyword;
+        query.dictName = keyword;
       }
-      setLoading(true);
-      try {
-        const params: DictQuery = {
-          ...queryRef.current,
-          pageNum: query?.pageNum ?? currentPage,
-          pageSize: query?.pageSize ?? pageSize,
-        };
-        const page = await getDictPage(params);
-        setDataSource(page?.records ?? []);
-        setTotal(page?.total ?? 0);
-        setCurrentPage(page?.current ?? 1);
-        setPageSize(page?.size ?? 10);
-      } catch {
-        // request 层已自动提示
-      } finally {
-        setLoading(false);
+      const result = await getDictPage(query);
+      if (result) {
+        setDataSource(result.records);
+        setTotal(result.total);
+        setCurrentPage(pageNum);
+        setPageSize(pSize);
       }
-    },
-    [currentPage, pageSize],
-  );
-
-  /** 初始化加载 */
-  const ensureInitialized = useCallback(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      fetchDictPage();
+    } catch {
+      // error handled by request util
+    } finally {
+      setLoading(false);
     }
-  }, [fetchDictPage]);
+  }, [currentPage, pageSize, searchKey]);
 
   useEffect(() => {
-    ensureInitialized();
-  }, [ensureInitialized]);
+    fetchData(1);
+  }, []);
 
-  /** 翻页 */
-  const handlePageChange = useCallback(
-    (page: number, size: number) => {
-      fetchDictPage({ ...queryRef.current, pageNum: page, pageSize: size });
-    },
-    [fetchDictPage],
-  );
+  const handleAdd = () => {
+    setEditingDict(null);
+    setFormVisible(true);
+  };
 
-  /** 搜索 */
-  const handleSearch = useCallback(() => {
-    const values = searchForm.getFieldsValue();
-    fetchDictPage({ ...values, pageNum: 1 });
-  }, [searchForm, fetchDictPage]);
+  const handleEdit = (record: DictInfo, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingDict(record);
+    setFormVisible(true);
+  };
 
-  /** 重置搜索 */
-  const handleReset = useCallback(() => {
-    searchForm.resetFields();
-    fetchDictPage({ pageNum: 1 });
-  }, [searchForm, fetchDictPage]);
-
-  // 新增/编辑弹窗
-  const [formModalVisible, setFormModalVisible] = useState(false);
-  const [formModalMode, setFormModalMode] = useState<'create' | 'edit'>('create');
-  const [formModalData, setFormModalData] = useState<DictInfo | null>(null);
-  const [form] = Form.useForm();
-  const [formLoading, setFormLoading] = useState(false);
-
-  /** 新增 */
-  const handleCreate = useCallback(() => {
-    setFormModalMode('create');
-    setFormModalData(null);
-    form.resetFields();
-    form.setFieldsValue({ dictType: 2 });
-    setFormModalVisible(true);
-  }, [form]);
-
-  /** 编辑 */
-  const handleEdit = useCallback(
-    (record: DictInfo) => {
-      setFormModalMode('edit');
-      setFormModalData(record);
-      form.setFieldsValue({
-        dictKey: record.dictKey,
-        dictName: record.dictName,
-        description: record.description,
-        dictType: record.dictType,
-      });
-      setFormModalVisible(true);
-    },
-    [form],
-  );
-
-  /** 保存字典 */
-  const handleFormOk = async () => {
-    try {
-      const values = await form.validateFields();
-      setFormLoading(true);
-      const isEdit = formModalMode === 'edit';
-      const reqData: Partial<DictInfo> = {
-        ...values,
-        id: isEdit ? formModalData?.id : undefined,
-      };
-      await saveOrUpdateDict(reqData);
-      message.success(isEdit ? '编辑成功' : '新增成功');
-      setFormModalVisible(false);
-      await fetchDictPage();
-    } catch {
-      // 表单校验失败或请求错误
-    } finally {
-      setFormLoading(false);
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const success = await deleteDicts([id]);
+    if (success) {
+      message.success('删除成功');
+      fetchData(currentPage);
+      if (selectedId === id) {
+        onSelect(null as unknown as DictInfo);
+      }
     }
   };
 
-  /** 删除字典 */
-  const handleDelete = useCallback(
-    async (ids: string[]) => {
-      try {
-        await deleteDicts(ids);
-        message.success('删除成功');
-        // 如果删除的是当前选中的字典，清除选中
-        if (selectedDict && ids.includes(selectedDict.id!)) {
-          onSelect(null);
-        }
-        await fetchDictPage();
-      } catch {
-        // request 层已自动提示
-      }
-    },
-    [fetchDictPage, selectedDict, onSelect],
-  );
+  const handleFormSuccess = () => {
+    fetchData(currentPage);
+    setFormVisible(false);
+  };
 
-  // 表格选中行
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
-  /** 批量删除 */
-  const handleBatchDelete = useCallback(async () => {
-    const ids = selectedRowKeys as string[];
-    await handleDelete(ids);
-    setSelectedRowKeys([]);
-  }, [selectedRowKeys, handleDelete]);
-
-  /** 表格列定义 */
-  const columns: TableProps<DictInfo>['columns'] = [
-    {
-      title: '序号',
-      width: 50,
-      align: 'center',
-      render: (_: unknown, __: DictInfo, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: '字典键',
-      dataIndex: 'dictKey',
-      width: 140,
-      render: (val: string) => <code>{val}</code>,
-    },
-    {
-      title: '字典名称',
-      dataIndex: 'dictName',
-      width: 120,
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      ellipsis: true,
-    },
-    {
-      title: '值数量',
-      dataIndex: 'valueCount',
-      width: 70,
-      align: 'center',
-    },
-    {
-      title: '操作',
-      width: 120,
-      fixed: 'right',
-      render: (_: unknown, record: DictInfo) => {
-        const isSystemDict = record.dictType === 1;
-        return (
-          <div className={styles.actionColumn}>
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            >
-              编辑
-            </Button>
-            {!isSystemDict && (
-              <Popconfirm
-                title="删除确认"
-                description={`确定删除字典「${record.dictName}」？`}
-                onConfirm={() => handleDelete([record.id!])}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button type="link" size="small" danger>
-                  删除
-                </Button>
-              </Popconfirm>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
+  const handleSearch = () => {
+    fetchData(1, pageSize, searchKey);
+  };
 
   return (
-    <div className={styles.tableWrapper}>
-      {/* 搜索栏 */}
-      <div className={styles.searchBar}>
-        <Form form={searchForm} layout="inline" component={false}>
-          <Form.Item name="dictName" noStyle>
-            <Input
-              placeholder="字典名称"
-              allowClear
-              className={styles.searchInput}
-              onPressEnter={handleSearch}
-            />
-          </Form.Item>
-        </Form>
+    <div className={styles.leftPanel}>
+      <div className={styles.panelHeader}>
+        <span className={styles.panelTitle}>字典列表</span>
         <Space>
-          <Button
-            type="primary"
-            size="small"
-            icon={<SearchOutlined />}
-            onClick={handleSearch}
-          >
-            查询
-          </Button>
-          <Button size="small" icon={<ReloadOutlined />} onClick={handleReset}>
-            重置
-          </Button>
-        </Space>
-      </div>
-
-      {/* 表头 */}
-      <div className={styles.tableHeader}>
-        <span className={styles.tableTitle}>字典列表</span>
-        <Space>
-          <Button
-            type="primary"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={handleCreate}
-          >
+          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleAdd}>
             新增
           </Button>
-          <Popconfirm
-            title="批量删除"
-            description={`确定删除选中的 ${selectedRowKeys.length} 个字典？`}
-            onConfirm={handleBatchDelete}
-            okText="确定"
-            cancelText="取消"
-            disabled={selectedRowKeys.length === 0}
-          >
-            <Button
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-              disabled={selectedRowKeys.length === 0}
-            >
-              删除
-            </Button>
-          </Popconfirm>
+          <Button size="small" icon={<ReloadOutlined />} onClick={() => fetchData(1)} />
         </Space>
       </div>
-
-      {/* 表格 */}
-      <Table<DictInfo>
-        rowKey="id"
-        rowSelection={{
-          selectedRowKeys,
-          onChange: setSelectedRowKeys,
-        }}
-        columns={columns}
-        dataSource={dataSource}
-        loading={loading}
-        size="small"
-        scroll={{ y: 400 }}
-        pagination={{
-          current: currentPage,
-          pageSize,
-          total,
-          size: 'small',
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (t) => `共 ${t} 条`,
-          onChange: handlePageChange,
-        }}
-        onRow={(record) => ({
-          onClick: () => onSelect(record),
-          className:
-            selectedDict?.id === record.id
-              ? `${styles.dictRow} ${styles.dictRowSelected}`
-              : styles.dictRow,
-        })}
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color, #f0f0f0)' }}>
+        <Input.Search
+          size="small"
+          placeholder="搜索字典"
+          value={searchKey}
+          onChange={(e) => setSearchKey(e.target.value)}
+          onSearch={handleSearch}
+          allowClear
+        />
+      </div>
+      <div className={styles.panelBody}>
+        {loading ? (
+          <div className={styles.emptyHint}>加载中...</div>
+        ) : dataSource.length === 0 ? (
+          <div className={styles.emptyHint}>暂无字典</div>
+        ) : (
+          dataSource.map((item) => (
+            <div
+              key={item.id}
+              className={`${styles.dictItem} ${selectedId === item.id ? styles.active : ''}`}
+              onClick={() => onSelect(item)}
+            >
+              <div className={styles.dictItemInfo}>
+                <div className={styles.dictItemKey}>{item.dictKey}</div>
+                <div className={styles.dictItemName}>{item.dictName}</div>
+              </div>
+              <div className={styles.dictItemActions}>
+                <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => handleEdit(item, e)} />
+                {item.dictType !== 1 && (
+                  <Popconfirm title="确定删除此字典？" onConfirm={(e) => handleDelete(item.id!, e as React.MouseEvent)}>
+                    <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} />
+                  </Popconfirm>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+        <div className={styles.paginationWrap}>
+          <Pagination
+            size="small"
+            current={currentPage}
+            pageSize={pageSize}
+            total={total}
+            showSizeChanger={false}
+            onChange={(page) => fetchData(page)}
+          />
+        </div>
+      </div>
+      <DictFormModal
+        visible={formVisible}
+        dict={editingDict}
+        onClose={() => setFormVisible(false)}
+        onSuccess={handleFormSuccess}
       />
-
-      {/* 新增/编辑弹窗 */}
-      <Modal
-        title={formModalMode === 'edit' ? '编辑字典' : '新增字典'}
-        open={formModalVisible}
-        okText="保存"
-        cancelText="取消"
-        okButtonProps={{ 'data-ai-approval': 'true' }}
-        onOk={handleFormOk}
-        onCancel={() => setFormModalVisible(false)}
-        confirmLoading={formLoading}
-        destroyOnHidden
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="dictKey"
-            label="字典键"
-            rules={[{ required: true, message: '请输入字典键' }]}
-          >
-            <Input
-              placeholder="请输入字典键，如 gender"
-              disabled={formModalMode === 'edit'}
-            />
-          </Form.Item>
-          <Form.Item
-            name="dictName"
-            label="字典名称"
-            rules={[{ required: true, message: '请输入字典名称' }]}
-          >
-            <Input placeholder="请输入字典名称" />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <TextArea rows={3} placeholder="请输入描述" />
-          </Form.Item>
-          <Form.Item name="dictType" label="字典类型" hidden>
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };
