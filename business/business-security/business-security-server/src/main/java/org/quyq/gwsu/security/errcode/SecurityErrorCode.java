@@ -35,6 +35,13 @@ public enum SecurityErrorCode implements ReturnCode {
     E04001("所属服务不能为空") ,
     E04002("表名不能为空"),
 
+    E05001("配置键已存在"),
+    E05002("系统配置不可删除"),
+    E05003("配置不存在"),
+    E05004("字典键已存在"),
+    E05005("系统字典不可删除"),
+    E05006("字典不存在"),
+
     ;
 
     private final String msg;
