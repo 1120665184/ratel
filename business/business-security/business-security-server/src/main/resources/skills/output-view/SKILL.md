@@ -14,8 +14,11 @@ type: skill
 输出 JSONL（每行一个 JSON 对象），使用 RFC 6902 JSON Patch 操作构建 UI 树。
 每行是一个 JSON patch 操作（add、remove、replace）。先输出 /root，然后流式输出 /elements，使 UI 逐步填充。
 
-示例输出（每行是一个独立的 JSON 对象）：
+**所有 JSONL 内容必须使用 \`\`\`jsonl 和 \`\`\` 包裹**，禁止输出裸 JSONL。这样前端解析器能可靠识别视图输出区域。
 
+示例输出（\`\`\`jsonl 和 \`\`\` 是输出的一部分，必须包含）：
+
+```jsonl
 ```jsonl
 {"op":"add","path":"/root","value":"dashboard"}
 {"op":"add","path":"/elements/dashboard","value":{"type":"Dashboard","props":{"title":"安全事件统计","description":"本月安全事件概览"},"children":["section-metrics","section-chart"]}}
@@ -28,6 +31,7 @@ type: skill
 {"op":"add","path":"/elements/table-1","value":{"type":"DataTable","props":{"title":"近期事件","columns":[{"key":"time","label":"时间"},{"key":"type","label":"类型"},{"key":"level","label":"级别"}],"data":[],"bordered":true,"striped":true},"children":[]}}
 {"op":"add","path":"/elements/table-1/props/data/-","value":{"time":"05-22 14:30","type":"登录异常","level":"高"}}
 {"op":"add","path":"/elements/table-1/props/data/-","value":{"time":"05-22 10:15","type":"权限变更","level":"中"}}
+```
 ```
 
 ## 支持的组件（7个）
@@ -68,10 +72,11 @@ Dashboard（根）
 6. **禁止编造未定义的 props 字段** — 每个组件只允许使用其文档中定义的字段。Chart 不支持 legend/width/height/area/yAxisLabel，Dashboard 不支持 background，Section 不支持 border/padding
 7. **禁止重复输出** — 每个 patch 操作只输出一次，不要将整个输出重复输出两遍
 8. **FlowChart edges 必须使用 from/to 字段** — 禁止使用 source/target，使用 source/target 会导致连线完全不显示。正确：`{"from":"1","to":"2"}`，错误：`{"source":"1","target":"2"}`
+9. **必须使用 ```jsonl ``` 包裹输出** — 禁止直接输出裸 JSON 行。正确：以 ```jsonl 开头，JSONL 行放在代码块内，以 ``` 结尾。错误：直接输出 `{"op":"add",...}` 而没有代码块包裹
 
 ## 规则
 
-1. **输出纯 JSONL** — 每行一个 JSON Patch 操作，不要输出 markdown 代码块标记
+1. **必须使用 ```jsonl ``` 代码块包裹** — 输出以 ```jsonl 开头、``` 结尾，禁止输出裸 JSONL（无代码块包裹的 JSON 行）
 2. **输出的内容中禁止出现换行符** - 换行符会影响到视图的渲染
 3. **先设置 root** — `{"op":"add","path":"/root","value":"<key>"}`
 4. **然后逐个添加元素** — `{"op":"add","path":"/elements/<key>","value":{"type":"组件名","props":{...},"children":[...]}}`

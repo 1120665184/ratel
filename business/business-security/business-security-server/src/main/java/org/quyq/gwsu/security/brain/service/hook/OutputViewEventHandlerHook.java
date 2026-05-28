@@ -69,7 +69,6 @@ public class OutputViewEventHandlerHook implements Hook {
 
             if (event instanceof ActingChunkEvent e && !CollectionUtils.isEmpty(e.getChunk().getOutput())) {
                 List<ContentBlock> output = e.getChunk().getOutput();
-                log.info("Acting chunk event: {}", JSONUtil.toJsonStr(output));
                 for (ContentBlock block : output) {
 
                     if (!(block instanceof TextBlock t) || !JSONUtil.isTypeJSON(t.getText())) {
