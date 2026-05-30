@@ -50,6 +50,25 @@ public enum ModelProviderType {
 
             return builder.build();
         }
+
+        @Override
+        protected Model doCreateFromConfig(AssistantConfigDTO config) {
+            AssistantConfigDTO.DashscopeConfigDTO c = config.getDashscope();
+            if (c == null || c.getApiKey() == null || c.getApiKey().isEmpty()) {
+                throw new IllegalStateException("DashScope API Key must be configured");
+            }
+
+            DashScopeChatModel.Builder builder = DashScopeChatModel.builder()
+                    .apiKey(c.getApiKey())
+                    .modelName(c.getModelName())
+                    .stream(c.isStream());
+
+            if (c.isEnableThinking()) {
+                builder.enableThinking(true);
+            }
+
+            return builder.build();
+        }
     },
     OPENAI("openai") {
         @Override
@@ -77,6 +96,28 @@ public enum ModelProviderType {
 
             if (openai.getEndpointPath() != null && !openai.getEndpointPath().isEmpty()) {
                 builder.endpointPath(openai.getEndpointPath());
+            }
+
+            return builder.build();
+        }
+
+        @Override
+        protected Model doCreateFromConfig(AssistantConfigDTO config) {
+            AssistantConfigDTO.OpenaiConfigDTO c = config.getOpenai();
+            if (c == null || c.getApiKey() == null || c.getApiKey().isEmpty()) {
+                throw new IllegalStateException("OpenAI API Key must be configured");
+            }
+
+            OpenAIChatModel.Builder builder = OpenAIChatModel.builder()
+                    .apiKey(c.getApiKey())
+                    .modelName(c.getModelName())
+                    .stream(c.isStream());
+
+            if (c.getBaseUrl() != null && !c.getBaseUrl().isEmpty()) {
+                builder.baseUrl(c.getBaseUrl());
+            }
+            if (c.getEndpointPath() != null && !c.getEndpointPath().isEmpty()) {
+                builder.endpointPath(c.getEndpointPath());
             }
 
             return builder.build();
@@ -111,6 +152,35 @@ public enum ModelProviderType {
 
             return builder.build();
         }
+
+        @Override
+        protected Model doCreateFromConfig(AssistantConfigDTO config) {
+            AssistantConfigDTO.GeminiConfigDTO c = config.getGemini();
+            if (c == null) {
+                throw new IllegalStateException("Gemini config must not be null");
+            }
+            if ((c.getApiKey() == null || c.getApiKey().isEmpty())
+                    && (c.getProject() == null || c.getProject().isEmpty())) {
+                throw new IllegalStateException(
+                        "Either Gemini API Key or GCP Project must be configured");
+            }
+
+            GeminiChatModel.Builder builder = GeminiChatModel.builder()
+                    .modelName(c.getModelName())
+                    .streamEnabled(c.isStream());
+
+            if (c.getApiKey() != null && !c.getApiKey().isEmpty()) {
+                builder.apiKey(c.getApiKey());
+            }
+            if (c.getProject() != null && !c.getProject().isEmpty()) {
+                builder.project(c.getProject());
+            }
+            if (c.getLocation() != null && !c.getLocation().isEmpty()) {
+                builder.location(c.getLocation());
+            }
+
+            return builder.build();
+        }
     },
     ANTHROPIC("anthropic") {
         @Override
@@ -138,6 +208,25 @@ public enum ModelProviderType {
 
             return builder.build();
         }
+
+        @Override
+        protected Model doCreateFromConfig(AssistantConfigDTO config) {
+            AssistantConfigDTO.AnthropicConfigDTO c = config.getAnthropic();
+            if (c == null || c.getApiKey() == null || c.getApiKey().isEmpty()) {
+                throw new IllegalStateException("Anthropic API Key must be configured");
+            }
+
+            AnthropicChatModel.Builder builder = AnthropicChatModel.builder()
+                    .apiKey(c.getApiKey())
+                    .modelName(c.getModelName())
+                    .stream(c.isStream());
+
+            if (c.getBaseUrl() != null && !c.getBaseUrl().isEmpty()) {
+                builder.baseUrl(c.getBaseUrl());
+            }
+
+            return builder.build();
+        }
     };
 
     private final String id;
@@ -150,6 +239,32 @@ public enum ModelProviderType {
      * Create a concrete {@link Model} instance using the given properties.
      */
     public abstract Model createModel(AgentscopeProperties properties);
+
+    protected abstract Model doCreateFromConfig(AssistantConfigDTO config);
+
+    /**
+     * Create a concrete {@link Model} instance from an assistant configuration DTO.
+     *
+     * <p>Unlike {@link #createModel(AgentscopeProperties)} which reads from Spring configuration,
+     * this method creates a Model from the user-configured assistant settings stored in the
+     * database config table.
+     *
+     * @param config the assistant configuration DTO
+     * @return a new Model instance
+     */
+    public static Model createModelFromConfig(AssistantConfigDTO config) {
+        if (config == null || config.getProvider() == null) {
+            throw new IllegalStateException("Assistant config or provider must not be null");
+        }
+
+        String provider = config.getProvider().trim().toLowerCase(Locale.ROOT);
+        for (ModelProviderType type : values()) {
+            if (type.id.equals(provider)) {
+                return type.doCreateFromConfig(config);
+            }
+        }
+        throw new IllegalStateException("Unsupported assistant config provider: " + provider);
+    }
 
     /**
      * Resolve provider from root properties. Defaults to {@link #DASHSCOPE} when provider is not
