@@ -1,17 +1,37 @@
-.configTab {
+.assistantConfig {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: 24px;
+  max-width: 720px;
 }
 
-.tableHeader {
+.sectionCard {
+  :global(.ant-card-head) {
+    min-height: 40px;
+    padding: 0 16px;
+  }
+
+  :global(.ant-card-head-title) {
+    padding: 8px 0;
+    font-size: 14px;
+  }
+
+  :global(.ant-card-body) {
+    padding: 16px;
+  }
+}
+
+.providerSection {
+  margin-bottom: 0;
+}
+
+.generateOptionsSection {
+  margin-bottom: 0;
+}
+
+.actionBar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.tableTitle {
-  font-size: 16px;
-  font-weight: 500;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
 }
