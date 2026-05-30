@@ -1,127 +1,147 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Space, Tag, message, Popconfirm } from 'antd';
-import type { TableProps } from 'antd';
-import { EditOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
-import { getConfigPage, deleteConfigs } from '../services/config';
+import { Card, Button, message, Spin } from 'antd';
+import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { fetchConfigsBatch } from '@gwsu/core';
+import { saveOrUpdateConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
-import ConfigFormModal from './ConfigFormModal';
+import { ConfigValueType, ConfigType } from '@gwsu/core';
+import type { AssistantConfig, ModelProvider } from './types';
+import { createDefaultAssistantConfig } from './types';
+import ProviderSelector from './ProviderSelector';
+import ProviderConfigForm from './ProviderConfigForm';
+import GenerateOptionsForm from './GenerateOptionsForm';
 import styles from './index.module.less';
+
+const CONFIG_KEY = 'assistant_config';
 
 const AssistantConfigTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [dataSource, setDataSource] = useState<ConfigInfo[]>([]);
-  const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [saving, setSaving] = useState(false);
+  const [config, setConfig] = useState<AssistantConfig>(createDefaultAssistantConfig());
+  const [configId, setConfigId] = useState<string | undefined>();
 
-  const [formVisible, setFormVisible] = useState(false);
-  const [editingConfig, setEditingConfig] = useState<ConfigInfo | null>(null);
-
-  const fetchData = useCallback(async (pageNum = currentPage, pSize = pageSize) => {
+  const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getConfigPage({ configType: 1, pageNum, pageSize: pSize });
-      if (result) {
-        setDataSource(result.records);
-        setTotal(result.total);
-        setCurrentPage(pageNum);
-        setPageSize(pSize);
+      const configMap = await fetchConfigsBatch([CONFIG_KEY]);
+      const configInfo = configMap[CONFIG_KEY] as ConfigInfo | undefined;
+
+      if (configInfo?.configValue) {
+        try {
+          const parsed = JSON.parse(configInfo.configValue) as AssistantConfig;
+          setConfig({
+            provider: parsed.provider || 'openai',
+            dashscope: { ...createDefaultAssistantConfig().dashscope, ...parsed.dashscope },
+            openai: { ...createDefaultAssistantConfig().openai, ...parsed.openai },
+            gemini: { ...createDefaultAssistantConfig().gemini, ...parsed.gemini },
+            anthropic: { ...createDefaultAssistantConfig().anthropic, ...parsed.anthropic },
+            generateOptions: { ...createDefaultAssistantConfig().generateOptions, ...parsed.generateOptions },
+          });
+          setConfigId(configInfo.id);
+        } catch {
+          message.warning('助手配置解析失败，已恢复默认值');
+          setConfig(createDefaultAssistantConfig());
+          setConfigId(configInfo.id);
+        }
+      } else {
+        setConfig(createDefaultAssistantConfig());
+        setConfigId(undefined);
       }
     } catch {
       // error handled by request util
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize]);
+  }, []);
 
   useEffect(() => {
-    fetchData(1);
-  }, []);
+    fetchConfig();
+  }, [fetchConfig]);
 
-  const handleEdit = useCallback((record: ConfigInfo) => {
-    setEditingConfig(record);
-    setFormVisible(true);
-  }, []);
+  const handleProviderChange = (provider: ModelProvider) => {
+    setConfig((prev) => ({ ...prev, provider }));
+  };
 
-  const columns: TableProps<ConfigInfo>['columns'] = [
-    {
-      title: '序号',
-      width: 60,
-      align: 'center',
-      render: (_: unknown, __: ConfigInfo, index: number) => (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: '配置键',
-      dataIndex: 'configKey',
-      width: 180,
-      render: (val: string) => <code>{val}</code>,
-    },
-    {
-      title: '配置名称',
-      dataIndex: 'configName',
-      width: 160,
-    },
-    {
-      title: '值类型',
-      dataIndex: 'valueType',
-      width: 100,
-      render: (val: number) => <Tag color={val === 2 ? 'blue' : 'default'}>{val === 2 ? 'JSON' : '基本类型'}</Tag>,
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      ellipsis: true,
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'modifyTime',
-      width: 180,
-    },
-    {
-      title: '操作',
-      width: 100,
-      fixed: 'right',
-      render: (_: unknown, record: ConfigInfo) => (
-        <Space>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  const handleProviderConfigChange = (updated: AssistantConfig) => {
+    setConfig(updated);
+  };
+
+  const handleGenerateOptionsChange = (generateOptions: AssistantConfig['generateOptions']) => {
+    setConfig((prev) => ({ ...prev, generateOptions }));
+  };
+
+  const handleSave = async () => {
+    // 校验当前提供商必填项
+    const currentConfig = config[config.provider];
+    if (!currentConfig.apiKey && config.provider !== 'gemini') {
+      message.warning('请填写 API Key');
+      return;
+    }
+    if (config.provider === 'gemini' && !currentConfig.apiKey && !currentConfig.project) {
+      message.warning('Gemini 至少需要填写 API Key 或 GCP Project');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const success = await saveOrUpdateConfig({
+        id: configId,
+        configKey: CONFIG_KEY,
+        configName: '助手配置',
+        configValue: JSON.stringify(config),
+        valueType: ConfigValueType.JSON,
+        configType: ConfigType.SYSTEM,
+        description: 'AI 助手模型提供商及生成参数配置',
+      });
+
+      if (success) {
+        message.success('保存成功');
+        fetchConfig();
+      }
+    } catch {
+      // error handled by request util
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 48 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.configTab}>
-      <div className={styles.tableHeader}>
-        <span className={styles.tableTitle}>系统配置列表</span>
-        <Button icon={<ReloadOutlined />} onClick={() => fetchData(1)}>
-          刷新
+    <div className={styles.assistantConfig}>
+      <Card title="模型提供商" className={`${styles.sectionCard} ${styles.providerSection}`} size="small">
+        <ProviderSelector value={config.provider} onChange={handleProviderChange} />
+      </Card>
+
+      <Card title="连接配置" className={styles.sectionCard} size="small">
+        <ProviderConfigForm
+          provider={config.provider}
+          config={config}
+          onConfigChange={handleProviderConfigChange}
+        />
+      </Card>
+
+      <Card title="生成参数" className={`${styles.sectionCard} ${styles.generateOptionsSection}`} size="small">
+        <GenerateOptionsForm
+          value={config.generateOptions}
+          onChange={handleGenerateOptionsChange}
+        />
+      </Card>
+
+      <div className={styles.actionBar}>
+        <Button icon={<ReloadOutlined />} onClick={fetchConfig}>
+          重置
+        </Button>
+        <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
+          保存
         </Button>
       </div>
-      <Table<ConfigInfo>
-        rowKey="id"
-        columns={columns}
-        dataSource={dataSource}
-        loading={loading}
-        size="middle"
-        scroll={{ x: 800 }}
-        pagination={{
-          current: currentPage,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (t) => `共 ${t} 条`,
-          onChange: (page, size) => fetchData(page, size),
-        }}
-      />
-      <ConfigFormModal
-        visible={formVisible}
-        config={editingConfig}
-        onClose={() => { setFormVisible(false); setEditingConfig(null); }}
-        onSuccess={() => fetchData(currentPage)}
-      />
     </div>
   );
 };
