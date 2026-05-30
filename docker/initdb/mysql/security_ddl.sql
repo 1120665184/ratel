@@ -526,10 +526,9 @@ CREATE TABLE security_config
     config_key    VARCHAR(100) NOT NULL              COMMENT '配置键',
     config_name   VARCHAR(100) NOT NULL              COMMENT '配置名称',
     config_value  TEXT                  DEFAULT NULL COMMENT '配置值，JSON字符串或基本类型值',
-    value_type    SMALLINT     NOT NULL DEFAULT 1    COMMENT '值类型：1-基本类型 2-JSON',
+    value_type    SMALLINT     NOT NULL DEFAULT 1    COMMENT '值类型：1-STR 2-NUMBER 3-BOOL 4-JSON',
     config_type   SMALLINT     NOT NULL DEFAULT 2    COMMENT '配置类型：1-系统 2-自定义',
     description   VARCHAR(500)          DEFAULT NULL COMMENT '描述',
-    module_prefix VARCHAR(50)  NOT NULL DEFAULT 'security' COMMENT '所属模块前缀',
     tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
     create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -540,9 +539,8 @@ CREATE TABLE security_config
     delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '配置表';
 
-CREATE UNIQUE INDEX uk_security_config_key ON security_config (config_key, module_prefix);
+CREATE UNIQUE INDEX uk_security_config_key ON security_config (config_key);
 CREATE INDEX idx_security_config_type ON security_config (config_type);
-CREATE INDEX idx_security_config_module ON security_config (module_prefix);
 
 -- =============================================
 -- 表名：security_dict
@@ -555,7 +553,6 @@ CREATE TABLE security_dict
     dict_name     VARCHAR(100) NOT NULL              COMMENT '字典名称',
     dict_type     SMALLINT     NOT NULL DEFAULT 2    COMMENT '字典类型：1-系统 2-自定义',
     description   VARCHAR(500)          DEFAULT NULL COMMENT '描述',
-    module_prefix VARCHAR(50)  NOT NULL DEFAULT 'security' COMMENT '所属模块前缀',
     tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
     create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -566,9 +563,8 @@ CREATE TABLE security_dict
     delete_time   DATETIME              DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '字典表';
 
-CREATE UNIQUE INDEX uk_security_dict_key ON security_dict (dict_key, module_prefix);
+CREATE UNIQUE INDEX uk_security_dict_key ON security_dict (dict_key);
 CREATE INDEX idx_security_dict_type ON security_dict (dict_type);
-CREATE INDEX idx_security_dict_module ON security_dict (module_prefix);
 
 -- =============================================
 -- 表名：security_dict_value
@@ -577,7 +573,8 @@ CREATE INDEX idx_security_dict_module ON security_dict (module_prefix);
 CREATE TABLE security_dict_value
 (
     id          VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    dict_id     VARCHAR(24)  NOT NULL             COMMENT '关联字典ID',
+    dict_key     VARCHAR(24)  NOT NULL             COMMENT '关联字典key',
+    dict_label  VARCHAR(256) NOT NULL              COMMENT '字典标签',
     dict_value  VARCHAR(500) NOT NULL              COMMENT '字典值',
     sort        INT          NOT NULL DEFAULT 0    COMMENT '排序序号',
     tenant_id   VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
@@ -590,4 +587,4 @@ CREATE TABLE security_dict_value
     delete_time DATETIME              DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '字典值表';
 
-CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_id);
+CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_key);

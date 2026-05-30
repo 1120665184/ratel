@@ -1,16 +1,14 @@
-package org.quyq.gwsu.common.security.role;
+package org.quyq.gwsu.common.security.api;
 
 
 import org.quyq.gwsu.common.api.annotation.ApiClient;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
-import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
-import org.quyq.gwsu.common.security.role.factory.RoleInfoClientApiFallbackFactory;
+import org.quyq.gwsu.common.security.api.vo.UserRoleInfo;
+import org.quyq.gwsu.common.security.api.factory.RoleInfoClientApiFallbackFactory;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
-
-import java.util.List;
 
 /**
  * @author Quyq

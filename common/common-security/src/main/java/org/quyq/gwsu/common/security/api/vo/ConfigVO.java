@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.api.config.vo;
+package org.quyq.gwsu.common.security.api.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -27,8 +27,8 @@ public class ConfigVO extends BaseVO {
     @Schema(description = "配置值")
     private String configValue;
 
-    @Schema(description = "值类型：1-基本类型 2-JSON")
-    private Integer valueType;
+    @Schema(description = "值类型：1-STR 2-NUMBER 3-BOOL 4-JSON")
+    private int valueType;
 
     @Schema(description = "配置类型：1-系统 2-自定义")
     private Integer configType;
@@ -36,7 +36,5 @@ public class ConfigVO extends BaseVO {
     @Schema(description = "描述")
     private String description;
 
-    @Schema(description = "所属模块前缀")
-    private String modulePrefix;
 
 }

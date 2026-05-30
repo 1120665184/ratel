@@ -48,9 +48,6 @@ public class SecurityMenu extends BaseDO {
     @Schema(description = "路由路径")
     private String path;
 
-    @Schema(description = "子应用名称")
-    private String microApp;
-
     @Schema(description = "是否显示")
     private Boolean visible;
 
@@ -86,7 +83,6 @@ public class SecurityMenu extends BaseDO {
         vo.setSort(this.sort);
         vo.setIcon(this.icon);
         vo.setPath(this.path);
-        vo.setMicroApp(this.microApp);
         vo.setVisible(this.visible);
         vo.setStatus(this.status);
         vo.setPermission(this.permission);

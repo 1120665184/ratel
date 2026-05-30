@@ -305,6 +305,52 @@ type MenuRoute = (MenuItemType | SubMenuType) & {
 };
 ```
 
+### 5.4.4 dict — 字典相关类型
+
+> 路径：`gwsu-core/src/types/dict.ts`
+
+```typescript
+interface DictValueVO {
+  id: string;
+  dictKey: string;
+  dictValue: string;
+  dictLabel: string;
+  sort: number;
+}
+
+type DictValueMap = Record<string, DictValueVO[]>;
+```
+
+### 5.4.5 config — 配置相关类型
+
+> 路径：`gwsu-core/src/types/config.ts`
+
+```typescript
+enum ConfigValueType {
+  STR = 1,
+  NUMBER = 2,
+  BOOL = 3,
+  JSON = 4,
+}
+
+enum ConfigType {
+  SYSTEM = 1,
+  CUSTOM = 2,
+}
+
+interface ConfigVO {
+  id: string;
+  configKey: string;
+  configName: string;
+  configValue: string;
+  valueType: ConfigValueType;
+  configType: ConfigType;
+  description: string;
+}
+
+type ConfigMap = Record<string, ConfigVO>;
+```
+
 ---
 
 ## 5.5 服务
@@ -349,6 +395,44 @@ import type { UserInfo } from '@gwsu/core';
 
 // 获取当前登录用户详细信息
 const userInfo = await fetchCurrentUserInfo();
+```
+
+### 5.5.3 dict — 字典服务
+
+> 路径：`gwsu-core/src/services/dict.ts`
+
+批量获取字典数据，**一个页面中需要多个字典时，必须只调用一次接口，将所有字典键一次性传入**。
+
+```typescript
+import { fetchDictValuesBatch } from '@gwsu/core';
+import type { DictValueVO, DictValueMap } from '@gwsu/core';
+
+// 正确：一次获取多个字典
+const dictMap = await fetchDictValuesBatch(['user_status', 'gender', 'dept_type']);
+// dictMap = { user_status: [...], gender: [...], dept_type: [...] }
+
+// 错误：多次调用获取不同字典（浪费请求）
+const statusDict = await fetchDictValuesBatch(['user_status']);
+const genderDict = await fetchDictValuesBatch(['gender']);
+```
+
+### 5.5.4 config — 配置服务
+
+> 路径：`gwsu-core/src/services/config.ts`
+
+批量获取系统配置，**一个页面中需要多个配置时，必须只调用一次接口，将所有配置键一次性传入**。
+
+```typescript
+import { fetchConfigsBatch } from '@gwsu/core';
+import type { ConfigVO, ConfigMap, ConfigValueType } from '@gwsu/core';
+
+// 正确：一次获取多个配置
+const configMap = await fetchConfigsBatch(['site_name', 'max_upload_size', 'enable_register']);
+// configMap = { site_name: {...}, max_upload_size: {...}, enable_register: {...} }
+
+// 错误：多次调用获取不同配置（浪费请求）
+const siteName = await fetchConfigsBatch(['site_name']);
+const maxSize = await fetchConfigsBatch(['max_upload_size']);
 ```
 
 ---
@@ -398,6 +482,8 @@ import {
   // 服务
   fetchUserRoutes,
   fetchCurrentUserInfo,
+  fetchDictValuesBatch,
+  fetchConfigsBatch,
 
   // 类型
   type ThemeConfig,
@@ -406,5 +492,11 @@ import {
   type MenuItem,
   type UserInfo,
   type TokenInfo,
+  type DictValueVO,
+  type DictValueMap,
+  type ConfigVO,
+  type ConfigMap,
+  type ConfigValueType,
+  type ConfigType,
 } from '@gwsu/core';
 ```

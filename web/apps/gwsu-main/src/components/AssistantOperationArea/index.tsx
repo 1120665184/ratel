@@ -1,44 +1,61 @@
 import InterfaceOperation from '@/components/InterfaceOperation';
 import AiOutputPanel from '@/components/AiOutputPanel';
+import SettingsPanel from '@/components/SettingsPanel';
 import { useOperationTabStore } from '@/stores/operationTab';
 import styles from './index.module.less';
 
-interface AssistantOperationAreaProps {
-  children?: React.ReactNode;
+/** 操作区 Tab 注册配置 */
+interface OperationTabConfig {
+  key: string;
+  component: React.ComponentType;
+  keepAlive: boolean;
 }
+
+const operationTabRegistry: OperationTabConfig[] = [
+  { key: 'interface', component: InterfaceOperation, keepAlive: false },
+  { key: 'ai-output', component: AiOutputPanel, keepAlive: true },
+  { key: 'settings', component: SettingsPanel, keepAlive: false },
+];
 
 /**
  * 助手操作区组件
- * 作为能力容器，承载界面展示和 AI 输出两种能力
- * 通过顶部导航栏 Tab 切换，Tab2（AI 输出）不销毁
+ * 基于注册表架构，承载界面展示、AI 输出、设置等多种能力
+ * 通过顶部导航栏 Tab 切换，keepAlive 的 Tab 不销毁仅隐藏
  */
-const AssistantOperationArea: React.FC<AssistantOperationAreaProps> = () => {
+const AssistantOperationArea: React.FC = () => {
   const { activeTab } = useOperationTabStore();
-  const isInterfaceTab = activeTab === 'interface';
 
   return (
     <div className={styles.operationArea}>
-      {/* Tab1: 界面展示 - 条件显示 */}
-      <div
-        className={styles.tabContent}
-        style={{ display: isInterfaceTab ? 'flex' : 'none' }}
-      >
-        <InterfaceOperation />
-      </div>
+      {operationTabRegistry.map((tab) => {
+        const isActive = activeTab === tab.key;
+        const TabComponent = tab.component;
 
-      {/* Tab2: AI 输出 - 不销毁，仅隐藏 */}
-      <div
-        className={`${styles.tabContent} ${styles.aiOutputTab}`}
-        style={{
-          visibility: isInterfaceTab ? 'hidden' : 'visible',
-          position: isInterfaceTab ? 'absolute' : 'relative',
-          ...(isInterfaceTab
-            ? { top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' as const }
-            : {}),
-        }}
-      >
-        <AiOutputPanel />
-      </div>
+        if (tab.keepAlive) {
+          // keepAlive 模式：始终渲染，通过 CSS 控制显隐
+          return (
+            <div
+              key={tab.key}
+              className={`${styles.tabContent} ${tab.key === 'ai-output' ? styles.aiOutputTab : ''}`}
+              style={{
+                visibility: isActive ? 'visible' : 'hidden',
+                position: isActive ? 'relative' : 'absolute',
+                ...(!isActive ? { top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' as const } : {}),
+              }}
+            >
+              <TabComponent />
+            </div>
+          );
+        }
+
+        // 非 keepAlive 模式：条件渲染
+        if (!isActive) return null;
+        return (
+          <div key={tab.key} className={styles.tabContent}>
+            <TabComponent />
+          </div>
+        );
+      })}
     </div>
   );
 };

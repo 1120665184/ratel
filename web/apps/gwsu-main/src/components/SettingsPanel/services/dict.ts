@@ -1,31 +1,32 @@
-import { get, post, put, del } from '@gwsu/core';
+import { get, post, del } from '@gwsu/core';
 
 const BASE = '/security/dict';
-const VALUE_BASE = '/security/dict-value';
 
-/** 字典信息 */
 export interface DictInfo {
   id?: string;
   dictKey: string;
   dictName: string;
   dictType: number;
   description?: string;
-  modulePrefix?: string;
   valueCount?: number;
+  createOp?: string;
   createTime?: string;
+  modifyOp?: string;
   modifyTime?: string;
 }
 
-/** 字典值信息 */
 export interface DictValueInfo {
   id?: string;
-  dictId: string;
+  dictKey: string;
   dictValue: string;
+  dictLabel: string;
   sort: number;
+  createOp?: string;
   createTime?: string;
+  modifyOp?: string;
+  modifyTime?: string;
 }
 
-/** 字典查询条件 */
 export interface DictQuery {
   dictKey?: string;
   dictName?: string;
@@ -35,7 +36,6 @@ export interface DictQuery {
   pageSize?: number;
 }
 
-/** 字典分页结果 */
 export interface DictPageResult {
   records: DictInfo[];
   total: number;
@@ -62,26 +62,26 @@ export async function deleteDicts(ids: string[]) {
   return res.data;
 }
 
-/** 查询字典值列表 */
-export async function getDictValues(dictId: string) {
-  const res = await get<DictValueInfo[]>(`${VALUE_BASE}/list/${dictId}`);
+/** 通过字典键获取值列表 */
+export async function getDictValues(dictKey: string) {
+  const res = await get<DictValueInfo[]>(`${BASE}/dictValue/get/${dictKey}`);
   return res.data ?? [];
 }
 
-/** 新增或更新字典值 */
+/** 保存或更新字典值 */
 export async function saveOrUpdateDictValue(data: Partial<DictValueInfo>) {
-  const res = await post<boolean>(VALUE_BASE, data);
+  const res = await post<boolean>(`${BASE}/dictValue/saveOrUpdate`, data);
   return res.data;
 }
 
 /** 批量删除字典值 */
 export async function deleteDictValues(ids: string[]) {
-  const res = await del<boolean>(VALUE_BASE, ids);
+  const res = await del<boolean>(`${BASE}/dictValue/removes`, ids);
   return res.data;
 }
 
 /** 更新字典值排序 */
-export async function updateDictValueSort(ids: string[]) {
-  const res = await put<boolean>(`${VALUE_BASE}/sort`, ids);
+export async function updateDictValueSort(dictKey: string, ids: string[]) {
+  const res = await post<boolean>(`${BASE}/dictValue/sort/${dictKey}`, ids);
   return res.data;
 }

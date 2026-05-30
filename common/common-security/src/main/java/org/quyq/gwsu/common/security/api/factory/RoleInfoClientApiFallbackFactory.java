@@ -1,10 +1,10 @@
-package org.quyq.gwsu.common.security.role.factory;
+package org.quyq.gwsu.common.security.api.factory;
 
 
 import org.quyq.gwsu.common.api.fallback.FallbackFactory;
 import org.quyq.gwsu.common.core.domain.R;
-import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
-import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
+import org.quyq.gwsu.common.security.api.IRoleInfoClientApi;
+import org.quyq.gwsu.common.security.api.vo.UserRoleInfo;
 import org.springframework.stereotype.Component;
 
 /**

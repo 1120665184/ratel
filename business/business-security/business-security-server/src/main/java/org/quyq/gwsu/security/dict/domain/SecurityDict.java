@@ -38,9 +38,6 @@ public class SecurityDict extends BaseDO {
     @Schema(description = "描述")
     private String description;
 
-    @Schema(description = "所属模块前缀")
-    private String modulePrefix;
-
     /**
      * VO 转 DO
      *
@@ -54,7 +51,6 @@ public class SecurityDict extends BaseDO {
         entity.setDictName(vo.getDictName());
         entity.setDictType(vo.getDictType());
         entity.setDescription(vo.getDescription());
-        entity.setModulePrefix(vo.getModulePrefix());
         return entity;
     }
 
@@ -70,7 +66,6 @@ public class SecurityDict extends BaseDO {
         vo.setDictName(this.dictName);
         vo.setDictType(this.dictType);
         vo.setDescription(this.description);
-        vo.setModulePrefix(this.modulePrefix);
         vo.copyBaseProperties(this);
         return vo;
     }

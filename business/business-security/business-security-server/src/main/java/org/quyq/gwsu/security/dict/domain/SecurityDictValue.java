@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
-import org.quyq.gwsu.security.api.dict.vo.DictValueVO;
+import org.quyq.gwsu.common.security.api.vo.DictValueVO;
 
 /**
  * 字典值表
@@ -27,10 +27,13 @@ public class SecurityDictValue extends BaseDO {
     private String id;
 
     @Schema(description = "所属字典ID")
-    private String dictId;
+    private String dictKey;
 
     @Schema(description = "字典值")
     private String dictValue;
+
+    @Schema(description = "字典标签")
+    private String dictLabel;
 
     @Schema(description = "排序号")
     private Integer sort;
@@ -44,7 +47,8 @@ public class SecurityDictValue extends BaseDO {
     public static SecurityDictValue toDo(DictValueVO vo) {
         SecurityDictValue entity = new SecurityDictValue();
         entity.setId(vo.getId());
-        entity.setDictId(vo.getDictId());
+        entity.setDictKey(vo.getDictKey());
+        entity.setDictLabel(vo.getDictLabel());
         entity.setDictValue(vo.getDictValue());
         entity.setSort(vo.getSort());
         return entity;
@@ -58,7 +62,8 @@ public class SecurityDictValue extends BaseDO {
     public DictValueVO toVo() {
         DictValueVO vo = new DictValueVO();
         vo.setId(this.id);
-        vo.setDictId(this.dictId);
+        vo.setDictLabel(this.dictLabel);
+        vo.setDictKey(this.dictKey);
         vo.setDictValue(this.dictValue);
         vo.setSort(this.sort);
         vo.copyBaseProperties(this);

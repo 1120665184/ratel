@@ -22,8 +22,8 @@ import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.enums.VisitorType;
-import org.quyq.gwsu.common.security.role.IRoleInfoClientApi;
-import org.quyq.gwsu.common.security.role.domain.UserRoleInfo;
+import org.quyq.gwsu.common.security.api.IRoleInfoClientApi;
+import org.quyq.gwsu.common.security.api.vo.UserRoleInfo;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;

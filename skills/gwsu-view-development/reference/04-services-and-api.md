@@ -287,3 +287,86 @@ useEffect(() => {
 | `R.ok(data, "msg")` | `{ code: 200, data, msg: '...' }` | 成功带消息 |
 
 前端通过 `response.code === 0 || response.code === 200` 判断成功，否则视为业务错误。
+
+## 4.8 字典与配置批量获取规范（重要）
+
+`@gwsu/core` 提供了字典和配置的批量获取工具，**一个页面中需要多个字典或配置时，必须只调用一次接口，将所有键一次性传入**，避免多次请求浪费性能。
+
+### 导入方式
+
+```typescript
+import { fetchDictValuesBatch, fetchConfigsBatch } from '@gwsu/core';
+import type { DictValueMap, ConfigMap } from '@gwsu/core';
+```
+
+### 字典批量获取
+
+```typescript
+// 正确：一次获取页面所需的所有字典
+const dictMap = await fetchDictValuesBatch(['user_status', 'gender', 'dept_type']);
+// dictMap = { user_status: [...], gender: [...], dept_type: [...] }
+
+// 在组件中使用
+const userStatusOptions = dictMap['user_status']?.map(item => ({
+  label: item.dictLabel,
+  value: item.dictValue,
+}));
+```
+
+### 配置批量获取
+
+```typescript
+// 正确：一次获取页面所需的所有配置
+const configMap = await fetchConfigsBatch(['site_name', 'max_upload_size', 'enable_register']);
+// configMap = { site_name: {...}, max_upload_size: {...}, enable_register: {...} }
+
+// 获取具体配置值
+const siteName = configMap['site_name']?.configValue;
+```
+
+### 禁止的做法
+
+```typescript
+// 错误：多次调用获取不同字典（浪费请求，性能差）
+const statusDict = await fetchDictValuesBatch(['user_status']);
+const genderDict = await fetchValuesBatch(['gender']);
+
+// 错误：多次调用获取不同配置（浪费请求，性能差）
+const siteName = await fetchConfigsBatch(['site_name']);
+const maxSize = await fetchConfigsBatch(['max_upload_size']);
+```
+
+### 页面级使用示例
+
+```tsx
+import React, { useEffect, useState } from 'react';
+import { fetchDictValuesBatch, fetchConfigsBatch } from '@gwsu/core';
+import type { DictValueMap, ConfigMap } from '@gwsu/core';
+
+const MyPage: React.FC = () => {
+  const [dictMap, setDictMap] = useState<DictValueMap>({});
+  const [configMap, setConfigMap] = useState<ConfigMap>({});
+
+  useEffect(() => {
+    // 一次获取所有字典 + 一次获取所有配置，总共只有 2 个请求
+    Promise.all([
+      fetchDictValuesBatch(['user_status', 'gender']).catch(() => {}),
+      fetchConfigsBatch(['site_name', 'max_upload_size']).catch(() => {}),
+    ]).then(([dicts, configs]) => {
+      if (dicts) setDictMap(dicts);
+      if (configs) setConfigMap(configs);
+    });
+  }, []);
+
+  const statusOptions = dictMap['user_status']?.map(item => ({
+    label: item.dictLabel,
+    value: item.dictValue,
+  }));
+
+  const maxUploadSize = configMap['max_upload_size']?.configValue;
+
+  return (
+    // ... 使用 statusOptions 和 maxUploadSize
+  );
+};
+```

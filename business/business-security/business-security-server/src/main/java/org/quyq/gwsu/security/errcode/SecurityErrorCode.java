@@ -41,6 +41,7 @@ public enum SecurityErrorCode implements ReturnCode {
     E05004("字典键已存在"),
     E05005("系统字典不可删除"),
     E05006("字典不存在"),
+    E05007("字典值已经存在，不可重复添加"),
 
     ;
 

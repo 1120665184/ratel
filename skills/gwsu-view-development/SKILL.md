@@ -63,6 +63,25 @@ import { get, post, put, del } from '@gwsu/core';
 import { useUserStore, useMenuStore, useAuthStore } from '@gwsu/core';
 import { useAuth, AuthGate } from '@gwsu/core';
 import { EventType, emitEvent, onEvent } from '@gwsu/core';
+import { fetchDictValuesBatch, fetchConfigsBatch } from '@gwsu/core';
+```
+
+### 字典与配置批量获取
+
+**一个页面中需要多个字典或配置时，必须只调用一次接口，将所有键一次性传入**：
+
+```typescript
+import { fetchDictValuesBatch, fetchConfigsBatch } from '@gwsu/core';
+
+// 正确：一次获取多个字典
+const dictMap = await fetchDictValuesBatch(['user_status', 'gender', 'dept_type']);
+
+// 正确：一次获取多个配置
+const configMap = await fetchConfigsBatch(['site_name', 'max_upload_size']);
+
+// 错误：多次调用（浪费请求）
+const statusDict = await fetchDictValuesBatch(['user_status']);
+const genderDict = await fetchDictValuesBatch(['gender']);
 ```
 
 ### 按钮权限控制

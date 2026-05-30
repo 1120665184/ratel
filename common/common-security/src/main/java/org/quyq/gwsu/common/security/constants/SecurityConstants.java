@@ -118,4 +118,15 @@ public interface SecurityConstants {
         String DATA_RESOURCE_RULES_CACHE_KEY = "dataResource:rules";
     }
 
+
+    /**
+     * 系统key配置
+     */
+    interface SystemConfigKey {}
+
+    /**
+     * 系统字典值key配置
+     */
+    interface SystemDictKey {}
+
 }

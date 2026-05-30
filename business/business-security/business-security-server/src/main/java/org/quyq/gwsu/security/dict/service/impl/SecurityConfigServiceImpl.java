@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.config.service.impl;
+package org.quyq.gwsu.security.dict.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -6,16 +6,21 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
+import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.quyq.gwsu.common.security.api.vo.ConfigVO;
 import org.quyq.gwsu.security.api.config.dto.ConfigQueryDTO;
 import org.quyq.gwsu.security.api.config.dto.ConfigSaveDTO;
-import org.quyq.gwsu.security.api.config.vo.ConfigVO;
-import org.quyq.gwsu.security.config.domain.SecurityConfig;
-import org.quyq.gwsu.security.config.mapper.SecurityConfigMapper;
-import org.quyq.gwsu.security.config.service.ISecurityConfigService;
+import org.quyq.gwsu.security.dict.domain.SecurityConfig;
+import org.quyq.gwsu.security.dict.mapper.SecurityConfigMapper;
+import org.quyq.gwsu.security.dict.service.ISecurityConfigService;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * 配置服务实现
@@ -24,9 +29,9 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@CacheConfig(cacheNames = ISecurityConfigService.CACHE_CONFIG_PREFIX)
 public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper, SecurityConfig> implements ISecurityConfigService {
 
-    private static final String DEFAULT_MODULE_PREFIX = "security";
 
     @Override
     public ConfigVO getById(String id) {
@@ -34,14 +39,28 @@ public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper,
         return config != null ? config.toVo() : null;
     }
 
+    @Cacheable(key = "#configKey")
     @Override
-    public ConfigVO getByKey(String configKey, String modulePrefix) {
-        String prefix = modulePrefix != null ? modulePrefix : DEFAULT_MODULE_PREFIX;
+    public ConfigVO getByKey(String configKey) {
         SecurityConfig config = getOne(new LambdaQueryWrapper<SecurityConfig>()
                 .eq(SecurityConfig::getConfigKey, configKey)
-                .eq(SecurityConfig::getModulePrefix, prefix)
                 .eq(SecurityConfig::getDeleted, false));
         return config != null ? config.toVo() : null;
+    }
+
+    @Override
+    public Map<String, ConfigVO> getByKeys(List<String> keys) {
+        if (CollectionUtils.isEmpty(keys)) {
+            return Collections.emptyMap();
+        }
+        Map<String, ConfigVO> finV = new LinkedHashMap<>(keys.size());
+        for (String key : keys) {
+            ConfigVO val = SpringUtils.getAopProxy(this).getByKey(key);
+            if (Objects.nonNull(val)) {
+                finV.put(key, val);
+            }
+        }
+        return finV;
     }
 
     @Override
@@ -56,6 +75,7 @@ public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper,
     }
 
     @Override
+    @CacheEvict(key = "#dto.configKey")
     public Boolean saveOrUpdateConfig(ConfigSaveDTO dto) {
         SecurityConfig entity = new SecurityConfig();
         entity.setId(dto.getId());
@@ -69,13 +89,11 @@ public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper,
             // 新增：校验配置键唯一性
             SecurityConfig existing = getOne(new LambdaQueryWrapper<SecurityConfig>()
                     .eq(SecurityConfig::getConfigKey, dto.getConfigKey())
-                    .eq(SecurityConfig::getModulePrefix, DEFAULT_MODULE_PREFIX)
                     .eq(SecurityConfig::getDeleted, false));
             if (existing != null) {
                 throw new BusinessException(SecurityErrorCode.E05001);
             }
             entity.setConfigType(2);
-            entity.setModulePrefix(DEFAULT_MODULE_PREFIX);
         } else {
             // 更新：保留系统字段
             SecurityConfig existing = super.getById(dto.getId());
@@ -83,7 +101,6 @@ public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper,
                 throw new BusinessException(SecurityErrorCode.E05003);
             }
             entity.setConfigType(existing.getConfigType());
-            entity.setModulePrefix(existing.getModulePrefix());
             // 系统配置不可修改配置键
             if (existing.getConfigType() == 1 && !existing.getConfigKey().equals(dto.getConfigKey())) {
                 entity.setConfigKey(existing.getConfigKey());
@@ -93,6 +110,7 @@ public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper,
     }
 
     @Override
+    @CacheEvict(allEntries = true)
     public Boolean removeByIds(List<String> ids) {
         List<SecurityConfig> configs = listByIds(ids);
         for (SecurityConfig config : configs) {
@@ -122,9 +140,6 @@ public class SecurityConfigServiceImpl extends ServiceImpl<SecurityConfigMapper,
             }
             if (query.getConfigType() != null) {
                 wrapper.eq(SecurityConfig::getConfigType, query.getConfigType());
-            }
-            if (query.getModulePrefix() != null && !query.getModulePrefix().isEmpty()) {
-                wrapper.eq(SecurityConfig::getModulePrefix, query.getModulePrefix());
             }
         }
         return wrapper;

@@ -40,9 +40,6 @@ public class MenuVO extends BaseVO {
     @Schema(description = "路由路径")
     private String path;
 
-    @Schema(description = "子应用名称")
-    private String microApp;
-
     @Schema(description = "是否显示")
     private Boolean visible;
 

@@ -38,7 +38,6 @@ const DictFormModal: React.FC<DictFormModalProps> = ({ visible, dict, onClose, o
         id: dict?.id,
         dictKey: values.dictKey,
         dictName: values.dictName,
-        dictType: dict?.dictType ?? 2,
         description: values.description,
       });
 

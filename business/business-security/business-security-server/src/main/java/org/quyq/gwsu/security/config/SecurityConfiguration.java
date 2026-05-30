@@ -14,7 +14,7 @@ import javax.sql.DataSource;
  * @description
  */
 @Configuration
-public class SecurityConfig {
+public class SecurityConfiguration {
 
     /**
      * 智能体会话记录表名

@@ -10,4 +10,5 @@ export interface DictFormValues {
 /** 字典值表单值 */
 export interface DictValueFormValues {
   dictValue: string;
+  dictLabel: string;
 }

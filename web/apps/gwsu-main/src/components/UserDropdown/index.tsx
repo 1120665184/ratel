@@ -4,6 +4,7 @@ import { useUserStore, useMenuStore, MenuPosition, getIconComponent } from '@gws
 import type { MenuItem } from '@gwsu/core';
 import { history } from 'umi';
 import { logout } from '@/services/auth';
+import { useOperationTabStore } from '@/stores/operationTab';
 import styles from './index.module.less';
 
 /** 获取用户名首字母（支持中文取第一个字） */
@@ -26,6 +27,7 @@ export default function UserDropdown() {
   const userInfo = useUserStore((s) => s.userInfo);
   const menus = useMenuStore((s) => s.menus);
   const { message, modal } = App.useApp();
+  const switchToSettings = useOperationTabStore((s) => s.switchToSettings);
 
   const displayName = userInfo?.nickname || userInfo?.username || '用户';
   const email = userInfo?.email;
@@ -89,7 +91,7 @@ export default function UserDropdown() {
           {email && <div className={styles.infoEmail}>{email}</div>}
         </div>
         <Tooltip title="设置">
-          <div className={styles.settingsBtn}>
+          <div className={styles.settingsBtn} onClick={switchToSettings}>
             <SettingOutlined />
           </div>
         </Tooltip>

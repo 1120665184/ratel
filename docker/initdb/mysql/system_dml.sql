@@ -8,7 +8,7 @@ VALUES (1, 'admin', '系统管理员', 1, 1, NOW());
 
 -- 初始化管理员账号
 INSERT INTO sys_account (id, user_id, identity_type, identifier, credential, status, verified, bind_time)
-VALUES (1, 1, 'password', 'admin', '$2a$10$YRRHnxMXy/qYoDcc8QuKV.K2E.4AZMFiZN9rqqr41CQMvt8YVFAd.', 1, 1, NOW());
+VALUES (1, 1, 'password', 'admin', '$2a$10$2QdERKkWEV15RxjMNRYGiuSowpPtdwPCnpEHqbhiD3Qrt4lyfwhpm', 1, 1, NOW());
 
 -- 初始化部门测试数据
 INSERT INTO sys_dept (id, name, type, parent_id, enabled, sort, path) VALUES
@@ -29,12 +29,5 @@ INSERT INTO sys_dept (id, name, type, parent_id, enabled, sort, path) VALUES
 
 -- 初始化用户部门关联
 INSERT INTO sys_user_dept (user_id, dept_id, is_primary, sort) VALUES
-(1, 1, 1, 1), -- 系统管理员属于总公司（主部门）
-(1, 3, 0, 2), -- 系统管理员属于技术部（额外部门）
-(1, 12, 0, 3); -- 系统管理员属于华东区域技术部（额外部门）
+(1, 1, 1, 1);
 
--- 初始化矩阵组织结构关系
-INSERT INTO sys_dept_parent (dept_id, parent_id, sort) VALUES
-(4, 1, 4), -- 前端开发组属于总公司（额外父部门）
-(5, 1, 5), -- 后端开发组属于总公司（额外父部门）
-(12, 3, 6); -- 华东区域技术部属于技术部（额外父部门）

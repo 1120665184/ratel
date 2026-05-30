@@ -848,7 +848,6 @@ CREATE TABLE security_config
     value_type    INT2         NOT NULL DEFAULT 1,
     config_type   INT2         NOT NULL DEFAULT 2,
     description   VARCHAR(500)          DEFAULT NULL,
-    module_prefix VARCHAR(50)  NOT NULL DEFAULT 'security',
     tenant_id     VARCHAR(50)           DEFAULT NULL,
     create_op     VARCHAR(50)           DEFAULT NULL,
     create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -865,10 +864,9 @@ COMMENT ON COLUMN security_config.id IS '主键ID';
 COMMENT ON COLUMN security_config.config_key IS '配置键';
 COMMENT ON COLUMN security_config.config_name IS '配置名称';
 COMMENT ON COLUMN security_config.config_value IS '配置值，JSON字符串或基本类型值';
-COMMENT ON COLUMN security_config.value_type IS '值类型：1-基本类型 2-JSON';
+COMMENT ON COLUMN security_config.value_type IS '值类型：1-STR 2-NUMBER 3-BOOL 4-JSON';
 COMMENT ON COLUMN security_config.config_type IS '配置类型：1-系统 2-自定义';
 COMMENT ON COLUMN security_config.description IS '描述';
-COMMENT ON COLUMN security_config.module_prefix IS '所属模块前缀';
 COMMENT ON COLUMN security_config.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_config.create_op IS '创建人';
 COMMENT ON COLUMN security_config.create_time IS '创建时间';
@@ -879,9 +877,8 @@ COMMENT ON COLUMN security_config.delete_op IS '删除人';
 COMMENT ON COLUMN security_config.delete_time IS '删除时间';
 
 -- 索引
-CREATE UNIQUE INDEX uk_security_config_key ON security_config (config_key, module_prefix);
+CREATE UNIQUE INDEX uk_security_config_key ON security_config (config_key);
 CREATE INDEX idx_security_config_type ON security_config (config_type);
-CREATE INDEX idx_security_config_module ON security_config (module_prefix);
 
 -- =============================================
 -- 表名：security_dict
@@ -894,7 +891,6 @@ CREATE TABLE security_dict
     dict_name     VARCHAR(100) NOT NULL,
     dict_type     INT2         NOT NULL DEFAULT 2,
     description   VARCHAR(500)          DEFAULT NULL,
-    module_prefix VARCHAR(50)  NOT NULL DEFAULT 'security',
     tenant_id     VARCHAR(50)           DEFAULT NULL,
     create_op     VARCHAR(50)           DEFAULT NULL,
     create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -912,7 +908,6 @@ COMMENT ON COLUMN security_dict.dict_key IS '字典键';
 COMMENT ON COLUMN security_dict.dict_name IS '字典名称';
 COMMENT ON COLUMN security_dict.dict_type IS '字典类型：1-系统 2-自定义';
 COMMENT ON COLUMN security_dict.description IS '描述';
-COMMENT ON COLUMN security_dict.module_prefix IS '所属模块前缀';
 COMMENT ON COLUMN security_dict.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_dict.create_op IS '创建人';
 COMMENT ON COLUMN security_dict.create_time IS '创建时间';
@@ -923,9 +918,8 @@ COMMENT ON COLUMN security_dict.delete_op IS '删除人';
 COMMENT ON COLUMN security_dict.delete_time IS '删除时间';
 
 -- 索引
-CREATE UNIQUE INDEX uk_security_dict_key ON security_dict (dict_key, module_prefix);
+CREATE UNIQUE INDEX uk_security_dict_key ON security_dict (dict_key);
 CREATE INDEX idx_security_dict_type ON security_dict (dict_type);
-CREATE INDEX idx_security_dict_module ON security_dict (module_prefix);
 
 -- =============================================
 -- 表名：security_dict_value
@@ -934,7 +928,8 @@ CREATE INDEX idx_security_dict_module ON security_dict (module_prefix);
 CREATE TABLE security_dict_value
 (
     id          VARCHAR(24) PRIMARY KEY,
-    dict_id     VARCHAR(24)  NOT NULL,
+    dict_key     VARCHAR(24)  NOT NULL,
+    dict_label  VARCHAR(256) NOT NULL ,
     dict_value  VARCHAR(500) NOT NULL,
     sort        INT          NOT NULL DEFAULT 0,
     tenant_id   VARCHAR(50)           DEFAULT NULL,
@@ -950,7 +945,8 @@ CREATE TABLE security_dict_value
 -- 表和字段注释
 COMMENT ON TABLE security_dict_value IS '字典值表';
 COMMENT ON COLUMN security_dict_value.id IS '主键ID';
-COMMENT ON COLUMN security_dict_value.dict_id IS '关联字典ID';
+COMMENT ON COLUMN security_dict_value.dict_key IS '关联字典KEY';
+COMMENT ON COLUMN security_dict_value.dict_label IS '字典标签';
 COMMENT ON COLUMN security_dict_value.dict_value IS '字典值';
 COMMENT ON COLUMN security_dict_value.sort IS '排序序号';
 COMMENT ON COLUMN security_dict_value.tenant_id IS '租户ID';
@@ -963,4 +959,4 @@ COMMENT ON COLUMN security_dict_value.delete_op IS '删除人';
 COMMENT ON COLUMN security_dict_value.delete_time IS '删除时间';
 
 -- 索引
-CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_id);
+CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_key);

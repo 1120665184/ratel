@@ -297,20 +297,24 @@ const RolePage: React.FC = () => {
       title: "状态",
       dataIndex: "status",
       width: 120,
-      render: (val: boolean, record: RoleInfo) => (
-        <Space>
-          <AuthGate buttonKey={PERM_EDIT}>
-            <Switch
-              size="small"
-              checked={val}
-              data-ai-approval
-              onChange={(checked) => handleStatusChange(record, checked)}
-            />
-          </AuthGate>
-
-          <Tag color={val ? "green" : "red"}>{val ? "启用" : "禁用"}</Tag>
-        </Space>
-      ),
+      render: (val: boolean, record: RoleInfo) => {
+        const isSystemRole = record.roleType === 1;
+        return (
+          <Space>
+            {!isSystemRole && (
+              <AuthGate buttonKey={PERM_EDIT}>
+                <Switch
+                  size="small"
+                  checked={val}
+                  data-ai-approval
+                  onChange={(checked) => handleStatusChange(record, checked)}
+                />
+              </AuthGate>
+            )}
+            <Tag color={val ? "green" : "red"}>{val ? "启用" : "禁用"}</Tag>
+          </Space>
+        );
+      },
     },
     {
       title: "操作",

@@ -1,13 +1,14 @@
-package org.quyq.gwsu.security.config.service;
+package org.quyq.gwsu.security.dict.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.security.api.config.dto.ConfigQueryDTO;
 import org.quyq.gwsu.security.api.config.dto.ConfigSaveDTO;
-import org.quyq.gwsu.security.api.config.vo.ConfigVO;
-import org.quyq.gwsu.security.config.domain.SecurityConfig;
+import org.quyq.gwsu.common.security.api.vo.ConfigVO;
+import org.quyq.gwsu.security.dict.domain.SecurityConfig;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 配置服务接口
@@ -15,6 +16,8 @@ import java.util.List;
  * @author Quyq
  */
 public interface ISecurityConfigService extends IService<SecurityConfig> {
+
+    String CACHE_CONFIG_PREFIX = "config";
 
     /**
      * 根据ID查询配置
@@ -28,10 +31,12 @@ public interface ISecurityConfigService extends IService<SecurityConfig> {
      * 根据配置键查询配置
      *
      * @param configKey    配置键
-     * @param modulePrefix 模块前缀
      * @return 配置信息
      */
-    ConfigVO getByKey(String configKey, String modulePrefix);
+    ConfigVO getByKey(String configKey);
+
+
+    Map<String , ConfigVO> getByKeys(List<String> keys);
 
     /**
      * 分页查询配置

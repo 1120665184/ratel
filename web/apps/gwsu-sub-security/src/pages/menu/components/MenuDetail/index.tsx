@@ -249,10 +249,6 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
             <span className={styles.infoValue}>{menu.path || "-"}</span>
           </div>
           <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>子应用</span>
-            <span className={styles.infoValue}>{menu.microApp || "-"}</span>
-          </div>
-          <div className={styles.infoItem}>
             <span className={styles.infoLabel}>排序号</span>
             <span className={styles.infoValue}>{menu.sort}</span>
           </div>

@@ -10,6 +10,7 @@ import org.quyq.gwsu.common.security.dataresource.DataResourceInterceptor;
 import org.quyq.gwsu.common.security.dataresource.DataResourceRuleUtils;
 import org.quyq.gwsu.common.security.db.DefaultMetaObjectHandler;
 import org.quyq.gwsu.common.security.filter.PropertiesSettingFilter;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
@@ -95,6 +96,11 @@ public class SecurityConfiguration {
     @ConditionalOnClass(MetaObjectHandler.class)
     public MetaObjectHandler defaultMetaObjectHandler(SecurityUtils securityUtils) {
         return new DefaultMetaObjectHandler(securityUtils);
+    }
+
+    @Bean
+    public ConfigInfoUtils configInfoUtils(ObjectMapper objectMapper) {
+        return new ConfigInfoUtils(objectMapper);
     }
 
 

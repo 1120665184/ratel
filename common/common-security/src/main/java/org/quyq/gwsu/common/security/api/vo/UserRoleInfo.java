@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.security.role.domain;
+package org.quyq.gwsu.common.security.api.vo;
 
 
 import org.jspecify.annotations.Nullable;

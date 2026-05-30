@@ -30,9 +30,6 @@ public class DictVO extends BaseVO {
     @Schema(description = "描述")
     private String description;
 
-    @Schema(description = "所属模块前缀")
-    private String modulePrefix;
-
     @Schema(description = "字典值数量")
     private Integer valueCount;
 
