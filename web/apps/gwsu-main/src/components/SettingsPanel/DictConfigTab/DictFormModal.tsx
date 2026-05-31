@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, message } from 'antd';
+import { Modal, Form, Input, App } from 'antd';
 import type { DictInfo } from '../services/dict';
 import { saveOrUpdateDict } from '../services/dict';
 
@@ -11,6 +11,7 @@ interface DictFormModalProps {
 }
 
 const DictFormModal: React.FC<DictFormModalProps> = ({ visible, dict, onClose, onSuccess }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const isEdit = !!dict?.id;
 
@@ -57,7 +58,7 @@ const DictFormModal: React.FC<DictFormModalProps> = ({ visible, dict, onClose, o
       open={visible}
       onOk={handleSave}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
       width={480}
     >
       <Form form={form} layout="vertical">

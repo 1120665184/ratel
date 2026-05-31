@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Button, Input, Space, Popconfirm, message, Pagination } from 'antd';
+import { Button, Input, Space, Popconfirm, App, Pagination } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getDictPage, saveOrUpdateDict, deleteDicts } from '../services/dict';
 import type { DictInfo, DictQuery } from '../services/dict';
@@ -12,6 +12,7 @@ interface DictKeyListProps {
 }
 
 const DictKeyList: React.FC<DictKeyListProps> = ({ onSelect, selectedId }) => {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<DictInfo[]>([]);
   const [total, setTotal] = useState(0);

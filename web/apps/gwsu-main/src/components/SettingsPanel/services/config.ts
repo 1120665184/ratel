@@ -1,25 +1,17 @@
-import { get, post, del } from '@gwsu/core';
+import {  post, del } from '@gwsu/core';
+import type { ConfigVO} from '@gwsu/core';
+import { ConfigValueType, ConfigType } from '@gwsu/core';
 
 const BASE = '/security/config';
 
-export interface ConfigInfo {
-  id?: string;
-  configKey: string;
-  configName: string;
-  configValue: string;
-  valueType: number;
-  configType: number;
-  description?: string;
-  modulePrefix?: string;
-  createTime?: string;
-  modifyTime?: string;
-}
+/** 配置信息（兼容旧引用） */
+export type ConfigInfo = ConfigVO;
 
 export interface ConfigQuery {
   configKey?: string;
   configName?: string;
-  valueType?: number;
-  configType?: number;
+  valueType?: ConfigValueType;
+  configType?: ConfigType;
   modulePrefix?: string;
   pageNum?: number;
   pageSize?: number;

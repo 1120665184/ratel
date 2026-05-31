@@ -92,7 +92,10 @@ export const DEFAULT_ANTHROPIC_CONFIG: AnthropicConfig = {
 };
 
 export const DEFAULT_GENERATE_OPTIONS: GenerateOptionsConfig = {
-  temperature: 0.7,
+  temperature: 0.2,
+  topP: 0.75,
+  frequencyPenalty: 0.5,
+  presencePenalty: 0.5,
 };
 
 /** 提供商默认配置映射 */

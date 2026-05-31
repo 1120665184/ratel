@@ -1,6 +1,5 @@
-import { Form, Input, Select, Switch } from 'antd';
+import { Form, Input, Switch } from 'antd';
 import type { AnthropicConfig } from '../types';
-import { ANTHROPIC_MODELS } from '../types';
 
 interface AnthropicConfigFormProps {
   value?: AnthropicConfig;
@@ -22,10 +21,10 @@ const AnthropicConfigForm: React.FC<AnthropicConfigFormProps> = ({ value, onChan
         />
       </Form.Item>
       <Form.Item label="模型名称" required>
-        <Select
+        <Input
           value={value?.modelName}
-          onChange={(val) => handleFieldChange('modelName', val)}
-          options={ANTHROPIC_MODELS}
+          onChange={(e) => handleFieldChange('modelName', e.target.value)}
+          placeholder="例如 claude-sonnet-4-5、claude-opus-4"
         />
       </Form.Item>
       <Form.Item label="流式响应">

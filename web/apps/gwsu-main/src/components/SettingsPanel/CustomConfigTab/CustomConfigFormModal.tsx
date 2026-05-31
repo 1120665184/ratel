@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd';
+import { Modal, Form, Input, Select, App } from 'antd';
 import type { ConfigInfo } from '../services/config';
 import { saveOrUpdateConfig } from '../services/config';
+import { ConfigValueType, ConfigType } from '@gwsu/core';
 
 interface CustomConfigFormModalProps {
   visible: boolean;
@@ -11,6 +12,7 @@ interface CustomConfigFormModalProps {
 }
 
 const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({ visible, config, onClose, onSuccess }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const isEdit = !!config?.id;
 
@@ -42,7 +44,7 @@ const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({ visible, 
         configName: values.configName,
         configValue: values.configValue,
         valueType: values.valueType,
-        configType: 2,
+        configType: ConfigType.CUSTOM,
         description: values.description,
       });
 
@@ -62,7 +64,7 @@ const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({ visible, 
       open={visible}
       onOk={handleSave}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
       width={560}
     >
       <Form form={form} layout="vertical">
@@ -72,11 +74,13 @@ const CustomConfigFormModal: React.FC<CustomConfigFormModalProps> = ({ visible, 
         <Form.Item name="configName" label="配置名称" rules={[{ required: true, message: '请输入配置名称' }]}>
           <Input placeholder="请输入配置名称" />
         </Form.Item>
-        <Form.Item name="valueType" label="值类型" rules={[{ required: true, message: '请选择值类型' }]} initialValue={1}>
+        <Form.Item name="valueType" label="值类型" rules={[{ required: true, message: '请选择值类型' }]} initialValue={ConfigValueType.STR}>
           <Select
             options={[
-              { label: '基本类型', value: 1 },
-              { label: 'JSON对象', value: 2 },
+              { label: '字符串', value: ConfigValueType.STR },
+              { label: '数字', value: ConfigValueType.NUMBER },
+              { label: '布尔', value: ConfigValueType.BOOL },
+              { label: 'JSON对象', value: ConfigValueType.JSON },
             ]}
           />
         </Form.Item>

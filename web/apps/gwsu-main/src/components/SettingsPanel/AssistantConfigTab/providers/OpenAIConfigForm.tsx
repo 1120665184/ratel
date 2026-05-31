@@ -1,6 +1,5 @@
-import { Form, Input, Select, Switch } from 'antd';
+import { Form, Input, Switch } from 'antd';
 import type { OpenaiConfig } from '../types';
-import { OPENAI_MODELS } from '../types';
 
 interface OpenAIConfigFormProps {
   value?: OpenaiConfig;
@@ -22,10 +21,10 @@ const OpenAIConfigForm: React.FC<OpenAIConfigFormProps> = ({ value, onChange }) 
         />
       </Form.Item>
       <Form.Item label="模型名称" required>
-        <Select
+        <Input
           value={value?.modelName}
-          onChange={(val) => handleFieldChange('modelName', val)}
-          options={OPENAI_MODELS}
+          onChange={(e) => handleFieldChange('modelName', e.target.value)}
+          placeholder="例如 gpt-4.1-mini、gpt-4o"
         />
       </Form.Item>
       <Form.Item label="流式响应">

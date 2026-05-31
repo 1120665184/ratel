@@ -1,6 +1,5 @@
-import { Form, Input, Select, Switch } from 'antd';
+import { Form, Input, Switch } from 'antd';
 import type { DashscopeConfig } from '../types';
-import { DASHSCOPE_MODELS } from '../types';
 
 interface DashScopeConfigFormProps {
   value?: DashscopeConfig;
@@ -22,10 +21,10 @@ const DashScopeConfigForm: React.FC<DashScopeConfigFormProps> = ({ value, onChan
         />
       </Form.Item>
       <Form.Item label="模型名称" required>
-        <Select
+        <Input
           value={value?.modelName}
-          onChange={(val) => handleFieldChange('modelName', val)}
-          options={DASHSCOPE_MODELS}
+          onChange={(e) => handleFieldChange('modelName', e.target.value)}
+          placeholder="例如 qwen-plus、qwen-max"
         />
       </Form.Item>
       <Form.Item label="流式响应">

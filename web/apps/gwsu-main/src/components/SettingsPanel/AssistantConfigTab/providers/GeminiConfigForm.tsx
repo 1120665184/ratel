@@ -1,6 +1,5 @@
-import { Form, Input, Select, Switch } from 'antd';
+import { Form, Input, Switch } from 'antd';
 import type { GeminiConfig } from '../types';
-import { GEMINI_MODELS } from '../types';
 
 interface GeminiConfigFormProps {
   value?: GeminiConfig;
@@ -22,10 +21,10 @@ const GeminiConfigForm: React.FC<GeminiConfigFormProps> = ({ value, onChange }) 
         />
       </Form.Item>
       <Form.Item label="模型名称" required>
-        <Select
+        <Input
           value={value?.modelName}
-          onChange={(val) => handleFieldChange('modelName', val)}
-          options={GEMINI_MODELS}
+          onChange={(e) => handleFieldChange('modelName', e.target.value)}
+          placeholder="例如 gemini-2.0-flash、gemini-2.5-pro"
         />
       </Form.Item>
       <Form.Item label="流式响应">

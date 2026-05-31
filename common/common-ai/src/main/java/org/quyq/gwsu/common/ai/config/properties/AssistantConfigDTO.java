@@ -18,7 +18,7 @@ package org.quyq.gwsu.common.ai.config.properties;
 import lombok.Data;
 
 /**
- * 助手配置DTO，与前端 assistant_config JSON 结构一一映射。
+ * 助手配置DTO，与前端 assistant_llm_config JSON 结构一一映射。
  *
  * <p>JSON 结构示例：
  *

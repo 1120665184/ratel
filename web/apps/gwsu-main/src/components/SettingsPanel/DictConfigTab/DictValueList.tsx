@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Button, Input, Space, Popconfirm, message, Empty } from 'antd';
+import { Button, Input, Space, Popconfirm, App, Empty } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { getDictValues, saveOrUpdateDictValue, deleteDictValues, updateDictValueSort } from '../services/dict';
 import type { DictInfo, DictValueInfo } from '../services/dict';
@@ -10,6 +10,7 @@ interface DictValueListProps {
 }
 
 const DictValueList: React.FC<DictValueListProps> = ({ dict }) => {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [values, setValues] = useState<DictValueInfo[]>([]);
   const [newValue, setNewValue] = useState('');

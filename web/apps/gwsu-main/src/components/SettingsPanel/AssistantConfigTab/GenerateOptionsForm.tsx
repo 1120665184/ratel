@@ -25,9 +25,9 @@ const GenerateOptionsForm: React.FC<GenerateOptionsFormProps> = ({ value, onChan
                   min={0}
                   max={2}
                   step={0.1}
-                  value={value?.temperature ?? 0.7}
+                  value={value?.temperature ?? 0.2}
                   onChange={(val) => handleFieldChange('temperature', val)}
-                  marks={{ 0: '0', 0.7: '0.7', 1: '1', 2: '2' }}
+                  marks={{ 0: '0', 0.2: '0.2', 1: '1', 2: '2' }}
                 />
               </Form.Item>
               <Form.Item label="Top P">

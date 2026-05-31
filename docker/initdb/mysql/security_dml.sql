@@ -111,4 +111,4 @@ INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path
 
 -- 初始化系统配置：助手配置
 INSERT INTO security_config (id, config_key, config_name, config_value, value_type, config_type, description, module_prefix)
-VALUES ('1', 'assistant_config', '助手配置', '{"model":"default","temperature":0.7}', 2, 1, '智能助手配置参数', 'security');
+VALUES ('1', 'assistant_llm_config', '助手配置', '{"model":"default","temperature":0.7}', 2, 1, '智能助手配置参数', 'security');

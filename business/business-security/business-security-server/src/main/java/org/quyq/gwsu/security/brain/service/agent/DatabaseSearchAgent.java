@@ -21,6 +21,7 @@ import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
+import org.quyq.gwsu.security.brain.ModelProvider;
 import org.quyq.gwsu.security.brain.service.tool.DatabaseSearchTool;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
@@ -48,8 +49,6 @@ public class DatabaseSearchAgent {
     private final ObjectProvider<Toolkit> toolkitProvider;
 
     private final Session agentSession;
-
-    private final Model model;
 
     private final SecurityUtils securityUtils;
 
@@ -115,7 +114,7 @@ public class DatabaseSearchAgent {
                 .name("SelectiveSQLAgent")
                 .sysPrompt(buildSystemPrompt())
                 .memory(memory)
-                .model(model)
+                .model(ModelProvider.generateModel())
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .toolExecutionContext(ToolExecutionContext.builder()

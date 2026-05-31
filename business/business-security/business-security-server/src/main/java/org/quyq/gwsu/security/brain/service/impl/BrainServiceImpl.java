@@ -28,6 +28,7 @@ import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.menu.vo.MenuVO;
+import org.quyq.gwsu.security.brain.ModelProvider;
 import org.quyq.gwsu.security.brain.service.IBrainService;
 import org.quyq.gwsu.security.brain.service.agent.DatabaseSearchAgent;
 import org.quyq.gwsu.security.brain.service.agent.OutputViewAgent;
@@ -65,8 +66,6 @@ public class BrainServiceImpl implements IBrainService {
     private final OutputViewAgent outputViewAgent;
 
     private final Session agentSession;
-
-    private final Model model;
 
     private final SecurityUtils securityUtils;
 
@@ -261,7 +260,7 @@ public class BrainServiceImpl implements IBrainService {
         return ReActAgent.builder()
                 .name("CentralBrain")
                 .sysPrompt(buildSysPrompt())
-                .model(model)
+                .model(ModelProvider.generateModel())
                 .hook(new ForwardedPropsHook())
                 .memory(memory)
                 .hook(outputViewEventHandlerHook)

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Space, Tag, message, Popconfirm } from 'antd';
+import { Table, Button, Space, Tag, App, Popconfirm } from 'antd';
 import type { TableProps } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getConfigPage, deleteConfigs } from '../services/config';
 import type { ConfigInfo } from '../services/config';
+import { ConfigType, ConfigValueType } from '@gwsu/core';
 import CustomConfigFormModal from './CustomConfigFormModal';
 import styles from './index.module.less';
 
 const CustomConfigTab: React.FC = () => {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<ConfigInfo[]>([]);
   const [total, setTotal] = useState(0);
@@ -20,7 +22,7 @@ const CustomConfigTab: React.FC = () => {
   const fetchData = useCallback(async (pageNum = currentPage, pSize = pageSize) => {
     setLoading(true);
     try {
-      const result = await getConfigPage({ configType: 2, pageNum, pageSize: pSize });
+      const result = await getConfigPage({ configType: ConfigType.CUSTOM, pageNum, pageSize: pSize });
       if (result) {
         setDataSource(result.records);
         setTotal(result.total);
@@ -78,7 +80,7 @@ const CustomConfigTab: React.FC = () => {
       title: '值类型',
       dataIndex: 'valueType',
       width: 100,
-      render: (val: number) => <Tag color={val === 2 ? 'blue' : 'default'}>{val === 2 ? 'JSON' : '基本类型'}</Tag>,
+      render: (val: ConfigValueType) => <Tag color={val === ConfigValueType.JSON ? 'blue' : 'default'}>{val === ConfigValueType.JSON ? 'JSON' : '基本类型'}</Tag>,
     },
     {
       title: '配置值',

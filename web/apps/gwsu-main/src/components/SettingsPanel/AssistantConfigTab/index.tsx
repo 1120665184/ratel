@@ -1,20 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Button, message, Spin } from 'antd';
+import { Card, Button, App, Spin } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import { fetchConfigsBatch } from '@gwsu/core';
 import { saveOrUpdateConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
-import type { AssistantConfig, ModelProvider } from './types';
+import type { AssistantConfig, ModelProvider, GeminiConfig } from './types';
 import { createDefaultAssistantConfig } from './types';
 import ProviderSelector from './ProviderSelector';
 import ProviderConfigForm from './ProviderConfigForm';
 import GenerateOptionsForm from './GenerateOptionsForm';
 import styles from './index.module.less';
 
-const CONFIG_KEY = 'assistant_config';
+const CONFIG_KEY = 'assistant_llm_config';
 
 const AssistantConfigTab: React.FC = () => {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<AssistantConfig>(createDefaultAssistantConfig());
@@ -77,7 +78,7 @@ const AssistantConfigTab: React.FC = () => {
       message.warning('请填写 API Key');
       return;
     }
-    if (config.provider === 'gemini' && !currentConfig.apiKey && !currentConfig.project) {
+    if (config.provider === 'gemini' && !currentConfig.apiKey && !(currentConfig as GeminiConfig).project) {
       message.warning('Gemini 至少需要填写 API Key 或 GCP Project');
       return;
     }
