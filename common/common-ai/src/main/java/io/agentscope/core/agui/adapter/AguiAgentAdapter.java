@@ -18,10 +18,7 @@ package io.agentscope.core.agui.adapter;
 import cn.hutool.core.collection.CollUtil;
 import com.google.gson.Gson;
 import io.agentscope.core.ReActAgent;
-import io.agentscope.core.agent.Agent;
-import io.agentscope.core.agent.Event;
-import io.agentscope.core.agent.EventType;
-import io.agentscope.core.agent.StreamOptions;
+import io.agentscope.core.agent.*;
 import io.agentscope.core.agui.converter.AguiMessageConverter;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.AguiMessage;
@@ -29,11 +26,13 @@ import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.message.*;
 import io.agentscope.core.util.JsonException;
 import io.agentscope.core.util.JsonUtils;
+import io.agentscope.harness.agent.HarnessAgent;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalResult;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
+import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -93,7 +92,7 @@ public class AguiAgentAdapter {
      * @param input The AG-UI run input
      * @return A Flux of AG-UI events
      */
-    public Flux<AguiEvent> run(RunAgentInput input) {
+    public Flux<AguiEvent> run(RunAgentInput input , String userId) {
         String threadId = input.getThreadId();
         String runId = input.getRunId();
 
@@ -122,12 +121,8 @@ public class AguiAgentAdapter {
         handlerForwardedProps(msgs, input.getForwardedProps());
 
         // Determine the event stream based on whether this is an approval resume
-        Flux<Event> agentEvents;
-        if (Objects.isNull(startFlux)) {
-            agentEvents = agent.stream(msgs, options);
-        } else {
-            agentEvents = Flux.concat(startFlux, agent.stream(msgs, options));
-        }
+        Flux<Event> agentEvents = agentCall(startFlux ,msgs , options ,threadId , userId);
+
 
         return Flux.concat(
                         // Emit RUN_STARTED
@@ -148,6 +143,29 @@ public class AguiAgentAdapter {
                                             threadId, runId, Map.of("error", errorMessage)),
                                     new AguiEvent.RunFinished(threadId, runId));
                         });
+    }
+
+    private Flux<Event> agentCall(Flux<Event> startFlux,List<Msg> msgs , StreamOptions options ,String sessionId ,String userId){
+
+        if(agent instanceof HarnessAgent harnessAgent){
+
+            RuntimeContext context = RuntimeContext.builder()
+                    .sessionId(sessionId)
+                    .sessionKey(CommonSessionKey.of(sessionId, userId))
+                    .userId(userId)
+                    .build();
+            if (Objects.isNull(startFlux)) {
+                return harnessAgent.stream(msgs, options ,context);
+            } else {
+                return Flux.concat(startFlux, harnessAgent.stream(msgs, options , context));
+            }
+        }
+
+        if (Objects.isNull(startFlux)) {
+            return agent.stream(msgs, options);
+        } else {
+            return Flux.concat(startFlux, agent.stream(msgs, options));
+        }
     }
 
 
@@ -273,6 +291,12 @@ public class AguiAgentAdapter {
     private Msg findLastAssistantMsg() {
         if (agent instanceof ReActAgent reactAgent) {
             List<Msg> messages = reactAgent.getMemory().getMessages();
+            if (CollectionUtils.isEmpty(messages)) {
+                return null;
+            }
+            return messages.getLast();
+        }else if (agent instanceof HarnessAgent ha) {
+            List<Msg> messages = ha.getDelegate().getMemory().getMessages();
             if (CollectionUtils.isEmpty(messages)) {
                 return null;
             }

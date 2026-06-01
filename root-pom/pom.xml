@@ -44,7 +44,7 @@
         <transmittable-thread.version>2.14.5</transmittable-thread.version>
         <gson-javatime.version>1.1.2</gson-javatime.version>
         <jsqlparser.version>5.2</jsqlparser.version>
-        <agentscope.version>1.0.11</agentscope.version>
+        <agentscope.version>1.1.0-RC2</agentscope.version>
         <spring-ai-alibaba.version>1.1.2.2</spring-ai-alibaba.version>
 
     </properties>

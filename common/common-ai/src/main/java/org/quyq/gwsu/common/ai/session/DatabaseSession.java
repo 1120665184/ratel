@@ -144,7 +144,7 @@ public record DatabaseSession(DataSource dataSource, String tableName) implement
             String currentHash = ListHashUtil.computeHash(values);
             String storedHash = this.getStoredHash(conn, sessionId, hashKey, userId);
             int existingCount = this.getListCount(conn, sessionId, key, userId);
-            boolean needsFullRewrite = ListHashUtil.needsFullRewrite(currentHash, storedHash, values.size(), existingCount);
+            boolean needsFullRewrite = ListHashUtil.needsFullRewrite(values, storedHash, existingCount);
 
             if (needsFullRewrite) {
                 conn.setAutoCommit(false);

@@ -18,6 +18,7 @@ package org.quyq.gwsu.common.ai.agui;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.memory.Memory;
+import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,12 +132,14 @@ public class ThreadSessionManager {
         Agent agent = session.getAgent();
         // Check if the agent has a memory and if it has any messages
         // ReActAgent is the main agent type that has memory
+        Memory memory = null;
         if (agent instanceof ReActAgent reactAgent) {
-            Memory memory = reactAgent.getMemory();
-            return memory != null && !memory.getMessages().isEmpty();
+            memory = reactAgent.getMemory();
+        }else if (agent instanceof HarnessAgent harnessAgent) {
+            memory = harnessAgent.getDelegate().getMemory();
         }
 
-        return false;
+        return memory != null && !memory.getMessages().isEmpty();
     }
 
     /**

@@ -82,9 +82,6 @@ public abstract class AguiController implements DisposableBean {
         return CURR_EMITTER.get(threadId);
     }
 
-    public static AIRunnerInstanceWrapper getCurrEmitter() {
-        return CURR_EMITTER.get();
-    }
 
 
     @Override
@@ -321,13 +318,14 @@ public abstract class AguiController implements DisposableBean {
         String threadId = input.getThreadId();
         String runId = input.getRunId();
         Map<String, String> headers = ServletUtils.getHeaders();
+        String userId = getCurrUserId();
         executorService.submit(
                 () -> {
                     Disposable subscription;
                     try {
                         // Process request - returns both agent and event stream
                         AguiRequestProcessor.ProcessResult result =
-                                processor.process(input, headerAgentId, pathAgentId);
+                                processor.process(input, headerAgentId, pathAgentId , userId);
                         CURR_EMITTER.put(threadId, new AIRunnerInstanceWrapper(input, emitter));
                         // Set up callbacks for client disconnect handling
                         emitter.onCompletion(
@@ -373,10 +371,6 @@ public abstract class AguiController implements DisposableBean {
                                                 () -> {
                                                     try {
                                                         emitter.complete();
-                                                        //持久化
-                                                        if (Objects.nonNull(agentSession) && result.agent() instanceof ReActAgent raa) {
-                                                            raa.saveTo(agentSession, CommonSessionKey.of(threadId, getCurrUserId()));
-                                                        }
                                                     } catch (Exception e) {
                                                         log.debug(
                                                                 "Error completing emitter: {}",

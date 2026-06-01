@@ -383,12 +383,16 @@ public class Toolkit {
                     }
 
                     @Override
+                    public Boolean getStrict() {
+                        return toolAnnotation.strict() ? Boolean.TRUE : null;
+                    }
+
+                    @Override
                     public Mono<ToolResultBlock> callAsync(ToolCallParam param) {
                         // Pass custom converter to method invoker
                         return methodInvoker.invokeAsync(
                                 toolObject, method, param, customConverter);
                     }
-
 
                     @Override
                     public ApprovalTips needHumanInTheLoop(Map<String, Object> args) {
@@ -415,6 +419,8 @@ public class Toolkit {
                             return new ApprovalTips(toolName, annotation.tip(), ApprovalStage.POST_REASONING);
                         }
                     }
+
+
                 };
 
         registerAgentTool(tool, groupName, extendedModel, null, presetParameters);

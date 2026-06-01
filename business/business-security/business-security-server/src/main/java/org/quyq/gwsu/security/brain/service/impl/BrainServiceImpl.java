@@ -1,7 +1,6 @@
 package org.quyq.gwsu.security.brain.service.impl;
 
 
-import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agui.adapter.AguiAdapterConfig;
 import io.agentscope.core.agui.processor.AguiRequestProcessor;
@@ -9,20 +8,20 @@ import io.agentscope.core.agui.registry.AguiAgentRegistry;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
 import io.agentscope.core.hook.PreReasoningEvent;
-import io.agentscope.core.memory.Memory;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.model.ExecutionConfig;
-import io.agentscope.core.model.Model;
 import io.agentscope.core.session.Session;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.SkillBox;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.harness.agent.HarnessAgent;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.DefaultAgentResolver;
 import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
+import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.utils.AIMsgUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -44,7 +43,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,7 +55,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BrainServiceImpl implements IBrainService {
 
-    private final ObjectProvider<Memory> memoryProvider;
 
     private final ObjectProvider<Toolkit> toolkitProvider;
 
@@ -78,7 +75,6 @@ public class BrainServiceImpl implements IBrainService {
 
 
     public Agent buildAgent() {
-        Memory memory = memoryProvider.getIfAvailable();
         Toolkit toolkit = toolkitProvider.getIfAvailable(Toolkit::new);
 
         toolkit.registerTool(new AskUserQuestionTool());
@@ -86,7 +82,7 @@ public class BrainServiceImpl implements IBrainService {
         // 构建包含当前用户菜单权限信息的技能
         SkillBox skillBox = buildSkillBox(toolkit);
 
-        return getAgent(memory, toolkit, skillBox);
+        return getAgent(toolkit, skillBox);
     }
 
     /**
@@ -129,16 +125,16 @@ public class BrainServiceImpl implements IBrainService {
 
         return """
                 # 用户功能权限信息
-
+                
                 以下是当前登录用户拥有的所有菜单、页面和操作按钮信息。
                 当用户请求跳转界面或执行操作时，请参考此列表判断用户是否有对应功能，并使用路由地址进行导航。
-
+                
                 ---
-
+                
                 %s
-
+                
                 ---
-
+                
                 # 备注
                 - **路由**：前端视图层界面跳转地址
                 - **位置**：菜单在视图层的展示位置
@@ -233,9 +229,9 @@ public class BrainServiceImpl implements IBrainService {
             return """
                     <details>
                     <summary>📋 功能说明</summary>
-
+                    
                     %s
-
+                    
                     </details>""".formatted(description);
         }
 
@@ -243,7 +239,7 @@ public class BrainServiceImpl implements IBrainService {
     }
 
 
-    private ReActAgent getAgent(Memory memory, Toolkit toolkit, SkillBox skillBox) {
+    private Agent getAgent(Toolkit toolkit, SkillBox skillBox) {
         //内容输出子智能体
         toolkit.registration()
 
@@ -256,20 +252,27 @@ public class BrainServiceImpl implements IBrainService {
                 .apply();
 
         OutputViewEventHandlerHook outputViewEventHandlerHook = new OutputViewEventHandlerHook(objectMapper);
+        WebToolExecuteHook webToolExecuteHook = new WebToolExecuteHook();
 
-        return ReActAgent.builder()
+        return HarnessAgent.builder()
                 .name("CentralBrain")
+                .session(agentSession)
                 .sysPrompt(buildSysPrompt())
                 .model(ModelProvider.generateModel())
                 .hook(new ForwardedPropsHook())
-                .memory(memory)
                 .hook(outputViewEventHandlerHook)
+                .hook(webToolExecuteHook)
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .maxIters(100)
                 .toolExecutionConfig(ExecutionConfig.builder()
-                        .timeout(Duration.of(10 , ChronoUnit.MINUTES))
+                        .timeout(Duration.of(10, ChronoUnit.MINUTES))
                         .build())
+                .enableAgentTracingLog(true)
+                .disableSubagents()
+                .disableShellTool()
+                .disableMemoryTools()
+                .disableFilesystemTools()
                 .build();
     }
 
@@ -277,41 +280,41 @@ public class BrainServiceImpl implements IBrainService {
         return """
                 # 角色
                 你是管理平台的智能助手「中枢大脑」，协助用户完成平台相关问题与任务。
-
+                
                 # 核心原则
                 1. **基于事实**：所有回答必须基于平台实际数据，禁止编造信息。不知道的如实说不知道，没有权限的如实告知无权限。
                 2. **简洁易懂**：用户是业务人员，回复需简洁明了，禁止使用编程专业词汇，禁止泄露工具的实现逻辑。
-
+                
                 # 两大核心能力
                 你拥有两个获取平台数据的能力，请根据用户需求选择合适的方式：
-
+                
                 ## 可视化界面操作
                 - 适用场景：数据修改、界面操作类任务
                 - 局限性：只能查看界面展示的内容，无法看到未展示的数据
                 - 当用户需要修改数据时，必须使用此能力
-
+                
                 ## 数据库搜索
                 - 适用场景：数据查询、统计分析类任务
                 - 局限性：仅支持查询，不支持修改
                 - 当用户需求为查询或统计时，优先使用此能力
-
+                
                 ## 能力选择原则
                 - 修改数据 → 可视化界面操作
                 - 查询/统计数据 → 数据库搜索（优先）
                 - 上述所有能力均基于当前用户权限构建，当用户在系统中没有相关权限时，如实告知无权限
-
+                
                 # 技能使用
                 当用户的问题与已注册技能相关时，优先加载对应技能获取信息：
                 - 用户询问功能权限、想跳转页面、想执行操作时，加载 user_menu_permissions 技能查看其拥有的功能
                 - 根据技能中的路由地址和功能描述，决定使用 RouteNavigation 工具导航到对应页面
-
+                
                 # AI输出面板
                 你拥有专属的AI输出面板，可以给用户输出可视化形式的内容（如图表、表格等）。当你输出内容时，优先考虑是否应该使用该面板以更直观的方式展示信息。
-
+                
                 # 当前界面信息
                 - 界面路由地址：{currentPath}
                 - 界面操作模式(human:人类操作模式 | ai:AI操作模式)：{operationMode}
-
+                
                 """;
     }
 
@@ -329,8 +332,6 @@ public class BrainServiceImpl implements IBrainService {
                                 .registry(registry)
                                 .sessionManager(new ThreadSessionManager(1000, 30))
                                 .serverSideMemory(true)
-                                .session(agentSession)
-                                .getUserIdSupplier(() -> securityUtils.userInfo().map(UserInfo::getUserId).orElse(null))
                                 .build()
                 )
                 .config(AguiAdapterConfig.defaultConfig())

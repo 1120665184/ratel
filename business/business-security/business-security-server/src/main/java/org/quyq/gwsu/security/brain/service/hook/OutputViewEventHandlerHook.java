@@ -4,12 +4,14 @@ package org.quyq.gwsu.security.brain.service.hook;
 import cn.hutool.json.JSONUtil;
 import io.agentscope.core.agent.Event;
 import io.agentscope.core.agent.EventType;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.hook.ActingChunkEvent;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
+import io.agentscope.core.hook.RuntimeContextAware;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
@@ -42,7 +44,7 @@ import java.util.Objects;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class OutputViewEventHandlerHook implements Hook {
+public class OutputViewEventHandlerHook implements Hook, RuntimeContextAware {
 
     private final ObjectMapper objectMapper;
 
@@ -53,7 +55,7 @@ public class OutputViewEventHandlerHook implements Hook {
      */
     private final StringBuilder lineBuffer = new StringBuilder();
 
-    private String threadId;
+    private RuntimeContext context;
 
     /**
      * 上一行发送的 patch，用于去重（防止 LLM 重复输出相同内容）
@@ -63,9 +65,6 @@ public class OutputViewEventHandlerHook implements Hook {
     @Override
     public <T extends HookEvent> Mono<T> onEvent(T event) {
         return Mono.deferContextual(ctx ->{
-            if(!ctx.isEmpty()){
-                threadId = ctx.get(AIConstants.Param.THREAD_ID);
-            }
 
             if (event instanceof ActingChunkEvent e && !CollectionUtils.isEmpty(e.getChunk().getOutput())) {
                 List<ContentBlock> output = e.getChunk().getOutput();
@@ -80,7 +79,7 @@ public class OutputViewEventHandlerHook implements Hook {
                     //处理输出视图智能体输出的内容
                     if (EventType.REASONING == toolEvent.getType() &&
                             MsgRole.ASSISTANT == message.getRole() && OutputViewAgent.AGENT_NAME.equals(message.getName())) {
-                        AIRunnerInstanceWrapper sseEmitter = AguiController.getCurrEmitter(threadId);
+                        AIRunnerInstanceWrapper sseEmitter = AguiController.getCurrEmitter(context.getSessionId());
                         if (Objects.isNull(sseEmitter)) {
                             log.info("SSE emitter is null");
                             return Mono.just(event);
@@ -254,4 +253,8 @@ public class OutputViewEventHandlerHook implements Hook {
         }
     }
 
+    @Override
+    public void setRuntimeContext(RuntimeContext context) {
+        this.context = context;
+    }
 }

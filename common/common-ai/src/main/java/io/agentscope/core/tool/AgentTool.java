@@ -27,7 +27,7 @@ import java.util.Map;
  * <p>Agent tools are functions that AI agents can invoke to perform actions or retrieve
  * information. They bridge the gap between the agent's reasoning and the external world.
  *
- * <p><b>Implementation Guidelines</b>
+ * <p><b>Implementation Guidelines:</b>
  * <ul>
  *   <li>Tools should have clear, descriptive names</li>
  *   <li>Descriptions should explain what the tool does and when to use it</li>
@@ -77,6 +77,32 @@ public interface AgentTool {
     Map<String, Object> getParameters();
 
     /**
+     * Gets strict mode configuration for this tool schema.
+     *
+     * <p>When strict mode is enabled, compatible model providers are expected to enforce stricter
+     * adherence to the tool parameter schema. Returning {@code null} means no explicit strict mode
+     * preference is provided.
+     *
+     * @return strict mode value ({@code true}/{@code false}) or {@code null} when unspecified
+     */
+    default Boolean getStrict() {
+        return null;
+    }
+
+    /**
+     * Gets the optional output schema for this tool in JSON Schema format.
+     *
+     * <p>Most tools do not expose a structured output schema to models, so the default
+     * implementation returns {@code null}. MCP tools can override this to surface the
+     * server-provided {@code outputSchema} definition.
+     *
+     * @return Map representing the JSON Schema for tool outputs, or null if unsupported
+     */
+    default Map<String, Object> getOutputSchema() {
+        return null;
+    }
+
+    /**
      * Execute the tool with the given parameters (asynchronous).
      *
      * <p>This method accepts a {@link ToolCallParam} object containing all necessary context for
@@ -92,7 +118,6 @@ public interface AgentTool {
      */
     Mono<ToolResultBlock> callAsync(ToolCallParam param);
 
-
     /**
      * 判断该方法是否需要人工审批，根据运行时工具调用参数动态决定
      * @param args 当前工具调用的输入参数
@@ -101,4 +126,5 @@ public interface AgentTool {
     default ApprovalTips needHumanInTheLoop(Map<String, Object> args) {
         return null;
     }
+
 }

@@ -86,7 +86,7 @@ public class AguiRequestProcessor {
      * @param pathAgentId   The agent ID from URL path variable (may be null)
      * @return A ProcessResult containing the agent and event stream
      */
-    public ProcessResult process(RunAgentInput input, String headerAgentId, String pathAgentId) {
+    public ProcessResult process(RunAgentInput input, String headerAgentId, String pathAgentId , String userId) {
         String threadId = input.getThreadId();
 
         // Resolve agent ID
@@ -106,7 +106,7 @@ public class AguiRequestProcessor {
 
         // Create adapter and run
         AguiAgentAdapter adapter = new AguiAgentAdapter(agent, config);
-        Flux<AguiEvent> events = adapter.run(effectiveInput);
+        Flux<AguiEvent> events = adapter.run(effectiveInput , userId);
 
         return new ProcessResult(agent, events);
     }

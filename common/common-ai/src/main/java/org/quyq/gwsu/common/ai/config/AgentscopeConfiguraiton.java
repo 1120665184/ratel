@@ -8,6 +8,7 @@ import io.agentscope.core.memory.Memory;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.ToolkitConfig;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoopHook;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -67,6 +68,7 @@ public class AgentscopeConfiguraiton {
 
     @Bean
     public WebToolUtils webToolUtils(CacheUtils cacheUtils) {
+        //人工审批注解判断
         AgentBase.addSystemHook(new HumanInTheLoopHook());
         return new WebToolUtils(cacheUtils);
     }

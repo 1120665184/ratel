@@ -21,6 +21,7 @@ import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.processor.AgentResolver;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
 import io.agentscope.core.session.Session;
+import io.agentscope.harness.agent.HarnessAgent;
 import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 
@@ -43,22 +44,12 @@ public class DefaultAgentResolver implements AgentResolver {
     private final boolean serverSideMemory;
 
     /**
-     * 持久化session实现
-     */
-    private final Session session;
-
-    /**
-     * 获取当前用户函数
-     */
-    private final Supplier<String> getUserId;
-
-    /**
      * Creates a simple resolver without session support.
      *
      * @param registry The agent registry
      */
     public DefaultAgentResolver(AguiAgentRegistry registry) {
-        this(registry, null, false, null, null);
+        this(registry, null, false);
     }
 
     /**
@@ -71,12 +62,10 @@ public class DefaultAgentResolver implements AgentResolver {
     public DefaultAgentResolver(
             AguiAgentRegistry registry,
             ThreadSessionManager sessionManager,
-            boolean serverSideMemory, Session session, Supplier<String> getUserId) {
+            boolean serverSideMemory) {
         this.registry = Objects.requireNonNull(registry, "registry cannot be null");
         this.sessionManager = sessionManager;
         this.serverSideMemory = serverSideMemory && sessionManager != null;
-        this.session = session;
-        this.getUserId = getUserId;
     }
 
     @Override
@@ -86,25 +75,17 @@ public class DefaultAgentResolver implements AgentResolver {
             return sessionManager.getOrCreateAgent(
                     threadId,
                     agentId,
-                    () -> createAgent(agentId, threadId));
+                    () -> createAgent(agentId));
         } else {
             // Standard mode: create new agent for each request
-            return createAgent(agentId, threadId);
+            return createAgent(agentId);
         }
     }
 
-    private Agent createAgent(String agentId, String threadId) {
-        Agent agent = registry.getAgent(agentId)
+    private Agent createAgent(String agentId) {
+
+        return registry.getAgent(agentId)
                 .orElseThrow(() -> new AguiException.AgentNotFoundException(agentId));
-        if (Objects.nonNull(session) && agent instanceof ReActAgent raa) {
-            raa.getHooks().add(new WebToolExecuteHook(threadId));
-            String userId = null;
-            if (Objects.nonNull(getUserId)) {
-                userId = getUserId.get();
-            }
-            raa.loadIfExists(session, CommonSessionKey.of(threadId, userId));
-        }
-        return agent;
 
     }
 
@@ -134,8 +115,6 @@ public class DefaultAgentResolver implements AgentResolver {
         private AguiAgentRegistry registry;
         private ThreadSessionManager sessionManager;
         private boolean serverSideMemory = false;
-        private Session session;
-        private Supplier<String> getUserId;
 
         /**
          * Set the agent registry.
@@ -159,15 +138,6 @@ public class DefaultAgentResolver implements AgentResolver {
             return this;
         }
 
-        public Builder session(Session session) {
-            this.session = session;
-            return this;
-        }
-
-        public Builder getUserIdSupplier(Supplier<String> supplier) {
-            getUserId = supplier;
-            return this;
-        }
 
         /**
          * Enable or disable server-side memory management.
@@ -187,7 +157,7 @@ public class DefaultAgentResolver implements AgentResolver {
          * @throws NullPointerException if registry is not set
          */
         public DefaultAgentResolver build() {
-            return new DefaultAgentResolver(registry, sessionManager, serverSideMemory, session, getUserId);
+            return new DefaultAgentResolver(registry, sessionManager, serverSideMemory);
         }
     }
 }

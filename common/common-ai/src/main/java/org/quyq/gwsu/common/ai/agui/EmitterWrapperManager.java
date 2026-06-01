@@ -1,12 +1,9 @@
 package org.quyq.gwsu.common.ai.agui;
 
 
-import io.agentscope.core.agui.AguiException;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
-import org.quyq.gwsu.common.core.utils.ServletUtils;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,15 +23,6 @@ public class EmitterWrapperManager {
 
     public void remove(String thread) {
         glabEmitter.remove(thread);
-    }
-
-
-    public AIRunnerInstanceWrapper get() {
-        String threadId = ServletUtils.getHeaders().get("thread-id");
-        if (Objects.isNull(threadId)) {
-            throw new AguiException("thread-id is null");
-        }
-        return glabEmitter.get(threadId);
     }
 
     public AIRunnerInstanceWrapper get(String thread) {
