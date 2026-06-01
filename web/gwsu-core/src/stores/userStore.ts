@@ -71,6 +71,8 @@ export interface UserInfo {
     roles?: string[];
     /** 权限列表 */
     permissions?: string[];
+    /** 是否超级管理员 */
+    admin?: boolean;
     /** 扩展数据 */
     extraData?: Record<string, unknown>;
 }

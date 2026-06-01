@@ -16,6 +16,7 @@ interface CurrentUserRaw {
     gender?: number;
     status?: number;
     deptId?: string;
+    admin?: boolean;
     depts?: Array<{
         id?: string;
         deptId: string;
@@ -55,5 +56,6 @@ export async function fetchCurrentUserInfo(): Promise<UserInfo> {
         deptId: raw.deptId ? Number(raw.deptId) : undefined,
         deptName: primaryDept?.deptName,
         depts,
+        admin: raw.admin,
     };
 }

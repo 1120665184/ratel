@@ -46,8 +46,12 @@ public class UserController {
     @TableModelPermission
     @Operation(summary = "获取当前登录用户信息")
     public R<SysUserDetailVO> currentUserInfo() {
-        return securityUtils.userInfo()
-                .map(v -> R.ok((SysUserDetailVO) v))
+        return securityUtils.getSubject()
+                .map(v -> {
+                    boolean admin = v.isAdmin();
+                    return R.ok(v.userInfo().map(user -> (SysUserDetailVO) user)
+                            .map(user -> user.setAdmin(admin)).orElse(null));
+                })
                 .orElseGet(R::ok);
     }
 

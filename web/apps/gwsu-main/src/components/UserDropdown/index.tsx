@@ -90,11 +90,13 @@ export default function UserDropdown() {
           <div className={styles.infoName}>{displayName}</div>
           {email && <div className={styles.infoEmail}>{email}</div>}
         </div>
-        <Tooltip title="设置">
-          <div className={styles.settingsBtn} onClick={switchToSettings}>
-            <SettingOutlined />
-          </div>
-        </Tooltip>
+        {userInfo?.admin && (
+          <Tooltip title="设置">
+            <div className={styles.settingsBtn} onClick={switchToSettings}>
+              <SettingOutlined />
+            </div>
+          </Tooltip>
+        )}
       </div>
 
       {/* 动态菜单项：position=2 的路由 */}
