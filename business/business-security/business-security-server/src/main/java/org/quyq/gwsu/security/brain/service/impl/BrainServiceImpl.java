@@ -23,8 +23,6 @@ import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.utils.AIMsgUtils;
-import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
-import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.menu.vo.MenuVO;
 import org.quyq.gwsu.security.brain.ModelProvider;
@@ -64,8 +62,6 @@ public class BrainServiceImpl implements IBrainService {
 
     private final Session agentSession;
 
-    private final SecurityUtils securityUtils;
-
 
     private final ISecurityMenuService menuService;
 
@@ -98,7 +94,7 @@ public class BrainServiceImpl implements IBrainService {
         String menuContent = buildMenuContent(menuTree);
 
         AgentSkill userMenuSkill = AgentSkill.builder()
-                .name("user_menu_permissions")
+                .name("system_view_operation")
                 .description("当需要操作用户可视化界面时，加载此技能查看用户的完整菜单和功能列表以及获取操作界面相关工具")
                 .skillContent(menuContent)
                 .build();
@@ -124,22 +120,85 @@ public class BrainServiceImpl implements IBrainService {
                 .collect(Collectors.joining("\n"));
 
         return """
-                # 用户功能权限信息
+                # 系统操作安全助手 Skill
                 
-                以下是当前登录用户拥有的所有菜单、页面和操作按钮信息。
-                当用户请求跳转界面或执行操作时，请参考此列表判断用户是否有对应功能，并使用路由地址进行导航。
+                ## 核心行为准则
+                
+                ### 准则1：永不编造
+                - 路由地址必须使用下方菜单列表中的值，严禁自行编造或推测
+                
+                ### 准则2：缺失必问
+                - 执行新增/编辑前，检查用户是否提供了所有必要字段
+                - 如有缺失，逐一询问，不得跳过、不得猜测、不得使用默认值
+                
+                ### 准则3：操作必确认
+                - 任何修改性操作（新增、编辑、删除）执行前，必须获得用户的明确确认
                 
                 ---
+                
+                ## 菜单与权限数据
+                
+                以下是当前登录用户拥有的所有菜单、页面和操作按钮信息。
                 
                 %s
                 
                 ---
                 
-                # 备注
-                - **路由**：前端视图层界面跳转地址
-                - **位置**：菜单在视图层的展示位置
-                - **接口权限**：菜单或按钮对应的后端接口权限标识，`(main)` 标注的为对应功能的主要接口，多个权限用 `;` 分割
-                - **按钮标识**：对应按钮的唯一标识，用于判定视图层按钮的显示权限
+                ## 字段说明
+                
+                | 字段 | 含义 |
+                |------|------|
+                | 路由 | 前端视图层界面跳转地址 |
+                | 位置 | 菜单在视图层的展示位置 |
+                | 接口权限 | 菜单或按钮对应的后端接口权限标识，`(main)`标注的为主要接口，多个权限用`;`分割 |
+                | 按钮标识 | 按钮的唯一标识，用于判定视图层按钮的显示权限 |
+                
+                ---
+                
+                ## 操作流程
+                
+                ### 一、界面跳转
+                1. 确认用户有对应菜单权限
+                2. 使用列表中的**路由**地址进行跳转
+                3. 禁止编造路由地址
+                
+                ### 二、新增/编辑操作
+                
+                **流程：**
+                用户请求新增/编辑 → 检查字段完整性 → 如有缺失则逐一询问 → 收集完整后向用户复述 → 等待用户确认 → 执行保存
+                
+                **询问模板：**
+                > “准备执行【操作名称】。目前还缺少以下信息：【字段1】、【字段2】，请补充。”
+                
+                **确认模板：**
+                > “即将执行【操作名称】，信息汇总如下：
+                > - 【字段A】：【值A】
+                > - 【字段B】：【值B】
+                >
+                > 请确认无误后回复‘确认保存’。”
+                
+                **确认关键词：** `确认保存`、`确认`、`是`、`可以`、`保存`
+                
+                ### 三、删除操作
+                
+                **流程：**
+                用户请求删除 → 确认删除对象 → 发出风险警告 → 等待用户输入确认关键词 → 执行删除
+                
+                
+                **确认模板：**
+                > “您确认要永久删除【对象名称/ID】吗？此操作不可撤销。请回复‘确认删除’以继续。”
+                
+                **确认关键词：** `确认删除`（必须完整匹配，不接受“是”、“好的”等模糊回复）
+                
+                ---
+                
+                ## 禁止行为清单
+                
+                - ❌ 在用户未提供完整字段时执行保存
+                - ❌ 猜测或编造缺失字段的值
+                - ❌ 跳过最终确认步骤直接操作
+                - ❌ 对删除操作使用模糊确认词（如“是”“嗯”“好的”）
+                - ❌ 编造不在菜单列表中的路由地址
                 """.formatted(menuSections);
     }
 
@@ -314,6 +373,13 @@ public class BrainServiceImpl implements IBrainService {
                 # 当前界面信息
                 - 界面路由地址：{currentPath}
                 - 界面操作模式(human:人类操作模式 | ai:AI操作模式)：{operationMode}
+                
+                【补充】
+                # 不确定性处理原则
+                1. **识别与澄清**：当用户的问题存在歧义、信息不完整，或可能对应多种理解时，你必须主动向用户提出澄清性问题，明确具体意图后再作答。
+                2. **隐含问题的主动发现**：在解决用户明确提出的问题时，如果发现会自然衍生出其他关联问题（例如：查询某订单状态时，发现订单已超时，但用户未询问超时原因及后续操作），应主动提示用户这些潜在需关注的信息，并询问是否需要进一步协助。
+                3. **无法确定时的默认动作**：若经过合理尝试仍无法确定用户意图或问题所需的必要信息，应如实告知用户当前信息不足以给出准确答案，并列出缺少的关键信息，引导用户补充。
+                4. **不确定性回答规范**：对于不确定的内容，严禁给出肯定性或猜测性的答案。应明确表达“我不确定”、“需要进一步确认”等措辞，并说明原因或建议的核实方式。
                 
                 """;
     }
