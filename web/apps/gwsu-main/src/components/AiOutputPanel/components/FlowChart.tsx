@@ -38,58 +38,116 @@ const nodeStyles: Record<string, { symbol: string; color: string; borderColor: s
   end: { symbol: 'circle', color: '#dc2626', borderColor: '#dc2626' },
 };
 
-/** 垂直布局间距 */
-const VERTICAL_GAP = 90;
-/** 水平布局间距 */
-const HORIZONTAL_GAP = 160;
-/** 回边的水平偏移量 */
-const BACK_EDGE_OFFSET = 200;
+/** 主轴层间距 */
+const LAYER_GAP = 140;
+/** 同层节点间距 */
+const SIBLING_GAP = 240;
 
 /**
- * 计算节点布局位置
- * 正向边沿主轴排列，回边（target 在 source 之前）通过偏移实现
+ * 基于图拓扑的分层布局（Sugiyama 简化版）
+ * 1. 按最长路径计算每个节点的层级（rank），保证所有边从低层指向高层
+ * 2. 同层节点水平展开，居中对齐
  */
 function calculateNodePositions(
   nodes: FlowNode[],
   edges: FlowEdge[],
   direction: 'vertical' | 'horizontal',
 ): { positions: Record<string, [number, number]>; maxMain: number; maxCross: number } {
+  if (nodes.length === 0) {
+    return { positions: {}, maxMain: 0, maxCross: 0 };
+  }
+
   const isVertical = direction === 'vertical';
-  const gap = isVertical ? VERTICAL_GAP : HORIZONTAL_GAP;
 
-  // 按输入顺序分配主轴坐标
-  const positions: Record<string, [number, number]> = {};
-  nodes.forEach((node, i) => {
-    const main = i * gap;
-    positions[node.id] = isVertical ? [0, main] : [main, 0];
-  });
-
-  // 检测回边，为回边涉及的节点添加交叉轴偏移
-  const nodeIndexMap = new Map(nodes.map((n, i) => [n.id, i]));
-  const backEdgeSources = new Set<string>();
-
+  // 构建邻接表：记录每个节点的直接前驱
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const predecessors = new Map<string, string[]>();
+  nodeIds.forEach((id) => predecessors.set(id, []));
   edges.forEach((edge) => {
-    const sourceIdx = nodeIndexMap.get(edge.from);
-    const targetIdx = nodeIndexMap.get(edge.to);
-    if (sourceIdx !== undefined && targetIdx !== undefined && targetIdx < sourceIdx) {
-      // 回边：from 向右偏移
-      backEdgeSources.add(edge.from);
+    if (nodeIds.has(edge.from) && nodeIds.has(edge.to)) {
+      predecessors.get(edge.to)!.push(edge.from);
     }
   });
 
-  // 有回边时，将回边源节点及之后的节点整体向交叉轴偏移
-  if (backEdgeSources.size > 0) {
-    let hasBackEdge = false;
-    nodes.forEach((node) => {
-      if (backEdgeSources.has(node.id)) hasBackEdge = true;
-      if (hasBackEdge) {
-        const pos = positions[node.id];
-        positions[node.id] = isVertical
-          ? [pos[0] + BACK_EDGE_OFFSET, pos[1]]
-          : [pos[0], pos[1] + BACK_EDGE_OFFSET];
+  // 按最长路径计算 rank：rank[node] = max(rank[predecessor]) + 1
+  // 根节点（无前驱）rank = 0
+  const rank = new Map<string, number>();
+
+  // 拓扑排序（Kahn 算法）
+  const inDegree = new Map<string, number>();
+  nodeIds.forEach((id) => inDegree.set(id, 0));
+  edges.forEach((edge) => {
+    if (nodeIds.has(edge.from) && nodeIds.has(edge.to)) {
+      inDegree.set(edge.to, (inDegree.get(edge.to) || 0) + 1);
+    }
+  });
+
+  const queue: string[] = [];
+  inDegree.forEach((deg, id) => {
+    if (deg === 0) queue.push(id);
+  });
+
+  // 按拓扑序处理，逐层推进
+  const sorted: string[] = [];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    sorted.push(id);
+
+    // 计算 rank：所有前驱的最大 rank + 1
+    const preds = predecessors.get(id) || [];
+    const maxPredRank = preds.length > 0
+      ? Math.max(...preds.map((p) => rank.get(p) ?? 0))
+      : -1;
+    rank.set(id, maxPredRank + 1);
+
+    // 更新后继的入度
+    edges.forEach((edge) => {
+      if (edge.from === id && nodeIds.has(edge.to)) {
+        const newDeg = (inDegree.get(edge.to) || 1) - 1;
+        inDegree.set(edge.to, newDeg);
+        if (newDeg === 0) queue.push(edge.to);
       }
     });
   }
+
+  // 处理环中的节点（拓扑排序未覆盖的节点）
+  nodeIds.forEach((id) => {
+    if (!rank.has(id)) {
+      const preds = predecessors.get(id) || [];
+      const maxPredRank = preds.length > 0
+        ? Math.max(...preds.map((p) => rank.get(p) ?? 0))
+        : -1;
+      rank.set(id, maxPredRank + 1);
+    }
+  });
+
+  // 按层分组
+  const layers = new Map<number, string[]>();
+  rank.forEach((r, id) => {
+    if (!layers.has(r)) layers.set(r, []);
+    layers.get(r)!.push(id);
+  });
+
+  // 计算最大层宽，用于居中对齐
+  let maxLayerWidth = 0;
+  layers.forEach((layerNodes) => {
+    maxLayerWidth = Math.max(maxLayerWidth, layerNodes.length);
+  });
+
+  // 为每个节点分配坐标
+  const positions: Record<string, [number, number]> = {};
+
+  layers.forEach((layerNodes, r) => {
+    const layerWidth = layerNodes.length;
+    // 居中对齐：第一个节点的 x 偏移量
+    const startX = -((layerWidth - 1) * SIBLING_GAP) / 2;
+
+    layerNodes.forEach((id, i) => {
+      const crossPos = startX + i * SIBLING_GAP;
+      const mainPos = r * LAYER_GAP;
+      positions[id] = isVertical ? [crossPos, mainPos] : [mainPos, crossPos];
+    });
+  });
 
   // 计算边界
   let maxMain = 0;
@@ -97,10 +155,10 @@ function calculateNodePositions(
   Object.values(positions).forEach(([x, y]) => {
     if (isVertical) {
       maxMain = Math.max(maxMain, y);
-      maxCross = Math.max(maxCross, x);
+      maxCross = Math.max(maxCross, Math.abs(x));
     } else {
       maxMain = Math.max(maxMain, x);
-      maxCross = Math.max(maxCross, y);
+      maxCross = Math.max(maxCross, Math.abs(y));
     }
   });
 
@@ -128,7 +186,6 @@ function buildFlowOption(props: FlowChartProps): EChartsOption {
       edgeLabel: {
         show: true,
         fontSize: 11,
-        formatter: '{c}',
         color: '#6b7280',
       },
       lineStyle: {
@@ -161,7 +218,8 @@ function buildFlowOption(props: FlowChartProps): EChartsOption {
         return {
           source: edge.from,
           target: edge.to,
-          value: edge.label || '',
+          value: edge.label ? 1 : undefined,
+          edgeLabel: edge.label ? { formatter: edge.label } : undefined,
           lineStyle: {
             curveness: isBackEdge ? 0.3 : 0.1,
           },

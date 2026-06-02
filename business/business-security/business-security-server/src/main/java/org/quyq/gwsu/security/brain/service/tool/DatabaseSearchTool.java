@@ -249,7 +249,7 @@ public class DatabaseSearchTool {
                 }
             }
 
-            return Mono.just("""
+            String msg = """
                 ## SQL执行结果
                 
                 **执行的SQL**:
@@ -263,7 +263,9 @@ public class DatabaseSearchTool {
                 %s
                 """.formatted(finSql, dataStr.toString(),
                     desensitizedFields.isEmpty() ? "" : "> **脱敏提示**: 以下字段因权限配置已做脱敏处理: " + String.join(", ", desensitizedFields)
-            ));
+            );
+
+            return Mono.just(msg);
 
         });
 

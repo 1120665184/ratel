@@ -21,6 +21,8 @@ const AiOutputPanel: React.FC = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasContent, setHasContent] = useState(false);
   const compilerRef = useRef<ReturnType<typeof createSpecStreamCompiler> | null>(null);
+  // 标记是否已收到过 AGENT_OUTPUT_END，用于判断新一轮输出是否需要重置编译器
+  const hasEndedRef = useRef(false);
 
   // 确保编译器初始化
   if (!compilerRef.current) {
@@ -29,6 +31,7 @@ const AiOutputPanel: React.FC = () => {
 
   const handleClear = useCallback(() => {
     compilerRef.current = createSpecStreamCompiler();
+    hasEndedRef.current = false;
     setSpec(null);
     setHasContent(false);
     setIsStreaming(false);
@@ -41,13 +44,12 @@ const AiOutputPanel: React.FC = () => {
       // 收到AI输出事件，自动切换到AI输出Tab，让用户能看到输出内容
       useOperationTabStore.getState().switchToAiOutput();
 
-      if (!text) {
-        // 新一轮输出开始，重置编译器和状态
+      // 上一轮输出已结束，当前是新一轮 OutputViewAgent 调用，需要重置编译器
+      if (hasEndedRef.current) {
         compilerRef.current = createSpecStreamCompiler();
         setSpec(null);
         setHasContent(false);
-        setIsStreaming(true);
-        return;
+        hasEndedRef.current = false;
       }
 
       setIsStreaming(true);
@@ -58,14 +60,15 @@ const AiOutputPanel: React.FC = () => {
           setSpec({ ...result });
           setHasContent(true);
         }
-      } catch {
-        // patch 解析失败，忽略
+      } catch (e) {
+        // patch 解析失败，静默忽略
       }
     });
 
-    // 监听 AGENT_OUTPUT_END：输出结束，隐藏生成中状态
+    // 监听 AGENT_OUTPUT_END：输出结束，标记状态供下一轮判断
     const unsubOutputEnd = onAgentOutputEnd(() => {
       setIsStreaming(false);
+      hasEndedRef.current = true;
     });
 
     return () => {

@@ -7,6 +7,7 @@ import io.agentscope.core.agui.processor.AguiRequestProcessor;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
+import io.agentscope.core.hook.PreCallEvent;
 import io.agentscope.core.hook.PreReasoningEvent;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
@@ -23,6 +24,12 @@ import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.utils.AIMsgUtils;
+import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.core.domain.visitor.Visitor;
+import org.quyq.gwsu.common.security.domain.Subject;
+import org.quyq.gwsu.common.security.enums.VisitorType;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.menu.vo.MenuVO;
 import org.quyq.gwsu.security.brain.ModelProvider;
@@ -62,6 +69,7 @@ public class BrainServiceImpl implements IBrainService {
 
     private final Session agentSession;
 
+    private final SecurityUtils securityUtils;
 
     private final ISecurityMenuService menuService;
 
@@ -301,7 +309,6 @@ public class BrainServiceImpl implements IBrainService {
     private Agent getAgent(Toolkit toolkit, SkillBox skillBox) {
         //内容输出子智能体
         toolkit.registration()
-
                 .subAgent(outputViewAgent::build, outputViewAgent.getSubAgentConfig())
                 .apply();
         //数据库智能查询智能体
@@ -313,14 +320,15 @@ public class BrainServiceImpl implements IBrainService {
         OutputViewEventHandlerHook outputViewEventHandlerHook = new OutputViewEventHandlerHook(objectMapper);
         WebToolExecuteHook webToolExecuteHook = new WebToolExecuteHook();
 
+        //构建当前登录主体的系统提示词
+        String subjectSystemPrompt = buildSubjectSystemPrompt();
+
         return HarnessAgent.builder()
                 .name("CentralBrain")
                 .session(agentSession)
                 .sysPrompt(buildSysPrompt())
                 .model(ModelProvider.generateModel())
-                .hook(new ForwardedPropsHook())
-                .hook(outputViewEventHandlerHook)
-                .hook(webToolExecuteHook)
+                .hooks(List.of(new ForwardedPropsHook(subjectSystemPrompt) , outputViewEventHandlerHook , webToolExecuteHook))
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .maxIters(100)
@@ -334,6 +342,41 @@ public class BrainServiceImpl implements IBrainService {
                 .disableFilesystemTools()
                 .build();
     }
+
+    /**、
+     *  生成当前登录主体信息提示词
+     * @return
+     */
+    private String buildSubjectSystemPrompt(){
+        Optional<Subject<Visitor>> subjectOpt = securityUtils.getSubject();
+        if(subjectOpt.isEmpty()){
+            return null;
+        }
+        Subject<Visitor> subject = subjectOpt.get();
+        String admin = subject.isAdmin() ? "是" : "否";
+        String userType = VisitorType.USER == subject.getSubjectType() ? "平台用户" : "第三方客户端";
+        String userInfo = "无";
+        String clientInfo = "无";
+        Optional<UserInfo> userInfoOpt = subject.userInfo();
+        if(userInfoOpt.isPresent()){
+            userInfo = objectMapper.writeValueAsString(userInfoOpt.get());
+        }
+        Optional<ClientInfo> clientInfoOpt = subject.clientInfo();
+        if(clientInfoOpt.isPresent()){
+            clientInfo = objectMapper.writeValueAsString(clientInfoOpt.get());
+        }
+
+        return """
+                # 当前登录主体信息：
+                ## 主体类型：%s ,
+                ## 是否超级管理员：%s ,
+                ## 登录用户信息
+                %s
+                ## 所属三方平台信息
+                %s
+                """.formatted(userType,admin, userInfo, clientInfo);
+    }
+
 
     private String buildSysPrompt() {
         return """
@@ -410,17 +453,22 @@ public class BrainServiceImpl implements IBrainService {
      */
     private static class ForwardedPropsHook implements Hook {
 
+        public ForwardedPropsHook(String subjectSystemPrompt) {
+            this.subjectSystemPrompt = subjectSystemPrompt;
+        }
+
         private final StTemplateRenderer templateRenderer = StTemplateRenderer.builder().build();
         private final static String FORWARDED_PROPS_KEY = "forwardedProps";
+
+        private final String subjectSystemPrompt;
 
         @Override
         public <T extends HookEvent> Mono<T> onEvent(T event) {
 
             if (event instanceof PreReasoningEvent preReasoningEvent) {
-
                 List<Msg> inputMessages = preReasoningEvent.getInputMessages();
                 Map<String, Object> forwardedProps = new HashMap<>();
-                Msg systemMsg = AIMsgUtils.getSystemMsg(inputMessages);
+                Msg systemMsg = preReasoningEvent.getSystemMessage();
                 Msg lastUserMsg = AIMsgUtils.getLastUserMsg(inputMessages);
                 if (Objects.nonNull(lastUserMsg)) {
                     forwardedProps.putAll(
@@ -439,9 +487,11 @@ public class BrainServiceImpl implements IBrainService {
                                     return TextBlock.builder().text(systemPrompt).build();
                                 }
                                 return v;
-                            })
-                            .toList();
-
+                            }).collect(Collectors.toList());
+                    //添加登录主体的提示词
+                    if(StringUtils.hasText(subjectSystemPrompt)){
+                        blocks.add(TextBlock.builder().text(subjectSystemPrompt).build());
+                    }
 
                     Msg newSysPrompt = Msg.builder()
                             .id(systemMsg.getId())
@@ -450,7 +500,7 @@ public class BrainServiceImpl implements IBrainService {
                             .content(blocks)
                             .timestamp(systemMsg.getTimestamp())
                             .build();
-                    AIMsgUtils.replaceSystemMsg(inputMessages, newSysPrompt);
+                    preReasoningEvent.setSystemMessage(newSysPrompt);
                 }
 
             }
