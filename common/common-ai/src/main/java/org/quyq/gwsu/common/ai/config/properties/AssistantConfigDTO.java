@@ -17,6 +17,9 @@ package org.quyq.gwsu.common.ai.config.properties;
 
 import lombok.Data;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 助手配置DTO，与前端 assistant_llm_config JSON 结构一一映射。
  *
@@ -198,6 +201,22 @@ public class AssistantConfigDTO {
          * 随机种子，用于确定性生成。
          */
         private Long seed;
+
+        /**
+         * 自定义请求体参数，以 JSON 格式配置。
+         *
+         * <p>用于传递提供商特有的非标准参数，构建时会合并到 GenerateOptions 的 additionalBodyParams 中。
+         * 键为参数名，值为参数值（支持嵌套对象）。
+         *
+         * <p>示例：
+         * <pre>{@code
+         * {
+         *   "thinking": { "type": "enabled" },
+         *   "custom_param": "value"
+         * }
+         * }</pre>
+         */
+        private Map<String, Object> additionalBodyParams = new HashMap<>();
 
     }
 

@@ -21,6 +21,7 @@ import org.quyq.gwsu.common.ai.config.properties.AssistantConfigDTO;
 import org.springframework.util.StringUtils;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -134,6 +135,7 @@ public enum ModelProviderType {
                 builder.defaultOptions(transGenerateOptions(config.getGenerateOptions()));
             }
 
+
             return builder.build();
         }
     };
@@ -175,15 +177,24 @@ public enum ModelProviderType {
      * @return
      */
     private static GenerateOptions transGenerateOptions(AssistantConfigDTO.GenerateOptionsDTO options) {
-        return GenerateOptions.builder()
+        GenerateOptions.Builder builder = GenerateOptions.builder()
                 .temperature(options.getTemperature())
                 .topP(options.getTopP())
                 .maxTokens(options.getMaxTokens())
                 .frequencyPenalty(options.getFrequencyPenalty())
                 .presencePenalty(options.getPresencePenalty())
                 .topK(options.getTopK())
-                .seed(options.getSeed())
-                .build();
+                .seed(options.getSeed());
+
+        // 合并自定义请求体参数
+        Map<String, Object> additionalBodyParams = options.getAdditionalBodyParams();
+        if (additionalBodyParams != null && !additionalBodyParams.isEmpty()) {
+            for (Map.Entry<String, Object> entry : additionalBodyParams.entrySet()) {
+                builder.additionalBodyParam(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
     }
 
 

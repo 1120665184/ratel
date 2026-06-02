@@ -1,0 +1,49 @@
+.viewConfigForm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.switchItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: oklch(0.97 0.01 260);
+  }
+}
+
+.switchIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: oklch(0.95 0.02 260);
+  color: oklch(0.55 0.15 260);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.switchContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.switchTitle {
+  display: block;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.switchDesc {
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 2px;
+}

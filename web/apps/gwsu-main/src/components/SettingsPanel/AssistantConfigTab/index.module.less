@@ -1,9 +1,80 @@
 .assistantConfig {
+  padding-bottom: 16px;
+}
+
+/* 左右布局 */
+.layout {
+  display: flex;
+  gap: 20px;
+  min-height: 400px;
+}
+
+/* 左侧 Tab 导航 - 正方形块 */
+.sideTabNav {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 720px;
-  padding-bottom: 16px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sideTab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 80px;
+  height: 80px;
+  border: 1.5px solid oklch(0.91 0.01 260);
+  border-radius: 12px;
+  background: #fff;
+  color: oklch(0.50 0.02 260);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+
+  &:hover {
+    border-color: oklch(0.78 0.06 260);
+    color: oklch(0.45 0.10 260);
+    background-color: oklch(0.98 0.008 260);
+  }
+}
+
+.sideTabActive {
+  border-color: oklch(0.60 0.16 260);
+  background-color: oklch(0.97 0.02 260);
+  color: oklch(0.40 0.16 260);
+  box-shadow: 0 2px 8px oklch(0.55 0.16 260 / 0.15);
+
+  &:hover {
+    border-color: oklch(0.60 0.16 260);
+    background-color: oklch(0.97 0.02 260);
+    color: oklch(0.40 0.16 260);
+  }
+}
+
+.sideTabIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.sideTabLabel {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 右侧内容区 */
+.sideTabContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .sectionCard {
@@ -35,4 +106,5 @@
   justify-content: flex-end;
   gap: 8px;
   padding-top: 8px;
+  margin-top: auto;
 }

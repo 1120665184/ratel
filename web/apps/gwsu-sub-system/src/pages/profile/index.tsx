@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, Card, Descriptions, Tag, Spin, App, Button } from 'antd';
 import {
-  UserOutlined,
   MailOutlined,
   PhoneOutlined,
   ApartmentOutlined,
@@ -112,7 +111,7 @@ const ProfilePage: React.FC = () => {
           </AuthGate>
         }
       >
-        <Descriptions column={{ xs: 1, sm: 2 }} colon={false} labelStyle={{ color: 'var(--text-secondary-color)' }}>
+        <Descriptions column={{ xs: 1, sm: 2 }} colon={false} styles={{ label: { color: 'var(--text-secondary-color)' } }}>
           <Descriptions.Item label="用户名">{userInfo?.username ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="昵称">{userInfo?.nickname ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="性别">
@@ -180,7 +179,7 @@ const ProfilePage: React.FC = () => {
             ))}
           </div>
         ) : userInfo?.deptName ? (
-          <Descriptions column={{ xs: 1, sm: 2 }} colon={false} labelStyle={{ color: 'var(--text-secondary-color)' }}>
+          <Descriptions column={{ xs: 1, sm: 2 }} colon={false} styles={{ label: { color: 'var(--text-secondary-color)' } }}>
             <Descriptions.Item label="所属部门">
               <span>
                 <ApartmentOutlined style={{ marginRight: 4, color: 'var(--primary-color)' }} />

@@ -3,7 +3,7 @@ import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-ui/styles.css';
 import { App, Button, Tooltip } from 'antd';
 import { RobotOutlined, CompressOutlined, DragOutlined, CloseOutlined, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
 import type { CSSProperties } from 'react';
@@ -13,6 +13,7 @@ import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { HumanApprovalBar } from './HumanApprovalBar';
 import { AskUserQuestionBar } from './AskUserQuestionBar';
 import { AiModeControlBar } from './AiModeControlBar';
+import { createCustomRenderMessage } from './CustomRenderMessage';
 import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
 import { dispatchHumanApproval, clearHumanApproval, onHumanApproval } from '@/services/human-approval';
 import { dispatchAskUserQuestion, clearAskUserQuestion, onAskUserQuestion } from '@/services/ask-user-question';
@@ -48,9 +49,12 @@ export function CopilotChatPanel({
   onDraggable,
   onHide,
 }: CopilotChatPanelProps) {
-  const { viewMode, setViewMode, panelState, setPanelPosition, setCurrentThreadId } = usePanelContext();
+  const { viewMode, setViewMode, panelState, setPanelPosition, setCurrentThreadId, viewConfig } = usePanelContext();
   const { agent } = useAgent({ agentId: 'brain' });
   const { message } = App.useApp();
+
+  // 根据展示配置动态创建消息渲染组件
+  const CustomRenderMessage = useMemo(() => createCustomRenderMessage(viewConfig), [viewConfig]);
 
   // CopilotChat 组件容器 ref，用于精确控制其内部输入框
   const copilotChatRef = useRef<HTMLDivElement>(null);
@@ -169,6 +173,7 @@ export function CopilotChatPanel({
         content: typeof msg.content === 'string' ? msg.content : (msg.content ? JSON.stringify(msg.content) : ''),
         ...(msg.toolCalls && msg.toolCalls.length > 0 ? { toolCalls: msg.toolCalls } : {}),
         ...(msg.toolCallId ? { toolCallId: msg.toolCallId } : {}),
+        ...(msg.encryptedValue ? { encryptedValue: msg.encryptedValue } : {}),
       }));
       agent.setMessages(formattedMessages as Parameters<typeof agent.setMessages>[0]);
 
@@ -243,35 +248,39 @@ export function CopilotChatPanel({
               icon={<PlusOutlined />}
             />
           </Tooltip>
-          <Tooltip title="历史记录" zIndex={1029}>
-            <Button
-              type="text"
-              size="small"
-              className={styles.actionButton}
-              onClick={handleShowHistory}
-              icon={<HistoryOutlined />}
-            />
-          </Tooltip>
-          {isDraggableMode ? (
-            <Tooltip title="固定模式" zIndex={1029}>
+          {viewConfig.showHistory && (
+            <Tooltip title="历史记录" zIndex={1029}>
               <Button
                 type="text"
                 size="small"
                 className={styles.actionButton}
-                onClick={onFixed}
-                icon={<CompressOutlined />}
+                onClick={handleShowHistory}
+                icon={<HistoryOutlined />}
               />
             </Tooltip>
-          ) : (
-            <Tooltip title="拖拽模式" zIndex={1029}>
-              <Button
-                type="text"
-                size="small"
-                className={styles.actionButton}
-                onClick={onDraggable}
-                icon={<DragOutlined />}
-              />
-            </Tooltip>
+          )}
+          {viewConfig.enableDragMode && (
+            isDraggableMode ? (
+              <Tooltip title="固定模式" zIndex={1029}>
+                <Button
+                  type="text"
+                  size="small"
+                  className={styles.actionButton}
+                  onClick={onFixed}
+                  icon={<CompressOutlined />}
+                />
+              </Tooltip>
+            ) : (
+              <Tooltip title="拖拽模式" zIndex={1029}>
+                <Button
+                  type="text"
+                  size="small"
+                  className={styles.actionButton}
+                  onClick={onDraggable}
+                  icon={<DragOutlined />}
+                />
+              </Tooltip>
+            )
           )}
           <Tooltip title="收起面板" zIndex={1029}>
             <Button
@@ -299,6 +308,7 @@ export function CopilotChatPanel({
             initial: '我是你的平台助手，有什么问题可以问我哦^_^',
           }}
           className={styles.copilotChat}
+          RenderMessage={CustomRenderMessage}
           onStopGeneration={() => {
             agent.abortRun();
           }}

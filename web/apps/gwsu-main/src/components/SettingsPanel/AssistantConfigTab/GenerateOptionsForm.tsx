@@ -1,5 +1,9 @@
-import { Form, Slider, InputNumber, Collapse } from 'antd';
+import { useState } from 'react';
+import { Form, Slider, InputNumber, Collapse, Input, App } from 'antd';
 import type { GenerateOptionsConfig } from './types';
+import styles from './GenerateOptionsForm.module.less';
+
+const { TextArea } = Input;
 
 interface GenerateOptionsFormProps {
   value?: GenerateOptionsConfig;
@@ -7,8 +11,44 @@ interface GenerateOptionsFormProps {
 }
 
 const GenerateOptionsForm: React.FC<GenerateOptionsFormProps> = ({ value, onChange }) => {
+  const { message } = App.useApp();
+  const [jsonText, setJsonText] = useState<string>(
+    () => {
+      try {
+        return JSON.stringify(value?.additionalBodyParams ?? {}, null, 2);
+      } catch {
+        return '{}';
+      }
+    },
+  );
+
   const handleFieldChange = (field: keyof GenerateOptionsConfig, fieldValue: unknown) => {
     onChange?.({ ...value!, [field]: fieldValue });
+  };
+
+  const handleJsonChange = (text: string) => {
+    setJsonText(text);
+    try {
+      const parsed = JSON.parse(text);
+      onChange?.({ ...value!, additionalBodyParams: parsed });
+    } catch {
+      // 用户正在编辑中，暂不更新，失焦时校验
+    }
+  };
+
+  const handleJsonBlur = () => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        message.warning('自定义请求体参数必须为 JSON 对象格式（{}）');
+        return;
+      }
+      const formatted = JSON.stringify(parsed, null, 2);
+      setJsonText(formatted);
+      onChange?.({ ...value!, additionalBodyParams: parsed });
+    } catch {
+      message.warning('自定义请求体参数 JSON 格式无效，请检查');
+    }
   };
 
   return (
@@ -68,6 +108,27 @@ const GenerateOptionsForm: React.FC<GenerateOptionsFormProps> = ({ value, onChan
                   value={value?.presencePenalty}
                   onChange={(val) => handleFieldChange('presencePenalty', val)}
                   marks={{ '-2': '-2', 0: '0', 2: '2' }}
+                />
+              </Form.Item>
+            </>
+          ),
+        },
+        {
+          key: 'additionalBodyParams',
+          label: '自定义请求体参数',
+          children: (
+            <>
+              <div className={styles.jsonEditorHint}>
+                以 JSON 格式配置提供商特有的非标准参数，将合并到请求体中
+              </div>
+              <Form.Item>
+                <TextArea
+                  value={jsonText}
+                  onChange={(e) => handleJsonChange(e.target.value)}
+                  onBlur={handleJsonBlur}
+                  placeholder='{"thinking": {"type": "enabled"}}'
+                  autoSize={{ minRows: 4, maxRows: 12 }}
+                  className={styles.jsonEditor}
                 />
               </Form.Item>
             </>

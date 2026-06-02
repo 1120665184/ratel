@@ -28,10 +28,11 @@ body[data-ai-mode="fixed"] {
     left: 420px !important;
   }
 
-  /* Message 消息提示 - 右移避免遮挡 */
+  /* Message 消息提示 - 约束到操作区域居中显示 */
   .ant-message {
     left: 420px !important;
     width: calc(100% - 420px) !important;
+    transform: none !important;
   }
 
   /* Notification 通知 - 右移避免遮挡 */

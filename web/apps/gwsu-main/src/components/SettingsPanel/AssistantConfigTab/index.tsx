@@ -1,52 +1,88 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, App, Spin } from 'antd';
-import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  SaveOutlined,
+  ReloadOutlined,
+  EyeOutlined,
+  ApiOutlined,
+} from '@ant-design/icons';
 import { fetchConfigsBatch } from '@gwsu/core';
 import { saveOrUpdateConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
-import type { AssistantConfig, ModelProvider, GeminiConfig } from './types';
-import { createDefaultAssistantConfig } from './types';
+import type { AssistantConfig, ModelProvider, GeminiConfig, ViewConfig, AssistantTabKey } from './types';
+import { createDefaultAssistantConfig, createDefaultViewConfig } from './types';
 import ProviderSelector from './ProviderSelector';
 import ProviderConfigForm from './ProviderConfigForm';
 import GenerateOptionsForm from './GenerateOptionsForm';
+import ViewConfigForm from './ViewConfigForm';
 import styles from './index.module.less';
 
-const CONFIG_KEY = 'assistant_llm_config';
+const LLM_CONFIG_KEY = 'assistant_llm_config';
+const VIEW_CONFIG_KEY = 'assistant_view_config';
 
 const AssistantConfigTab: React.FC = () => {
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<AssistantConfig>(createDefaultAssistantConfig());
-  const [configId, setConfigId] = useState<string | undefined>();
+  const [activeTab, setActiveTab] = useState<AssistantTabKey>('view');
+
+  // LLM 配置
+  const [llmConfig, setLlmConfig] = useState<AssistantConfig>(createDefaultAssistantConfig());
+  const [llmConfigId, setLlmConfigId] = useState<string | undefined>();
+
+  // 展示配置
+  const [viewConfig, setViewConfig] = useState<ViewConfig>(createDefaultViewConfig());
+  const [viewConfigId, setViewConfigId] = useState<string | undefined>();
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const configMap = await fetchConfigsBatch([CONFIG_KEY]);
-      const configInfo = configMap[CONFIG_KEY] as ConfigInfo | undefined;
+      const configMap = await fetchConfigsBatch([LLM_CONFIG_KEY, VIEW_CONFIG_KEY]);
 
-      if (configInfo?.configValue) {
+      // 解析 LLM 配置
+      const llmInfo = configMap[LLM_CONFIG_KEY] as ConfigInfo | undefined;
+      if (llmInfo?.configValue) {
         try {
-          const parsed = JSON.parse(configInfo.configValue) as AssistantConfig;
-          setConfig({
+          const parsed = JSON.parse(llmInfo.configValue) as AssistantConfig;
+          setLlmConfig({
             provider: parsed.provider || 'openai',
             dashscope: { ...createDefaultAssistantConfig().dashscope, ...parsed.dashscope },
             openai: { ...createDefaultAssistantConfig().openai, ...parsed.openai },
             gemini: { ...createDefaultAssistantConfig().gemini, ...parsed.gemini },
             anthropic: { ...createDefaultAssistantConfig().anthropic, ...parsed.anthropic },
-            generateOptions: { ...createDefaultAssistantConfig().generateOptions, ...parsed.generateOptions },
+            generateOptions: {
+              ...createDefaultAssistantConfig().generateOptions,
+              ...parsed.generateOptions,
+              additionalBodyParams: parsed.generateOptions?.additionalBodyParams ?? {},
+            },
           });
-          setConfigId(configInfo.id);
+          setLlmConfigId(llmInfo.id);
         } catch {
-          message.warning('助手配置解析失败，已恢复默认值');
-          setConfig(createDefaultAssistantConfig());
-          setConfigId(configInfo.id);
+          message.warning('LLM 配置解析失败，已恢复默认值');
+          setLlmConfig(createDefaultAssistantConfig());
+          setLlmConfigId(llmInfo.id);
         }
       } else {
-        setConfig(createDefaultAssistantConfig());
-        setConfigId(undefined);
+        setLlmConfig(createDefaultAssistantConfig());
+        setLlmConfigId(undefined);
+      }
+
+      // 解析展示配置
+      const viewInfo = configMap[VIEW_CONFIG_KEY] as ConfigInfo | undefined;
+      if (viewInfo?.configValue) {
+        try {
+          const parsed = JSON.parse(viewInfo.configValue) as ViewConfig;
+          setViewConfig({ ...createDefaultViewConfig(), ...parsed });
+          setViewConfigId(viewInfo.id);
+        } catch {
+          message.warning('展示配置解析失败，已恢复默认值');
+          setViewConfig(createDefaultViewConfig());
+          setViewConfigId(viewInfo.id);
+        }
+      } else {
+        setViewConfig(createDefaultViewConfig());
+        setViewConfigId(undefined);
       }
     } catch {
       // error handled by request util
@@ -60,44 +96,74 @@ const AssistantConfigTab: React.FC = () => {
   }, [fetchConfig]);
 
   const handleProviderChange = (provider: ModelProvider) => {
-    setConfig((prev) => ({ ...prev, provider }));
+    setLlmConfig((prev) => ({ ...prev, provider }));
   };
 
   const handleProviderConfigChange = (updated: AssistantConfig) => {
-    setConfig(updated);
+    setLlmConfig(updated);
   };
 
   const handleGenerateOptionsChange = (generateOptions: AssistantConfig['generateOptions']) => {
-    setConfig((prev) => ({ ...prev, generateOptions }));
+    setLlmConfig((prev) => ({ ...prev, generateOptions }));
+  };
+
+  const handleViewConfigChange = (updated: ViewConfig) => {
+    setViewConfig(updated);
   };
 
   const handleSave = async () => {
-    // 校验当前提供商必填项
-    const currentConfig = config[config.provider];
-    if (!currentConfig.apiKey && config.provider !== 'gemini') {
-      message.warning('请填写 API Key');
-      return;
-    }
-    if (config.provider === 'gemini' && !currentConfig.apiKey && !(currentConfig as GeminiConfig).project) {
-      message.warning('Gemini 至少需要填写 API Key 或 GCP Project');
-      return;
+    // LLM 配置校验
+    if (activeTab === 'llm') {
+      const currentConfig = llmConfig[llmConfig.provider];
+      if (!currentConfig.apiKey && llmConfig.provider !== 'gemini') {
+        message.warning('请填写 API Key');
+        return;
+      }
+      if (llmConfig.provider === 'gemini' && !currentConfig.apiKey && !(currentConfig as GeminiConfig).project) {
+        message.warning('Gemini 至少需要填写 API Key 或 GCP Project');
+        return;
+      }
+
+      const additionalBodyParams = llmConfig.generateOptions?.additionalBodyParams;
+      if (additionalBodyParams !== undefined && additionalBodyParams !== null) {
+        if (typeof additionalBodyParams !== 'object' || Array.isArray(additionalBodyParams)) {
+          message.warning('自定义请求体参数必须为 JSON 对象格式（{}）');
+          return;
+        }
+      }
     }
 
     setSaving(true);
     try {
-      const success = await saveOrUpdateConfig({
-        id: configId,
-        configKey: CONFIG_KEY,
-        configName: '助手配置',
-        configValue: JSON.stringify(config),
-        valueType: ConfigValueType.JSON,
-        configType: ConfigType.SYSTEM,
-        description: 'AI 助手模型提供商及生成参数配置',
-      });
-
-      if (success) {
-        message.success('保存成功');
-        fetchConfig();
+      // 保存当前激活的 Tab 配置
+      if (activeTab === 'llm') {
+        const success = await saveOrUpdateConfig({
+          id: llmConfigId,
+          configKey: LLM_CONFIG_KEY,
+          configName: '助手 LLM 配置',
+          configValue: JSON.stringify(llmConfig),
+          valueType: ConfigValueType.JSON,
+          configType: ConfigType.SYSTEM,
+          description: 'AI 助手模型提供商及生成参数配置',
+        });
+        if (success) {
+          message.success('LLM 配置保存成功');
+          fetchConfig();
+        }
+      } else {
+        const success = await saveOrUpdateConfig({
+          id: viewConfigId,
+          configKey: VIEW_CONFIG_KEY,
+          configName: '助手展示配置',
+          configValue: JSON.stringify(viewConfig),
+          valueType: ConfigValueType.JSON,
+          configType: ConfigType.SYSTEM,
+          description: 'AI 助手界面展示配置',
+        });
+        if (success) {
+          message.success('展示配置保存成功');
+          fetchConfig();
+        }
       }
     } catch {
       // error handled by request util
@@ -114,34 +180,67 @@ const AssistantConfigTab: React.FC = () => {
     );
   }
 
+  const tabs: { key: AssistantTabKey; label: string; icon: React.ReactNode }[] = [
+    { key: 'view', label: '展示配置', icon: <EyeOutlined /> },
+    { key: 'llm', label: 'LLM 配置', icon: <ApiOutlined /> },
+  ];
+
   return (
     <div className={styles.assistantConfig}>
-      <Card title="模型提供商" className={`${styles.sectionCard} ${styles.providerSection}`} size="small">
-        <ProviderSelector value={config.provider} onChange={handleProviderChange} />
-      </Card>
+      <div className={styles.layout}>
+        {/* 左侧 Tab 导航 */}
+        <div className={styles.sideTabNav}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`${styles.sideTab} ${activeTab === tab.key ? styles.sideTabActive : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              <span className={styles.sideTabIcon}>{tab.icon}</span>
+              <span className={styles.sideTabLabel}>{tab.label}</span>
+            </button>
+          ))}
+        </div>
 
-      <Card title="连接配置" className={styles.sectionCard} size="small">
-        <ProviderConfigForm
-          provider={config.provider}
-          config={config}
-          onConfigChange={handleProviderConfigChange}
-        />
-      </Card>
+        {/* 右侧内容区 */}
+        <div className={styles.sideTabContent}>
+          {activeTab === 'view' && (
+            <ViewConfigForm value={viewConfig} onChange={handleViewConfigChange} />
+          )}
 
-      <Card title="生成参数" className={`${styles.sectionCard} ${styles.generateOptionsSection}`} size="small">
-        <GenerateOptionsForm
-          value={config.generateOptions}
-          onChange={handleGenerateOptionsChange}
-        />
-      </Card>
+          {activeTab === 'llm' && (
+            <>
+              <Card title="模型提供商" className={`${styles.sectionCard} ${styles.providerSection}`} size="small">
+                <ProviderSelector value={llmConfig.provider} onChange={handleProviderChange} />
+              </Card>
 
-      <div className={styles.actionBar}>
-        <Button icon={<ReloadOutlined />} onClick={fetchConfig}>
-          重置
-        </Button>
-        <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
-          保存
-        </Button>
+              <Card title="连接配置" className={styles.sectionCard} size="small">
+                <ProviderConfigForm
+                  provider={llmConfig.provider}
+                  config={llmConfig}
+                  onConfigChange={handleProviderConfigChange}
+                />
+              </Card>
+
+              <Card title="生成参数" className={`${styles.sectionCard} ${styles.generateOptionsSection}`} size="small">
+                <GenerateOptionsForm
+                  value={llmConfig.generateOptions}
+                  onChange={handleGenerateOptionsChange}
+                />
+              </Card>
+            </>
+          )}
+
+          {/* 操作栏 */}
+          <div className={styles.actionBar}>
+            <Button icon={<ReloadOutlined />} onClick={fetchConfig}>
+              重置
+            </Button>
+            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
+              保存
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

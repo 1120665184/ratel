@@ -88,3 +88,17 @@ export interface AIChatPanelStateWithHistory extends AIChatPanelState {
   /** 当前会话ID（用于加载历史会话） */
   currentThreadId: string | null;
 }
+
+/**
+ * 助手展示配置
+ */
+export interface ViewConfig {
+  /** 是否展示思考内容 */
+  showThinking: boolean;
+  /** 是否展示工具调用 */
+  showToolCalls: boolean;
+  /** 是否展示历史记录 */
+  showHistory: boolean;
+  /** 是否启用拖拽模式 */
+  enableDragMode: boolean;
+}

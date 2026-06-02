@@ -443,7 +443,9 @@ public class BrainServiceImpl implements IBrainService {
                                 .serverSideMemory(true)
                                 .build()
                 )
-                .config(AguiAdapterConfig.defaultConfig())
+                .config(AguiAdapterConfig.builder()
+                        .enableReasoning(true)
+                        .build())
                 .build();
     }
 

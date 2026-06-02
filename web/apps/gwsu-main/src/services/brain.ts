@@ -33,10 +33,12 @@ export interface BrainToolCall {
  */
 export interface BrainMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: 'user' | 'assistant' | 'system' | 'tool' | 'reasoning';
   content: string | object[] | null;
   toolCalls?: BrainToolCall[];
   toolCallId?: string | null;
+  /** 加密的推理内容，用于会话状态连续性 */
+  encryptedValue?: string;
 }
 
 /**

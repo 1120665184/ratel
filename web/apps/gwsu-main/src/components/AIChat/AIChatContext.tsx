@@ -1,13 +1,24 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import type { AIChatPanelMode, AIChatPanelPosition, AIChatPanelState, AIChatViewMode } from './types';
+import type { AIChatPanelMode, AIChatPanelPosition, AIChatPanelState, AIChatViewMode, ViewConfig } from './types';
+import { fetchConfigsBatch } from '@gwsu/core';
+import type { ConfigVO } from '@gwsu/core';
+import { useViewConfigStore } from '@/stores/viewConfig';
 
 const STORAGE_KEY_PANEL_STATE = 'gwsu-ai-chat-panel-state';
+const VIEW_CONFIG_KEY = 'assistant_view_config';
 
 const DEFAULT_PANEL_STATE: AIChatPanelState = {
   mode: 'fixed',
   position: { x: 20, y: 80 },
   width: 420,
   height: 520,
+};
+
+const DEFAULT_VIEW_CONFIG: ViewConfig = {
+  showThinking: true,
+  showToolCalls: true,
+  showHistory: true,
+  enableDragMode: false,
 };
 
 /**
@@ -31,6 +42,8 @@ interface PanelContextValue {
   currentThreadId: string | null;
   /** 设置当前会话ID */
   setCurrentThreadId: (threadId: string | null) => void;
+  /** 展示配置 */
+  viewConfig: ViewConfig;
 }
 
 const PanelContext = createContext<PanelContextValue | undefined>(undefined);
@@ -70,6 +83,27 @@ export const PanelProvider: React.FC<PanelProviderProps> = ({ children }) => {
   const [viewMode, setViewMode] = useState<AIChatViewMode>('chat');
   // 当前会话ID
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  // 展示配置（从 store 读取，与 CopilotKitProvider 共享）
+  const viewConfig = useViewConfigStore();
+
+  // 加载展示配置并同步到 store
+  useEffect(() => {
+    fetchConfigsBatch([VIEW_CONFIG_KEY])
+      .then((configMap) => {
+        const info = configMap[VIEW_CONFIG_KEY] as ConfigVO | undefined;
+        if (info?.configValue) {
+          try {
+            const parsed = JSON.parse(info.configValue) as Partial<ViewConfig>;
+            useViewConfigStore.getState().setViewConfig({ ...DEFAULT_VIEW_CONFIG, ...parsed });
+          } catch {
+            // 解析失败使用默认值
+          }
+        }
+      })
+      .catch(() => {
+        // error handled by request util
+      });
+  }, []);
 
   // 保存面板状态到 localStorage
   useEffect(() => {
@@ -103,6 +137,7 @@ export const PanelProvider: React.FC<PanelProviderProps> = ({ children }) => {
     setViewMode,
     currentThreadId,
     setCurrentThreadId,
+    viewConfig,
   };
 
   return <PanelContext.Provider value={contextValue}>{children}</PanelContext.Provider>;

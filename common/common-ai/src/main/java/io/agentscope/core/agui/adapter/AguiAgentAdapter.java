@@ -354,30 +354,32 @@ public class AguiAgentAdapter {
                     if (config.isEnableReasoning()) {
                         String thinking = thinkingBlock.getThinking();
                         if (thinking != null && !thinking.isEmpty()) {
-                            String messageId = msg.getId();
+                            // Reasoning message must use a different ID from text message
+                            // to avoid the AG-UI client merging/overwriting them
+                            String reasoningMessageId = msg.getId() + "-reasoning";
 
                             // Start reasoning message if not started
-                            if (!state.hasStartedReasoningMessage(messageId)) {
+                            if (!state.hasStartedReasoningMessage(reasoningMessageId)) {
                                 events.add(
                                         new AguiEvent.ReasoningMessageStart(
                                                 state.threadId,
                                                 state.runId,
-                                                messageId,
-                                                "assistant"));
-                                state.startReasoningMessage(messageId);
+                                                reasoningMessageId,
+                                                "reasoning"));
+                                state.startReasoningMessage(reasoningMessageId);
                             }
 
                             if (!event.isLast()) {
                                 // In incremental mode, thinking is already the delta
                                 events.add(
                                         new AguiEvent.ReasoningMessageContent(
-                                                state.threadId, state.runId, messageId, thinking));
+                                                state.threadId, state.runId, reasoningMessageId, thinking));
                             } else {
                                 // End reasoning message if this is the last event
                                 events.add(
                                         new AguiEvent.ReasoningMessageEnd(
-                                                state.threadId, state.runId, messageId));
-                                state.endReasoningMessage(messageId);
+                                                state.threadId, state.runId, reasoningMessageId));
+                                state.endReasoningMessage(reasoningMessageId);
                             }
                         }
                     }
@@ -671,3 +673,4 @@ public class AguiAgentAdapter {
         }
     }
 }
+

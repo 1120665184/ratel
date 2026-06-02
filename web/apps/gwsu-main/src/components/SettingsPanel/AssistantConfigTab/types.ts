@@ -46,6 +46,8 @@ export interface GenerateOptionsConfig {
   presencePenalty?: number;
   topK?: number;
   seed?: number;
+  /** 自定义请求体参数，以 JSON 格式配置，用于传递提供商特有的非标准参数 */
+  additionalBodyParams?: Record<string, unknown>;
 }
 
 /** 助手配置完整结构（与后端 AssistantConfigDTO 一一对应） */
@@ -96,6 +98,7 @@ export const DEFAULT_GENERATE_OPTIONS: GenerateOptionsConfig = {
   topP: 0.75,
   frequencyPenalty: 0.5,
   presencePenalty: 0.5,
+  additionalBodyParams: {},
 };
 
 /** 提供商默认配置映射 */
@@ -161,3 +164,31 @@ export function createDefaultAssistantConfig(): AssistantConfig {
     generateOptions: { ...DEFAULT_GENERATE_OPTIONS },
   };
 }
+
+/** 助手展示配置 */
+export interface ViewConfig {
+  /** 是否展示思考内容 */
+  showThinking: boolean;
+  /** 是否展示工具调用 */
+  showToolCalls: boolean;
+  /** 是否展示历史记录 */
+  showHistory: boolean;
+  /** 是否启用拖拽模式 */
+  enableDragMode: boolean;
+}
+
+/** 展示配置默认值 */
+export const DEFAULT_VIEW_CONFIG: ViewConfig = {
+  showThinking: true,
+  showToolCalls: true,
+  showHistory: true,
+  enableDragMode: false,
+};
+
+/** 创建默认的展示配置 */
+export function createDefaultViewConfig(): ViewConfig {
+  return { ...DEFAULT_VIEW_CONFIG };
+}
+
+/** 助手配置 Tab 标识 */
+export type AssistantTabKey = 'view' | 'llm';

@@ -14,6 +14,7 @@ import { dispatchAgentOutput, dispatchAgentOutputEnd } from '@/services/agent-ou
 import type { AgentOutputPayload, AgentOutputEndPayload } from '@/services/agent-output';
 import { WebToolConfirmModal } from '@/services/web-tool/components/WebToolConfirmModal';
 import { ToolCallItem } from '@/components/AIChat/ToolCallItem';
+import { useViewConfigStore } from '@/stores/viewConfig';
 // 确保 route-navigation 工具被注册
 import '@/services/web-tool/tools/route-navigation';
 // 确保 AI 界面操作工具被注册
@@ -38,12 +39,14 @@ interface GwsuCopilotKitProviderProps {
  * 必须在 CopilotKit 内部使用
  */
 function ToolCallRendererRegistration() {
+  const showToolCalls = useViewConfigStore((s) => s.showToolCalls);
   useRenderTool({
     name: '*',
-    render: ({ name, args, status, result }) => (
-      <ToolCallItem name={name} args={args} status={status} result={result} />
-    ),
-  }, []);
+    render: ({ name, args, status, result }) => {
+      if (!showToolCalls) return null;
+      return <ToolCallItem name={name} args={args} status={status} result={result} />;
+    },
+  }, [showToolCalls]);
   return null;
 }
 

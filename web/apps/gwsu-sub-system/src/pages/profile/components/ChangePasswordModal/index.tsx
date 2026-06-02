@@ -50,15 +50,15 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
       confirmLoading={loading}
       okText="确认修改"
       cancelText="取消"
-      okButtonProps={{ 'data-ai-approval': true }}
+      okButtonProps={{ "data-ai-approval": "true" }}
       className={styles.modal}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" className={styles.form}>
         <Form.Item
           name="oldPassword"
           label="旧密码"
-          rules={[{ required: true, message: '请输入旧密码' }]}
+          rules={[{ required: true, message: "请输入旧密码" }]}
         >
           <Input.Password placeholder="请输入旧密码" />
         </Form.Item>
@@ -66,8 +66,8 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
           name="newPassword"
           label="新密码"
           rules={[
-            { required: true, message: '请输入新密码' },
-            { min: 6, message: '密码长度不能少于6位' },
+            { required: true, message: "请输入新密码" },
+            { min: 6, message: "密码长度不能少于6位" },
           ]}
         >
           <Input.Password placeholder="请输入新密码" />
@@ -75,15 +75,15 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
         <Form.Item
           name="confirmPassword"
           label="确认新密码"
-          dependencies={['newPassword']}
+          dependencies={["newPassword"]}
           rules={[
-            { required: true, message: '请确认新密码' },
+            { required: true, message: "请确认新密码" },
             ({ getFieldValue }) => ({
               validator(_, value) {
-                if (!value || getFieldValue('newPassword') === value) {
+                if (!value || getFieldValue("newPassword") === value) {
                   return Promise.resolve();
                 }
-                return Promise.reject(new Error('两次输入的密码不一致'));
+                return Promise.reject(new Error("两次输入的密码不一致"));
               },
             }),
           ]}
