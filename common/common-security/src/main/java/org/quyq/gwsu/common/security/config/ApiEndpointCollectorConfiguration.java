@@ -22,8 +22,8 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 public class ApiEndpointCollectorConfiguration {
 
     @Bean
-    public ApiEndpointCollector apiEndpointCollector(RequestMappingHandlerMapping handlerMapping,
+    public ApiEndpointCollector apiEndpointCollector(RequestMappingHandlerMapping requestMappingHandlerMapping,
                                                      CacheUtils cacheUtils , ProjectUtils projectUtils) {
-        return new ApiEndpointCollector(handlerMapping, cacheUtils , projectUtils);
+        return new ApiEndpointCollector(requestMappingHandlerMapping, cacheUtils , projectUtils);
     }
 }

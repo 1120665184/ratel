@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.log.annotation.LogIgnore;
 import org.quyq.gwsu.common.log.api.ILogClientApi;
 import org.quyq.gwsu.common.log.vo.LogOperationVO;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +28,7 @@ public class SaveLogController implements ILogClientApi {
 
     @Operation(summary = "保存操作日志")
     @PostMapping("operation")
+    @LogIgnore
     @Override
     public R<Boolean> saveOperLog(@RequestBody LogOperationVO vo) {
         // TODO 后续实现持久化存储

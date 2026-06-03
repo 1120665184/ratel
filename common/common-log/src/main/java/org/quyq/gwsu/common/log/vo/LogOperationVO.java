@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseVO;
 import org.quyq.gwsu.common.core.enums.TerminalType;
+import org.quyq.gwsu.common.log.enums.ViewOperationSubject;
 
 import java.time.LocalDateTime;
 
@@ -59,6 +60,9 @@ public class LogOperationVO extends BaseVO {
      */
     @Schema(description = "来源菜单")
     private String menuId;
+
+    @Schema(description = "界面操作主体")
+    private ViewOperationSubject operSubject;
 
     /**
      * api接口详情注释

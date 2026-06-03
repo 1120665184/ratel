@@ -3,6 +3,8 @@ package org.quyq.gwsu.common.api.config;
 
 import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.utils.DeployUtils;
+import org.quyq.gwsu.common.core.utils.ProjectUtils;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -22,13 +24,16 @@ public class InterceptorAutoConfiguration {
 
     @Bean
     @ConditionalOnClass(value = {RequestAttributes.class})
-    public ApiClientInterceptor commonHeaderApiClientInterceptor() {
+    public ApiClientInterceptor commonHeaderApiClientInterceptor(ProjectUtils projectUtils) {
         return (headers) -> {
             Map<String, String> currHeaders = ServletUtils.getHeaders();
 
             currHeaders.forEach((k, v) -> {
                 if (!CoreConstants.Headers.REQUEST_IGNORE_HEADER.contains(k.toLowerCase(Locale.ROOT)))
                     headers.add(k, v);
+
+                headers.remove(CoreConstants.Headers.SERVER_FROM_APP);
+                headers.add(CoreConstants.Headers.SERVER_FROM_APP , projectUtils.getApplicationName());
             });
         };
     }

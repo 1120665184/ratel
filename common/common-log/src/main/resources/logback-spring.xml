@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+
+    <springProperty scope="context" name="applicationName" source="spring.application.name" defaultValue=".ignore" />
+    <springProperty scope="context" name="out.maxFileSize" source="logging.store.file_all.max-file-size" defaultValue="100MB" />
+    <springProperty scope="context" name="out.maxHistory" source="logging.store.file_all.max-history" defaultValue="30" />
+    <springProperty scope="context" name="out.totalSizeCap" source="logging.store.file_all.total-size-cap" defaultValue="5GB" />
+    <springProperty scope="context" name="err.maxFileSize" source="logging.store.file_err.max-file-size" defaultValue="100MB" />
+    <springProperty scope="context" name="err.maxHistory" source="logging.store.file_err.max-history" defaultValue="60" />
+    <springProperty scope="context" name="err.totalSizeCap" source="logging.store.file_err.total-size-cap" defaultValue="5GB" />
+
+    <property scope="context" name="log.path" value="logs/${applicationName}" />
+
+    <!-- 注册颜色转换器（支持 %clr） -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+
+    <!-- 控制台带颜色：使用 %clr 固定颜色显示级别（品红色），其他字段保留颜色 -->
+    <property name="log.console.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %clr([%-5level]){magenta} %clr([%X{traceId}]){yellow} %clr([%thread]){orange} %clr(%logger{60}){cyan} - %clr([%method,%line]){cyan} - %msg%n" />
+    <!-- 文件无颜色 -->
+    <property name="log.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] [%X{traceId}] [%thread] %logger{60} - [%method,%line] - %msg%n" />
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>true</withJansi>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${log.console.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="file_all" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/out.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.path}/out-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${out.maxFileSize}</maxFileSize>
+            <maxHistory>${out.maxHistory}</maxHistory>
+            <totalSizeCap>${out.totalSizeCap}</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="file_err" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/err.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.path}/err-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${err.maxFileSize}</maxFileSize>
+            <maxHistory>${err.maxHistory}</maxHistory>
+            <totalSizeCap>${err.totalSizeCap}</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <logger name="com.dtt" level="info" />
+    <logger name="org.springframework" level="warn" />
+
+    <root level="info">
+        <appender-ref ref="console" />
+        <appender-ref ref="file_all" />
+        <appender-ref ref="file_err" />
+    </root>
+</configuration>

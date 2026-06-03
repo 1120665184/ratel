@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.casbin.jcasbin.main.Enforcer;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
@@ -35,6 +36,7 @@ import java.util.*;
  */
 @RequiredArgsConstructor
 @Order(10)
+@Slf4j
 public class AuthenticationFilter implements RequestResponseProcessor {
 
     private final Enforcer enforcer;
@@ -53,7 +55,7 @@ public class AuthenticationFilter implements RequestResponseProcessor {
     @Override
     public Mono<Boolean> preHandle(RequestResponseContext context) {
         return Mono.defer(() -> {
-
+            context.getHeaders().put(CoreConstants.Headers.SERVER_FROM_APP , List.of("gateway"));
             // 检查是否为无需认证的接口
             if (shouldIgnoreAuthentication(context.getPath())) {
                 return Mono.just(true);

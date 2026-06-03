@@ -3,6 +3,7 @@ package org.quyq.gwsu.common.deploy.filter;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,8 +59,11 @@ public class SingleProcessorFilter implements Filter {
                 responseToUse = wrapper;
             }
 
+            // 从context中获取可能被preHandler修改过的请求头，重新赋值到request
+            HttpServletRequest requestToUse = wrapRequestWithHeaders(httpRequest, context);
+
             try {
-                chain.doFilter(request, responseToUse);
+                chain.doFilter(requestToUse, responseToUse);
             } finally {
                 if (wrapper != null) {
                     // 捕获原始响应体
@@ -132,6 +136,37 @@ public class SingleProcessorFilter implements Filter {
                 response.setHeader(name, value);
             }
         });
+    }
+
+    /**
+     * 将context中可能被preHandler修改过的请求头重新包装到request中
+     */
+    private HttpServletRequest wrapRequestWithHeaders(HttpServletRequest request, RequestResponseContext context) {
+        return new HttpServletRequestWrapper(request) {
+
+            @Override
+            public String getHeader(String name) {
+                String value = context.getHeaders().getFirst(name);
+                return value != null ? value : super.getHeader(name);
+            }
+
+            @Override
+            public java.util.Enumeration<String> getHeaders(String name) {
+                java.util.List<String> values = context.getHeaders().get(name);
+                if (values != null && !values.isEmpty()) {
+                    return java.util.Collections.enumeration(values);
+                }
+                return super.getHeaders(name);
+            }
+
+            @Override
+            public java.util.Enumeration<String> getHeaderNames() {
+                java.util.Set<String> names = new java.util.LinkedHashSet<>();
+                context.getHeaders().keySet().forEach(names::add);
+                super.getHeaderNames().asIterator().forEachRemaining(names::add);
+                return java.util.Collections.enumeration(names);
+            }
+        };
     }
 
 }

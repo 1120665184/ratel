@@ -50,11 +50,21 @@ public class DistributedGatewayProcessorFilter implements GlobalFilter, Ordered 
                         return exchange.getResponse().setComplete();
                     }
 
-                    // 根据处理器是否需要修改响应体来决定是否包装响应
+                    // 从context中获取可能被preHandler修改过的请求头，重新赋值到exchange
+                    ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                            .headers(httpHeaders -> {
+                                httpHeaders.clear();
+                                context.getHeaders().forEach(httpHeaders::put);
+                            })
+                            .build();
+                    ServerWebExchange contextExchange = exchange.mutate()
+                            .request(mutatedRequest)
+                            .build();
+
                     if (processorChain.isAnyNeedsResponseBody(context)) {
-                        return filterWithBodyCapture(exchange, chain, context);
+                        return filterWithBodyCapture(contextExchange, chain, context);
                     } else {
-                        return chain.filter(exchange)
+                        return chain.filter(contextExchange)
                                 .then(processorChain.executePostHandlers(context))
                                 .then(Mono.fromRunnable(() -> applyResponse(context, exchange.getResponse())));
                     }

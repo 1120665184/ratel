@@ -35,6 +35,12 @@ org.quyq:
       - /system/auth/**
     auth-allow-urls:
       - /modules/list
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
 logging:
   level:
     org.springframework.context.support: ERROR

@@ -81,6 +81,21 @@ public interface CoreConstants {
         String AUTHORIZATION_USER_NAME = "x-username";
 
         /**
+         * 接口来源服务
+         */
+        String SERVER_FROM_APP = "x-server-from-app";
+
+        /**
+         * 接口调用的界面菜单ID
+         */
+        String VIEW_FROM_PAGE_MENU = "view-menu-id";
+
+        /**
+         * 界面操作主体对象：0-人类；1-智能助手
+         */
+        String VIEW_OPERATION_SUBJECT = "view-operation-subject";
+
+        /**
          * 请求头认证令牌键
          */
         String HTTP_HEADER_TOKEN_KEY = "authorization";

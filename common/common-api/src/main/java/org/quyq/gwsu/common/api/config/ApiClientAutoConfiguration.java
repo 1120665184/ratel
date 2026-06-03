@@ -8,10 +8,7 @@ import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.api.proxy.LocalApiClientFactory;
 import org.quyq.gwsu.common.api.proxy.RemoteApiClientFactory;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -21,7 +18,7 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.cloud.client.loadbalancer.DeferringLoadBalancerInterceptor;
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -45,13 +42,24 @@ public class ApiClientAutoConfiguration {
 
     /**
      * 配置负载均衡的 RestClient.Builder
+     * <p>
+     * 直接注入 DeferringLoadBalancerInterceptor 而非依赖 @LoadBalanced + BeanPostProcessor，
+     * 因为 BeanPostProcessor 的注册时机可能晚于本配置类中 Bean 的实例化，导致拦截器未注入。
+     * <p>
+     * 注意：必须只注入 DeferringLoadBalancerInterceptor 一个负载均衡拦截器。
+     * 不能注入 List&lt;ClientHttpRequestInterceptor&gt;，因为其中同时包含
+     * LoadBalancerInterceptor 和 DeferringLoadBalancerInterceptor，会导致服务名被解析两次，
+     * 第二次会把 IP 地址当作服务名解析而报错。
      */
     @Bean
-    @LoadBalanced
-    public RestClient.Builder loadBalancedRestClientBuilder(List<ApiClientInterceptor> interceptors) {
+    public RestClient.Builder loadBalancedRestClientBuilder(List<ApiClientInterceptor> interceptors,
+                                                            ObjectProvider<DeferringLoadBalancerInterceptor> loadBalancerInterceptorProvider) {
         RestClient.Builder builder = RestClient.builder();
         builder.requestInterceptor(createRequestInterceptor(interceptors));
-
+        DeferringLoadBalancerInterceptor interceptor = loadBalancerInterceptorProvider.getIfAvailable();
+        if (interceptor != null) {
+            builder.requestInterceptor(interceptor);
+        }
         return builder;
     }
 

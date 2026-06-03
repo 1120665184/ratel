@@ -9,9 +9,15 @@ package org.quyq.gwsu.common.log.constants;
 public interface LogInfoConstants {
 
 
+
+    String TRACE_ID = "traceId";
+
+    String SPAN_ID = "spanId";
+
     /**
-     * 局部LID记录
+     * 请求头中的traceId字段 格式：00-traceId-parentId-01(是否采样)
      */
-    ScopedValue<String> LID_SCOPED = ScopedValue.newInstance();
+    String HEADER_TRACE_INFO = "traceparent";
+
 
 }

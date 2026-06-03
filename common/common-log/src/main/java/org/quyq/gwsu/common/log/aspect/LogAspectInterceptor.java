@@ -3,6 +3,7 @@ package org.quyq.gwsu.common.log.aspect;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.NumberUtil;
 import cn.hutool.http.useragent.UserAgent;
 import cn.hutool.http.useragent.UserAgentUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,11 +20,14 @@ import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ProxyUtil;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.quyq.gwsu.common.log.annotation.LogIgnore;
 import org.quyq.gwsu.common.log.config.properties.LogInfoConfigProperties;
 import org.quyq.gwsu.common.log.constants.LogInfoConstants;
+import org.quyq.gwsu.common.log.enums.ViewOperationSubject;
 import org.quyq.gwsu.common.log.service.AccessLogHandlerService;
 import org.quyq.gwsu.common.log.vo.LogOperationVO;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.CollectionUtils;
@@ -38,6 +42,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -93,8 +98,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
         }
 
 
-        return ScopedValue.where(LogInfoConstants.LID_SCOPED, IdUtil.getSnowflakeNextIdStr())
-                .call(() -> startRecordLog(invocation, request , modulePrefix , uri));
+        return startRecordLog(invocation, request , modulePrefix , uri);
     }
 
     private Object startRecordLog(MethodInvocation invocation, HttpServletRequest request , String modulePrefix , String uri) throws Throwable {
@@ -192,7 +196,7 @@ public class LogAspectInterceptor implements MethodInterceptor {
 
         JsonNode requestParam = extractor.getRequestParam(request, invocation);
 
-        accessLog.setOperId(LogInfoConstants.LID_SCOPED.get());
+        accessLog.setOperId(MDC.get(LogInfoConstants.SPAN_ID));
         accessLog.setRequestTime(now)
                 //默认失败状态
                 .setStatus(false)
@@ -204,12 +208,26 @@ public class LogAspectInterceptor implements MethodInterceptor {
                 .setCreateTime(now);
 
         Map<String, String> headers = ServletUtils.getHeaders();
-        //TODO
+
+        String parentId = Optional.ofNullable(headers.get(LogInfoConstants.HEADER_TRACE_INFO))
+                        .map(v ->v.split("-")[2]).orElse(null);
+
+
         accessLog
-//                .setTid(headers.get(Constants.Feign.LOG_CONTEXT_FLAG))
-//                .setParentId(headers.get(Constants.Log.SERVER_LOG_PARENT_ID))
-//                .setFromApp(headers.get(Constants.Log.SERVER_LOG_FROM_APP))
-//                .setMenuId(headers.get(Constants.Log.VIEW_MENU_INFO))
+                .setTid(MDC.get(LogInfoConstants.TRACE_ID))
+                .setParentId(parentId)
+                .setFromApp(headers.get(CoreConstants.Headers.SERVER_FROM_APP))
+                .setMenuId(headers.get(CoreConstants.Headers.VIEW_FROM_PAGE_MENU))
+                .setOperSubject(ViewOperationSubject.getViewOperationSubject(
+                        Optional.ofNullable(headers.get(CoreConstants.Headers.VIEW_OPERATION_SUBJECT))
+                                .map(v -> {
+                                    if(NumberUtil.isNumber(v)){
+                                        return Integer.parseInt(v);
+                                    }
+                                    return 0;
+                                })
+                                .orElse(0)
+                ))
                 .setTokenId(getTokenId(headers))
                 .setOperName(headers.get(CoreConstants.Headers.AUTHORIZATION_USER_NAME))
                 .setTerminalDetail(headers.get("user-agent"))
@@ -297,12 +315,14 @@ public class LogAspectInterceptor implements MethodInterceptor {
 
 
     private boolean needSkip(Method method) {
-        return !method.isAnnotationPresent(RequestMapping.class)
+        boolean noApi = !method.isAnnotationPresent(RequestMapping.class)
                 && !method.isAnnotationPresent(GetMapping.class)
                 && !method.isAnnotationPresent(PostMapping.class)
                 && !method.isAnnotationPresent(DeleteMapping.class)
                 && !method.isAnnotationPresent(PutMapping.class)
                 && !method.isAnnotationPresent(PatchMapping.class);
+        return method.isAnnotationPresent(LogIgnore.class)
+                || noApi;
     }
 
     private String getMethodName(MethodInvocation invocation) {

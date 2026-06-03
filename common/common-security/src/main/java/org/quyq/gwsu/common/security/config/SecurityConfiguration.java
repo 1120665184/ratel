@@ -6,12 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.database.metadata.DdlFactory;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
-import org.quyq.gwsu.common.security.dataresource.DataResourceInterceptor;
-import org.quyq.gwsu.common.security.dataresource.DataResourceRuleUtils;
 import org.quyq.gwsu.common.security.db.DefaultMetaObjectHandler;
-import org.quyq.gwsu.common.security.filter.PropertiesSettingFilter;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
-import org.quyq.gwsu.common.security.utils.DataPermissionUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -20,7 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportRuntimeHints;
-import org.springframework.web.context.request.RequestAttributes;
 import tools.jackson.databind.DefaultTyping;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
@@ -65,38 +60,6 @@ public class SecurityConfiguration {
         return new SessionUtils(cacheUtils, securityUtils, mapper);
     }
 
-    @Bean
-    public DataPermissionUtils dataPermissionUtils(DataResourceRuleUtils ruleUtils, SecurityUtils securityUtils,
-                                                   SessionUtils sessionUtils, DdlFactory ddlFactory) {
-        return new DataPermissionUtils(ruleUtils, securityUtils, sessionUtils, ddlFactory);
-    }
-
-
-    @Bean
-    @ConditionalOnClass(value = {RequestAttributes.class})
-    public PropertiesSettingFilter propertiesSettingFilter(SecurityUtils securityUtils,
-                                                           SessionUtils sessionUtils,
-                                                           DataPermissionUtils dataPermissionUtils) {
-        return new PropertiesSettingFilter(securityUtils, sessionUtils, dataPermissionUtils);
-    }
-
-    @Bean
-    public DataResourceRuleUtils dataResourceRuleUtils(CacheUtils cacheUtils) {
-        return new DataResourceRuleUtils(cacheUtils);
-    }
-
-    @Bean
-    public DataResourceInterceptor dataResourceInterceptor(DataPermissionUtils dataPermissionUtils) {
-        return new DataResourceInterceptor(dataPermissionUtils);
-    }
-
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnClass(MetaObjectHandler.class)
-    public MetaObjectHandler defaultMetaObjectHandler(SecurityUtils securityUtils) {
-        return new DefaultMetaObjectHandler(securityUtils);
-    }
 
     @Bean
     public ConfigInfoUtils configInfoUtils(ObjectMapper objectMapper) {
