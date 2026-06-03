@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.api.interceptor;
+package org.quyq.gwsu.common.core.interceptor;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;

@@ -1,9 +1,8 @@
 package org.quyq.gwsu.common.api.config;
 
 
-import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
+import org.quyq.gwsu.common.core.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ProjectUtils;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

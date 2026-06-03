@@ -4,11 +4,13 @@ package org.quyq.gwsu.common.api.config;
 import org.quyq.gwsu.common.api.annotation.ApiClient;
 import org.quyq.gwsu.common.api.client.UnifiedApiClientFactory;
 import org.quyq.gwsu.common.api.config.properties.CircuitBreakerProperties;
-import org.quyq.gwsu.common.api.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.api.proxy.LocalApiClientFactory;
 import org.quyq.gwsu.common.api.proxy.RemoteApiClientFactory;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.springframework.beans.factory.*;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -18,15 +20,11 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.client.loadbalancer.DeferringLoadBalancerInterceptor;
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.web.client.RestClient;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -39,29 +37,6 @@ import java.util.Set;
 @Import(ApiClientAutoConfiguration.ApiClientRegistrar.class)
 @ImportRuntimeHints({ApiClientRuntimeHintsRegistrar.class, SpringCloudLoadBalancerHintsRegistrar.class})
 public class ApiClientAutoConfiguration {
-
-    /**
-     * 配置负载均衡的 RestClient.Builder
-     * <p>
-     * 直接注入 DeferringLoadBalancerInterceptor 而非依赖 @LoadBalanced + BeanPostProcessor，
-     * 因为 BeanPostProcessor 的注册时机可能晚于本配置类中 Bean 的实例化，导致拦截器未注入。
-     * <p>
-     * 注意：必须只注入 DeferringLoadBalancerInterceptor 一个负载均衡拦截器。
-     * 不能注入 List&lt;ClientHttpRequestInterceptor&gt;，因为其中同时包含
-     * LoadBalancerInterceptor 和 DeferringLoadBalancerInterceptor，会导致服务名被解析两次，
-     * 第二次会把 IP 地址当作服务名解析而报错。
-     */
-    @Bean
-    public RestClient.Builder loadBalancedRestClientBuilder(List<ApiClientInterceptor> interceptors,
-                                                            ObjectProvider<DeferringLoadBalancerInterceptor> loadBalancerInterceptorProvider) {
-        RestClient.Builder builder = RestClient.builder();
-        builder.requestInterceptor(createRequestInterceptor(interceptors));
-        DeferringLoadBalancerInterceptor interceptor = loadBalancerInterceptorProvider.getIfAvailable();
-        if (interceptor != null) {
-            builder.requestInterceptor(interceptor);
-        }
-        return builder;
-    }
 
 
     @Bean
@@ -86,28 +61,6 @@ public class ApiClientAutoConfiguration {
         return new UnifiedApiClientFactory(localApiClientFactory, remoteApiClientFactory);
     }
 
-
-    /**
-     * 创建 ClientHttpRequestInterceptor 来执行自定义拦截器
-     *
-     * @return ClientHttpRequestInterceptor 实例
-     */
-    private ClientHttpRequestInterceptor createRequestInterceptor(List<ApiClientInterceptor> interceptors) {
-        return (request, body, execution) -> {
-            // 创建新的 HttpHeaders 用于收集拦截器添加的头
-            HttpHeaders additionalHeaders = new HttpHeaders();
-            for (ApiClientInterceptor interceptor : interceptors) {
-                interceptor.intercept(additionalHeaders);
-            }
-
-            // 将额外的请求头添加到原始请求中
-            if (!additionalHeaders.isEmpty()) {
-                request.getHeaders().putAll(additionalHeaders);
-            }
-
-            return execution.execute(request, body);
-        };
-    }
 
     static class ApiClientRegistrar implements ImportBeanDefinitionRegistrar {
 
