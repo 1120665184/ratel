@@ -112,7 +112,7 @@ public class AccessLogHandlerService implements InitializingBean, DisposableBean
                 try {
                     LogOperationVO vo = queue.take();
                     R<Boolean> result = logClientApi.saveOperLog(vo);
-                    if (!result.isSuccess() || Boolean.FALSE.equals(result.data())) {
+                    if (!result.isSuccess()) {
                         log.warn("操作日志记录失败：operId={}，原因：{}", vo.getOperId(), result.msg());
                     }
                 } catch (InterruptedException ex) {

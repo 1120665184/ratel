@@ -4,6 +4,7 @@ package org.quyq.gwsu.common.deploy.config;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.provider.BusinessModuleInfoProvider;
 import org.quyq.gwsu.common.core.utils.filter.ProcessorChain;
+import org.quyq.gwsu.common.deploy.aop.ReactorContextCaptureAspect;
 import org.quyq.gwsu.common.deploy.controller.SingleModuleController;
 import org.quyq.gwsu.common.deploy.filter.SingleProcessorFilter;
 import org.quyq.gwsu.common.deploy.mvc.SingleAppRouteHandlerConfiguration;
@@ -38,6 +39,11 @@ public class DeploySingleConfiguration {
     @Bean
     public SingleProcessorFilter singleProcessorFilter(ProcessorChain chain) {
         return new SingleProcessorFilter(chain);
+    }
+
+    @Bean
+    public ReactorContextCaptureAspect reactorContextCaptureAspect() {
+        return new ReactorContextCaptureAspect();
     }
 
 

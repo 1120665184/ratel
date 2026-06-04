@@ -29,10 +29,14 @@ import org.quyq.gwsu.common.log.vo.LogOperationVO;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -160,9 +164,14 @@ public class LogAspectInterceptor implements MethodInterceptor {
                 return;
             }
             loger.setStatus(true);
-
+            result = result instanceof ResponseEntity ? ((ResponseEntity<?>) result).getBody() : result;
             if (Objects.nonNull(result)) {
-                loger.setResponseData(objectMapper.writeValueAsString(result));
+                if(isSSE(result)){
+                    loger.setResponseData("SSE data stream...");
+                }else {
+                    loger.setResponseData(objectMapper.writeValueAsString(result));
+                }
+
             }
         } catch (Exception e) {
             //捕获日志记录操作异常 ， 防止日志记录功能影响正常业务接口
@@ -181,6 +190,15 @@ public class LogAspectInterceptor implements MethodInterceptor {
         }
 
 
+    }
+
+
+
+    private boolean isSSE(Object result){
+        if(result instanceof SseEmitter || result instanceof Flux<?> || result instanceof Mono<?>){
+            return true;
+        }
+        return false;
     }
 
     /**

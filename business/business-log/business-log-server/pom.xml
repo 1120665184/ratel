@@ -37,6 +37,11 @@
             <artifactId>common-log</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.quyq.gwsu</groupId>
+            <artifactId>common-security</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>

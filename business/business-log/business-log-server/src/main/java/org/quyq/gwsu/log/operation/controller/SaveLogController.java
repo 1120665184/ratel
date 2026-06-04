@@ -9,10 +9,14 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.log.annotation.LogIgnore;
 import org.quyq.gwsu.common.log.api.ILogClientApi;
 import org.quyq.gwsu.common.log.vo.LogOperationVO;
+import org.quyq.gwsu.log.operation.service.ILogOperationService;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Objects;
 
 /**
  * @author Quyq
@@ -26,13 +30,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SaveLogController implements ILogClientApi {
 
+    private final ILogOperationService logOperationService;
+
     @Operation(summary = "保存操作日志")
     @PostMapping("operation")
     @LogIgnore
     @Override
     public R<Boolean> saveOperLog(@RequestBody LogOperationVO vo) {
-        // TODO 后续实现持久化存储
-        log.info("收到操作日志：operId={}, module={}, url={}", vo.getOperId(), vo.getModulePrefix(), vo.getRequestUrl());
-        return R.ok(true);
+        log.info("收到操作日志：tid={}, module={}, url={}", vo.getTid(), vo.getModulePrefix(), vo.getRequestUrl());
+        return R.ok(logOperationService.saveLog(vo));
     }
 }

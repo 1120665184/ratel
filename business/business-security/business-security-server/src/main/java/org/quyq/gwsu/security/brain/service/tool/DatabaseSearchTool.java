@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.brain.service.tool;
 
 import cn.hutool.core.collection.CollUtil;
+import com.alibaba.cloud.ai.graph.agent.AgentTool;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
@@ -76,7 +77,8 @@ public class DatabaseSearchTool {
             @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds,
             DatabaseSearchAgent databaseSearchAgent) {
         String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
-        return monoHandler(() ->{
+        return Mono.defer(() ->{
+            log.info("这是输出测试");
             // 获取表信息
             TableModelDetailVO tableDetail = tableModelTableService.getTableDetail(modelPrefix, dataSource, tableName);
             if (tableDetail == null) {
@@ -159,7 +161,7 @@ public class DatabaseSearchTool {
     public Mono<String> getDatabaseVendor(
             @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
             @ToolParam(name = "datasource", description = "数据源") String datasource) {
-        return monoHandler(() ->{
+        return Mono.defer(() ->{
             if (DeployUtils.isSingle()) {
                 return Mono.just(sqlExecutionService.getDatabaseName(datasource));
             }
@@ -196,7 +198,7 @@ public class DatabaseSearchTool {
             DatabaseSearchAgent databaseSearchAgent) {
         String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
 
-        return monoHandler(() ->{
+        return Mono.defer(() ->{
 
             Map<String, Map<String, FieldPermission>> userTableModelPermission = databaseSearchAgent.getUserTableModelPermission();
 
@@ -824,16 +826,16 @@ public class DatabaseSearchTool {
     }
 
 
-    private <T> Mono<T> monoHandler(Supplier<Mono<T>> supplier) {
-        return Mono.deferContextual(cnx -> {
-            //将当前请求信息放入上下文
-            ServletUtils.LOCAL_HEADERS.set(cnx.get(AIConstants.Param.SERVLET_HEADERS));
-            try {
-                return supplier.get();
-            }finally {
-                ServletUtils.LOCAL_HEADERS.remove();
-            }
-        });
-    }
+//    private <T> Mono<T> monoHandler(Supplier<Mono<T>> supplier) {
+//        return Mono.deferContextual(cnx -> {
+//            //将当前请求信息放入上下文
+//            ServletUtils.LOCAL_HEADERS.set(cnx.get(AIConstants.Param.SERVLET_HEADERS));
+//            try {
+//                return supplier.get();
+//            }finally {
+//                ServletUtils.LOCAL_HEADERS.remove();
+//            }
+//        });
+//    }
 
 }

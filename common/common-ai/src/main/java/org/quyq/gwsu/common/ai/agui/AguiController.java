@@ -14,6 +14,9 @@ import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.session.Session;
+import io.micrometer.context.ContextExecutorService;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
@@ -27,10 +30,12 @@ import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
+import org.quyq.gwsu.common.core.accessor.HeadersContextThreadLocalAccessor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.http.MediaType;
@@ -63,7 +68,7 @@ public abstract class AguiController implements DisposableBean {
 
     private final long sseTimeout;
 
-    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executorService = ThreadPoolUtil.newVirtualThreadPerTaskExecutor();
 
     private final AguiEventEncoder encoder = new AguiEventEncoder();
 
@@ -317,8 +322,14 @@ public abstract class AguiController implements DisposableBean {
         SseEmitter emitter = new SseEmitter(sseTimeout);
         String threadId = input.getThreadId();
         String runId = input.getRunId();
-        Map<String, String> headers = ServletUtils.getHeaders();
         String userId = getCurrUserId();
+
+        // 在Servlet线程上提前捕获headers，避免进入虚拟线程后
+        // processor.process()内部的enableAutomaticContextPropagation清除ThreadLocal
+        Map<String, String> capturedHeaders = ServletUtils.LOCAL_HEADERS.get();
+        //传递到reactor中，保证tid正确
+        Observation observation = ObservationThreadLocalAccessor.getInstance().getValue();
+
         executorService.submit(
                 () -> {
                     Disposable subscription;
@@ -354,8 +365,12 @@ public abstract class AguiController implements DisposableBean {
                         // Subscribe to event stream
                         subscription =
                                 result.events()
-                                        .contextWrite(Context.of(AIConstants.Param.THREAD_ID, threadId,
-                                                AIConstants.Param.SERVLET_HEADERS, headers))
+                                        .contextCapture()
+                                        .contextWrite(Context.of(
+                                                AIConstants.Param.THREAD_ID, threadId
+                                                , HeadersContextThreadLocalAccessor.REACTOR_CONTEXT, capturedHeaders
+                                                , ObservationThreadLocalAccessor.KEY , observation
+                                        ))
                                         .subscribe(
                                                 event -> sendEvent(emitter, event),
                                                 error -> {

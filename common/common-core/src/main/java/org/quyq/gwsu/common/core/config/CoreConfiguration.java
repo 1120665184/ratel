@@ -1,17 +1,21 @@
 package org.quyq.gwsu.common.core.config;
 
 
+import io.micrometer.context.ContextRegistry;
 import org.quyq.gwsu.common.core.config.properties.ProjectProperties;
 import org.quyq.gwsu.common.core.utils.ProjectUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.core.utils.filter.ProcessorChain;
 import org.quyq.gwsu.common.core.utils.filter.RequestResponseProcessor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.core.env.Environment;
+import reactor.core.publisher.Hooks;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -40,6 +44,16 @@ public class CoreConfiguration {
     public ProcessorChain requestProcessorChain(ObjectProvider<List<RequestResponseProcessor>> processors) {
         return new ProcessorChain(processors.getIfAvailable());
     }
+
+//    @Bean
+//    public ApplicationRunner applicationThreadLocalRunner() {
+//        return (args) ->{
+//            ContextRegistry
+//                    .getInstance()
+//                    .registerContextAccessor()
+//
+//        };
+//    }
 
 
 }

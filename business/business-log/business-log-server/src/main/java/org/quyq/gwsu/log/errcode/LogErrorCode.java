@@ -13,6 +13,8 @@ import org.quyq.gwsu.common.core.exception.errcode.ErrorCodeMeta;
 public enum LogErrorCode implements ReturnCode {
 
     E01001("操作日志保存失败"),
+    E01002("操作日志不存在"),
+    E01003("操作日志ID不能为空"),
 
     ;
 

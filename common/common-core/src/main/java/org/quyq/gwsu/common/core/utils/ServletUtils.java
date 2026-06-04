@@ -4,7 +4,6 @@ package org.quyq.gwsu.common.core.utils;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.net.NetUtil;
 import cn.hutool.core.util.ArrayUtil;
-import com.alibaba.ttl.TransmittableThreadLocal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -134,7 +133,7 @@ public class ServletUtils {
         return map;
     }
 
-    public static final ThreadLocal<Map<String, String>> LOCAL_HEADERS = new TransmittableThreadLocal<>();
+    public static final ThreadLocal<Map<String, String>> LOCAL_HEADERS = new ThreadLocal<>();
 
     public static Map<String, String> getHeaders() {
 

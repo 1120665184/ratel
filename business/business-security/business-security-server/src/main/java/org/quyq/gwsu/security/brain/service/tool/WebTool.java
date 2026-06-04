@@ -6,6 +6,7 @@ import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolEmitter;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.loop.ApprovalCondition;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeoutException;
  */
 @RequiredArgsConstructor
 @Component
+@Slf4j
 public class WebTool {
 
     private final WebToolUtils webToolUtils;

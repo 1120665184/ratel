@@ -3,11 +3,13 @@ package org.quyq.gwsu.common.deploy.config;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
 import com.alibaba.cloud.nacos.discovery.NacosDiscoveryAutoConfiguration;
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.BusinessModuleInfo;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.provider.BusinessModuleInfoProvider;
 import org.quyq.gwsu.common.core.utils.filter.ProcessorChain;
+import org.quyq.gwsu.common.deploy.aop.ReactorContextCaptureAspect;
 import org.quyq.gwsu.common.deploy.controller.DistributedSqlExecutionController;
 import org.quyq.gwsu.common.deploy.domain.ApplicationModules;
 import org.quyq.gwsu.common.deploy.filter.DistributedGatewayProcessorFilter;
@@ -64,24 +66,32 @@ public class DeployDistributedConfiguration {
                     properties.getMetadata().put("prefix", p.module().prefix());
                     properties.getMetadata().put("note", p.module().note());
                 });
-
         return properties;
 
     }
 
-    /**
-     * 微服务模式时，各服务添加执行sql接口
-     *
-     * @param sqlExecutionService
-     * @return
-     */
-    @Bean
+
+    @AutoConfiguration
     @ConditionalOnMissingClass({"org.springframework.cloud.gateway.config.GatewayAutoConfiguration"})
-    public DistributedSqlExecutionController distributedSqlExecutionController(ISQLExecutionService sqlExecutionService) {
-        return new DistributedSqlExecutionController(sqlExecutionService);
+    public static class DistributeBusinessServerConfiguration {
+        /**
+         * 微服务模式时，各服务添加执行sql接口
+         *
+         * @param sqlExecutionService
+         * @return
+         */
+        @Bean
+        public DistributedSqlExecutionController distributedSqlExecutionController(ISQLExecutionService sqlExecutionService) {
+            return new DistributedSqlExecutionController(sqlExecutionService);
+        }
+
+        @Bean
+        public ReactorContextCaptureAspect reactorContextCaptureAspect() {
+            return new ReactorContextCaptureAspect();
+        }
     }
 
-    @Configuration
+    @AutoConfiguration
     @ConditionalOnClass(GatewayAutoConfiguration.class)
     public static class DistributedGatewayConfiguration {
 

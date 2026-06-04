@@ -29,6 +29,11 @@
             <artifactId>common-log</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-reactor</artifactId>
+        </dependency>
+
     </dependencies>
 
 
