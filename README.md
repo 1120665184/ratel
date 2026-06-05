@@ -102,20 +102,6 @@ gwsu/
 
 ## 核心功能
 
-### 部署模式切换
-
-通过配置 `deploy.single` 属性控制：
-
-```yaml
-# 单体模式
-deploy:
-  single: true
-
-# 分布式模式
-deploy:
-  single: false
-```
-
 ### API 客户端框架
 
 定义服务间调用接口：
@@ -231,4 +217,4 @@ mvn -Pnative package -pl business/application/single/gwsu
 ## 联系方式
 
 - 作者：Quyq
-- GitHub：[https://github.com/quyq/gwsu](https://github.com/quyq/gwsu)
+- GitHub：[https://github.com/1120665184/gwsu-basic](https://github.com/1120665184/gwsu-basic)
