@@ -41,7 +41,6 @@
         <resilience4j.version>2.4.0</resilience4j.version>
         <jcasbin.version>1.99.0</jcasbin.version>
         <sa-token.version>1.45.0</sa-token.version>
-        <transmittable-thread.version>2.14.5</transmittable-thread.version>
         <gson-javatime.version>1.1.2</gson-javatime.version>
         <jsqlparser.version>5.2</jsqlparser.version>
         <agentscope.version>1.1.0-RC2</agentscope.version>
@@ -178,11 +177,6 @@
                 <version>${jcasbin.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>transmittable-thread-local</artifactId>
-                <version>${transmittable-thread.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>com.fatboyindustrial.gson-javatime-serialisers</groupId>
