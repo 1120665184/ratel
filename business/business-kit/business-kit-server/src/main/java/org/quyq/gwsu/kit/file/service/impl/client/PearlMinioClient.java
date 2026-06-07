@@ -11,65 +11,177 @@ import lombok.experimental.Accessors;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ExecutionException;
 
-/**
- * @author liusd
- * @since 2022/9/23
- */
-public class PearlMinioClient extends MinioClient {
+public class PearlMinioClient {
 
-    public PearlMinioClient(MinioClient client) {
-        super(client);
+    private final MinioClient syncClient;
+    private final MultipartClient multipartClient;
+
+    public PearlMinioClient(MinioClient syncClient, MinioAsyncClient asyncClient) {
+        this.syncClient = syncClient;
+        this.multipartClient = new MultipartClient(asyncClient);
     }
 
-    /**
-     * 创建分片上传请求
-     *
-     * @param bucketName       存储桶
-     * @param region           区域
-     * @param objectName       对象名
-     * @param headers          消息头
-     * @param extraQueryParams 额外查询参数
-     */
-    @Override
-    public CreateMultipartUploadResponse createMultipartUpload(String bucketName, String region, String objectName, Multimap<String, String> headers, Multimap<String, String> extraQueryParams) throws ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, IOException, InvalidKeyException, XmlParserException, InvalidResponseException, InternalException {
-
-        return super.createMultipartUpload(bucketName, region, objectName, headers, extraQueryParams);
+    public ObjectWriteResponse putObject(PutObjectArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        return syncClient.putObject(args);
     }
 
-
-    @Override
-    public AbortMultipartUploadResponse abortMultipartUpload(String bucketName, String region, String objectName, String uploadId, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams) throws NoSuchAlgorithmException, InsufficientDataException, IOException, InvalidKeyException, ServerException, XmlParserException, ErrorResponseException, InternalException, InvalidResponseException {
-        return super.abortMultipartUpload(bucketName, region, objectName, uploadId, extraHeaders, extraQueryParams);
+    public GetObjectResponse getObject(GetObjectArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        return syncClient.getObject(args);
     }
 
-    /**
-     * 完成分片上传，执行合并文件
-     *
-     * @param bucketName       存储桶
-     * @param region           区域
-     * @param objectName       对象名
-     * @param uploadId         上传ID
-     * @param parts            分片
-     * @param extraHeaders     额外消息头
-     * @param extraQueryParams 额外查询参数
-     */
-    @Override
-    public ObjectWriteResponse completeMultipartUpload(String bucketName, String region, String objectName, String uploadId, Part[] parts, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams) throws NoSuchAlgorithmException, InsufficientDataException, IOException, InvalidKeyException, ServerException, XmlParserException, ErrorResponseException, InternalException, InvalidResponseException {
-        return super.completeMultipartUpload(bucketName, region, objectName, uploadId, parts, extraHeaders, extraQueryParams);
+    public void removeObject(RemoveObjectArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        syncClient.removeObject(args);
     }
 
-    /**
-     * 查询分片数据
-     *
-     * @param param
-     * @param extraHeaders     额外消息头
-     * @param extraQueryParams 额外查询参数
-     */
-    public ListPartsResponse listMultipart(RequestParam param, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams) throws NoSuchAlgorithmException, InsufficientDataException, IOException, InvalidKeyException, ServerException, XmlParserException, ErrorResponseException, InternalException, InvalidResponseException {
+    public boolean bucketExists(BucketExistsArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        return syncClient.bucketExists(args);
+    }
+
+    public void makeBucket(MakeBucketArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        syncClient.makeBucket(args);
+    }
+
+    public StatObjectResponse statObject(StatObjectArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        return syncClient.statObject(args);
+    }
+
+    public String getPresignedObjectUrl(GetPresignedObjectUrlArgs args)
+            throws ErrorResponseException, InsufficientDataException, InternalException,
+            InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException,
+            ServerException, XmlParserException {
+        return syncClient.getPresignedObjectUrl(args);
+    }
+
+    public CreateMultipartUploadResponse createMultipartUpload(
+            String bucketName, String region, String objectName,
+            Multimap<String, String> headers, Multimap<String, String> extraQueryParams)
+            throws ServerException, InsufficientDataException, ErrorResponseException,
+            NoSuchAlgorithmException, IOException, InvalidKeyException, XmlParserException,
+            InvalidResponseException, InternalException {
+        return multipartClient.doCreateMultipartUpload(bucketName, region, objectName, headers, extraQueryParams);
+    }
+
+    public AbortMultipartUploadResponse abortMultipartUpload(
+            String bucketName, String region, String objectName, String uploadId,
+            Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams)
+            throws NoSuchAlgorithmException, InsufficientDataException, IOException,
+            InvalidKeyException, ServerException, XmlParserException, ErrorResponseException,
+            InternalException, InvalidResponseException {
+        return multipartClient.doAbortMultipartUpload(bucketName, region, objectName, uploadId, extraHeaders, extraQueryParams);
+    }
+
+    public ObjectWriteResponse completeMultipartUpload(
+            String bucketName, String region, String objectName, String uploadId,
+            Part[] parts, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams)
+            throws NoSuchAlgorithmException, InsufficientDataException, IOException,
+            InvalidKeyException, ServerException, XmlParserException, ErrorResponseException,
+            InternalException, InvalidResponseException {
+        return multipartClient.doCompleteMultipartUpload(bucketName, region, objectName, uploadId, parts, extraHeaders, extraQueryParams);
+    }
+
+    public ListPartsResponse listMultipart(RequestParam param,
+            Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams)
+            throws NoSuchAlgorithmException, InsufficientDataException, IOException,
+            InvalidKeyException, ServerException, XmlParserException, ErrorResponseException,
+            InternalException, InvalidResponseException {
         Assert.notNull(param);
-        return super.listParts(param.getBucketName(), param.getRegion(), param.getObjectName(),
+        return multipartClient.doListParts(param.getBucketName(), param.getRegion(), param.getObjectName(),
                 param.getMaxParts(), param.getPartNumberMarker(), param.getUploadId(), extraHeaders, extraQueryParams);
+    }
+
+    private static class MultipartClient extends MinioAsyncClient {
+        MultipartClient(MinioAsyncClient client) {
+            super(client);
+        }
+
+        CreateMultipartUploadResponse doCreateMultipartUpload(
+                String bucketName, String region, String objectName,
+                Multimap<String, String> headers, Multimap<String, String> extraQueryParams)
+                throws ServerException, InsufficientDataException, ErrorResponseException,
+                NoSuchAlgorithmException, IOException, InvalidKeyException, XmlParserException,
+                InvalidResponseException, InternalException {
+            try {
+                return createMultipartUploadAsync(bucketName, region, objectName, headers, extraQueryParams).get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throwEncapsulatedException(e);
+                return null;
+            }
+        }
+
+        AbortMultipartUploadResponse doAbortMultipartUpload(
+                String bucketName, String region, String objectName, String uploadId,
+                Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams)
+                throws NoSuchAlgorithmException, InsufficientDataException, IOException,
+                InvalidKeyException, ServerException, XmlParserException, ErrorResponseException,
+                InternalException, InvalidResponseException {
+            try {
+                return abortMultipartUploadAsync(bucketName, region, objectName, uploadId, extraHeaders, extraQueryParams).get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throwEncapsulatedException(e);
+                return null;
+            }
+        }
+
+        ObjectWriteResponse doCompleteMultipartUpload(
+                String bucketName, String region, String objectName, String uploadId,
+                Part[] parts, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams)
+                throws NoSuchAlgorithmException, InsufficientDataException, IOException,
+                InvalidKeyException, ServerException, XmlParserException, ErrorResponseException,
+                InternalException, InvalidResponseException {
+            try {
+                return completeMultipartUploadAsync(bucketName, region, objectName, uploadId, parts, extraHeaders, extraQueryParams).get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throwEncapsulatedException(e);
+                return null;
+            }
+        }
+
+        ListPartsResponse doListParts(
+                String bucketName, String region, String objectName,
+                Integer maxParts, Integer partNumberMarker, String uploadId,
+                Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams)
+                throws NoSuchAlgorithmException, InsufficientDataException, IOException,
+                InvalidKeyException, ServerException, XmlParserException, ErrorResponseException,
+                InternalException, InvalidResponseException {
+            try {
+                return listPartsAsync(bucketName, region, objectName, maxParts, partNumberMarker, uploadId, extraHeaders, extraQueryParams).get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throwEncapsulatedException(e);
+                return null;
+            }
+        }
     }
 
     @Data
@@ -81,8 +193,5 @@ public class PearlMinioClient extends MinioClient {
         private Integer maxParts;
         private Integer partNumberMarker;
         private String uploadId;
-
     }
-
-
 }

@@ -41,7 +41,7 @@ public class FileUtils {
 
     private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
     //分片上传大小
-    private static final long UPLOAD_CHUNK_SIZE = 900L * 1024;
+    private static final long UPLOAD_CHUNK_SIZE = 5L * 1024 * 1024;
     //分片下载配置
     private static final long DOWNLOAD_CHUNK_SIZE = 10L * 1024 * 1024;
     //判断单应用上传和分片上传文件大小配置

@@ -2,8 +2,8 @@ import md5 from 'js-md5';
 import * as fileService from '../services/file';
 import type { KitFileInfoVO, FileProperty, FileUploadOptions, ChunkUploadProgress } from '../types';
 
-const DEFAULT_CHUNK_SIZE = 900 * 1024;
-const DEFAULT_SINGLE_UPLOAD_THRESHOLD = 900 * 1024;
+const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
+const DEFAULT_SINGLE_UPLOAD_THRESHOLD = DEFAULT_CHUNK_SIZE;
 const DEFAULT_MAX_CONCURRENT_CHUNKS = 6;
 const DEFAULT_MAX_RETRY_COUNT = 3;
 const MAX_CHUNK_COUNT = 10000;

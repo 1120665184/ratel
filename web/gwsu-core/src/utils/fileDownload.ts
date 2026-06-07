@@ -3,7 +3,7 @@ import { downloadRequest, getRequestConfig } from './request';
 import type { KitFileInfoVO, FileDownloadOptions, FileDownloadProgress } from '../types';
 
 const DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024;
-const DEFAULT_SINGLE_DOWNLOAD_THRESHOLD = 10 * 1024 * 1024;
+const DEFAULT_SINGLE_DOWNLOAD_THRESHOLD = DEFAULT_CHUNK_SIZE;
 const DEFAULT_MAX_CONCURRENT_CHUNKS = 6;
 const DEFAULT_MAX_RETRY_COUNT = 3;
 

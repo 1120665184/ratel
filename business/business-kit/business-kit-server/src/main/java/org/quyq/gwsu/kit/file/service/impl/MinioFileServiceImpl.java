@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Quyq
@@ -53,10 +54,15 @@ public class MinioFileServiceImpl extends AbstractFileService {
     private static final Integer EXPIRY_CHUNK = 60 * 60 * 24 * 7;
 
     private PearlMinioClient buildMinioClient() {
-        return new PearlMinioClient(MinioClient.builder()
+        MinioClient syncClient = MinioClient.builder()
                 .endpoint(properties.getMinio().getUrl())
                 .credentials(properties.getMinio().getAccessKey(), properties.getMinio().getSecretKey())
-                .build());
+                .build();
+        MinioAsyncClient asyncClient = MinioAsyncClient.builder()
+                .endpoint(properties.getMinio().getUrl())
+                .credentials(properties.getMinio().getAccessKey(), properties.getMinio().getSecretKey())
+                .build();
+        return new PearlMinioClient(syncClient, asyncClient);
     }
 
     @Override
@@ -228,7 +234,10 @@ public class MinioFileServiceImpl extends AbstractFileService {
                     .setUploadId(info.getUploadId());
             ListPartsResponse partResult = client.listMultipart(param, null, null);
             if (!partResult.result().partList().isEmpty()) {
-                Part[] parts = partResult.result().partList().toArray(new Part[0]);
+                List<Part> sortedParts = partResult.result().partList().stream()
+                        .sorted(Comparator.comparingInt(Part::partNumber))
+                        .collect(Collectors.toList());
+                Part[] parts = sortedParts.toArray(new Part[0]);
                 client.completeMultipartUpload(info.getChunkGroup(), null, info.getChunkUrl(), info.getUploadId(), parts, null, null);
 
             }

@@ -46,7 +46,8 @@
         <agentscope.version>1.1.0-RC2</agentscope.version>
         <spring-ai-alibaba.version>1.1.2.2</spring-ai-alibaba.version>
         <tika.version>3.3.1</tika.version>
-        <minio.version>8.2.1</minio.version>
+        <minio.version>8.6.0</minio.version>
+        <okhttp.version>5.1.0</okhttp.version>
         <!-- 阿里云 OSS 对象存储 SDK 版本 -->
         <oss.version>3.1.0</oss.version>
         <!-- AWS SDK for Java S3 存储版本 -->
@@ -89,6 +90,14 @@
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
                 <version>${spring.cloud.alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-bom</artifactId>
+                <version>${okhttp.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -222,6 +231,18 @@
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-jvm</artifactId>
+                <version>${okhttp.version}</version>
             </dependency>
 
 
