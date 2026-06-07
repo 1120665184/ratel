@@ -45,7 +45,7 @@ public class FileUtils {
 
     private static final long DOWNLOAD_CHUNK_SIZE = 10L * 1024 * 1024;
 
-    private static final long SINGLE_UPLOAD_THRESHOLD = 900L * 1024;
+    private static final long SINGLE_UPLOAD_THRESHOLD = UPLOAD_CHUNK_SIZE;
 
     private static final int MAX_CHUNK_COUNT = 10000;
 
