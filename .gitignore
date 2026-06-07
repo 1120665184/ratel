@@ -63,6 +63,7 @@ yarn-error.log*
 
 ### other ###
 .claude/
+.trae/
 .superpowers/
 docs/superpowers
 .agentscope
