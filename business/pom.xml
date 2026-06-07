@@ -17,6 +17,7 @@
         <module>business-security</module>
         <module>business-system</module>
         <module>business-log</module>
+        <module>business-kit</module>
     </modules>
 
 

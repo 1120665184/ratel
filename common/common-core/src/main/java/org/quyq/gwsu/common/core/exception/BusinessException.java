@@ -19,6 +19,14 @@ public class BusinessException extends BasicException {
         super(code, message);
     }
 
+    public BusinessException(ReturnCode code, String message, Throwable cause) {
+        super(code, message, cause);
+    }
+
+    public BusinessException(ReturnCode code, Throwable cause) {
+        super(code, cause);
+    }
+
     public BusinessException(String message) {
         super(message);
     }

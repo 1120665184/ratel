@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.api.role;
 
 import org.quyq.gwsu.common.api.annotation.ApiClient;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.security.api.role.fallback.RoleClientApiFallbackFactory;
 import org.quyq.gwsu.security.api.role.vo.RoleVO;
@@ -13,8 +14,8 @@ import org.springframework.web.service.annotation.HttpExchange;
  *
  * @author Quyq
  */
-@ApiClient(value = "gwsu-security", note = "角色管理API", fallbackFactory = RoleClientApiFallbackFactory.class)
-@HttpExchange("/security/role")
+@ApiClient(value = CoreConstants.Server.SECURITY_NAME, note = "角色管理API", fallbackFactory = RoleClientApiFallbackFactory.class)
+@HttpExchange("/role")
 public interface RoleClientApi {
 
     /**

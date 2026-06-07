@@ -14,6 +14,6 @@ public class SystemModuleInfoProvider implements BusinessModuleInfoProvider {
 
     @Override
     public BusinessModuleInfo module() {
-        return new BusinessModuleInfo(SecurityConstants.Authentication.AUTH_SERVER_PREFIX, "系统模块");
+        return new BusinessModuleInfo(SecurityConstants.Authentication.AUTH_SERVER_PREFIX, "系统服务");
     }
 }

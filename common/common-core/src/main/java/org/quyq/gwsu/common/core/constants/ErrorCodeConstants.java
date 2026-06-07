@@ -14,7 +14,7 @@ public interface ErrorCodeConstants {
     String COMMON_ERROR_CODE_MODULE = "00";
 
     /**
-     * 鉴权模块错误码
+     * 安全模块错误码
      */
     String SECURITY_ERROR_CODE_MODULE = "01";
 
@@ -27,5 +27,10 @@ public interface ErrorCodeConstants {
      * 日志模块错误码
      */
     String LOG_ERROR_CODE_MODULE = "03";
+
+    /**
+     * 工具套件模块错误码
+     */
+    String KIT_ERROR_CODE_MODULE = "04";
 
 }

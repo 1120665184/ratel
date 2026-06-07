@@ -12,7 +12,7 @@
     <property scope="context" name="log.path" value="logs/${applicationName}" />
 
     <!-- 注册颜色转换器（支持 %clr） -->
-    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter" />
 
     <!-- 控制台带颜色：使用 %clr 固定颜色显示级别（品红色），其他字段保留颜色 -->
     <property name="log.console.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %clr([%-5level]){magenta} %clr([%X{traceId}]){yellow} %clr([%thread]){orange} %clr(%logger{60}){cyan} - %clr([%method,%line]){cyan} - %msg%n" />
@@ -20,7 +20,7 @@
     <property name="log.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] [%X{traceId}] [%thread] %logger{60} - [%method,%line] - %msg%n" />
 
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <withJansi>true</withJansi>
+        <withJansi>false</withJansi>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>${log.console.pattern}</pattern>
             <charset>UTF-8</charset>

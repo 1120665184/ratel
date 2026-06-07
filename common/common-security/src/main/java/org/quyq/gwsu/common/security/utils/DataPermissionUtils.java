@@ -1,15 +1,9 @@
 package org.quyq.gwsu.common.security.utils;
 
 
-import com.alibaba.ttl.TransmittableThreadLocal;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.CaseExpression;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.WhenClause;
+import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Table;
@@ -45,7 +39,7 @@ public class DataPermissionUtils {
 
     private final DdlFactory ddlFactory;
 
-    private final ThreadLocal<DataPermissionInfo> dataPermissionInfos = new TransmittableThreadLocal<>();
+    private final ThreadLocal<DataPermissionInfo> dataPermissionInfos = new ThreadLocal<>();
 
     private final DataResourceConditionBuilder<Expression, Expression> conditionBuilder = new DBDataResourceConditionBuilder();
 
@@ -371,9 +365,9 @@ public class DataPermissionUtils {
      * 1. 按纯表名从分组中获取规则列表
      * 2. 从 SQL 表引用或 DdlFactory 获取库名/模式名
      * 3. 用库名对规则列表做过滤：
-     *    - 规则未配置 databaseName → 匹配（适用于所有库的同名表）
-     *    - 规则配置了 databaseName 且与当前库名一致 → 匹配
-     *    - 规则配置了 databaseName 但与当前库名不一致 → 不匹配
+     * - 规则未配置 databaseName → 匹配（适用于所有库的同名表）
+     * - 规则配置了 databaseName 且与当前库名一致 → 匹配
+     * - 规则配置了 databaseName 但与当前库名不一致 → 不匹配
      */
     private List<DataResoureRule> findRulesForTable(Table table, Map<String, List<DataResoureRule>> rulesByTable) {
         String tableName = table.getName();
@@ -542,7 +536,7 @@ public class DataPermissionUtils {
      * 注意：此方法涉及反射，需要在 AOT 编译时通过 RuntimeHintsRegistrar 注册相关类的反射元数据。
      */
     private boolean processExpressionByReflection(Expression expression, Map<String, List<DataResoureRule>> rulesByTable,
-                                                   Map<String, List<?>> dataResource) {
+                                                  Map<String, List<?>> dataResource) {
         // 跳过已知已处理的类型和不需要递归的简单类型
         Class<?> clazz = expression.getClass();
         if (clazz.getName().startsWith("net.sf.jsqlparser.expression.") &&

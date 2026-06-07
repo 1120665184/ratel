@@ -19,7 +19,7 @@ public class RoleClientApiFallbackFactory implements FallbackFactory<RoleClientA
         return new RoleClientApi() {
             @Override
             public R<RoleVO> getById(String id) {
-                return R.fail("角色服务暂时不可用: " + cause.getMessage());
+                return R.fail("服务暂时不可用: " + cause.getMessage());
             }
         };
     }

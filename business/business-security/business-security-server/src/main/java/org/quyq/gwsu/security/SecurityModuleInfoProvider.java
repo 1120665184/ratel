@@ -15,6 +15,6 @@ public class SecurityModuleInfoProvider implements BusinessModuleInfoProvider {
 
     @Override
     public BusinessModuleInfo module() {
-        return new BusinessModuleInfo("security", "安全模块");
+        return new BusinessModuleInfo("security", "安全服务");
     }
 }

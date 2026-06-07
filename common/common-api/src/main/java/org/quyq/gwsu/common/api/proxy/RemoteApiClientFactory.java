@@ -8,6 +8,7 @@ import org.quyq.gwsu.common.api.annotation.CircuitBreakerCustomConfig;
 import org.quyq.gwsu.common.api.client.ApiClientFactory;
 import org.quyq.gwsu.common.api.config.properties.CircuitBreakerProperties;
 import org.quyq.gwsu.common.api.fallback.FallbackFactory;
+import org.quyq.gwsu.common.api.resolver.MultipartDtoArgumentResolver;
 import org.quyq.gwsu.common.api.utils.CircuitBreakerConfigResolver;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,7 +54,9 @@ public class RemoteApiClientFactory implements ApiClientFactory {
         RestClient restClient = createRestClient(serviceName);
 
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(
-                RestClientAdapter.create(restClient)).build();
+                RestClientAdapter.create(restClient))
+                .customArgumentResolver(new MultipartDtoArgumentResolver())
+                .build();
 
         T client = factory.createClient(apiClientClass);
 

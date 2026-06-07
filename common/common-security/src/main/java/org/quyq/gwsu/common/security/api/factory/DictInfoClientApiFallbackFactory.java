@@ -2,7 +2,12 @@ package org.quyq.gwsu.common.security.api.factory;
 
 
 import org.quyq.gwsu.common.api.fallback.FallbackFactory;
+import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.security.api.IDictInfoClientApi;
+import org.quyq.gwsu.common.security.api.vo.DictValueVO;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Quyq
@@ -12,6 +17,11 @@ import org.quyq.gwsu.common.security.api.IDictInfoClientApi;
 public class DictInfoClientApiFallbackFactory implements FallbackFactory<IDictInfoClientApi> {
     @Override
     public IDictInfoClientApi create(Throwable cause) {
-        return null;
+        return new IDictInfoClientApi() {
+            @Override
+            public R<Map<String, List<DictValueVO>>> getDictValueByDictKeyBatch(List<String> dictKeys) {
+                return R.fail(cause.getMessage());
+            }
+        };
     }
 }

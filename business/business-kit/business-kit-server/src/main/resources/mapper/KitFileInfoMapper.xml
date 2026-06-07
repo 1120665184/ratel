@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.kit.file.mapper.KitFileInfoMapper">
+
+
+    <sql id="selectSql">
+        SELECT fi.file_id,fi.file_meta_id,fi.file_name,fi.file_size,fi.file_suffix,fi.create_time,fi.disposable,fi.scope,fi.visitors,fi.expired_time,fmi.unique_id,fmi.file_group,fmi.file_url,fmi.upload_service_type,fmi.media_type
+        FROM kit_file_info fi
+        LEFT JOIN kit_file_meta_info fmi ON fmi.file_meta_id = fi.file_meta_id
+    </sql>
+
+   <select id="pageByCondition" resultType="org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO">
+       <include refid="selectSql"></include>
+       ${ew.customSqlSegment}
+   </select>
+
+   <select id="getById" resultType="org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO">
+       <include refid="selectSql"></include>
+        WHERE fi.file_id = #{id}
+   </select>
+
+    <select id="getExpiredFilelist" resultType="org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO">
+        <include refid="selectSql"></include>
+        WHERE fmi.upload_service_type = #{serverType} AND fi.expired_time &lt;= #{now}
+    </select>
+
+</mapper>

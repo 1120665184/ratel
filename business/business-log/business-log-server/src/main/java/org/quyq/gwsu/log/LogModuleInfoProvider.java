@@ -14,6 +14,6 @@ public class LogModuleInfoProvider implements BusinessModuleInfoProvider {
 
     @Override
     public BusinessModuleInfo module() {
-        return new BusinessModuleInfo("log", "日志模块");
+        return new BusinessModuleInfo("log", "日志服务");
     }
 }

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.kit.file.mapper.KitFileChunkInfoMapper">
+
+
+   <insert id="insertBatch">
+       INSERT INTO kit_file_chunk_info (
+       file_chunk_id,
+       file_name,
+       media_type,
+       upload_service_type,
+       chunk_stream_size,
+       chunk_group,
+       unique_id,
+       chunk_url,
+       chunk_offset,
+       upload_id,
+       deleted,
+       create_time,
+       notes,
+       expiry) VALUES
+       <foreach collection="chunks" item="chunk" separator=",">
+           (#{chunk.fileChunkId},
+           #{chunk.fileName},
+           #{chunk.mediaType},
+           #{chunk.uploadServiceType},
+           #{chunk.chunkStreamSize},
+           #{chunk.chunkGroup},
+           #{chunk.uniqueId},
+           #{chunk.chunkUrl},
+           #{chunk.chunkOffset},
+           #{chunk.uploadId},
+           #{chunk.deleted},
+           #{chunk.createTime},
+           #{chunk.notes},
+           #{chunk.expiry})
+       </foreach>
+   </insert>
+
+</mapper>

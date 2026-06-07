@@ -2,6 +2,7 @@ package org.quyq.gwsu.common.core.config;
 
 
 import com.google.gson.*;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ext.javatime.deser.LocalDateDeserializer;
 import tools.jackson.databind.ext.javatime.deser.LocalDateTimeDeserializer;
@@ -16,23 +17,16 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * @author Quyq
- * @date 2026/4/11
- * @description
- */
 public class GsonConfiguration {
 
     public static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     public static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    //序列化
     public static final JsonSerializer<LocalDateTime> jsonSerializerDateTime = (localDateTime, type, jsonSerializationContext)
             -> new JsonPrimitive(localDateTime.format(dateTimeFormatter));
     public static final JsonSerializer<LocalDate> jsonSerializerDate = (localDate, type, jsonSerializationContext)
             -> new JsonPrimitive(localDate.format(dateFormatter));
-    //反序列化
     public static final JsonDeserializer<LocalDateTime> jsonDeserializerDateTime = (jsonElement, type, jsonDeserializationContext)
             -> LocalDateTime.parse(jsonElement.getAsJsonPrimitive().getAsString(),
             dateTimeFormatter);
@@ -44,7 +38,6 @@ public class GsonConfiguration {
     public Gson gson() {
         return new GsonBuilder()
                 .setPrettyPrinting()
-                /* 更改先后顺序没有影响 */
                 .registerTypeAdapter(LocalDateTime.class, jsonSerializerDateTime)
                 .registerTypeAdapter(LocalDate.class, jsonSerializerDate)
                 .registerTypeAdapter(LocalDateTime.class, jsonDeserializerDateTime)
@@ -65,5 +58,9 @@ public class GsonConfiguration {
         return module;
     }
 
+    @Bean
+    public JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer(SimpleModule javaTimeModule) {
+        return builder -> builder.addModule(javaTimeModule);
+    }
 
 }
