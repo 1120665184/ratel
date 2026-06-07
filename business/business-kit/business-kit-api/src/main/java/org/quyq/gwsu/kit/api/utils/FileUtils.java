@@ -40,12 +40,15 @@ public class FileUtils {
     }
 
     private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
-
+    //分片上传大小
     private static final long UPLOAD_CHUNK_SIZE = 900L * 1024;
-
+    //分片下载配置
     private static final long DOWNLOAD_CHUNK_SIZE = 10L * 1024 * 1024;
-
+    //判断单应用上传和分片上传文件大小配置
     private static final long SINGLE_UPLOAD_THRESHOLD = UPLOAD_CHUNK_SIZE;
+
+    //同时分片上传数限制
+    private static final int MAX_CONCURRENT_CHUNKS = 6;
 
     private static final int MAX_CHUNK_COUNT = 10000;
 
@@ -251,6 +254,7 @@ public class FileUtils {
             List<Integer> existChunks
     ) {
         int totalChunks = form.parseChunkSize().size();
+        Semaphore semaphore = new Semaphore(MAX_CONCURRENT_CHUNKS);
         List<CompletableFuture<Void>> futures = new ArrayList<>(totalChunks);
 
         for (int i = 0; i < totalChunks; i++) {
@@ -260,7 +264,19 @@ public class FileUtils {
             }
             final int index = i;
             futures.add(CompletableFuture.runAsync(
-                    () -> uploadChunkWithRetry(form, chunkData, chunkExtractor, index),
+                    () -> {
+                        try {
+                            semaphore.acquire();
+                            try {
+                                uploadChunkWithRetry(form, chunkData, chunkExtractor, index);
+                            } finally {
+                                semaphore.release();
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("分片上传被中断", e);
+                        }
+                    },
                     FILE_POOL
             ));
         }
@@ -356,12 +372,25 @@ public class FileUtils {
         File dir = ensureDirectory(rootPath);
         File file = new File(dir, fileId + "." + fileInfo.getFileSuffix());
 
+        Semaphore semaphore = new Semaphore(MAX_CONCURRENT_CHUNKS);
         List<CompletableFuture<ChunkDownloadResult>> futures = new ArrayList<>(finalChunkCount);
 
         for (int i = 0; i < finalChunkCount; i++) {
             final int index = i;
             futures.add(CompletableFuture.supplyAsync(
-                    () -> downloadChunkWithRetry(fileId, index, finalChunkCount, finalChunkSize, fileSize),
+                    () -> {
+                        try {
+                            semaphore.acquire();
+                            try {
+                                return downloadChunkWithRetry(fileId, index, finalChunkCount, finalChunkSize, fileSize);
+                            } finally {
+                                semaphore.release();
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("分片下载被中断", e);
+                        }
+                    },
                     FILE_POOL
             ));
         }

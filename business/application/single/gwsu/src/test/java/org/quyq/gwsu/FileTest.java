@@ -18,7 +18,7 @@ public class FileTest {
 
 
     @Test
-    public void test() {
+    public void upload() {
 
         KitFileInfoVO upload = FileUtils.upload(new File("/Users/quyq/Downloads/dataquery.tar.gz"));
         System.out.println(upload);
@@ -26,8 +26,14 @@ public class FileTest {
     }
 
     @Test
-    public void test2() {
+    public void delete() {
         FileUtils.delete("2063529660421996544");
+    }
+
+    @Test
+    public void download() {
+        File download = FileUtils.download("2063532979999690752", "/Users/quyq/Downloads/");
+        System.out.println(1);
     }
 
 }
