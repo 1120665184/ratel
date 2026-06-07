@@ -41,11 +41,6 @@ public class FileUploadInfoProperties {
      */
     private Cos cos = new Cos();
 
-    /**
-     * 上传文件扩展
-     */
-    private Extension extension = new Extension();
-
 
     @Data
     public static class Cos {
@@ -118,17 +113,5 @@ public class FileUploadInfoProperties {
         private String secretKey;
     }
 
-    @Data
-    public static class Extension {
-        /**
-         * 启用后缀检测
-         */
-        private boolean enabled = false;
-
-        /**
-         * 禁止的后缀
-         */
-        private String disable;
-    }
 
 }

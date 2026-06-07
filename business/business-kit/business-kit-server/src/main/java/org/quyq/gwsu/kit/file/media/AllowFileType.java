@@ -7,11 +7,13 @@ import org.apache.tika.mime.MimeTypeException;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.kit.api.utils.MediaUtils;
+import org.quyq.gwsu.kit.config.properties.FileExtensionProperties;
 import org.quyq.gwsu.kit.config.properties.FileUploadInfoProperties;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,6 +29,8 @@ import static org.quyq.gwsu.kit.file.service.FileServiceManager.FILE_SYSTEM_CONF
 @Component
 @Slf4j
 public class AllowFileType {
+
+    public final static String File_EXTENSION_CONFIG = "upload_file_extension_config";
 
 
     /**
@@ -65,7 +69,7 @@ public class AllowFileType {
      */
     public void valid(MultipartFile file) {
 
-        FileUploadInfoProperties properties = ConfigInfoUtils.getByObject(FILE_SYSTEM_CONFIG, FileUploadInfoProperties.class);
+        FileExtensionProperties exProperties = ConfigInfoUtils.getByObject(File_EXTENSION_CONFIG, FileExtensionProperties.class);
 
         if (file.getSize() == 0L) {
             throw new BusinessException(KitErrorCode.E01010, KitErrorCode.E01013.msg());
@@ -91,7 +95,6 @@ public class AllowFileType {
         }
 
 
-        FileUploadInfoProperties.Extension exProperties = properties.getExtension();
         if (!exProperties.isEnabled()) {
             return;
         }
