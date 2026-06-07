@@ -103,7 +103,7 @@ public class AllowFileType {
         List<String> disabled = Arrays.stream(exProperties.getDisable().split(","))
                 .map(String::toLowerCase).toList();
         if (disabled.contains(extension.toLowerCase())) {
-            throw new BusinessException(KitErrorCode.E01012, KitErrorCode.E01013.msg());
+            throw new BusinessException(KitErrorCode.E01012, "【%s】类型文件被禁止上传".formatted(extension));
         }
 
 

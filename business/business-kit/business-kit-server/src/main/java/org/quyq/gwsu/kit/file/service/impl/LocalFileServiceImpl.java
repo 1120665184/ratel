@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class LocalFileServiceImpl extends AbstractFileService {
     public LocalFileServiceImpl(FileUploadInfoProperties uploadProperties) {
-        super(FileServiceType.LOCAL, null);
+        super(FileServiceType.LOCAL, uploadProperties.getGroup());
         this.properties = uploadProperties;
         startDeleteBurst();
     }

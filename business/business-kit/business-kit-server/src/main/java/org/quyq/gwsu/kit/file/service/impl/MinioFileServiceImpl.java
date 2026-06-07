@@ -41,7 +41,7 @@ import java.util.*;
 public class MinioFileServiceImpl extends AbstractFileService {
 
     public MinioFileServiceImpl(FileUploadInfoProperties uploadProperties) {
-        super(FileServiceType.MINIO, null);
+        super(FileServiceType.MINIO, uploadProperties.getGroup());
         this.properties = uploadProperties;
         client = buildMinioClient();
     }
