@@ -40,6 +40,8 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
     [value, onChange],
   );
 
+  const isRequired = value.type !== 'LOCAL';
+
   return (
     <>
       <Card title="上传服务类型" className={styles.sectionCard} size="small">
@@ -60,7 +62,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
       <Card title="连接配置" className={styles.sectionCard} size="small">
         {value.type === 'LOCAL' && (
           <Form layout="vertical" size="small">
-            <Form.Item label="上传路径">
+            <Form.Item label="存储路径">
               <Input
                 value={value.local.path}
                 onChange={(e) => updateField('local.path', e.target.value)}
@@ -72,25 +74,28 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
 
         {value.type === 'MINIO' && (
           <Form layout="vertical" size="small">
-            <Form.Item label="服务地址">
+            <Form.Item label="服务地址" required={isRequired}>
               <Input
                 value={value.minio.url}
                 onChange={(e) => updateField('minio.url', e.target.value)}
                 placeholder="http://127.0.0.1:9000"
+                status={isRequired && !value.minio.url ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Access Key">
+            <Form.Item label="Access Key" required={isRequired}>
               <Input
                 value={value.minio.accessKey}
                 onChange={(e) => updateField('minio.accessKey', e.target.value)}
                 placeholder="minioadmin"
+                status={isRequired && !value.minio.accessKey ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Secret Key">
+            <Form.Item label="Secret Key" required={isRequired}>
               <Input.Password
                 value={value.minio.secretKey}
                 onChange={(e) => updateField('minio.secretKey', e.target.value)}
                 placeholder="minioadmin"
+                status={isRequired && !value.minio.secretKey ? 'error' : undefined}
               />
             </Form.Item>
           </Form>
@@ -98,25 +103,28 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
 
         {value.type === 'OSS' && (
           <Form layout="vertical" size="small">
-            <Form.Item label="Endpoint">
+            <Form.Item label="Endpoint" required={isRequired}>
               <Input
                 value={value.oss.endpoint}
                 onChange={(e) => updateField('oss.endpoint', e.target.value)}
                 placeholder="https://oss-cn-hangzhou.aliyuncs.com"
+                status={isRequired && !value.oss.endpoint ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Access Key ID">
+            <Form.Item label="Access Key ID" required={isRequired}>
               <Input
                 value={value.oss.accessKey}
                 onChange={(e) => updateField('oss.accessKey', e.target.value)}
                 placeholder="LTAI5t..."
+                status={isRequired && !value.oss.accessKey ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Access Key Secret">
+            <Form.Item label="Access Key Secret" required={isRequired}>
               <Input.Password
                 value={value.oss.secretKey}
                 onChange={(e) => updateField('oss.secretKey', e.target.value)}
                 placeholder="请输入 Secret"
+                status={isRequired && !value.oss.secretKey ? 'error' : undefined}
               />
             </Form.Item>
           </Form>
@@ -124,32 +132,36 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
 
         {value.type === 'COS' && (
           <Form layout="vertical" size="small">
-            <Form.Item label="Endpoint">
+            <Form.Item label="Endpoint" required={isRequired}>
               <Input
                 value={value.cos.endpoint}
                 onChange={(e) => updateField('cos.endpoint', e.target.value)}
                 placeholder="https://cos.ap-guangzhou.myqcloud.com"
+                status={isRequired && !value.cos.endpoint ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Region">
+            <Form.Item label="Region" required={isRequired}>
               <Input
                 value={value.cos.region}
                 onChange={(e) => updateField('cos.region', e.target.value)}
                 placeholder="ap-guangzhou"
+                status={isRequired && !value.cos.region ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Secret ID">
+            <Form.Item label="Secret ID" required={isRequired}>
               <Input
                 value={value.cos.accessKey}
                 onChange={(e) => updateField('cos.accessKey', e.target.value)}
                 placeholder="AKID..."
+                status={isRequired && !value.cos.accessKey ? 'error' : undefined}
               />
             </Form.Item>
-            <Form.Item label="Secret Key">
+            <Form.Item label="Secret Key" required={isRequired}>
               <Input.Password
                 value={value.cos.secretKey}
                 onChange={(e) => updateField('cos.secretKey', e.target.value)}
                 placeholder="请输入 Secret Key"
+                status={isRequired && !value.cos.secretKey ? 'error' : undefined}
               />
             </Form.Item>
           </Form>

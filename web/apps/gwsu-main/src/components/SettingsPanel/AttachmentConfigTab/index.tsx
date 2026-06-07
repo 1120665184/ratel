@@ -73,7 +73,36 @@ const AttachmentConfigTab: React.FC = () => {
     fetchConfig();
   }, [fetchConfig]);
 
+  const validateServerConfig = useCallback((): string | null => {
+    if (serverConfig.type === 'MINIO') {
+      if (!serverConfig.minio.url) return '请填写 MinIO 服务地址';
+      if (!serverConfig.minio.accessKey) return '请填写 MinIO Access Key';
+      if (!serverConfig.minio.secretKey) return '请填写 MinIO Secret Key';
+      return null;
+    }
+    if (serverConfig.type === 'OSS') {
+      if (!serverConfig.oss.endpoint) return '请填写 OSS Endpoint';
+      if (!serverConfig.oss.accessKey) return '请填写 OSS Access Key ID';
+      if (!serverConfig.oss.secretKey) return '请填写 OSS Access Key Secret';
+      return null;
+    }
+    if (serverConfig.type === 'COS') {
+      if (!serverConfig.cos.endpoint) return '请填写 COS Endpoint';
+      if (!serverConfig.cos.region) return '请填写 COS Region';
+      if (!serverConfig.cos.accessKey) return '请填写 COS Secret ID';
+      if (!serverConfig.cos.secretKey) return '请填写 COS Secret Key';
+      return null;
+    }
+    return null;
+  }, [serverConfig]);
+
   const handleSaveServer = useCallback(async () => {
+    const error = validateServerConfig();
+    if (error) {
+      message.warning(error);
+      return;
+    }
+
     Modal.confirm({
       title: '确认更改',
       content: '更改上传服务配置可能导致原上传文件不可用，确认更改吗？',
