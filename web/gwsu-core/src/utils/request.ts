@@ -5,6 +5,7 @@
 
 import type {
     ApiResponse,
+    DownloadRequestOptions,
     ErrorInterceptor,
     RequestError,
     RequestInterceptor,
@@ -220,9 +221,10 @@ async function fetchRequest<T>(options: RequestOptions): Promise<ApiResponse<T>>
     }
 
     // 构建请求配置
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
     const fetchOptions: RequestInit = {
         method,
-        headers: {
+        headers: isFormData ? { ...headers } : {
             'Content-Type': 'application/json',
             ...headers,
         },
@@ -230,7 +232,7 @@ async function fetchRequest<T>(options: RequestOptions): Promise<ApiResponse<T>>
 
     // 处理请求体
     if (data && method !== 'GET') {
-        fetchOptions.body = JSON.stringify(data);
+        fetchOptions.body = isFormData ? (data as FormData) : JSON.stringify(data);
     }
 
     // 创建超时控制器
@@ -379,6 +381,49 @@ export function patch<T = unknown>(
     });
 }
 
+/**
+ * 下载请求 - 返回原始 Response，支持 Range 等场景
+ * 复用请求拦截器（Token 注入）、URL 构建、超时控制
+ * 跳过 JSON 解析和响应拦截器，直接返回原始 Response
+ */
+export async function downloadRequest(options: DownloadRequestOptions): Promise<Response> {
+    const { url, headers = {}, timeout = config.timeout } = options;
+
+    try {
+        let processedOptions: RequestOptions = {
+            url,
+            method: 'GET',
+            headers,
+            timeout,
+        };
+        for (const interceptor of requestInterceptors) {
+            processedOptions = await interceptor(processedOptions);
+        }
+
+        const fullUrl = config.baseURL + processedOptions.url;
+        const fetchOptions: RequestInit = {
+            method: 'GET',
+            headers: processedOptions.headers,
+        };
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), processedOptions.timeout);
+        fetchOptions.signal = controller.signal;
+
+        const response = await fetch(fullUrl, fetchOptions);
+        clearTimeout(timeoutId);
+
+        if (!response.ok && response.status !== 206) {
+            throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+        }
+
+        return response;
+    } catch (error) {
+        await handleError(error as Error, options.showError ?? config.showError);
+        throw error;
+    }
+}
+
 // 导出默认对象
 export default {
     request,
@@ -387,6 +432,7 @@ export default {
     put,
     del,
     patch,
+    downloadRequest,
     setRequestConfig,
     getRequestConfig,
     setErrorToastHandler,

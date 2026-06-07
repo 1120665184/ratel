@@ -537,9 +537,9 @@ public abstract class AbstractFileService implements IFileService {
         if (Objects.isNull(fileInfo))
             return null;
 
-
-        fileInfo.setFileSuffix(FileNameUtil.getSuffix(fileName));
-        fileInfo.setFileName(fileName.replace(".%s".formatted(fileInfo.getFileSuffix()), ""));
+        String lastSuffix = getLastSuffix(fileName);
+        fileInfo.setFileSuffix(lastSuffix);
+        fileInfo.setFileName(lastSuffix != null ? fileName.substring(0, fileName.length() - lastSuffix.length() - 1) : fileName);
         fileInfo.setDisposable(Optional.ofNullable(form.getDisposable()).orElse(false));
         fileInfo.setScope(Optional.ofNullable(form.getScope()).orElse(FileScope.PROTECTED));
         fileInfo.setVisitors(form.getVisitors());
@@ -554,12 +554,9 @@ public abstract class AbstractFileService implements IFileService {
             return null;
 
         String originalFilename = form.getFile().getOriginalFilename();
-        fileInfo.setFileSuffix(FileNameUtil.getSuffix(originalFilename));
-        String fileName = "";
-        if (StringUtils.hasText(originalFilename)) {
-            fileName = originalFilename.replace(".%s".formatted(fileInfo.getFileSuffix()), ""); //NOSONAR
-        }
-        fileInfo.setFileName(fileName);
+        String lastSuffix = getLastSuffix(originalFilename);
+        fileInfo.setFileSuffix(lastSuffix);
+        fileInfo.setFileName(lastSuffix != null ? originalFilename.substring(0, originalFilename.length() - lastSuffix.length() - 1) : originalFilename);
         fileInfo.setDisposable(Optional.ofNullable(form.getDisposable()).orElse(false));
         fileInfo.setScope(Optional.ofNullable(form.getScope()).orElse(FileScope.PROTECTED));
         fileInfo.setVisitors(form.getVisitors());
@@ -567,6 +564,13 @@ public abstract class AbstractFileService implements IFileService {
         fileInfoMapper.insert(fileInfo);
         return fileInfo;
 
+    }
+
+    private String getLastSuffix(String fileName) {
+        if (fileName == null || !fileName.contains(".")) {
+            return null;
+        }
+        return fileName.substring(fileName.lastIndexOf('.') + 1);
     }
 
     //通过唯一id查找元数据

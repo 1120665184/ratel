@@ -75,6 +75,14 @@ export type ResponseInterceptor<T = unknown> = (
 /** 错误拦截器 */
 export type ErrorInterceptor = (error: Error) => void | Promise<void>;
 
+/** 下载请求配置 */
+export interface DownloadRequestOptions {
+  url: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  showError?: boolean;
+}
+
 /** 请求错误类，包含错误码 */
 export interface RequestError extends Error {
   /** 错误码 */
