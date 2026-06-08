@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, Tag, App } from 'antd';
-const { TextArea } = Input;
 import { SelectOutlined } from '@ant-design/icons';
 import styles from './index.module.less';
 import { saveOrUpdateMenu } from '../../services/menu';
 import type { MenuTreeNode, MenuSaveRequest } from '../../types';
 import ApiResourcePicker from '../ApiResourcePicker';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 interface ButtonFormModalProps {
   visible: boolean;
@@ -140,11 +140,9 @@ const ButtonFormModal: React.FC<ButtonFormModalProps> = ({
           label="功能描述"
           rules={[{ required: true, message: "请输入功能描述" }]}
         >
-          <TextArea
-            rows={6}
+          <MarkdownEditor
             placeholder="描述该按钮的功能，用于AI提示词构建"
-            showCount
-            maxLength={1024}
+            minHeight={200}
           />
         </Form.Item>
         <Form.Item

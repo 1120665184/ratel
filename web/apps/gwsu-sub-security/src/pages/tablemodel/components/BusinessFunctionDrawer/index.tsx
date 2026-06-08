@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Drawer, Form, Input, Button, App, Segmented, Checkbox, Empty, Space } from 'antd';
+import { Drawer, Form, Input, Button, App, Checkbox, Empty, Space } from 'antd';
 import { getBusinessFunctionDetail, saveOrUpdateBusinessFunction } from '../../services/businessFunction';
 import { getTableModelPage } from '../../services/tableModel';
 import type { BusinessFunctionInfo, TableModelInfo, ModuleInfo } from '../../types';
 import { getModuleList } from '../../services/tableModel';
+import MarkdownEditor from '@/components/MarkdownEditor';
 import styles from './index.module.less';
 
 interface BusinessFunctionDrawerProps {
@@ -12,6 +13,23 @@ interface BusinessFunctionDrawerProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const DEFAULT_DETAIL_TEMPLATE = `## 业务描述
+[描述该业务的核心功能和目标]
+
+## 业务规则
+- [规则1]
+- [规则2]
+
+## 状态说明
+| 状态值 | 含义 | 触发条件 |
+|--------|------|---------|
+| 0 | xxx | xxx |
+
+## 典型示例
+### Q: [常见问题]
+A: [SQL/操作示例]
+`;
 
 const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
   visible,
@@ -22,7 +40,6 @@ const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [mdMode, setMdMode] = useState<'edit' | 'preview' | 'split'>('edit');
   const [detail, setDetail] = useState('');
 
   const [modules, setModules] = useState<ModuleInfo[]>([]);
@@ -51,7 +68,8 @@ const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
         }
       } else {
         form.resetFields();
-        setDetail('');
+        setDetail(DEFAULT_DETAIL_TEMPLATE);
+        form.setFieldValue('detail', DEFAULT_DETAIL_TEMPLATE);
         setSelectedTableIds([]);
       }
       getModuleList()
@@ -78,9 +96,9 @@ const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
   }, [activeModule]);
 
   const handleDetailChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setDetail(e.target.value);
-      form.setFieldValue('detail', e.target.value);
+    (value: string) => {
+      setDetail(value);
+      form.setFieldValue('detail', value);
     },
     [form],
   );
@@ -115,23 +133,6 @@ const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
       setLoading(false);
     }
   }, [form, editData, detail, selectedTableIds, isEdit, onSuccess, message]);
-
-  const renderMarkdownPreview = useCallback(
-    (content: string) => {
-      const simpleHtml = content
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/`(.+?)`/g, '<code>$1</code>')
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-        .replace(/\n/g, '<br/>');
-      return simpleHtml;
-    },
-    [],
-  );
 
   return (
     <Drawer
@@ -171,38 +172,11 @@ const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
         </Form.Item>
 
         <div className={styles.mdEditorLabel}><span className={styles.requiredMark}>*</span>详细介绍（Markdown）</div>
-        <div className={styles.mdEditor}>
-          <div className={styles.mdToolbar}>
-            <Segmented
-              size="small"
-              options={[
-                { label: '编辑', value: 'edit' },
-                { label: '预览', value: 'preview' },
-                { label: '分屏', value: 'split' },
-              ]}
-              value={mdMode}
-              onChange={(val) => setMdMode(val as 'edit' | 'preview' | 'split')}
-            />
-          </div>
-          <div className={styles.mdContent}>
-            {(mdMode === 'edit' || mdMode === 'split') && (
-              <textarea
-                className={styles.mdEditArea}
-                value={detail}
-                onChange={handleDetailChange}
-                placeholder="请输入Markdown格式的详细介绍，支持业务描述、规则说明、示例等内容"
-                style={{ width: mdMode === 'split' ? '50%' : '100%' }}
-              />
-            )}
-            {(mdMode === 'preview' || mdMode === 'split') && (
-              <div
-                className={styles.mdPreview}
-                style={{ width: mdMode === 'split' ? '50%' : '100%' }}
-                dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(detail) }}
-              />
-            )}
-          </div>
-        </div>
+        <MarkdownEditor
+          value={detail}
+          onChange={handleDetailChange}
+          placeholder="请输入Markdown格式的详细介绍，支持业务描述、规则说明、示例等内容"
+        />
 
         <Form.Item name="sortOrder" label="排序号">
           <Input type="number" placeholder="请输入排序号" />

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Switch, TreeSelect, Select, App } from 'antd';
-const { TextArea } = Input;
 import styles from './index.module.less';
 import { saveOrUpdateMenu, getMenuTree } from '../../services/menu';
 import type { MenuTreeNode, MenuSaveRequest } from '../../types';
 import IconPicker from '../IconPicker';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 const MENU_TYPE_OPTIONS = [
   { value: 1, label: '目录' },
@@ -125,11 +125,9 @@ const MenuFormModal: React.FC<MenuFormModalProps> = ({
           label="功能描述"
           rules={[{ required: true, message: "请输入功能描述" }]}
         >
-          <TextArea
-            rows={2}
+          <MarkdownEditor
             placeholder="描述该菜单的功能，用于AI提示词构建"
-            showCount
-            maxLength={1024}
+            minHeight={150}
           />
         </Form.Item>
         <Form.Item name="menuType" label="菜单类型">
