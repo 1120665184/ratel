@@ -1,0 +1,136 @@
+.detailDrawer {
+  :global {
+    .ant-drawer-body {
+      padding: 16px 24px;
+    }
+  }
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.infoRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.infoLabel {
+  font-size: 13px;
+  color: var(--text-secondary-color);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.infoValue {
+  font-size: 13px;
+  color: var(--text-color);
+  flex: 1;
+  word-break: break-all;
+}
+
+.mdPreview {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-color);
+  max-height: 400px;
+  overflow-y: auto;
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 12px 0 8px;
+    font-weight: 600;
+  }
+
+  h1 { font-size: 20px; }
+  h2 { font-size: 17px; }
+  h3 { font-size: 15px; }
+
+  p {
+    margin: 6px 0;
+  }
+
+  code {
+    background: var(--surface-color);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  pre {
+    background: var(--surface-color);
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--surface-color);
+      font-weight: 600;
+    }
+  }
+
+  ul, ol {
+    padding-left: 20px;
+    margin: 6px 0;
+  }
+
+  blockquote {
+    border-left: 3px solid var(--primary-color);
+    padding-left: 12px;
+    margin: 8px 0;
+    color: var(--text-secondary-color);
+  }
+}
+
+.tableList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tableItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-color);
+}
+
+.tableName {
+  font-size: 13px;
+  color: var(--text-color);
+  font-family: monospace;
+}
+
+.tableComment {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  margin-left: auto;
+}

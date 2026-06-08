@@ -588,3 +588,52 @@ CREATE TABLE security_dict_value
 ) COMMENT '字典值表';
 
 CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_key);
+
+
+-- =============================================
+-- 表名：security_business_function
+-- 说明：AI业务功能配置表
+-- =============================================
+CREATE TABLE security_business_function
+(
+    id          VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    name        VARCHAR(128) NOT NULL              COMMENT '业务名称',
+    summary     VARCHAR(512) NOT NULL              COMMENT '业务简介',
+    detail      LONGTEXT     NOT NULL              COMMENT '详细介绍（Markdown格式）',
+    sort_order  INT          NOT NULL DEFAULT 0    COMMENT '排序号',
+    tenant_id   VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op   VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op   VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted     SMALLINT     NOT NULL DEFAULT 0    COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op   VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT 'AI业务功能配置表';
+
+CREATE UNIQUE INDEX uk_security_business_function_name ON security_business_function (name);
+
+-- =============================================
+-- 表名：security_business_function_table
+-- 说明：业务功能与表模型关联表
+-- =============================================
+CREATE TABLE security_business_function_table
+(
+    id              VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    business_id     VARCHAR(24)  NOT NULL              COMMENT '业务功能ID',
+    table_model_id  VARCHAR(24)  NOT NULL              COMMENT '表模型ID',
+    sort_order      INT          NOT NULL DEFAULT 0    COMMENT '排序号',
+    tenant_id       VARCHAR(50)            DEFAULT NULL COMMENT '租户ID',
+    create_op       VARCHAR(50)            DEFAULT NULL COMMENT '创建人',
+    create_time     DATETIME               DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op       VARCHAR(50)            DEFAULT NULL COMMENT '修改人',
+    modify_time     DATETIME               DEFAULT NULL COMMENT '修改时间',
+    deleted         SMALLINT      NOT NULL DEFAULT 0    COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op       VARCHAR(50)            DEFAULT NULL COMMENT '删除人',
+    delete_time     DATETIME               DEFAULT NULL COMMENT '删除时间'
+) COMMENT '业务功能与表模型关联表';
+
+CREATE UNIQUE INDEX uk_security_business_function_table_bt ON security_business_function_table (business_id, table_model_id);
+CREATE INDEX idx_security_business_function_table_business ON security_business_function_table (business_id);
+CREATE INDEX idx_security_business_function_table_table ON security_business_function_table (table_model_id);
+

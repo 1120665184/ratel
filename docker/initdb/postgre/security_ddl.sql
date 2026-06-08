@@ -960,3 +960,82 @@ COMMENT ON COLUMN security_dict_value.delete_time IS '删除时间';
 
 -- 索引
 CREATE INDEX idx_security_dict_value_dict_id ON security_dict_value (dict_key);
+
+
+
+-- =============================================
+-- 表名：security_business_function
+-- 说明：AI业务功能配置表
+-- =============================================
+CREATE TABLE security_business_function
+(
+    id          VARCHAR(24) PRIMARY KEY,
+    name        VARCHAR(128) NOT NULL,
+    summary     VARCHAR(512) NOT NULL,
+    detail      TEXT         NOT NULL,
+    sort_order  INT          NOT NULL DEFAULT 0,
+    tenant_id   VARCHAR(50)           DEFAULT NULL,
+    create_op   VARCHAR(50)           DEFAULT NULL,
+    create_time TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op   VARCHAR(50)           DEFAULT NULL,
+    modify_time TIMESTAMP             DEFAULT NULL,
+    deleted     INT2         NOT NULL DEFAULT 0,
+    delete_op   VARCHAR(50)           DEFAULT NULL,
+    delete_time TIMESTAMP             DEFAULT NULL
+);
+
+COMMENT ON TABLE security_business_function IS 'AI业务功能配置表';
+COMMENT ON COLUMN security_business_function.id IS '主键ID';
+COMMENT ON COLUMN security_business_function.name IS '业务名称';
+COMMENT ON COLUMN security_business_function.summary IS '业务简介';
+COMMENT ON COLUMN security_business_function.detail IS '详细介绍（Markdown格式）';
+COMMENT ON COLUMN security_business_function.sort_order IS '排序号';
+COMMENT ON COLUMN security_business_function.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_business_function.create_op IS '创建人';
+COMMENT ON COLUMN security_business_function.create_time IS '创建时间';
+COMMENT ON COLUMN security_business_function.modify_op IS '修改人';
+COMMENT ON COLUMN security_business_function.modify_time IS '修改时间';
+COMMENT ON COLUMN security_business_function.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_business_function.delete_op IS '删除人';
+COMMENT ON COLUMN security_business_function.delete_time IS '删除时间';
+
+CREATE UNIQUE INDEX uk_security_business_function_name ON security_business_function (name);
+
+-- =============================================
+-- 表名：security_business_function_table
+-- 说明：业务功能与表模型关联表
+-- =============================================
+CREATE TABLE security_business_function_table
+(
+    id              VARCHAR(24) PRIMARY KEY,
+    business_id     VARCHAR(24)  NOT NULL,
+    table_model_id  VARCHAR(24)  NOT NULL,
+    sort_order      INT          NOT NULL DEFAULT 0,
+    tenant_id       VARCHAR(50)            DEFAULT NULL,
+    create_op       VARCHAR(50)            DEFAULT NULL,
+    create_time     TIMESTAMP               DEFAULT CURRENT_TIMESTAMP,
+    modify_op       VARCHAR(50)            DEFAULT NULL,
+    modify_time     TIMESTAMP               DEFAULT NULL,
+    deleted         INT2          NOT NULL DEFAULT 0,
+    delete_op       VARCHAR(50)            DEFAULT NULL,
+    delete_time     TIMESTAMP               DEFAULT NULL
+);
+
+COMMENT ON TABLE security_business_function_table IS '业务功能与表模型关联表';
+COMMENT ON COLUMN security_business_function_table.id IS '主键ID';
+COMMENT ON COLUMN security_business_function_table.business_id IS '业务功能ID';
+COMMENT ON COLUMN security_business_function_table.table_model_id IS '表模型ID';
+COMMENT ON COLUMN security_business_function_table.sort_order IS '排序号';
+COMMENT ON COLUMN security_business_function_table.tenant_id IS '租户ID';
+COMMENT ON COLUMN security_business_function_table.create_op IS '创建人';
+COMMENT ON COLUMN security_business_function_table.create_time IS '创建时间';
+COMMENT ON COLUMN security_business_function_table.modify_op IS '修改人';
+COMMENT ON COLUMN security_business_function_table.modify_time IS '修改时间';
+COMMENT ON COLUMN security_business_function_table.deleted IS '删除标识：0-未删除 1-已删除';
+COMMENT ON COLUMN security_business_function_table.delete_op IS '删除人';
+COMMENT ON COLUMN security_business_function_table.delete_time IS '删除时间';
+
+CREATE UNIQUE INDEX uk_security_business_function_table_bt ON security_business_function_table (business_id, table_model_id);
+CREATE INDEX idx_security_business_function_table_business ON security_business_function_table (business_id);
+CREATE INDEX idx_security_business_function_table_table ON security_business_function_table (table_model_id);
+

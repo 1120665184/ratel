@@ -113,3 +113,38 @@ export const SOURCE_TYPE_MAP: Record<number, { text: string; color: string }> = 
   0: { text: '采集', color: 'blue' },
   1: { text: '自定义', color: 'green' },
 };
+
+
+/** 业务功能信息 */
+export interface BusinessFunctionInfo {
+  id: string;
+  name: string;
+  summary: string;
+  detail: string;
+  sortOrder: number;
+  tableCount: number;
+  tableIds?: string[];
+  createTime?: string;
+  modifyTime?: string;
+}
+
+/** 业务功能详情（含关联表列表） */
+export interface BusinessFunctionDetail extends BusinessFunctionInfo {
+  tables: TableModelInfo[];
+}
+
+/** 业务功能分页查询条件 */
+export interface BusinessFunctionQuery {
+  name?: string;
+  pageNum: number;
+  pageSize: number;
+}
+
+/** 业务功能分页结果 */
+export interface BusinessFunctionPageResult {
+  records: BusinessFunctionInfo[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}

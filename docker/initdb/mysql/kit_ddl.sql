@@ -77,7 +77,7 @@ CREATE TABLE kit_file_chunk_info
     chunk_group        VARCHAR(64)           DEFAULT NULL COMMENT 'chunk组',
     chunk_url          VARCHAR(500)          DEFAULT NULL COMMENT 'chunk上传路径',
     expiry             INT                   DEFAULT NULL COMMENT '到期时长（秒）',
-    upload_id          VARCHAR(64)           DEFAULT NULL COMMENT '唯一上传ID',
+    upload_id          VARCHAR(256)           DEFAULT NULL COMMENT '唯一上传ID',
     notes              VARCHAR(500)          DEFAULT NULL COMMENT '其他信息，用于扩展',
     tenant_id          VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op          VARCHAR(50)           DEFAULT NULL COMMENT '创建人',

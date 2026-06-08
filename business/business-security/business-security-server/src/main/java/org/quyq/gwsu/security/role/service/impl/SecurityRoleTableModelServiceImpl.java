@@ -290,7 +290,7 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
 
     private List<RolePermissionTableModelVO> buildPermissionTableModel(List<SecurityTableModelTable> tables, Map<String, List<SecurityTableModelColumn>> columns) {
         if (CollectionUtils.isEmpty(tables)) {
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
 
         return tables.stream()
@@ -315,7 +315,7 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
                     }
 
                     return tmp;
-                }).toList();
+                }).collect(Collectors.toList());
 
     }
 

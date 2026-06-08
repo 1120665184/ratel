@@ -115,7 +115,7 @@ CREATE TABLE kit_file_chunk_info
     chunk_group        VARCHAR(64)           DEFAULT NULL,
     chunk_url          VARCHAR(500)          DEFAULT NULL,
     expiry             INT                   DEFAULT NULL,
-    upload_id          VARCHAR(64)           DEFAULT NULL,
+    upload_id          VARCHAR(256)           DEFAULT NULL,
     notes              VARCHAR(500)          DEFAULT NULL,
     tenant_id          VARCHAR(50)           DEFAULT NULL,
     create_op          VARCHAR(50)           DEFAULT NULL,

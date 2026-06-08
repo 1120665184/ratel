@@ -9,6 +9,7 @@ import {
   Space,
   Popconfirm,
   Dropdown,
+  Tabs,
   type MenuProps,
 } from 'antd';
 import type { TableProps } from 'antd';
@@ -29,6 +30,7 @@ import CustomAddModal from './components/CustomAddModal';
 import DetailDrawer from './components/DetailDrawer';
 import EditDrawer from './components/EditDrawer';
 import ChangeDatasourceModal from './components/ChangeDatasourceModal';
+import BusinessFunctionTab from './components/BusinessFunctionTab';
 import { SOURCE_TYPE_MAP } from './types';
 import type { TableModelInfo } from './types';
 import {
@@ -42,7 +44,7 @@ import {
 import { AuthGate, useAuth } from '@gwsu/core';
 import styles from './index.module.less';
 
-const TableModelPage: React.FC = () => {
+const TableModelTab: React.FC = () => {
   const {
     loading,
     pageData,
@@ -55,7 +57,6 @@ const TableModelPage: React.FC = () => {
     handleBatchDelete,
   } = useTableModel();
 
-  /** 按钮权限 */
   const canEdit = useAuth(PERM_EDIT);
   const canSync = useAuth(PERM_SYNC);
   const canChangeDatasource = useAuth(PERM_CHANGE_DATASOURCE);
@@ -70,7 +71,6 @@ const TableModelPage: React.FC = () => {
   const [currentRecord, setCurrentRecord] = useState<TableModelInfo | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
-  /** 批量删除 */
   const onBatchDelete = useCallback(async () => {
     const ids = selectedRowKeys as string[];
     const success = await handleBatchDelete(ids);
@@ -84,42 +84,35 @@ const TableModelPage: React.FC = () => {
     loadPageData();
   }, []);
 
-  /** 搜索 */
   const onSearch = useCallback(() => {
     const values = searchForm.getFieldsValue();
     handleSearch(values);
   }, [searchForm, handleSearch]);
 
-  /** 重置 */
   const onReset = useCallback(() => {
     searchForm.resetFields();
     handleSearch({});
   }, [searchForm, handleSearch]);
 
-  /** 查看详情 */
   const handleViewDetail = useCallback((record: TableModelInfo) => {
     setCurrentRecord(record);
     setDetailVisible(true);
   }, []);
 
-  /** 编辑 */
   const handleEdit = useCallback((record: TableModelInfo) => {
     setCurrentRecord(record);
     setEditVisible(true);
   }, []);
 
-  /** 修改数据源 */
   const handleChangeDatasource = useCallback((record: TableModelInfo) => {
     setCurrentRecord(record);
     setChangeDatasourceVisible(true);
   }, []);
 
-  /** 刷新列表 */
   const refreshList = useCallback(() => {
     loadPageData();
   }, [loadPageData]);
 
-  /** 获取更多下拉菜单项 */
   const getMoreMenuItems = (record: TableModelInfo): NonNullable<MenuProps['items']> => {
     const items: NonNullable<MenuProps['items']> = [];
     if (canEdit) {
@@ -149,7 +142,6 @@ const TableModelPage: React.FC = () => {
     return items;
   };
 
-  /** 表格列定义 */
   const columns: TableProps<TableModelInfo>['columns'] = [
     Table.SELECTION_COLUMN,
     {
@@ -230,8 +222,7 @@ const TableModelPage: React.FC = () => {
   ];
 
   return (
-    <div className={styles.dataResourcePage}>
-      {/* 搜索栏 */}
+    <>
       <div className={styles.searchBar}>
         <Form form={searchForm} layout="inline" component={false}>
           <div className={styles.searchItem}>
@@ -292,7 +283,6 @@ const TableModelPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 表格区域 */}
       <div className={styles.tableWrapper}>
         <div className={styles.tableHeader}>
           <span className={styles.tableTitle}>表模型列表</span>
@@ -353,7 +343,6 @@ const TableModelPage: React.FC = () => {
         />
       </div>
 
-      {/* 采集弹窗 */}
       <CollectModal
         visible={collectVisible}
         modules={modules}
@@ -361,7 +350,6 @@ const TableModelPage: React.FC = () => {
         onSuccess={refreshList}
       />
 
-      {/* 自定义添加弹窗 */}
       <CustomAddModal
         visible={customAddVisible}
         modules={modules}
@@ -369,7 +357,6 @@ const TableModelPage: React.FC = () => {
         onSuccess={refreshList}
       />
 
-      {/* 详情抽屉（只读） */}
       <DetailDrawer
         visible={detailVisible}
         record={currentRecord}
@@ -379,7 +366,6 @@ const TableModelPage: React.FC = () => {
         }}
       />
 
-      {/* 编辑抽屉 */}
       <EditDrawer
         visible={editVisible}
         record={currentRecord}
@@ -390,7 +376,6 @@ const TableModelPage: React.FC = () => {
         onSuccess={refreshList}
       />
 
-      {/* 修改数据源弹窗 */}
       <ChangeDatasourceModal
         visible={changeDatasourceVisible}
         record={currentRecord}
@@ -400,6 +385,31 @@ const TableModelPage: React.FC = () => {
           setCurrentRecord(null);
         }}
         onSuccess={refreshList}
+      />
+    </>
+  );
+};
+
+const TableModelPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('tableModel');
+
+  return (
+    <div className={styles.dataResourcePage}>
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'tableModel',
+            label: '表模型管理',
+            children: <TableModelTab />,
+          },
+          {
+            key: 'businessFunction',
+            label: '业务功能配置',
+            children: <BusinessFunctionTab />,
+          },
+        ]}
       />
     </div>
   );
