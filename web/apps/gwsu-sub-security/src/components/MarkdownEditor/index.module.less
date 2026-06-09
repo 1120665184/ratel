@@ -1,0 +1,96 @@
+.mdEditor {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mdToolbar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background-color);
+}
+
+.mdContent {
+  display: flex;
+}
+
+.mdEditArea {
+  flex: 1;
+  border: none;
+  resize: none;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: transparent;
+  color: var(--text-color);
+  outline: none;
+}
+
+.mdPreview {
+  flex: 1;
+  padding: 12px;
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-color);
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 12px 0 8px;
+    font-weight: 600;
+  }
+
+  h1 { font-size: 20px; }
+  h2 { font-size: 17px; }
+  h3 { font-size: 15px; }
+
+  p {
+    margin: 6px 0;
+  }
+
+  code {
+    background: var(--background-color);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  pre {
+    background: var(--background-color);
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--background-color);
+      font-weight: 600;
+    }
+  }
+
+  ul, ol {
+    padding-left: 20px;
+    margin: 6px 0;
+  }
+
+  blockquote {
+    border-left: 3px solid var(--primary-color);
+    padding-left: 12px;
+    margin: 8px 0;
+    color: var(--text-secondary-color);
+  }
+}
