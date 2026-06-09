@@ -82,31 +82,38 @@ export async function getDeptTree() {
 
 ### 2.4.1 SQL 目录结构
 
-所有业务模块的数据库脚本统一放在 `docker/initdb/` 目录下，按数据库类型分目录，按模块命名文件：
+所有业务模块的数据库脚本统一放在 `docker/initdb/` 目录下，DDL 按数据库类型分目录，DML 通用不区分数据库：
 
 ```
 docker/initdb/
-├── mysql/                           # MySQL 数据库脚本
-│   ├── system_ddl.sql               # 系统模块表结构（CREATE TABLE）
-│   ├── system_dml.sql               # 系统模块初始化数据（INSERT）
-│   ├── security_ddl.sql             # 安全模块表结构
-│   ├── security_dml.sql             # 安全模块初始化数据
-│   └── ...                          # 其他模块
-└── postgre/                         # PostgreSQL 数据库脚本
-    ├── system_ddl.sql
-    ├── system_dml.sql
-    ├── security_ddl.sql
-    ├── security_dml.sql
-    └── ...
+├── ddl/                              # DDL（表结构定义，按数据库类型分目录）
+│   ├── postgre/                      # PostgreSQL DDL
+│   │   ├── system.sql                # 系统模块表结构（CREATE TABLE）
+│   │   ├── security.sql              # 安全模块表结构
+│   │   ├── log.sql                   # 日志模块表结构
+│   │   ├── kit.sql                   # 工具模块表结构
+│   │   └── ...                       # 其他模块
+│   └── mysql/                        # MySQL DDL
+│       ├── system.sql
+│       ├── security.sql
+│       ├── log.sql
+│       ├── kit.sql
+│       └── ...
+├── dml/                              # DML（初始化数据，通用不区分数据库）
+│   ├── system.sql                    # 系统模块初始化数据（INSERT）
+│   ├── security.sql                  # 安全模块初始化数据
+│   ├── log.sql                       # 日志模块初始化数据
+│   └── ...
+└── init-postgre.sh                   # PostgreSQL 初始化脚本
 ```
 
-**命名规则**：`{模块前缀}_ddl.sql` / `{模块前缀}_dml.sql`
+**命名规则**：`{模块前缀}.sql`
 
 - 模块前缀与 `BusinessModuleInfoProvider` 中定义的 `prefix` 一致
-- `ddl.sql`：表结构定义（CREATE TABLE、索引等）
-- `dml.sql`：初始化数据（INSERT 等）
+- `ddl/` 目录：表结构定义（CREATE TABLE、索引等），因不同数据库语法不同，需按数据库类型分目录
+- `dml/` 目录：初始化数据（INSERT 等），使用通用 SQL 语法，所有数据库共用一份
 
-**Docker 部署自动初始化**：PostgreSQL 容器首次启动时会自动执行 `docker/initdb/postgre/` 目录下的 `.sql` 文件（通过 `/docker-entrypoint-initdb.d` 机制）。
+**Docker 部署自动初始化**：PostgreSQL 容器首次启动时通过 `init-postgre.sh` 脚本，按 DDL → DML 的顺序执行 `/initdb/ddl/postgre/` 和 `/initdb/dml/` 目录下的 `.sql` 文件。
 
 ### 2.4.2 布尔字段类型规范（重要）
 

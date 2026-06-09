@@ -93,6 +93,13 @@ const DetailDrawer: React.FC<DetailDrawerProps> = ({ visible, record, onClose })
       },
     },
     { title: '默认值', dataIndex: 'defaultValue', key: 'defaultValue', width: 100, ellipsis: true },
+    {
+      title: '枚举值',
+      dataIndex: 'dictKey',
+      key: 'dictKey',
+      width: 150,
+      render: (text: string | null) => text ? <Tag color="purple">{text}</Tag> : '无',
+    },
     { title: '注释', dataIndex: 'columnComment', key: 'columnComment', width: 180, ellipsis: true },
   ];
 

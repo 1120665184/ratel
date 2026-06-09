@@ -100,6 +100,12 @@ export async function updateColumnComment(columnId: string, columnComment: strin
   return res.data;
 }
 
+/** 更新字段字典键 */
+export async function updateColumnDictKey(columnId: string, dictKey: string | null): Promise<boolean> {
+  const res = await post<boolean>('/security/tablemodel/column/updateDictKey', { columnId, dictKey });
+  return res.data;
+}
+
 /** 更新外键备注 */
 export async function updateForeignKeyRemark(fkId: string, remark: string): Promise<boolean> {
   const res = await post<boolean>('/security/tablemodel/foreignKey/updateRemark', { fkId, remark });

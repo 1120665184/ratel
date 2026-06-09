@@ -746,6 +746,7 @@ CREATE TABLE security_tablemodel_columns
     column_comment   TEXT                  DEFAULT NULL,
     ordinal_position INT                   DEFAULT 0,
     field_config     VARCHAR(512)          DEFAULT NULL,
+    dict_key         VARCHAR(100)          DEFAULT NULL,
     tenant_id        VARCHAR(50)           DEFAULT NULL,
     create_op        VARCHAR(50)           DEFAULT NULL,
     create_time      TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -770,6 +771,7 @@ COMMENT ON COLUMN security_tablemodel_columns.default_value IS '默认值';
 COMMENT ON COLUMN security_tablemodel_columns.column_comment IS '字段注释';
 COMMENT ON COLUMN security_tablemodel_columns.ordinal_position IS '字段顺序';
 COMMENT ON COLUMN security_tablemodel_columns.field_config IS '字段AI权限配置';
+COMMENT ON COLUMN security_tablemodel_columns.dict_key IS '字典键（绑定枚举值）';
 COMMENT ON COLUMN security_tablemodel_columns.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_tablemodel_columns.create_op IS '创建人';
 COMMENT ON COLUMN security_tablemodel_columns.create_time IS '创建时间';

@@ -27,16 +27,22 @@ docker/                      # Docker 部署配置
 ├── nginx/
 │   └── gwsu.conf            # nginx 配置
 ├── initdb/                  # 数据库初始化脚本
-│   ├── mysql/               # MySQL 脚本
-│   │   ├── system_ddl.sql
-│   │   ├── system_dml.sql
-│   │   ├── security_ddl.sql
-│   │   └── security_dml.sql
-│   └── postgre/             # PostgreSQL 脚本
-│       ├── system_ddl.sql
-│       ├── system_dml.sql
-│       ├── security_ddl.sql
-│       └── security_dml.sql
+│   ├── ddl/                 # DDL（按数据库类型分目录）
+│   │   ├── postgre/         # PostgreSQL DDL
+│   │   │   ├── system.sql
+│   │   │   ├── security.sql
+│   │   │   ├── log.sql
+│   │   │   └── kit.sql
+│   │   └── mysql/           # MySQL DDL
+│   │       ├── system.sql
+│   │       ├── security.sql
+│   │       ├── log.sql
+│   │       └── kit.sql
+│   ├── dml/                 # DML（通用，不区分数据库类型）
+│   │   ├── system.sql
+│   │   ├── security.sql
+│   │   └── log.sql
+│   └── init-postgre.sh      # PostgreSQL 初始化脚本
 ├── single/                  # 单机版部署
 │   ├── Dockerfile
 │   ├── docker-compose.yml

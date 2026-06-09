@@ -5,8 +5,9 @@
 - [ ] 创建 `business-xxx` 父模块
 - [ ] 创建 `business-xxx-api` 子模块
 - [ ] 创建 `business-xxx-server` 子模块
-- [ ] 创建 `sql/mysql/` 目录，包含 `ddl.sql` 和 `dml.sql`
-- [ ] 创建 `sql/postgre/` 目录，包含 `ddl.sql` 和 `dml.sql`
+- [ ] 创建 `docker/initdb/ddl/postgre/` 目录，包含 `{模块前缀}.sql`（DDL）
+- [ ] 创建 `docker/initdb/ddl/mysql/` 目录，包含 `{模块前缀}.sql`（DDL）
+- [ ] 创建 `docker/initdb/dml/` 目录，包含 `{模块前缀}.sql`（DML，通用）
 - [ ] 实现 `XxxModuleInfoProvider`
 - [ ] 定义错误码枚举 `XxxErrorCode`
 - [ ] 在 `ErrorCodeConstants` 中添加模块编号
@@ -27,10 +28,9 @@
 - [ ] 在 Controller 新增方法中使用 `AssertUtils` 验证必填字段
 - [ ] 在 Domain 类敏感字段上添加 `@TableModelField` 注解（如需字段级权限控制）
 - [ ] 在 api 模块创建 VO 类
-- [ ] 在 `sql/mysql/` 目录创建 `ddl.sql` 表结构脚本
-- [ ] 在 `sql/mysql/` 目录创建 `dml.sql` 初始化数据脚本
-- [ ] 在 `sql/postgre/` 目录创建 `ddl.sql` 表结构脚本
-- [ ] 在 `sql/postgre/` 目录创建 `dml.sql` 初始化数据脚本
+- [ ] 在 `docker/initdb/ddl/postgre/` 目录创建 `{模块前缀}.sql` 表结构脚本
+- [ ] 在 `docker/initdb/ddl/mysql/` 目录创建 `{模块前缀}.sql` 表结构脚本
+- [ ] 在 `docker/initdb/dml/` 目录创建 `{模块前缀}.sql` 初始化数据脚本（通用）
 - [ ] 确认布尔字段使用整数类型（MySQL: SMALLINT, PostgreSQL: INT2）
 
 ## 7.3 新建 API 接口

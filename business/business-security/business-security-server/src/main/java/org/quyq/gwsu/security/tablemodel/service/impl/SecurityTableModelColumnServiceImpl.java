@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.tablemodel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelColumnVO;
@@ -67,5 +68,12 @@ public class SecurityTableModelColumnServiceImpl extends ServiceImpl<SecurityTab
         }
         entity.setColumnComment(columnComment);
         return updateById(entity);
+    }
+
+    @Override
+    public Boolean updateDictKey(String columnId, String dictKey) {
+        return update(new LambdaUpdateWrapper<SecurityTableModelColumn>()
+                .eq(SecurityTableModelColumn::getId, columnId)
+                .set(SecurityTableModelColumn::getDictKey, dictKey));
     }
 }

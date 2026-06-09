@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Drawer, Table, Tag, Input, Button, Space, message, Form, Descriptions, Popconfirm } from 'antd';
+import { Drawer, Table, Tag, Input, Button, Space, message, Form, Descriptions, Popconfirm, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { TableModelInfo, TableModelDetail, TableModelColumnInfo, TableModelForeignKeyInfo } from '../../types';
-import { getTableModelDetail, updateColumnComment, updateForeignKeyRemark, saveForeignKey, deleteForeignKeys, updateTableComment } from '../../services/tableModel';
+import { getTableModelDetail, updateColumnComment, updateColumnDictKey, updateForeignKeyRemark, saveForeignKey, deleteForeignKeys, updateTableComment } from '../../services/tableModel';
+import { post } from '@gwsu/core';
 import { SOURCE_TYPE_MAP } from '../../types';
 import styles from './index.module.less';
 
@@ -22,6 +23,8 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
   const [fkFormVisible, setFkFormVisible] = useState(false);
   const [fkForm] = Form.useForm();
   const [editingFkData, setEditingFkData] = useState<TableModelForeignKeyInfo | null>(null);
+  const [dictOptions, setDictOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dictFetching, setDictFetching] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!record) return;
@@ -74,6 +77,36 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
       // request 层已自动提示
     }
   }, [loadDetail]);
+
+  /** 修改字段字典键 */
+  const handleColumnDictKeySave = useCallback(async (columnId: string, dictKey: string | null) => {
+    try {
+      await updateColumnDictKey(columnId, dictKey);
+      message.success('枚举值修改成功');
+      loadDetail();
+    } catch {
+      // request 层已自动提示
+    }
+  }, [loadDetail]);
+
+  /** 搜索字典键 */
+  const handleDictSearch = useCallback(async (searchText: string) => {
+    setDictFetching(true);
+    try {
+      const res = await post<{ records: { dictKey: string; dictName: string }[] }>('/security/dict/page', {
+        dictKey: searchText || undefined,
+        dictName: searchText || undefined,
+        pageNum: 1,
+        pageSize: 50,
+      });
+      const records = res.data?.records ?? [];
+      setDictOptions(records.map((item) => ({ label: `${item.dictKey}（${item.dictName}）`, value: item.dictKey })));
+    } catch {
+      setDictOptions([]);
+    } finally {
+      setDictFetching(false);
+    }
+  }, []);
 
   /** 修改外键备注 */
   const handleFkRemarkSave = useCallback(async (fkId: string, remark: string) => {
@@ -171,6 +204,33 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
       },
     },
     { title: '默认值', dataIndex: 'defaultValue', key: 'defaultValue', width: 100, ellipsis: true },
+    {
+      title: '枚举值',
+      dataIndex: 'dictKey',
+      key: 'dictKey',
+      width: 180,
+      fixed: 'right' as const,
+      render: (text: string | null, r: TableModelColumnInfo) => (
+        <Select
+          size="small"
+          value={text || undefined}
+          placeholder="无"
+          allowClear
+          showSearch
+          filterOption={false}
+          onSearch={handleDictSearch}
+          onChange={(value) => handleColumnDictKeySave(r.id, value ?? null)}
+          loading={dictFetching}
+          options={dictOptions}
+          style={{ width: '100%' }}
+          onDropdownVisibleChange={(open) => {
+            if (open && dictOptions.length === 0) {
+              handleDictSearch('');
+            }
+          }}
+        />
+      ),
+    },
     {
       title: '注释',
       dataIndex: 'columnComment',
@@ -354,7 +414,7 @@ const EditDrawer: React.FC<EditDrawerProps> = ({ visible, record, onClose, onSuc
             dataSource={detail?.columns || []}
             columns={columnDefs}
             pagination={false}
-            scroll={{ x: 990, y: 300 }}
+            scroll={{ x: 1170, y: 300 }}
           />
         </div>
 

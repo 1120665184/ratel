@@ -463,6 +463,7 @@ CREATE TABLE security_tablemodel_columns
     column_comment   TEXT                  DEFAULT NULL COMMENT '字段注释',
     ordinal_position INT                   DEFAULT 0    COMMENT '字段顺序',
     field_config     VARCHAR(512)          DEFAULT NULL COMMENT '字段AI权限配置',
+    dict_key         VARCHAR(100)          DEFAULT NULL COMMENT '字典键（绑定枚举值）',
     tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op        VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
     create_time      DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

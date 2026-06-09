@@ -53,4 +53,7 @@ public class TableModelColumnVO extends BaseVO {
 
     @Schema(description = "字段权限配置")
     private String fieldConfig;
+
+    @Schema(description = "字典键（绑定枚举值）")
+    private String dictKey;
 }

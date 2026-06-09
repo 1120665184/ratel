@@ -68,6 +68,9 @@ public class SecurityTableModelColumn extends BaseDO {
     @Schema(description = "字段权限配置")
     private FieldPermission fieldConfig;
 
+    @Schema(description = "字典键（绑定枚举值）")
+    private String dictKey;
+
     private static final ObjectMapper MAPPER = Jackson3TypeHandler.getObjectMapper();
 
     /**
@@ -90,6 +93,7 @@ public class SecurityTableModelColumn extends BaseDO {
         vo.setColumnComment(this.columnComment);
         vo.setOrdinalPosition(this.ordinalPosition);
         vo.setFieldConfig(this.fieldConfig != null ? MAPPER.writeValueAsString(this.fieldConfig) : null);
+        vo.setDictKey(this.dictKey);
         vo.copyBaseProperties(this);
         return vo;
     }
@@ -117,6 +121,7 @@ public class SecurityTableModelColumn extends BaseDO {
         if (vo.getFieldConfig() != null) {
             entity.setFieldConfig(MAPPER.readValue(vo.getFieldConfig(), FieldPermission.class));
         }
+        entity.setDictKey(vo.getDictKey());
         return entity;
     }
 

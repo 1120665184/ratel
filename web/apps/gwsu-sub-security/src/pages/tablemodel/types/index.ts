@@ -33,6 +33,7 @@ export interface TableModelColumnInfo {
   columnComment: string | null;
   ordinalPosition: number;
   fieldConfig?: string;
+  dictKey?: string | null;
 }
 
 /** 外键信息 */

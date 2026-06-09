@@ -26,6 +26,8 @@ import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.domain.vo.SqlQueryVO;
 import org.quyq.gwsu.common.security.service.ISQLExecutionService;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
+import org.quyq.gwsu.common.security.utils.DictInfoUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelColumnVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
@@ -96,6 +98,14 @@ public class DatabaseSearchTool {
             Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(databaseSearchAgent,
                     modelPrefix, dataSource, tableName);
 
+            // 批量获取字段涉及的字典值
+            List<String> dictKeys = columns.stream()
+                    .map(TableModelColumnVO::getDictKey)
+                    .filter(StringUtils::isNotBlank)
+                    .distinct()
+                    .toList();
+            Map<String, Map<String, String>> dictValueMap = DictInfoUtils.get(dictKeys);
+
             // 构建结果
             StringBuilder sb = new StringBuilder();
             sb.append("## 表: ").append(tableName).append("（数据源: ").append(dataSource).append("）\n");
@@ -103,12 +113,23 @@ public class DatabaseSearchTool {
             sb.append("所属服务: ").append(tableVO.getModulePrefix()).append("\n\n");
 
             sb.append("### 字段列表\n");
-            sb.append("| 字段名 | 类型 | 长度 | 可空 | 主键 | 注释 | 用户是否有权限 |\n");
-            sb.append("|--------|------|------|------|------|------|------------|\n");
+            sb.append("| 字段名 | 类型 | 长度 | 可空 | 主键 | 注释 | 枚举值 | 用户是否有权限 |\n");
+            sb.append("|--------|------|------|------|------|------|--------|------------|\n");
 
             for (TableModelColumnVO column : columns) {
                 FieldPermission perm = fieldPermissions.get(column.getColumnName());
                 boolean hasPermission = perm == null || perm.show();
+
+                String enumDisplay = "-";
+                if (StringUtils.isNotBlank(column.getDictKey())) {
+                    Map<String, String> values = dictValueMap.get(column.getDictKey());
+                    if (!CollectionUtils.isEmpty(values)) {
+                        enumDisplay = values.entrySet().stream()
+                                .map(e -> e.getValue() + "(" + e.getKey() + ")")
+                                .reduce((a, b) -> a + ", " + b)
+                                .orElse("-");
+                    }
+                }
 
                 sb.append("| ").append(column.getColumnName())
                         .append(" | ").append(column.getColumnType() != null ? column.getColumnType() : "-")
@@ -116,6 +137,7 @@ public class DatabaseSearchTool {
                         .append(" | ").append(column.getIsNullable() != null && column.getIsNullable() ? "是" : "否")
                         .append(" | ").append(column.getIsPrimaryKey() != null && column.getIsPrimaryKey() ? "是" : "否")
                         .append(" | ").append(column.getColumnComment() != null ? column.getColumnComment() : "-")
+                        .append(" | ").append(enumDisplay)
                         .append(" | ").append(hasPermission ? "是" : "否")
                         .append(" |\n");
             }

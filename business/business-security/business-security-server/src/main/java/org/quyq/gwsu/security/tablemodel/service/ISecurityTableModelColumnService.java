@@ -69,4 +69,6 @@ public interface ISecurityTableModelColumnService extends IService<SecurityTable
      * @return 是否成功
      */
     Boolean updateComment(String columnId, String columnComment);
+
+    Boolean updateDictKey(String columnId, String dictKey);
 }

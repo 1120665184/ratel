@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
+import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.kit.api.file.FileClientApi;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileStreamWrapper;
@@ -16,7 +17,9 @@ import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.dto.KitFileInfoDTO;
 import org.quyq.gwsu.kit.api.file.enums.FileScope;
 import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
+import org.quyq.gwsu.kit.file.domain.KitFileChunkInfo;
 import org.quyq.gwsu.kit.file.domain.KitFileInfo;
+import org.quyq.gwsu.kit.file.domain.KitFileMetaInfo;
 import org.quyq.gwsu.kit.file.media.AllowFileType;
 import org.quyq.gwsu.kit.file.service.FileServiceManager;
 import org.springframework.http.MediaType;
@@ -31,6 +34,7 @@ import java.util.Objects;
 @RestController
 @RequestMapping("file")
 @Tag(name = "文件模块")
+@TableModelPermission({KitFileInfo.class , KitFileChunkInfo.class , KitFileMetaInfo.class})
 @Slf4j
 @RequiredArgsConstructor
 public class FileController implements FileClientApi {

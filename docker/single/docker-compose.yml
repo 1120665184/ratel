@@ -34,7 +34,8 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
     volumes:
-      - ../initdb/postgre:/docker-entrypoint-initdb.d
+      - ../initdb:/initdb
+      - ../initdb/init-postgre.sh:/docker-entrypoint-initdb.d/00_init.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-root}"]
       interval: 5s

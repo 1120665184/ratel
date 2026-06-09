@@ -108,6 +108,12 @@ public class SecurityTableModelTableController {
         return R.ok(securityTableModelColumnService.updateComment(params.get("columnId"), params.get("columnComment")));
     }
 
+    @Operation(summary = "更新字段字典键")
+    @PostMapping("column/updateDictKey")
+    public R<Boolean> updateColumnDictKey(@RequestBody java.util.Map<String, String> params) {
+        return R.ok(securityTableModelColumnService.updateDictKey(params.get("columnId"), params.get("dictKey")));
+    }
+
     @Operation(summary = "更新外键备注")
     @PostMapping("foreignKey/updateRemark")
     public R<Boolean> updateForeignKeyRemark(@RequestBody java.util.Map<String, String> params) {
