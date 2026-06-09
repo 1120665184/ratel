@@ -101,9 +101,21 @@ public class DatabaseSearchAgent {
     }
 
     private AgentSkill buildDatabaseSearchSkill() {
+        AgentSkill.Builder skillBuilder = AgentSkill.builder()
+                .name("database_search")
+                .description("""
+                        数据库自然语言查询技能，当有以下需求时使用此技能：
+                        - 以当前登录用户的权限为基础生成SQL语句
+                        - 生成SQL并执行返回结果
+                        """);
+
         List<TableModelTableVO> allTables = tableModelTableService.listAll();
-        if (CollectionUtils.isEmpty(allTables)) {
-            throw new AgentException("表模型未初始化，请联系管理员在'AI表模型管理'中采集所有表模型");
+        if(CollectionUtils.isEmpty(allTables)) {
+            return skillBuilder
+                    .skillContent("系统表模型未初始化，该功能不可用，请回复用户，让其`联系管理员在'AI表模型管理'中采集所有表模型`")
+                    .build();
+
+
         }
 
         Map<String, Map<String, FieldPermission>> mergedPermissions = getUserTableModelPermission();
@@ -136,14 +148,8 @@ public class DatabaseSearchAgent {
 
         Map<String, String> businessResources = buildBusinessFunctionResources(allTables, tablePermissionMap);
 
-        AgentSkill.Builder skillBuilder = AgentSkill.builder()
-                .name("database_search")
-                .description("""
-                        数据库自然语言查询技能，当有以下需求时使用此技能：
-                        - 以当前登录用户的权限为基础生成SQL语句
-                        - 生成SQL并执行返回结果
-                        """)
-                .skillContent(skillContent)
+
+        skillBuilder.skillContent(skillContent)
                 .addResource("reference/table_overview.md", tableOverviewContent);
 
         businessResources.forEach(skillBuilder::addResource);

@@ -8,8 +8,8 @@ import styles from './login.module.less';
 
 export default function Login() {
     const {message} = App.useApp();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('admin');
+    const [password, setPassword] = useState('admin123');
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -124,14 +124,7 @@ export default function Login() {
                         />
                     </div>
 
-                    <div className={styles.options}>
-                        <label className={styles.checkbox}>
-                            <input type="checkbox" className={styles.checkboxInput}/>
-                            <span className={styles.checkboxCustom}/>
-                            <span className={styles.rememberText}>记住我</span>
-                        </label>
-                        <a href="#" className={styles.forgotLink}>忘记密码？</a>
-                    </div>
+
 
                     <button
                         type="submit"
@@ -150,10 +143,7 @@ export default function Login() {
                     </button>
                 </form>
 
-                <div className={styles.footer}>
-                    <span className={styles.footerText}>还没有账号？</span>
-                    <a href="#" className={styles.signupLink}>立即注册</a>
-                </div>
+
             </div>
         </div>
     );

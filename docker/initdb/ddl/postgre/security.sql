@@ -653,6 +653,7 @@ CREATE TABLE security_role_table_model
     table_name    VARCHAR(100) NOT NULL,
     datasource    VARCHAR(50)  NOT NULL DEFAULT 'master',
     field_config  TEXT                  DEFAULT NULL,
+    enabled       INT2         NOT NULL DEFAULT 1,
     tenant_id     VARCHAR(50)           DEFAULT NULL,
     create_op     VARCHAR(50)           DEFAULT NULL,
     create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -671,6 +672,7 @@ COMMENT ON COLUMN security_role_table_model.module_prefix IS '模块前缀（服
 COMMENT ON COLUMN security_role_table_model.table_name IS '表模型名称';
 COMMENT ON COLUMN security_role_table_model.datasource IS '数据源名称';
 COMMENT ON COLUMN security_role_table_model.field_config IS '字段限制配置JSON，仅存储限制性配置';
+COMMENT ON COLUMN security_role_table_model.enabled IS '是否启用：0-禁用 1-启用，仅对接口关联的表模型有效';
 COMMENT ON COLUMN security_role_table_model.tenant_id IS '租户ID';
 COMMENT ON COLUMN security_role_table_model.create_op IS '创建人';
 COMMENT ON COLUMN security_role_table_model.create_time IS '创建时间';

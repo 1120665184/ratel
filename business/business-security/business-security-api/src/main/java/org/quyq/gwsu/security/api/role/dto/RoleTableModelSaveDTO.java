@@ -25,6 +25,9 @@ public class RoleTableModelSaveDTO {
     @Schema(description = "数据源名称")
     private String datasource;
 
+    @Schema(description = "是否启用，仅接口关联类型有效")
+    private Boolean enabled;
+
     @Schema(description = "字段限制配置列表（只存储与默认值不同的限制性配置）")
     private List<FieldConfigItem> fields;
 

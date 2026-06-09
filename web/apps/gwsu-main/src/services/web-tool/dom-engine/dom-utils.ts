@@ -76,6 +76,54 @@ export function elementDescription(element: Element): string {
   return `<${tag}${id}${className}>${text ? ` "${text}"` : ''}`;
 }
 
+const AI_HOVERED_ATTR = 'data-ai-hovered';
+const AI_HOVER_STYLE_ID = '__ai-hover-style';
+
+const AI_HOVER_CSS = `
+[data-ai-hovered].ant-select .ant-select-clear,
+[data-ai-hovered] .ant-select .ant-select-clear,
+[data-ai-hovered].ant-cascader .ant-cascader-clear,
+[data-ai-hovered] .ant-cascader .ant-cascader-clear,
+[data-ai-hovered].ant-tree-select .ant-select-clear,
+[data-ai-hovered] .ant-tree-select .ant-select-clear,
+[data-ai-hovered].ant-picker .ant-picker-clear,
+[data-ai-hovered] .ant-picker .ant-picker-clear,
+[data-ai-hovered].ant-input-affix-wrapper .ant-input-clear-icon,
+[data-ai-hovered] .ant-input-affix-wrapper .ant-input-clear-icon,
+[data-ai-hovered].ant-tag .ant-tag-close-icon,
+[data-ai-hovered] .ant-tag .ant-tag-close-icon,
+[data-ai-hovered].ant-typography .ant-typography-copy,
+[data-ai-hovered].ant-typography .ant-typography-edit,
+[data-ai-hovered] .ant-typography .ant-typography-copy,
+[data-ai-hovered] .ant-typography .ant-typography-edit {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+`;
+
+export function applyHoverState(element: Element): void {
+  clearHoverState();
+  element.setAttribute(AI_HOVERED_ATTR, '');
+  let style = document.getElementById(AI_HOVER_STYLE_ID);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = AI_HOVER_STYLE_ID;
+    style.textContent = AI_HOVER_CSS;
+    document.head.appendChild(style);
+  }
+}
+
+export function clearHoverState(): void {
+  document.querySelectorAll(`[${AI_HOVERED_ATTR}]`).forEach((el) => {
+    el.removeAttribute(AI_HOVERED_ATTR);
+  });
+  const style = document.getElementById(AI_HOVER_STYLE_ID);
+  if (style) {
+    style.remove();
+  }
+}
+
 /** 轮询等待条件满足 */
 export async function waitForCondition(
   condition: () => boolean,

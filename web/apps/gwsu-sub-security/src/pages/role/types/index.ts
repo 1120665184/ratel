@@ -140,6 +140,7 @@ export interface ColumnInfo {
 /** 角色表模型权限 VO */
 export interface RolePermissionTableModelVO {
   type: number;
+  enabled?: boolean;
   tableModelId: string;
   id?: string;
   modulePrefix: string;
@@ -156,5 +157,6 @@ export interface RoleTableModelSaveDTO {
   modulePrefix: string;
   tableName: string;
   datasource: string;
+  enabled?: boolean;
   fields: FieldConfigItem[];
 }

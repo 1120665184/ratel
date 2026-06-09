@@ -21,6 +21,8 @@ export {
   truncateText,
   elementDescription,
   waitForCondition,
+  applyHoverState,
+  clearHoverState,
 } from './dom-utils';
 
 /** 全局 SelectorMap 单例，各操作工具共享 */

@@ -20,6 +20,9 @@ public class RolePermissionTableModelVO {
     @Schema(description = "类型：0-接口关联；1-角色自定义配置")
     private int type = 0;
 
+    @Schema(description = "是否启用，仅接口关联类型(type=0)有效，默认true")
+    private Boolean enabled = true;
+
     @Schema(description = "表模型ID")
     private String tableModelId;
 

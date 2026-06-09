@@ -23,6 +23,7 @@ import '@/services/web-tool/tools/click-element';
 import '@/services/web-tool/tools/input-text';
 import '@/services/web-tool/tools/select-option';
 import '@/services/web-tool/tools/scroll-page';
+import '@/services/web-tool/tools/hover-element';
 // 确保 AI 操作模式工具被注册
 import '@/services/web-tool/tools/enter-ai-mode';
 import '@/services/web-tool/tools/exit-ai-mode';

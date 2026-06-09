@@ -45,6 +45,9 @@ public class SecurityRoleTableModel extends BaseDO {
     @Schema(description = "字段限制配置，key为字段名（下划线格式）")
     private Map<String, FieldPermission> fieldConfig;
 
+    @Schema(description = "是否启用：0-禁用 1-启用，仅对接口关联的表模型有效")
+    private Boolean enabled;
+
     public RoleTableModelVO toVo() {
         RoleTableModelVO vo = new RoleTableModelVO();
         vo.setId(this.id);

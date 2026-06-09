@@ -33,6 +33,7 @@ const TableModelPermissionModal: React.FC<TableModelPermissionModalProps> = ({
     handleSave,
     handleReset,
     handleDeleteTable,
+    toggleEnabled,
     addTablesToList,
     removeTableFromList,
     setRoleId,
@@ -92,6 +93,7 @@ const TableModelPermissionModal: React.FC<TableModelPermissionModalProps> = ({
             onSelect={selectTable}
             onAdd={() => setAddModalVisible(true)}
             onDelete={onDeleteTable}
+            onToggleEnabled={toggleEnabled}
           />
           <div className={styles.rightPanel}>
             <FieldConfigTable

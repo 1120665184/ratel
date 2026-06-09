@@ -1,5 +1,5 @@
 # 第一阶段：获取 JRE
-FROM eclipse-temurin:25-jre-alpine-3.23 AS jre-source
+FROM eclipse-temurin:25-jre-alpine AS jre-source
 
 # 第二阶段：基于 nginx 官方镜像构建
 FROM nginx:stable-alpine

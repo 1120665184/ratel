@@ -403,6 +403,7 @@ CREATE TABLE security_role_table_model
     table_name    VARCHAR(100) NOT NULL              COMMENT '表模型名称',
     datasource    VARCHAR(50)  NOT NULL DEFAULT 'master' COMMENT '数据源名称',
     field_config  TEXT                  DEFAULT NULL COMMENT '字段限制配置JSON，仅存储限制性配置',
+    enabled       TINYINT      NOT NULL DEFAULT 1    COMMENT '是否启用：0-禁用 1-启用，仅对接口关联的表模型有效',
     tenant_id     VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op     VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
     create_time   DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

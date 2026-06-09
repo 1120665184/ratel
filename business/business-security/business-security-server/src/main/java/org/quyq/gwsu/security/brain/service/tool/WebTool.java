@@ -126,6 +126,22 @@ public class WebTool {
         return webToolUtils.webExecuteTool(emitter, "SelectOption", Map.of("index", index, "text", text));
     }
 
+    @Tool(name = "HoverElement", description = """
+            将鼠标悬停在指定索引的元素上，触发hover效果使隐藏的交互元素显示出来。
+            使用场景：某些按钮或操作入口仅在鼠标悬停时才显示，例如：
+            - 表格行悬停后出现的编辑/删除按钮
+            - 下拉选择框悬停后出现的清除/关闭按钮
+            - 卡片悬停后出现的操作按钮
+            需要先调用GetPageState获取元素索引。
+            工具使用前提：界面操作模式必须是`AI操作模式`。
+            悬停后请调用GetPageState查看新出现的交互元素。
+            参数：index - 要悬停的元素索引编号""")
+    public ToolResultBlock hoverElement(
+            @ToolParam(name = "index", description = "要悬停的元素索引编号，从GetPageState结果中获取") Integer index,
+            ToolEmitter emitter) throws TimeoutException {
+        return webToolUtils.webExecuteTool(emitter, "HoverElement", Map.of("index", index));
+    }
+
     @Tool(name = "ScrollPage", description = """
             滚动页面或页面内的可滚动元素。
             工具使用前提：界面操作模式必须是`AI操作模式`。

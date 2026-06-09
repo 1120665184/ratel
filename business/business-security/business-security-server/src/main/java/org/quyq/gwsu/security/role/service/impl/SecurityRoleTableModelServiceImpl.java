@@ -86,6 +86,9 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
 
         if (existing != null) {
             existing.setFieldConfig(fieldConfigMap);
+            if (dto.getEnabled() != null) {
+                existing.setEnabled(dto.getEnabled());
+            }
             return updateById(existing);
         }
 
@@ -95,6 +98,7 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         entity.setDatasource(datasource);
         entity.setTableName(dto.getTableName());
         entity.setFieldConfig(fieldConfigMap);
+        entity.setEnabled(dto.getEnabled() != null ? dto.getEnabled() : true);
         return save(entity);
     }
 
@@ -119,27 +123,39 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         if (CollUtil.isEmpty(roleIds)) {
             return Map.of();
         }
-        // 多角色取最大权限：show取或，desensitize取与
         Map<String, Map<String, FieldPermission>> result = new HashMap<>();
+
+        List<SecurityRoleTableModel> roleTableModels = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
+                .in(SecurityRoleTableModel::getRoleId, roleIds));
+
+        Set<String> disabledTableKeys = new HashSet<>();
+        Map<String, List<SecurityRoleTableModel>> grouped = roleTableModels.stream()
+                .collect(Collectors.groupingBy(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName()));
+
+        for (Map.Entry<String, List<SecurityRoleTableModel>> entry : grouped.entrySet()) {
+            List<SecurityRoleTableModel> records = entry.getValue();
+            boolean anyEnabled = records.stream().anyMatch(r -> r.getEnabled() == null || r.getEnabled());
+            if (!anyEnabled) {
+                disabledTableKeys.add(entry.getKey());
+            }
+        }
 
         if (isAdmin) {
             modelTableService.list(new LambdaQueryWrapper<>(SecurityTableModelTable.class)
-                            //获取所有自定义添加的表模型
                             .eq(SecurityTableModelTable::getSourceType, 1)
                             .eq(SecurityTableModelTable::getDeleted, false)
                     ).stream().map(v -> v.getModulePrefix() + ":" + v.getDataSource() + ":" + v.getTableName())
                     .forEach(table -> result.put(table, Map.of()));
         } else {
-            List<SecurityRoleTableModel> roleTableModels = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
-                    .in(SecurityRoleTableModel::getRoleId, roleIds));
-
-            // 按 "module_prefix:datasource:table_name" 分组
-            Map<String, List<SecurityRoleTableModel>> grouped = roleTableModels.stream()
-                    .collect(Collectors.groupingBy(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName()));
-
             for (Map.Entry<String, List<SecurityRoleTableModel>> entry : grouped.entrySet()) {
+                if (disabledTableKeys.contains(entry.getKey())) {
+                    continue;
+                }
                 Map<String, FieldPermission> mergedFields = new HashMap<>();
                 for (SecurityRoleTableModel rtm : entry.getValue()) {
+                    if (rtm.getEnabled() != null && !rtm.getEnabled()) {
+                        continue;
+                    }
                     if (rtm.getFieldConfig() != null) {
                         mergeFieldPermissions(mergedFields, rtm.getFieldConfig());
                     }
@@ -148,18 +164,18 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
             }
         }
 
-        // 通过角色关联的菜单获取接口绑定的表模型权限，与角色自定义权限合并
         List<String> apiIds = getApiIdsByRoleIds(roleIds, isAdmin);
         if (!CollectionUtils.isEmpty(apiIds)) {
             List<SecurityApiTableModel> apiTableModels = listApiTableModelsByApiIds(apiIds);
             if (!CollectionUtils.isEmpty(apiTableModels)) {
-                // 按 "module_prefix:datasource:table_name" 分组
                 Map<String, SecurityApiTableModel> apiGroupd = apiTableModels.stream().collect(Collectors.toMap(m -> m.getModulePrefix() + ":" + m.getDatasource() + ":" + m.getTableName(),
                         Function.identity(), (k1, k2) -> k2));
                 for (Map.Entry<String, SecurityApiTableModel> entry : apiGroupd.entrySet()) {
                     String key = entry.getKey();
+                    if (disabledTableKeys.contains(key)) {
+                        continue;
+                    }
                     Map<String, FieldPermission> existingFields = result.computeIfAbsent(key, k -> new HashMap<>());
-                    // 合并接口绑定的字段权限（接口优先级高）
                     SecurityApiTableModel atm = entry.getValue();
                     if (Objects.nonNull(atm)) {
                         mergeApiWithRoleFieldPermissions(existingFields, atm.getFieldConfig());
@@ -194,78 +210,63 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
 
         List<SecurityTableModelTable> tables = listTableModelTableByIds(tableIds);
         Map<String, List<SecurityTableModelColumn>> columns = tableModelColumnByTableIds(tableIds);
-        //拥有的接口权限关联的表模型权限
         List<RolePermissionTableModelVO> datas = buildPermissionTableModel(tables, columns);
 
-        //开始补充自定义配置数据
-        //超级管理员添加所有的自定义表模型
-        if(isAdmin){
+        Map<String, SecurityRoleTableModel> roleTableModelMap = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
+                .eq(SecurityRoleTableModel::getRoleId, roleId))
+                .stream().collect(Collectors.toMap(v -> SecurityTableModelTable.genId(v.getModulePrefix(), v.getDatasource(), v.getTableName()), Function.identity()));
+
+        for (RolePermissionTableModelVO vo : datas) {
+            SecurityRoleTableModel rtm = roleTableModelMap.remove(vo.getTableModelId());
+            if (rtm != null) {
+                vo.setId(rtm.getId());
+                vo.setEnabled(rtm.getEnabled() != null ? rtm.getEnabled() : true);
+                Map<String, FieldPermission> fieldConfig = rtm.getFieldConfig();
+                if (!CollectionUtils.isEmpty(fieldConfig)) {
+                    vo.getColumns().forEach(column -> {
+                        FieldPermission fieldPermission = fieldConfig.get(column.getColumnName());
+                        if (Objects.nonNull(fieldPermission)) {
+                            column.setCustomFieldConfig(buildFieldConfigItem(column.getColumnName(), fieldPermission));
+                        }
+                    });
+                }
+            }
+        }
+
+        if (isAdmin) {
             List<SecurityTableModelTable> customDatas = modelTableService.list(new LambdaQueryWrapper<>(SecurityTableModelTable.class)
-                    //获取所有自定义添加的表模型
                     .eq(SecurityTableModelTable::getSourceType, 1)
                     .eq(SecurityTableModelTable::getDeleted, false)
             );
-
-            Map<String, List<SecurityTableModelColumn>> customColumns= tableModelColumnByTableIds(customDatas.stream().map(SecurityTableModelTable::getId).toList());
-            datas.addAll(
-                    buildPermissionTableModel(customDatas , customColumns)
-            );
-        }
-        //查询角色自定义配置的数据
-        else {
-            Map<String, SecurityRoleTableModel> customPermisson = list(new LambdaQueryWrapper<SecurityRoleTableModel>()
-                    .eq(SecurityRoleTableModel::getRoleId, roleId))
-                    .stream().collect(Collectors.toMap(v ->SecurityTableModelTable.genId(v.getModulePrefix(), v.getDatasource(), v.getTableName()) , Function.identity()));
-
-            if(!customPermisson.isEmpty()){
-                List<String> tIds = new ArrayList<>();
-                customPermisson.forEach((k,v)->{
-                    Optional<RolePermissionTableModelVO> match = datas.stream().filter(d -> d.getTableModelId().equals(k))
-                            .findFirst();
-                    if(match.isEmpty()){
-                        tIds.add(k);
-                    }else {
-                        RolePermissionTableModelVO vo = match.get();
-                        vo.setId(v.getId());
-                        vo.setType(1);
-                        Map<String, FieldPermission> fieldConfig = v.getFieldConfig();
-                        if(!CollectionUtils.isEmpty(fieldConfig)){
-                            vo.getColumns().forEach(column -> {
-                                FieldPermission fieldPermission = fieldConfig.get(column.getColumnName());
-                                if(Objects.nonNull(fieldPermission)){
-                                    column.setCustomFieldConfig(buildFieldConfigItem(column.getColumnName(), fieldPermission));
-                                }
-                            });
-                        }
+            if (!CollectionUtils.isEmpty(customDatas)) {
+                Map<String, List<SecurityTableModelColumn>> customColumns = tableModelColumnByTableIds(customDatas.stream().map(SecurityTableModelTable::getId).toList());
+                List<RolePermissionTableModelVO> customVOs = buildPermissionTableModel(customDatas, customColumns);
+                customVOs.forEach(vo -> vo.setType(1));
+                datas.addAll(customVOs);
+            }
+        } else {
+            if (!roleTableModelMap.isEmpty()) {
+                List<String> tIds = new ArrayList<>(roleTableModelMap.keySet());
+                List<RolePermissionTableModelVO> cusD = buildPermissionTableModel(
+                        listTableModelTableByIds(tIds),
+                        tableModelColumnByTableIds(tIds));
+                cusD.forEach(model -> {
+                    SecurityRoleTableModel m = roleTableModelMap.get(model.getTableModelId());
+                    model.setType(1);
+                    model.setId(m.getId());
+                    model.setEnabled(m.getEnabled() != null ? m.getEnabled() : true);
+                    Map<String, FieldPermission> fieldConfig = m.getFieldConfig();
+                    if (!CollectionUtils.isEmpty(fieldConfig)) {
+                        model.getColumns().forEach(column -> {
+                            FieldPermission fieldPermission = fieldConfig.get(column.getColumnName());
+                            if (Objects.nonNull(fieldPermission)) {
+                                column.setCustomFieldConfig(buildFieldConfigItem(column.getColumnName(), fieldPermission));
+                            }
+                        });
                     }
                 });
-
-                if(!tIds.isEmpty()){
-                    //自定义配置的表模型权限
-                    List<RolePermissionTableModelVO> cusD = buildPermissionTableModel(
-                            listTableModelTableByIds(tIds),
-                            tableModelColumnByTableIds(tIds));
-                    cusD.forEach(model ->{
-                        SecurityRoleTableModel m = customPermisson.get(model.getTableModelId());
-                        model.setType(1);
-                        model.setId(m.getId());
-
-                        Map<String, FieldPermission> fieldConfig = m.getFieldConfig();
-                        if(!CollectionUtils.isEmpty(fieldConfig)){
-                            model.getColumns().forEach(column -> {
-                                FieldPermission fieldPermission = fieldConfig.get(column.getColumnName());
-                                if(Objects.nonNull(fieldPermission)){
-                                    column.setCustomFieldConfig(buildFieldConfigItem(column.getColumnName(), fieldPermission));
-                                }
-                            });
-                        }
-
-                    });
-                    datas.addAll(cusD);
-                }
-
+                datas.addAll(cusD);
             }
-
         }
 
         return datas;

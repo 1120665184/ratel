@@ -116,6 +116,39 @@ export function useTableModelPermission() {
     setFieldRows([...initialRowsRef.current]);
   }, []);
 
+  /** 切换接口关联表的启用/禁用状态 */
+  const toggleEnabled = useCallback(
+    async (tableModelId: string, enabled: boolean) => {
+      const table = tables.find((t) => t.tableModelId === tableModelId);
+      if (!table) return false;
+
+      setSaving(true);
+      try {
+        await saveOrUpdateRoleTableModel({
+          id: table.id,
+          roleId: roleIdRef.current ?? '',
+          modulePrefix: table.modulePrefix,
+          tableName: table.tableName,
+          datasource: table.datasource,
+          enabled,
+          fields: [],
+        });
+        setTables((prev) =>
+          prev.map((t) =>
+            t.tableModelId === tableModelId ? { ...t, enabled } : t,
+          ),
+        );
+        message.success(enabled ? '已启用' : '已禁用');
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [tables, message],
+  );
+
   /** 删除某个表的权限 */
   const handleDeleteTable = useCallback(
     async (id: string) => {
@@ -176,6 +209,7 @@ export function useTableModelPermission() {
     handleSave,
     handleReset,
     handleDeleteTable,
+    toggleEnabled,
     addTablesToList,
     removeTableFromList,
   };

@@ -153,7 +153,7 @@ function MainLayoutContent({
         style={{ background: currentTheme.colors.surface }}
       >
         <div className={styles.headerLeft}>
-          <div className={styles.logo}>
+          <div className={styles.logo} onClick={() => history.push(process.env.UMI_APP_HOME_PATH as string)}>
             <img
               src="/favicon.jpg"
               alt="logo"

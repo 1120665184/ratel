@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Button, Input, Tag, Popconfirm } from 'antd';
+import { Button, Input, Tag, Popconfirm, Switch } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { RolePermissionTableModelVO } from '../../types';
 import styles from './index.module.less';
@@ -10,6 +10,7 @@ interface TableListPanelProps {
   onSelect: (tableModelId: string) => void;
   onAdd: () => void;
   onDelete: (tableModelId: string, id: string) => void;
+  onToggleEnabled: (tableModelId: string, enabled: boolean) => void;
 }
 
 const TableListPanel: React.FC<TableListPanelProps> = ({
@@ -18,6 +19,7 @@ const TableListPanel: React.FC<TableListPanelProps> = ({
   onSelect,
   onAdd,
   onDelete,
+  onToggleEnabled,
 }) => {
   const [searchText, setSearchText] = useState('');
 
@@ -97,6 +99,14 @@ const TableListPanel: React.FC<TableListPanelProps> = ({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </Popconfirm>
+              )}
+              {table.type === 0 && (
+                <Switch
+                  size="small"
+                  checked={table.enabled !== false}
+                  onClick={(_, e) => e.stopPropagation()}
+                  onChange={(checked) => onToggleEnabled(table.tableModelId, checked)}
+                />
               )}
             </div>
           ))
