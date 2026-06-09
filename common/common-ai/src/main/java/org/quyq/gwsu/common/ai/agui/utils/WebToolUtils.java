@@ -2,17 +2,21 @@ package org.quyq.gwsu.common.ai.agui.utils;
 
 
 import com.google.gson.Gson;
+import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.tool.ToolEmitter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.AgentException;
+import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.web.WebToolInfo;
 import org.quyq.gwsu.common.ai.agui.web.WebToolStatus;
 import org.quyq.gwsu.common.ai.agui.web.WebToolTask;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -56,37 +60,46 @@ public class WebToolUtils {
     /**
      * 通知web端执行指定工具，阻塞等待前端结果后返回
      *
-     * @param toolEmitter 工具发射器
+     * @param wrapper 工具发射器
      * @param toolName    工具名称
      * @param params      工具参数
      * @return 工具执行结果
      */
-    public ToolResultBlock webExecuteTool(ToolEmitter toolEmitter, String toolName,
-                                          Map<String, Object> params) throws TimeoutException {
-        return webExecuteTool(toolEmitter, toolName, params, DEFAULT_TIMEOUT_SECONDS);
+    public ToolResultBlock webExecuteTool(AIRunnerInstanceWrapper wrapper, String toolName,
+                                          Map<String, Object> params) {
+        return webExecuteTool(wrapper, toolName, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
     /**
      * 通知web端执行指定工具，阻塞等待前端结果后返回
      *
-     * @param toolEmitter    工具发射器
+     * @param wrapper    工具发射器
      * @param toolName       工具名称
      * @param params         工具参数
      * @param timeoutSeconds 超时时间（秒）
      * @return 工具执行结果
      */
-    public ToolResultBlock webExecuteTool(ToolEmitter toolEmitter, String toolName,
+    public ToolResultBlock webExecuteTool(AIRunnerInstanceWrapper wrapper, String toolName,
                                           Map<String, Object> params,
-                                          long timeoutSeconds) throws TimeoutException {
+                                          long timeoutSeconds) {
+        if(Objects.isNull(wrapper)) {
+            throw new RuntimeException("AI runner instance wrapper is null");
+        }
         String toolCallId = UUID.randomUUID().toString();
 
         // 1. 发送CUSTOM事件给前端（通过ToolEmitter → Hook → SSE）
         WebToolInfo info = new WebToolInfo(toolCallId, toolName, params);
-        toolEmitter.emit(ToolResultBlock.text(WEB_TOOL_IDENTIFICATION + gson.toJson(info)));
+
+        AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(wrapper.input().getThreadId(), wrapper.input().getRunId(),
+                AIConstants.AguiCustomEvent.TOOL_EXECUTE
+                , info);
+
 
         // 2. Redis存储任务信息
         String taskKey = KEY_PREFIX + toolCallId;
         cacheUtils.set(taskKey, WebToolTask.pending(toolCallId, toolName, params), REDIS_TTL_SECONDS, TimeUnit.SECONDS);
+
+        wrapper.sendEvent(customAguiEvent);
 
         // 3. 信号量等待前端结果
         String semKey = SEMAPHORE_PREFIX + toolCallId;
@@ -98,7 +111,7 @@ public class WebToolUtils {
             if (task != null) {
                 cacheUtils.set(taskKey, task.withResult(WebToolStatus.TIMEOUT, "执行超时"), 60, TimeUnit.SECONDS);
             }
-            throw new TimeoutException("执行超时");
+            throw new RuntimeException("执行超时");
         }
 
         // 4. 获取并返回结果

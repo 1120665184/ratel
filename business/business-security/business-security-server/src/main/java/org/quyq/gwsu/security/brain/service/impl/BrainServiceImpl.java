@@ -7,7 +7,6 @@ import io.agentscope.core.agui.processor.AguiRequestProcessor;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
-import io.agentscope.core.hook.PreCallEvent;
 import io.agentscope.core.hook.PreReasoningEvent;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
@@ -22,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.DefaultAgentResolver;
 import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
-import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.utils.AIMsgUtils;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
@@ -318,7 +316,6 @@ public class BrainServiceImpl implements IBrainService {
                 .apply();
 
         OutputViewEventHandlerHook outputViewEventHandlerHook = new OutputViewEventHandlerHook(objectMapper);
-        WebToolExecuteHook webToolExecuteHook = new WebToolExecuteHook();
 
         //构建当前登录主体的系统提示词
         String subjectSystemPrompt = buildSubjectSystemPrompt();
@@ -328,7 +325,7 @@ public class BrainServiceImpl implements IBrainService {
                 .session(agentSession)
                 .sysPrompt(buildSysPrompt())
                 .model(ModelProvider.generateModel())
-                .hooks(List.of(new ForwardedPropsHook(subjectSystemPrompt) , outputViewEventHandlerHook , webToolExecuteHook))
+                .hooks(List.of(new ForwardedPropsHook(subjectSystemPrompt), outputViewEventHandlerHook))
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .maxIters(100)
@@ -343,13 +340,15 @@ public class BrainServiceImpl implements IBrainService {
                 .build();
     }
 
-    /**、
-     *  生成当前登录主体信息提示词
+    /**
+     * 、
+     * 生成当前登录主体信息提示词
+     *
      * @return
      */
-    private String buildSubjectSystemPrompt(){
+    private String buildSubjectSystemPrompt() {
         Optional<Subject<Visitor>> subjectOpt = securityUtils.getSubject();
-        if(subjectOpt.isEmpty()){
+        if (subjectOpt.isEmpty()) {
             return null;
         }
         Subject<Visitor> subject = subjectOpt.get();
@@ -358,11 +357,11 @@ public class BrainServiceImpl implements IBrainService {
         String userInfo = "无";
         String clientInfo = "无";
         Optional<UserInfo> userInfoOpt = subject.userInfo();
-        if(userInfoOpt.isPresent()){
+        if (userInfoOpt.isPresent()) {
             userInfo = objectMapper.writeValueAsString(userInfoOpt.get());
         }
         Optional<ClientInfo> clientInfoOpt = subject.clientInfo();
-        if(clientInfoOpt.isPresent()){
+        if (clientInfoOpt.isPresent()) {
             clientInfo = objectMapper.writeValueAsString(clientInfoOpt.get());
         }
 
@@ -374,7 +373,7 @@ public class BrainServiceImpl implements IBrainService {
                 %s
                 ## 所属三方平台信息
                 %s
-                """.formatted(userType,admin, userInfo, clientInfo);
+                """.formatted(userType, admin, userInfo, clientInfo);
     }
 
 
@@ -491,7 +490,7 @@ public class BrainServiceImpl implements IBrainService {
                                 return v;
                             }).collect(Collectors.toList());
                     //添加登录主体的提示词
-                    if(StringUtils.hasText(subjectSystemPrompt)){
+                    if (StringUtils.hasText(subjectSystemPrompt)) {
                         blocks.add(TextBlock.builder().text(subjectSystemPrompt).build());
                     }
 

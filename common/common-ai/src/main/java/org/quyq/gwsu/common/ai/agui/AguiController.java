@@ -334,10 +334,11 @@ public abstract class AguiController implements DisposableBean {
                 () -> {
                     Disposable subscription;
                     try {
+                        AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter);
                         // Process request - returns both agent and event stream
                         AguiRequestProcessor.ProcessResult result =
                                 processor.process(input, headerAgentId, pathAgentId , userId);
-                        CURR_EMITTER.put(threadId, new AIRunnerInstanceWrapper(input, emitter));
+                        CURR_EMITTER.put(threadId, wrapper);
                         // Set up callbacks for client disconnect handling
                         emitter.onCompletion(
                                 () -> {
@@ -368,6 +369,7 @@ public abstract class AguiController implements DisposableBean {
                                         .contextCapture()
                                         .contextWrite(Context.of(
                                                 AIConstants.Param.THREAD_ID, threadId
+                                                , AIConstants.Param.EMITTER_WRAPPER , wrapper
                                                 , HeadersContextThreadLocalAccessor.REACTOR_CONTEXT, capturedHeaders
                                                 , ObservationThreadLocalAccessor.KEY , observation
                                         ))

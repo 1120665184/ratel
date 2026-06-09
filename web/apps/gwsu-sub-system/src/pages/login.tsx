@@ -108,6 +108,7 @@ export default function Login() {
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="请输入用户名"
                             className={styles.input}
+                            autoComplete="username"
                             required
                         />
                     </div>
@@ -120,6 +121,7 @@ export default function Login() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="请输入密码"
                             className={styles.input}
+                            autoComplete="current-password"
                             required
                         />
                     </div>

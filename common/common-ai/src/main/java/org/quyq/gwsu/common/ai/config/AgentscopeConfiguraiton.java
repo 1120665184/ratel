@@ -8,7 +8,6 @@ import io.agentscope.core.memory.Memory;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.ToolkitConfig;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
-import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoopHook;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -43,28 +42,6 @@ public class AgentscopeConfiguraiton {
                 .build());
     }
 
-
-//    @Bean
-//    @ConditionalOnMissingBean(Model.class)
-//    public Model agentscopeModel(AgentscopeProperties properties) {
-//        return ModelProviderType.fromProperties(properties).createModel(properties);
-//    }
-
-//    @Bean
-//    @ConditionalOnMissingBean
-//    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-//    public ReActAgent agentscopeReActAgent(
-//            Model model, Memory memory, Toolkit toolkit, AgentscopeProperties properties) {
-//        AgentProperties config = properties.getAgent();
-//        return ReActAgent.builder()
-//                .name(config.getName())
-//                .sysPrompt(config.getSysPrompt())
-//                .model(model)
-//                .memory(memory)
-//                .toolkit(toolkit)
-//                .maxIters(config.getMaxIters())
-//                .build();
-//    }
 
     @Bean
     public WebToolUtils webToolUtils(CacheUtils cacheUtils) {

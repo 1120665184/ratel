@@ -214,6 +214,8 @@ sh docker/start-single.sh
 
 启动完成后访问 `http://localhost` 即可。
 
+> **首次启动提示**：登录后需进入 **设置 → 助手配置 → LLM 配置**，配置 LLM 服务（如 OpenAI、Anthropic、DashScope、Gemini 等）后方可使用 AI 智能助手功能。
+
 自定义环境变量：
 
 ```bash

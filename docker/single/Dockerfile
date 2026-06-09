@@ -16,8 +16,8 @@ WORKDIR /app
 # 复制后端 jar
 COPY business/application/single/gwsu/target/gwsu.jar /app/gwsu.jar
 
-# 复制前端静态文件
-COPY web/apps/gwsu-main/dist /usr/share/nginx/html/main
+# 复制前端静态文件（主应用 + 子应用统一放在 html 目录下）
+COPY web/apps/gwsu-main/dist /usr/share/nginx/html
 COPY web/apps/gwsu-sub-system/dist /usr/share/nginx/html/sub-system
 COPY web/apps/gwsu-sub-security/dist /usr/share/nginx/html/sub-security
 

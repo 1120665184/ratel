@@ -15,18 +15,12 @@
  */
 package org.quyq.gwsu.common.ai.agui;
 
-import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.processor.AgentResolver;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
-import io.agentscope.core.session.Session;
-import io.agentscope.harness.agent.HarnessAgent;
-import org.quyq.gwsu.common.ai.agui.web.WebToolExecuteHook;
-import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * Default implementation of {@link AgentResolver} for Spring Boot integration.

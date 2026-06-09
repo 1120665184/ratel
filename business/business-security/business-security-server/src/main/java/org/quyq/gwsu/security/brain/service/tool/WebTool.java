@@ -7,16 +7,18 @@ import io.agentscope.core.tool.ToolEmitter;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.ai.loop.ApprovalCondition;
 import org.quyq.gwsu.common.ai.loop.HumanInTheLoop;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Web端工具集合
@@ -39,15 +41,22 @@ public class WebTool {
             使用场景：当你需要对界面进行操作（点击、输入、选择、滚动、路由跳转）时，必须先调用此工具获取控制权。
             注意：获取页面状态(GetPageState)不需要进入AI操作模式。
             操作完成后必须调用ExitAiMode退出AI操作模式，将控制权交还给用户。""")
-    public ToolResultBlock enterAiMode(ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "EnterAiMode", Map.of());
+    public Mono<ToolResultBlock> enterAiMode() {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "EnterAiMode", Map.of()));
+        });
     }
 
     @Tool(name = "ExitAiMode", description = """
             退出`AI操作模式`，将界面控制权交还给用户。
             当你完成所有界面操作后，必须调用此工具退出AI操作模式。""")
-    public ToolResultBlock exitAiMode(ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "ExitAiMode", Map.of());
+    public Mono<ToolResultBlock> exitAiMode() {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "ExitAiMode", Map.of()));
+        });
+
     }
 
     // ==================== 路由导航 ====================
@@ -56,15 +65,18 @@ public class WebTool {
             控制web界面跳转到指定路由
             工具使用前提：界面操作模式必须是`AI操作模式`。
             """)
-    public ToolResultBlock routeNavigation(@ToolParam(name = "path",
-                                                   description = """
-                                                           跳转的前端路由地址
-                                                           示例：/sub-system/user
-                                                           """) String path,
-                                           ToolEmitter emitter) throws TimeoutException {
+    public Mono<ToolResultBlock> routeNavigation(@ToolParam(name = "path",
+            description = """
+                    跳转的前端路由地址
+                    示例：/sub-system/user
+                    """) String path) {
 
-        return webToolUtils
-                .webExecuteTool(emitter, "RouteNavigation", Map.of("path", path));
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils
+                    .webExecuteTool(wrapper, "RouteNavigation", Map.of("path", path)));
+        });
+
     }
 
 
@@ -78,8 +90,11 @@ public class WebTool {
             - [index]{tags}元素： []标识的内容为元素索引编号，用该编号定位操作元素,必有 ，{}包裹的为元素标签，用户对元素的额外功能标注，多个,分割，由前端生成，可能不包含
               示例：  普通元素：[0]<button>提交</button>  带标签的元素：[0]{approval}<button>提交</button>
             """)
-    public ToolResultBlock getPageState(ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "GetPageState", Map.of());
+    public Mono<ToolResultBlock> getPageState() {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "GetPageState", Map.of()));
+        });
     }
 
     // ==================== 操作界面 ====================
@@ -94,12 +109,15 @@ public class WebTool {
             - index：元素索引编号
             - operationDescription：本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户
             - tags：元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可""")
-    public ToolResultBlock clickElement(
+    public Mono<ToolResultBlock> clickElement(
             @ToolParam(name = "index", description = "要点击的元素索引编号，从GetPageState结果中获取") Integer index,
             @ToolParam(name = "operationDescription", description = "本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户") String operationDescription,
-            @ToolParam(name = "tags", description = "元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可", required = false) String tags,
-            ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "ClickElement", Map.of("index", index));
+            @ToolParam(name = "tags", description = "元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可", required = false) String tags) {
+
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "ClickElement", Map.of("index", index)));
+        });
     }
 
     @Tool(name = "InputText", description = """
@@ -107,11 +125,13 @@ public class WebTool {
             需要先调用GetPageState获取输入框的元素索引。
             工具使用前提：界面操作模式必须是`AI操作模式`。
             参数：index - 输入框元素索引编号，text - 要输入的文本内容""")
-    public ToolResultBlock inputText(
+    public Mono<ToolResultBlock> inputText(
             @ToolParam(name = "index", description = "输入框元素索引编号") Integer index,
-            @ToolParam(name = "text", description = "要输入的文本内容") String text,
-            ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "InputText", Map.of("index", index, "text", text));
+            @ToolParam(name = "text", description = "要输入的文本内容") String text) {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "InputText", Map.of("index", index, "text", text)));
+        });
     }
 
     @Tool(name = "SelectOption", description = """
@@ -119,11 +139,13 @@ public class WebTool {
             需要先调用GetPageState获取select元素的索引。
             工具使用前提：界面操作模式必须是`AI操作模式`。
             参数：index - select元素索引编号，text - 要选择的选项文本""")
-    public ToolResultBlock selectOption(
+    public Mono<ToolResultBlock> selectOption(
             @ToolParam(name = "index", description = "select元素索引编号") Integer index,
-            @ToolParam(name = "text", description = "要选择的选项文本") String text,
-            ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "SelectOption", Map.of("index", index, "text", text));
+            @ToolParam(name = "text", description = "要选择的选项文本") String text) {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "SelectOption", Map.of("index", index, "text", text)));
+        });
     }
 
     @Tool(name = "HoverElement", description = """
@@ -136,22 +158,27 @@ public class WebTool {
             工具使用前提：界面操作模式必须是`AI操作模式`。
             悬停后请调用GetPageState查看新出现的交互元素。
             参数：index - 要悬停的元素索引编号""")
-    public ToolResultBlock hoverElement(
+    public Mono<ToolResultBlock> hoverElement(
             @ToolParam(name = "index", description = "要悬停的元素索引编号，从GetPageState结果中获取") Integer index,
-            ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "HoverElement", Map.of("index", index));
+            ToolEmitter emitter) {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "HoverElement", Map.of("index", index)));
+        });
     }
 
     @Tool(name = "ScrollPage", description = """
             滚动页面或页面内的可滚动元素。
             工具使用前提：界面操作模式必须是`AI操作模式`。
             参数：direction - 滚动方向(up/down/left/right)，amount - 滚动量(1=一页，像素值=精确滚动)""")
-    public ToolResultBlock scrollPage(
+    public Mono<ToolResultBlock> scrollPage(
             @ToolParam(name = "direction", description = "滚动方向：up/down/left/right") String direction,
-            @ToolParam(name = "amount", description = "滚动量：1表示一页，数字像素值表示精确滚动") Integer amount,
-            ToolEmitter emitter) throws TimeoutException {
-        return webToolUtils.webExecuteTool(emitter, "ScrollPage",
-                Map.of("direction", direction, "amount", amount));
+            @ToolParam(name = "amount", description = "滚动量：1表示一页，数字像素值表示精确滚动") Integer amount) {
+        return Mono.deferContextual(ctx -> {
+            AIRunnerInstanceWrapper wrapper = ctx.get(AIConstants.Param.EMITTER_WRAPPER);
+            return Mono.just(webToolUtils.webExecuteTool(wrapper, "ScrollPage",
+                    Map.of("direction", direction, "amount", amount)));
+        });
     }
 
 

@@ -87,6 +87,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
                 value={value.minio.accessKey}
                 onChange={(e) => updateField('minio.accessKey', e.target.value)}
                 placeholder="minioadmin"
+                autoComplete="off"
                 status={isRequired && !value.minio.accessKey ? 'error' : undefined}
               />
             </Form.Item>
@@ -95,6 +96,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
                 value={value.minio.secretKey}
                 onChange={(e) => updateField('minio.secretKey', e.target.value)}
                 placeholder="minioadmin"
+                autoComplete="new-password"
                 status={isRequired && !value.minio.secretKey ? 'error' : undefined}
               />
             </Form.Item>
@@ -116,6 +118,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
                 value={value.oss.accessKey}
                 onChange={(e) => updateField('oss.accessKey', e.target.value)}
                 placeholder="LTAI5t..."
+                autoComplete="off"
                 status={isRequired && !value.oss.accessKey ? 'error' : undefined}
               />
             </Form.Item>
@@ -124,6 +127,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
                 value={value.oss.secretKey}
                 onChange={(e) => updateField('oss.secretKey', e.target.value)}
                 placeholder="请输入 Secret"
+                autoComplete="new-password"
                 status={isRequired && !value.oss.secretKey ? 'error' : undefined}
               />
             </Form.Item>
@@ -153,6 +157,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
                 value={value.cos.accessKey}
                 onChange={(e) => updateField('cos.accessKey', e.target.value)}
                 placeholder="AKID..."
+                autoComplete="off"
                 status={isRequired && !value.cos.accessKey ? 'error' : undefined}
               />
             </Form.Item>
@@ -161,6 +166,7 @@ const ServerConfigForm: React.FC<ServerConfigFormProps> = ({ value, onChange }) 
                 value={value.cos.secretKey}
                 onChange={(e) => updateField('cos.secretKey', e.target.value)}
                 placeholder="请输入 Secret Key"
+                autoComplete="new-password"
                 status={isRequired && !value.cos.secretKey ? 'error' : undefined}
               />
             </Form.Item>
