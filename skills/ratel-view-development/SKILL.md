@@ -1,5 +1,5 @@
 ---
-name: gwsu-view-development
+name: ratel-view-development
 description: Ratel前端项目开发规范与指南，包含目录结构、命名规范、组件开发、微前端配置等，只要涉及到前端代码开发必读。
 type: skill
 ---
@@ -72,13 +72,6 @@ const { upload, progress, abort } = useFileUpload({ scope: FileScope.PROTECTED }
 // 下载（Hook方式）
 const { download, progress, abort } = useFileDownload();
 ```
-
-### API 路由前缀规则
-
-| 后端模块 | prefix | API 路径示例 |
-|---------|--------|------------|
-| business-security | `security` | `/security/menu/routes/1` |
-| business-system | `system` | `/system/manager/page` |
 
 ### 字典与配置批量获取
 
