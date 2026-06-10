@@ -26,10 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 字典服务实现
@@ -80,7 +82,7 @@ public class SecurityDictServiceImpl extends ServiceImpl<SecurityDictMapper, Sec
                                 .eq(SecurityDictValue::getDeleted, false)
                                 .orderByAsc(SecurityDictValue::getSort)
                 ).stream()
-                .map(SecurityDictValue::toVo).toList();
+                .map(SecurityDictValue::toVo).collect(Collectors.toList());
     }
 
     @CacheEvict(key = "#dto.dictKey")

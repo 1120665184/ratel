@@ -3,3 +3,4 @@ export * from './user';
 export * from './dict';
 export * from './config';
 export * from './file';
+export * from './workspace';

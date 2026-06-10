@@ -1,5 +1,6 @@
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import UserDropdown from '@/components/UserDropdown';
+import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import { CopilotChatPanel } from '@/components/AIChat/CopilotChatPanel';
 import AssistantOperationArea from '@/components/AssistantOperationArea';
 import { RouteTracker } from '@/components/RouteTracker';
@@ -200,6 +201,7 @@ function MainLayoutContent({
               )}
             </div>
           )}
+          <WorkspaceSwitcher />
           <ThemeSwitcher />
           <UserDropdown />
         </div>

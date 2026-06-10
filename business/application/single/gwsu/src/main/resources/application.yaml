@@ -41,11 +41,8 @@ org.quyq:
       - /system/auth/**
     auth-allow-urls:
       - /modules/list
+      - /system/workspace/**
 
-management:
-  tracing:
-    sampling:
-      probability: 1.0
 
 logging:
   level:

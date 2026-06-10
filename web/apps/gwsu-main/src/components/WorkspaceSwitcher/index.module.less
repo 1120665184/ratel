@@ -1,0 +1,84 @@
+.switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-right: 4px;
+
+  &:hover {
+    background: oklch(96% 0.015 var(--brand-hue, 220));
+  }
+
+  .icon {
+    font-size: 16px;
+    color: var(--text-secondary-color, #6b7280);
+    transition: color 0.2s ease;
+  }
+
+  &:hover .icon {
+    color: var(--primary-color, #1a5fb4);
+  }
+}
+
+.workspaceLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary-color, #6b7280);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+
+  .switcher:hover & {
+    color: var(--text-color, #374151);
+  }
+}
+
+.workspaceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  min-width: 160px;
+}
+
+.workspaceName {
+  font-size: 14px;
+  color: var(--text-color, #1a1a2e);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.checkIcon {
+  color: var(--primary-color, #1a5fb4);
+  font-size: 12px;
+}
+
+.dropdown {
+  :global {
+    .ant-dropdown-menu {
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.05),
+        0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    }
+
+    .ant-dropdown-menu-item {
+      border-radius: 8px;
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: oklch(97% 0.01 var(--brand-hue, 220));
+      }
+    }
+  }
+}
