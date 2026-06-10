@@ -54,7 +54,7 @@ check_docker_running() {
 }
 
 printf "============================================\n"
-printf "  GWSU 单机版 Docker 启动脚本\n"
+printf "  Ratel 单机版 Docker 启动脚本\n"
 printf "============================================\n"
 printf "\n"
 
@@ -125,6 +125,6 @@ $COMPOSE_CMD up -d --build
 
 printf "\n"
 info "============================================"
-info "  GWSU 单机版启动完成！"
+info "  Ratel 单机版启动完成！"
 info "  访问地址: http://localhost:${NGINX_PORT:-80}"
 info "============================================"

@@ -6,7 +6,7 @@ set "SCRIPT_DIR=%~dp0"
 set "PROJECT_ROOT=%SCRIPT_DIR%.."
 
 echo ============================================
-echo   GWSU 单机版 Docker 启动脚本
+echo   Ratel 单机版 Docker 启动脚本
 echo ============================================
 echo.
 
@@ -138,7 +138,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [INFO] ============================================
-echo [INFO]   GWSU 单机版启动完成！
+echo [INFO]   Ratel 单机版启动完成！
 echo [INFO]   访问地址: http://localhost:80
 echo [INFO] ============================================
 

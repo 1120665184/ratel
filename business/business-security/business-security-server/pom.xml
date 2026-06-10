@@ -43,6 +43,12 @@
             <artifactId>common-ai</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>${playwright.version}</version>
+        </dependency>
+
     </dependencies>
 
 </project>

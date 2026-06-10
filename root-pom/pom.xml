@@ -52,6 +52,7 @@
         <oss.version>3.1.0</oss.version>
         <!-- AWS SDK for Java S3 存储版本 -->
         <aws.version>1.12.425</aws.version>
+        <playwright.version>1.60.0</playwright.version>
 
     </properties>
 
