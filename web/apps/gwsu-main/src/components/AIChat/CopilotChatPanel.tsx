@@ -1,6 +1,6 @@
-import { CopilotChat } from '@copilotkit/react-ui';
+import { CopilotChat } from '@copilotkit/react-core/v2';
 import { useAgent } from '@copilotkit/react-core/v2';
-import '@copilotkit/react-ui/styles.css';
+import '@copilotkit/react-core/v2/styles.css';
 import { App, Button, Tooltip } from 'antd';
 import { RobotOutlined, CompressOutlined, DragOutlined, CloseOutlined, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
@@ -54,7 +54,7 @@ export function CopilotChatPanel({
   const { message } = App.useApp();
 
   // 根据展示配置动态创建消息渲染组件
-  const CustomRenderMessage = useMemo(() => createCustomRenderMessage(viewConfig), [viewConfig]);
+  const CustomMessageView = useMemo(() => createCustomRenderMessage(viewConfig), [viewConfig]);
 
   // CopilotChat 组件容器 ref，用于精确控制其内部输入框
   const copilotChatRef = useRef<HTMLDivElement>(null);
@@ -302,14 +302,15 @@ export function CopilotChatPanel({
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <div ref={copilotChatRef} style={{ display: 'contents' }}>
         <CopilotChat
+          agentId="brain"
           labels={{
             title: '智能助手',
             placeholder: '输入消息...',
             initial: '我是你的平台助手，有什么问题可以问我哦^_^',
           }}
           className={styles.copilotChat}
-          RenderMessage={CustomRenderMessage}
-          onStopGeneration={() => {
+          messageView={CustomMessageView}
+          onStop={() => {
             agent.abortRun();
           }}
         />

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import * as echarts from 'echarts/core';
 import { GraphChart } from 'echarts/charts';
 import {
@@ -232,10 +232,10 @@ function buildFlowOption(props: FlowChartProps): EChartsOption {
 const FlowChart: React.FC<BaseComponentProps<FlowChartProps>> = ({ props }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const direction = props.direction === 'horizontal' ? 'horizontal' : 'vertical';
 
-  // 根据节点数量动态计算高度
   const { maxMain, maxCross } = useMemo(
     () => calculateNodePositions(props.nodes || [], props.edges || [], direction),
     [props.nodes, props.edges, direction],
@@ -246,6 +246,13 @@ const FlowChart: React.FC<BaseComponentProps<FlowChartProps>> = ({ props }) => {
     ? { height: Math.max(300, maxMain + 100) }
     : { height: Math.max(300, maxCross + 160), minHeight: 300 };
 
+  const handleResize = useCallback(() => {
+    if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+    resizeTimerRef.current = setTimeout(() => {
+      instanceRef.current?.resize();
+    }, 100);
+  }, []);
+
   useEffect(() => {
     if (!chartRef.current) return;
 
@@ -253,13 +260,16 @@ const FlowChart: React.FC<BaseComponentProps<FlowChartProps>> = ({ props }) => {
     instanceRef.current = instance;
     instance.setOption(buildFlowOption(props));
 
-    const handleResize = () => instance.resize();
-    window.addEventListener('resize', handleResize);
+    const observer = new ResizeObserver(() => {
+      handleResize();
+    });
+    observer.observe(chartRef.current);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      observer.disconnect();
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
     };
-  }, [props]);
+  }, [props, handleResize]);
 
   useEffect(() => {
     return () => {

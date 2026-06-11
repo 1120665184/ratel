@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts/core';
 import { BarChart, LineChart, PieChart } from 'echarts/charts';
 import {
@@ -81,6 +81,14 @@ function buildOption(props: ChartProps): EChartsOption {
 const Chart: React.FC<BaseComponentProps<ChartProps>> = ({ props }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleResize = useCallback(() => {
+    if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+    resizeTimerRef.current = setTimeout(() => {
+      instanceRef.current?.resize();
+    }, 100);
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -89,13 +97,16 @@ const Chart: React.FC<BaseComponentProps<ChartProps>> = ({ props }) => {
     instanceRef.current = instance;
     instance.setOption(buildOption(props));
 
-    const handleResize = () => instance.resize();
-    window.addEventListener('resize', handleResize);
+    const observer = new ResizeObserver(() => {
+      handleResize();
+    });
+    observer.observe(chartRef.current);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      observer.disconnect();
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
     };
-  }, [props]);
+  }, [props, handleResize]);
 
   useEffect(() => {
     return () => {
