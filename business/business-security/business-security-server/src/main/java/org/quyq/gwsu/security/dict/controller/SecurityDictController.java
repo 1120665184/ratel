@@ -70,6 +70,7 @@ public class SecurityDictController implements IDictInfoClientApi {
     @Operation(summary = "批量获取字典数据")
     @PostMapping("dictValue/getBatch")
     @LoginAllowAccess
+    @TableModelPermission
     @Override
     public R<Map<String, List<DictValueVO>>> getDictValueByDictKeyBatch(@RequestBody List<String> dictKeys) {
         if (CollectionUtils.isEmpty(dictKeys)) {

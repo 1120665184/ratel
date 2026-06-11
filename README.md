@@ -1,7 +1,7 @@
 # Ratel
 
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.6-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 **以 LLM 为中心的管理系统智能体** — 让 LLM 成为真正的大脑而非助手，LLM 可以干权限范围之内的所有事。
@@ -138,22 +138,22 @@ ratel/
 
 ### 后端
 
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| Java | 25 | 编程语言 |
-| Spring Boot | 4.0.3 | 基础框架 |
-| Spring Cloud | 2025.1.1 | 微服务组件 |
+| 技术 | 版本         | 说明 |
+|------|------------|------|
+| Java | 25         | 编程语言 |
+| Spring Boot | 4.0.6      | 基础框架 |
+| Spring Cloud | 2025.1.1   | 微服务组件 |
 | Spring Cloud Alibaba | 2025.1.0.0 | Nacos 注册配置中心 |
-| Spring AI Alibaba | 1.1.2.2 | LLM 集成 |
-| AgentScope | 1.1.0-RC2 | Agent 框架（ReAct/HarnessAgent/Skill/Toolkit） |
-| MyBatis Plus | 3.5.16 | ORM 框架 |
-| Redisson | 4.3.0 | Redis 客户端 |
-| jCasbin | 1.99.0 | ABAC 权限控制引擎 |
-| Sa-Token | 1.45.0 | 认证框架 |
-| Resilience4j | 2.4.0 | 熔断降级 |
-| JSQLParser | 5.2 | SQL 解析（数据权限拦截） |
-| Apache Tika | 3.3.1 | 文件内容解析 |
-| Hutool | 5.8.44 | 工具库 |
+| Spring AI Alibaba | 1.1.2.2    | LLM 集成 |
+| AgentScope | 1.1.0-RC2  | Agent 框架（ReAct/HarnessAgent/Skill/Toolkit） |
+| MyBatis Plus | 3.5.16     | ORM 框架 |
+| Redisson | 4.3.0      | Redis 客户端 |
+| jCasbin | 1.99.0     | ABAC 权限控制引擎 |
+| Sa-Token | 1.45.0     | 认证框架 |
+| Resilience4j | 2.4.0      | 熔断降级 |
+| JSQLParser | 5.2        | SQL 解析（数据权限拦截） |
+| Apache Tika | 3.3.1      | 文件内容解析 |
+| Hutool | 5.8.44     | 工具库 |
 
 ### 前端
 

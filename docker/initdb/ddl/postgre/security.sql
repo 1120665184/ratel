@@ -1013,7 +1013,7 @@ CREATE TABLE security_business_function_table
 (
     id              VARCHAR(24) PRIMARY KEY,
     business_id     VARCHAR(24)  NOT NULL,
-    table_model_id  VARCHAR(24)  NOT NULL,
+    table_model_id  VARCHAR(64)  NOT NULL,
     sort_order      INT          NOT NULL DEFAULT 0,
     tenant_id       VARCHAR(50)            DEFAULT NULL,
     create_op       VARCHAR(50)            DEFAULT NULL,

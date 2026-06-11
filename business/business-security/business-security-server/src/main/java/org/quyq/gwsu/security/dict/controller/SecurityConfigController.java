@@ -41,6 +41,7 @@ public class SecurityConfigController implements IConfigInfoClientApi {
     @Operation(summary = "根据键查询配置")
     @PostMapping("key/get")
     @LoginAllowAccess
+    @TableModelPermission
     @Override
     public R<Map<String, ConfigVO>> getByKeys(@RequestBody List<String> keys) {
         return R.ok(configService.getByKeys(keys));

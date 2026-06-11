@@ -623,7 +623,7 @@ CREATE TABLE security_business_function_table
 (
     id              VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     business_id     VARCHAR(24)  NOT NULL              COMMENT '业务功能ID',
-    table_model_id  VARCHAR(24)  NOT NULL              COMMENT '表模型ID',
+    table_model_id  VARCHAR(64)  NOT NULL              COMMENT '表模型ID',
     sort_order      INT          NOT NULL DEFAULT 0    COMMENT '排序号',
     tenant_id       VARCHAR(50)            DEFAULT NULL COMMENT '租户ID',
     create_op       VARCHAR(50)            DEFAULT NULL COMMENT '创建人',

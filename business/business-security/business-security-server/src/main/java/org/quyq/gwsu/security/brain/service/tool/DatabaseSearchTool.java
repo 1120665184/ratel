@@ -80,7 +80,6 @@ public class DatabaseSearchTool {
             DatabaseSearchAgent databaseSearchAgent) {
         String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
         return Mono.defer(() ->{
-            log.info("这是输出测试");
             // 获取表信息
             TableModelDetailVO tableDetail = tableModelTableService.getTableDetail(modelPrefix, dataSource, tableName);
             if (tableDetail == null) {
