@@ -232,7 +232,10 @@ const BusinessFunctionTab: React.FC = () => {
 
       <div className={styles.tableWrapper}>
         <div className={styles.tableHeader}>
-          <span className={styles.tableTitle}>业务功能列表</span>
+          <div className={styles.tableTitleArea}>
+            <span className={styles.tableTitle}>业务功能列表</span>
+            <span className={styles.tableHint}>添加业务功能的描述可以提高助手的准确率</span>
+          </div>
           <Space>
             <AuthGate buttonKey={PERM_BF_ADD}>
               <Button

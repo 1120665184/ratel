@@ -222,7 +222,7 @@ const TableModelTab: React.FC = () => {
   ];
 
   return (
-    <>
+    <div className={styles.tableModelTab}>
       <div className={styles.searchBar}>
         <Form form={searchForm} layout="inline" component={false}>
           <div className={styles.searchItem}>
@@ -386,7 +386,7 @@ const TableModelTab: React.FC = () => {
         }}
         onSuccess={refreshList}
       />
-    </>
+    </div>
   );
 };
 

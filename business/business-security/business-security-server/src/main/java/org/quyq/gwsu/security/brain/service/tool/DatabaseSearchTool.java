@@ -242,7 +242,7 @@ public class DatabaseSearchTool {
             }
             List<Map<String, Object>> queryResult = result.data();
             String finSql = result.executionSql();
-
+            log.debug("模型执行sql:{}" , finSql);
             List<String> desensitizedFields = Collections.emptyList();
 
             StringBuilder dataStr = new StringBuilder("查询无数据");
