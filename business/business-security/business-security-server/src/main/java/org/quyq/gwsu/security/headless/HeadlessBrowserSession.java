@@ -120,7 +120,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      */
     public void approve(HeadlessApprovalHandler.ApprovalResult result) {
         if (approvalFuture != null) {
-            approvalFuture.complete(result != null ? result : HeadlessApprovalHandler.ApprovalResult.approved());
+            approvalFuture.complete(result != null ? result : HeadlessApprovalHandler.ApprovalResult.accept());
         }
     }
 
@@ -129,7 +129,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      */
     public void reject(String reason) {
         if (approvalFuture != null) {
-            approvalFuture.complete(HeadlessApprovalHandler.ApprovalResult.rejected(reason));
+            approvalFuture.complete(HeadlessApprovalHandler.ApprovalResult.reject(reason));
         }
     }
 

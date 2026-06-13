@@ -33,11 +33,11 @@ public interface HeadlessApprovalHandler {
      * 审批结果
      */
     record ApprovalResult(boolean approved, String rejectReason) {
-        public static ApprovalResult approved() {
+        public static ApprovalResult accept() {
             return new ApprovalResult(true, null);
         }
 
-        public static ApprovalResult rejected(String reason) {
+        public static ApprovalResult reject(String reason) {
             return new ApprovalResult(false, reason);
         }
     }
