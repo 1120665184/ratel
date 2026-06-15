@@ -1,0 +1,84 @@
+.container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa;
+}
+
+.card {
+  width: 360px;
+  padding: 32px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+.statusText {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.errorText {
+  font-size: 14px;
+  color: #e94560;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.loadingDots {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.dot {
+  font-size: 8px;
+  color: #e94560;
+  animation: loadingDot 1.4s infinite ease-in-out both;
+
+  &:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+}
+
+@keyframes loadingDot {
+  0%, 80%, 100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.successIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e94560;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.checkmark {
+  color: #ffffff;
+  font-size: 20px;
+}

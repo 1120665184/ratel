@@ -48,5 +48,8 @@ export function createCustomRenderMessage(viewConfig: ViewConfig = DEFAULT_VIEW_
     );
   }
 
+  // 保留 CopilotChatMessageView 的静态属性（如 Cursor），满足 messageView 类型要求
+  CustomMessageView.Cursor = CopilotChatMessageView.Cursor;
+
   return CustomMessageView;
 }

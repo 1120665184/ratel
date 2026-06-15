@@ -9,6 +9,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.strategy.SaStrategy;
 import cn.hutool.jwt.JWTUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.authentication.login.interceptor.LoginInterceptor;
 import org.quyq.gwsu.common.authentication.login.interceptor.LoginInterceptorUtils;
 import org.quyq.gwsu.common.authentication.login.logic.CommonLogic;
@@ -19,6 +20,8 @@ import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.server.PathContainer;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
@@ -34,6 +37,8 @@ import java.util.Map;
  * @date 2026/4/7
  * @description
  */
+@Slf4j
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class InitRunner implements ApplicationRunner {
 
     @Resource
@@ -107,6 +112,7 @@ public class InitRunner implements ApplicationRunner {
                                 SecurityConstants.JWT.LOGIN_CREATE_MILLIS_KEY, String.valueOf(System.currentTimeMillis())),
                         SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))
         ;
+
     }
 
 }

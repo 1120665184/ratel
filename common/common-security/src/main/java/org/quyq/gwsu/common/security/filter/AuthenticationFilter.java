@@ -1,6 +1,7 @@
 package org.quyq.gwsu.common.security.filter;
 
 
+import cn.hutool.jwt.JWTException;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -61,7 +62,14 @@ public class AuthenticationFilter implements RequestResponseProcessor {
                 return Mono.just(true);
             }
 
-            Optional<Subject<Visitor>> subject = securityUtils.getSubject(getToken(context));
+           // Optional<Subject<Visitor>> subject = securityUtils.getSubject(getToken(context));
+            Optional<Subject<Visitor>> subject;
+            try {
+                subject = securityUtils.getSubject(getToken(context));
+            }catch (JWTException e){
+                String token = getToken(context);
+                throw new SecurityException(CommonErrorCode.E03001);
+            }
             if (subject.isEmpty()) {
                 throw new SecurityException(CommonErrorCode.E03001);
             }
@@ -126,6 +134,7 @@ public class AuthenticationFilter implements RequestResponseProcessor {
         if (shouldIgnoreAuthentication(context.getPath())) {
             return false;
         }
+
 
         Optional<Subject<Visitor>> subject = securityUtils.getSubject(getToken(context));
         if (subject.isEmpty()) {

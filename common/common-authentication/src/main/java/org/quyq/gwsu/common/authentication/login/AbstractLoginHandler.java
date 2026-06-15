@@ -6,6 +6,7 @@ import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.authentication.constants.AuthenticationConstants;
@@ -35,6 +36,7 @@ import java.util.Optional;
  * @date 2026/4/7
  * @description
  */
+@Slf4j
 public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends UserInfo> implements LoginHandler<T> {
 
     /**
@@ -77,6 +79,12 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
 
                         loginVO.setToken(tokenInfo.tokenValue);
                         loginVO.setExpires(tokenInfo.tokenTimeout);
+
+                        // 记录token格式，JWT格式包含两个"."分隔符
+                        log.info("[Login] token生成: loginType={}, userId={}, tokenFormat={}, tokenValue={}",
+                                type, loginVO.getUserId(),
+                                tokenInfo.tokenValue != null && tokenInfo.tokenValue.chars().filter(c -> c == '.').count() == 2 ? "JWT" : "UUID",
+                                tokenInfo.tokenValue);
 
                         putSessionData(auth, subject);
 

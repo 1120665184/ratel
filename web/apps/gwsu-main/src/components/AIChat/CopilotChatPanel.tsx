@@ -1,4 +1,4 @@
-import { CopilotChat } from '@copilotkit/react-core/v2';
+import { CopilotChat, CopilotChatConfigurationProvider } from '@copilotkit/react-core/v2';
 import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-core/v2/styles.css';
 import { App, Button, Tooltip } from 'antd';
@@ -17,6 +17,7 @@ import { createCustomRenderMessage } from './CustomRenderMessage';
 import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
 import { dispatchHumanApproval, clearHumanApproval, onHumanApproval } from '@/services/human-approval';
 import { dispatchAskUserQuestion, clearAskUserQuestion, onAskUserQuestion } from '@/services/ask-user-question';
+import { useHeadlessStore } from '@gwsu/core';
 import styles from './copilot-override.module.less';
 
 interface CopilotChatPanelProps {
@@ -49,7 +50,7 @@ export function CopilotChatPanel({
   onDraggable,
   onHide,
 }: CopilotChatPanelProps) {
-  const { viewMode, setViewMode, panelState, setPanelPosition, setCurrentThreadId, viewConfig } = usePanelContext();
+  const { viewMode, setViewMode, panelState, setPanelPosition, currentThreadId, setCurrentThreadId, viewConfig } = usePanelContext();
   const { agent } = useAgent({ agentId: 'brain' });
   const { message } = App.useApp();
 
@@ -152,6 +153,8 @@ export function CopilotChatPanel({
     agent.setMessages([]);
     clearHumanApproval();
     clearAskUserQuestion();
+    // 清除 headlessStore 中的 threadId
+    useHeadlessStore.getState().clearThreadId();
     // 生成新的 threadId，让后端创建新的会话
     const newThreadId = crypto.randomUUID();
     setCurrentThreadId(newThreadId);
@@ -164,9 +167,6 @@ export function CopilotChatPanel({
       clearHumanApproval();
       clearAskUserQuestion();
       const messages = await getSessionMessages(sessionId);
-      agent.setMessages([]);
-      agent.threadId = sessionId;
-      setCurrentThreadId(sessionId);
       const formattedMessages = messages.map((msg: BrainMessage) => ({
         id: msg.id,
         role: msg.role,
@@ -175,7 +175,11 @@ export function CopilotChatPanel({
         ...(msg.toolCallId ? { toolCallId: msg.toolCallId } : {}),
         ...(msg.encryptedValue ? { encryptedValue: msg.encryptedValue } : {}),
       }));
+      // 所有 agent 状态同步设置，再触发重渲染，确保重渲染时消息已就绪
+      agent.setMessages([]);
+      agent.threadId = sessionId;
       agent.setMessages(formattedMessages as Parameters<typeof agent.setMessages>[0]);
+      setCurrentThreadId(sessionId);
 
       // 检查是否需要恢复 AskUserQuestion 弹框
       // 最新一条消息如果是 AskUserQuestion 工具调用且无对应结果，则恢复弹框
@@ -213,11 +217,37 @@ export function CopilotChatPanel({
       } catch (e) {
         console.warn('[HumanApproval] 查询审批状态失败:', e);
       }
+
+      // 会话恢复完成，通知后端可以发送消息
+      document.body.setAttribute('data-headless-chat-ready', 'true');
     } catch (error) {
       console.error('加载会话消息失败:', error);
       message.error('加载会话消息失败');
+      // 即使失败也标记就绪，避免后端一直等待
+      document.body.setAttribute('data-headless-chat-ready', 'true');
     }
   };
+
+  // 自动加载 headlessStore 中的历史聊天记录
+  const headlessThreadId = useHeadlessStore((s) => s.threadId);
+  const hasRestoredRef = useRef(false);
+  const handleLoadSessionRef = useRef(handleLoadSession);
+  handleLoadSessionRef.current = handleLoadSession;
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+
+    if (headlessThreadId) {
+      hasRestoredRef.current = true;
+      // 延迟等待 CopilotChat 初始化完成后再恢复历史消息
+      const timer = setTimeout(() => {
+        handleLoadSessionRef.current(headlessThreadId);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      // 无历史会话，直接标记就绪
+      document.body.setAttribute('data-headless-chat-ready', 'true');
+    }
+  }, [headlessThreadId]);
 
   // 拖拽处理
   const handleDragStart = useCallback(() => {
@@ -233,7 +263,9 @@ export function CopilotChatPanel({
   const renderChatContent = () => (
     <>
       {/* 自定义 Header - 包含拖动和关闭按钮 */}
-      <div className={`${styles.chatHeader} ${isDragging ? styles.dragging : ''}`}>
+      <div
+        className={`${styles.chatHeader} ${isDragging ? styles.dragging : ''}`}
+      >
         <div className={styles.chatHeaderTitle}>
           <RobotOutlined />
           <span>智能助手</span>
@@ -259,8 +291,8 @@ export function CopilotChatPanel({
               />
             </Tooltip>
           )}
-          {viewConfig.enableDragMode && (
-            isDraggableMode ? (
+          {viewConfig.enableDragMode &&
+            (isDraggableMode ? (
               <Tooltip title="固定模式" zIndex={1029}>
                 <Button
                   type="text"
@@ -280,8 +312,7 @@ export function CopilotChatPanel({
                   icon={<DragOutlined />}
                 />
               </Tooltip>
-            )
-          )}
+            ))}
           <Tooltip title="收起面板" zIndex={1029}>
             <Button
               type="text"
@@ -301,19 +332,24 @@ export function CopilotChatPanel({
       <AskUserQuestionBar />
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <div ref={copilotChatRef} style={{ display: 'contents' }}>
-        <CopilotChat
-          agentId="brain"
-          labels={{
-            title: '智能助手',
-            placeholder: '输入消息...',
-            initial: '我是你的平台助手，有什么问题可以问我哦^_^',
-          }}
-          className={styles.copilotChat}
-          messageView={CustomMessageView}
-          onStop={() => {
-            agent.abortRun();
-          }}
-        />
+        <CopilotChatConfigurationProvider
+          threadId={currentThreadId ?? undefined}
+          hasExplicitThreadId={false}
+        >
+          <CopilotChat
+            agentId="brain"
+            labels={{
+              welcomeMessageText: '智能助手',
+              chatInputPlaceholder: '输入消息...',
+              chatDisclaimerText: '我是你的平台助手，有什么问题可以问我哦^_^',
+            }}
+            className={styles.copilotChat}
+            messageView={CustomMessageView}
+            onStop={() => {
+              agent.abortRun();
+            }}
+          />
+        </CopilotChatConfigurationProvider>
       </div>
     </>
   );

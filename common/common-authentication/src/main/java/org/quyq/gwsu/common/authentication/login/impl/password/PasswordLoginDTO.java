@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.authentication.login.impl;
+package org.quyq.gwsu.common.authentication.login.impl.password;
 
 
 import lombok.Data;

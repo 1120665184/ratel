@@ -2,8 +2,8 @@ package org.quyq.gwsu.system.login;
 
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.authentication.exception.AuthException;
-import org.quyq.gwsu.common.authentication.login.impl.PasswordLoginDTO;
-import org.quyq.gwsu.common.authentication.login.impl.PasswordLoginHandler;
+import org.quyq.gwsu.common.authentication.login.impl.password.PasswordLoginDTO;
+import org.quyq.gwsu.common.authentication.login.impl.password.PasswordLoginHandler;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
 import org.quyq.gwsu.system.errcode.SystemErrorCode;
 import org.quyq.gwsu.system.manager.domain.SysAccount;

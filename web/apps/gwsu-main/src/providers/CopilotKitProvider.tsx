@@ -44,7 +44,7 @@ function ToolCallRendererRegistration() {
   useRenderTool({
     name: '*',
     render: ({ name, args, status, result }) => {
-      if (!showToolCalls) return null;
+      if (!showToolCalls) return <></>;
       return <ToolCallItem name={name} args={args} status={status} result={result} />;
     },
   }, [showToolCalls]);

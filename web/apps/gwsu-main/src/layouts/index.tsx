@@ -20,6 +20,7 @@ import {
   onEvent,
   ThemeLayout,
   useThemeContext,
+  useHeadlessStore,
 } from '@gwsu/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { history, Outlet, useLocation } from 'umi';
@@ -46,13 +47,18 @@ function LayoutRouter() {
       history.replace(homePath);
     }
 
-    const successEvent = onEvent(EventType.LOGIN_SUCCESS, () => {
-      console.log('登录成功');
+    const successEvent = onEvent(EventType.LOGIN_SUCCESS, (payload) => {
+      console.log('登录成功, payload:', JSON.stringify(payload));
+      // 如果 LOGIN_SUCCESS 事件携带了 threadId，存储到 headlessStore
+      const threadId = (payload as { threadId?: string } | undefined)?.threadId;
+      if (threadId) {
+        useHeadlessStore.getState().setThreadId(threadId);
+      }
+
       history.push(homePath);
     });
 
     const expireEvent = onEvent(EventType.TOKEN_EXPIRED, () => {
-      console.log('登录失效');
       history.push(loginPath);
     });
 

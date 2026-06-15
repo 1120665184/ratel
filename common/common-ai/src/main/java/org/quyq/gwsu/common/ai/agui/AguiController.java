@@ -3,7 +3,6 @@ package org.quyq.gwsu.common.ai.agui;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
@@ -14,7 +13,6 @@ import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.session.Session;
-import io.micrometer.context.ContextExecutorService;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import lombok.*;
@@ -22,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
@@ -49,7 +48,6 @@ import reactor.util.context.Context;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * @author Quyq
@@ -78,6 +76,8 @@ public abstract class AguiController implements DisposableBean {
 
     private RedisMessageListenerContainer listenerContainer = null;
 
+    private final List<AguiEventPusher> pushers = new ArrayList<>();
+
 
     @Setter
     private Session agentSession;
@@ -87,6 +87,9 @@ public abstract class AguiController implements DisposableBean {
         return CURR_EMITTER.get(threadId);
     }
 
+    public void addPusher(AguiEventPusher pusher) {
+        pushers.add(pusher);
+    }
 
 
     @Override
@@ -254,8 +257,8 @@ public abstract class AguiController implements DisposableBean {
         SseEmitter emitter = new SseEmitter(sseTimeout);
         RunAgentInput body = request.body();
         executorService.submit(() -> {
-            sendEvent(emitter, new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
-            sendEvent(emitter, new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
+            sendEvent(null ,emitter, new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
+            sendEvent(null,emitter, new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
             emitter.complete();
         });
 
@@ -337,7 +340,7 @@ public abstract class AguiController implements DisposableBean {
                         AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter);
                         // Process request - returns both agent and event stream
                         AguiRequestProcessor.ProcessResult result =
-                                processor.process(input, headerAgentId, pathAgentId , userId);
+                                processor.process(input, headerAgentId, pathAgentId, userId);
                         CURR_EMITTER.put(threadId, wrapper);
                         // Set up callbacks for client disconnect handling
                         emitter.onCompletion(
@@ -369,20 +372,19 @@ public abstract class AguiController implements DisposableBean {
                                         .contextCapture()
                                         .contextWrite(Context.of(
                                                 AIConstants.Param.THREAD_ID, threadId
-                                                , AIConstants.Param.EMITTER_WRAPPER , wrapper
+                                                , AIConstants.Param.EMITTER_WRAPPER, wrapper
                                                 , HeadersContextThreadLocalAccessor.REACTOR_CONTEXT, capturedHeaders
-                                                , ObservationThreadLocalAccessor.KEY , observation
+                                                , ObservationThreadLocalAccessor.KEY, observation
                                         ))
                                         .subscribe(
-                                                event -> sendEvent(emitter, event),
+                                                event -> sendEvent(input, emitter, event),
                                                 error -> {
                                                     log.error(
                                                             "Error during AG-UI run: {}",
                                                             error.getMessage());
                                                     sendErrorAndComplete(
+                                                            input,
                                                             emitter,
-                                                            threadId,
-                                                            runId,
                                                             error.getMessage());
                                                 },
                                                 () -> {
@@ -397,35 +399,39 @@ public abstract class AguiController implements DisposableBean {
 
                     } catch (AguiException.AgentNotFoundException e) {
                         log.error("Agent not found: {}", e.getMessage());
-                        sendErrorAndComplete(emitter, threadId, runId, e.getMessage());
+                        sendErrorAndComplete(input, emitter, e.getMessage());
                     } catch (Exception e) {
                         log.error("Error processing AG-UI request: {}", e.getMessage());
-                        sendErrorAndComplete(emitter, threadId, runId, e.getMessage());
+                        sendErrorAndComplete(input, emitter, e.getMessage());
                     }
                 });
 
         return emitter;
     }
 
-    private void sendEvent(SseEmitter emitter, AguiEvent event) {
+    private void sendEvent(RunAgentInput param, SseEmitter emitter, AguiEvent event) {
         try {
             String jsonData = encoder.encodeToJson(event);
             emitter.send(SseEmitter.event().data(jsonData, MediaType.APPLICATION_JSON));
+            pushEvent(param, event);
         } catch (IOException e) {
             log.debug("Failed to send SSE event: {}", e.getMessage());
         }
     }
 
     private void sendErrorAndComplete(
-            SseEmitter emitter, String threadId, String runId, String errorMessage) {
+            RunAgentInput param, SseEmitter emitter, String errorMessage) {
+        AguiEvent.Raw errorEvent = new AguiEvent.Raw(param.getThreadId(), param.getRunId(), Map.of("error", errorMessage));
+        AguiEvent.RunFinished finishEvent = new AguiEvent.RunFinished(param.getThreadId(), param.getRunId());
         try {
             String errorJson =
-                    encoder.encodeToJson(
-                            new AguiEvent.Raw(threadId, runId, Map.of("error", errorMessage)));
-            String finishJson = encoder.encodeToJson(new AguiEvent.RunFinished(threadId, runId));
+                    encoder.encodeToJson(errorEvent);
+            String finishJson = encoder.encodeToJson(finishEvent);
             emitter.send(SseEmitter.event().data(errorJson, MediaType.APPLICATION_JSON));
             emitter.send(SseEmitter.event().data(finishJson, MediaType.APPLICATION_JSON));
             emitter.complete();
+            pushEvent(param, errorEvent);
+            pushEvent(param, finishEvent);
         } catch (IOException e) {
             log.debug("Failed to send error event: {}", e.getMessage());
             try {
@@ -434,6 +440,15 @@ public abstract class AguiController implements DisposableBean {
                 log.debug("Failed to complete emitter with error: {}", ex.getMessage());
             }
         }
+    }
+
+    private void pushEvent(RunAgentInput param, AguiEvent event) {
+        if (Objects.isNull(param) || CollectionUtils.isEmpty(pushers)) {
+            return;
+        }
+
+        pushers.forEach(pusher -> pusher.push(param, event));
+
     }
 
 

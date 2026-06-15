@@ -1,6 +1,6 @@
 import { LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { App, Avatar, Dropdown, Tooltip } from 'antd';
-import { useUserStore, useMenuStore, MenuPosition, getIconComponent } from '@gwsu/core';
+import { useUserStore, useMenuStore, useHeadlessStore, MenuPosition, getIconComponent } from '@gwsu/core';
 import type { MenuItem } from '@gwsu/core';
 import { history } from 'umi';
 import { logout } from '@/services/auth';
@@ -49,6 +49,7 @@ export default function UserDropdown() {
           await logout();
           useUserStore.getState().logout();
           useMenuStore.getState().clearMenus();
+          useHeadlessStore.getState().clearThreadId();
           message.success('退出成功');
           const loginPath = process.env.UMI_APP_LOGIN_PATH || '/sub-system/login';
           history.push(loginPath);

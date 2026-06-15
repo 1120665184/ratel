@@ -13,6 +13,7 @@ import type {
     ResponseInterceptor,
 } from '../types';
 import {emitEvent, EventType} from '../constants';
+import {useHeadlessStore} from '../stores/headlessStore';
 import {useUserStore} from '../stores/userStore';
 
 // 存储拦截器
@@ -139,6 +140,8 @@ function initDefaultInterceptors() {
         if (response.code === 401) {
             // 未授权，清除用户数据并跳转登录
             useUserStore.getState().clearUserData();
+            // 清除无头浏览器 threadId
+            useHeadlessStore.getState().clearThreadId();
             // 使用事件枚举发送事件
             emitEvent(EventType.TOKEN_EXPIRED);
             throw new Error('登录已过期，请重新登录');

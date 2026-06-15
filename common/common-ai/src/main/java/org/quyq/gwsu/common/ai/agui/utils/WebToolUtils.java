@@ -104,6 +104,8 @@ public class WebToolUtils {
         // 3. 信号量等待前端结果
         String semKey = SEMAPHORE_PREFIX + toolCallId;
         boolean acquired = cacheUtils.tryAcquirePermit(semKey, 1, timeoutSeconds, TimeUnit.SECONDS);
+        // 信号量key设置过期时间，防止Redis残留
+        cacheUtils.expire(semKey, REDIS_TTL_SECONDS, TimeUnit.SECONDS);
 
         if (!acquired) {
             // 超时：更新Redis状态

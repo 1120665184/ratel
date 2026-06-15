@@ -8,6 +8,10 @@ export default [
     component: '@/pages/login',
   },
   {
+    path: '/login_headless',
+    component: '@/pages/login_headless',
+  },
+  {
     path: '/dashboard',
     component: '@/pages/dashboard',
   },

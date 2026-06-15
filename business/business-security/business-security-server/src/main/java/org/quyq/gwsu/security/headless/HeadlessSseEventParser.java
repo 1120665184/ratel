@@ -8,6 +8,7 @@ import io.agentscope.core.agui.event.AguiEventType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * SSE 事件解析器
@@ -91,10 +92,32 @@ public class HeadlessSseEventParser {
             case STATE_SNAPSHOT -> new AguiEvent.StateSnapshot(
                     threadId, runId,
                     mapVal(raw, "snapshot"));
-            case STATE_DELTA, REASONING_START, REASONING_MESSAGE_START,
-                 REASONING_MESSAGE_CONTENT, REASONING_MESSAGE_END,
-                 REASONING_MESSAGE_CHUNK, REASONING_END, RAW ->
-                    new AguiEvent.Raw(threadId, runId, raw);
+            case STATE_DELTA -> new AguiEvent.StateDelta(
+                    threadId, runId,
+                    parseJsonPatchOperations(raw));
+            case REASONING_START -> new AguiEvent.ReasoningStart(
+                    threadId, runId,
+                    str(raw, "messageId"),
+                    str(raw, "encryptedContent"));
+            case REASONING_MESSAGE_START -> new AguiEvent.ReasoningMessageStart(
+                    threadId, runId,
+                    str(raw, "messageId"),
+                    str(raw, "role"));
+            case REASONING_MESSAGE_CONTENT -> new AguiEvent.ReasoningMessageContent(
+                    threadId, runId,
+                    str(raw, "messageId"),
+                    str(raw, "delta"));
+            case REASONING_MESSAGE_END -> new AguiEvent.ReasoningMessageEnd(
+                    threadId, runId,
+                    str(raw, "messageId"));
+            case REASONING_MESSAGE_CHUNK -> new AguiEvent.ReasoningMessageChunk(
+                    threadId, runId,
+                    str(raw, "messageId"),
+                    str(raw, "delta"));
+            case REASONING_END -> new AguiEvent.ReasoningEnd(
+                    threadId, runId,
+                    str(raw, "messageId"));
+            case RAW -> new AguiEvent.Raw(threadId, runId, raw);
         };
     }
 
@@ -104,6 +127,29 @@ public class HeadlessSseEventParser {
     public static boolean isSseResponse(Response response) {
         String contentType = response.headers().get("content-type");
         return contentType != null && contentType.contains("text/event-stream");
+    }
+
+    /**
+     * 解析 delta 字段为 JsonPatchOperation 列表
+     */
+    @SuppressWarnings("unchecked")
+    private List<AguiEvent.JsonPatchOperation> parseJsonPatchOperations(Map<String, Object> raw) {
+        Object deltaObj = raw.get("delta");
+        if (!(deltaObj instanceof List)) return List.of();
+
+        try {
+            List<Map<String, Object>> deltaList = (List<Map<String, Object>>) deltaObj;
+            return deltaList.stream()
+                    .map(m -> new AguiEvent.JsonPatchOperation(
+                            str(m, "op"),
+                            str(m, "path"),
+                            m.get("value"),
+                            str(m, "from")))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("STATE_DELTA delta 字段解析失败", e);
+            return List.of();
+        }
     }
 
     private static String str(Map<String, Object> raw, String key) {

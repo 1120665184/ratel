@@ -70,6 +70,16 @@ public interface SecurityConstants {
          */
         String ROLE_COMMON_FLAG = "common";
 
+        /**
+         * 无头浏览器快速登录凭证存储key
+         */
+        String HEADLESS_LOGIN_CERTIFICATION_CACHE_PREFIX = AUTH_INFO_KEY_PREFIX + ":_headless:certification:";
+
+        /**
+         * 无头浏览器分布式会话存储key前缀
+         * 完整key格式: authentication:_headless:session:{userId}
+         */
+        String HEADLESS_ACCESS_SESSION_PREFIX = AUTH_INFO_KEY_PREFIX + ":_headless:session:";
 
     }
 
