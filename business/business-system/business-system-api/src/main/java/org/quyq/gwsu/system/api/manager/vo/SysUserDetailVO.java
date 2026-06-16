@@ -22,5 +22,9 @@ public class SysUserDetailVO extends UserVO {
     /**
      * 是否超级管理员
      */
+    @Schema(description = "是否超级管理员")
     private boolean admin;
+
+    @Schema(description = "登录类型")
+    private String loginType;
 }

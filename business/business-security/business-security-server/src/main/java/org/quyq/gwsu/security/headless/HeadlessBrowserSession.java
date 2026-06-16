@@ -448,6 +448,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
     public void close() {
         closed = true;
         destroyRedisListener();
+        pageWrapper.markClosed();
         toolCallNameMap.clear();
         toolCallArgsBuffer.clear();
         try { if (page != null && !page.isClosed()) page.close(); } catch (Exception e) { log.warn("关闭Page异常", e); }
@@ -528,48 +529,60 @@ public class HeadlessBrowserSession implements AutoCloseable {
     }
 
     private void handleSseEvent(AguiEvent event) {
+        if (closed) {
+            log.debug("[HeadlessSSE] Session已关闭，忽略事件: {}", event.getClass().getSimpleName());
+            return;
+        }
         SseEventCollector collector = currentEventCollector.get();
         HeadlessAgentListener listener = currentListener.get();
         if (collector != null) collector.addEvent(event);
         if (listener == null) return;
 
-        listener.onEvent(event, pageWrapper);
+        try {
+            listener.onEvent(event, pageWrapper);
 
-        switch (event) {
-            case AguiEvent.RunStarted e -> listener.onRunStarted(e, pageWrapper);
-            case AguiEvent.RunFinished e -> listener.onRunFinished(e, pageWrapper);
-            case AguiEvent.TextMessageStart e -> listener.onTextMessageStart(e, pageWrapper);
-            case AguiEvent.TextMessageContent e -> listener.onTextMessageContent(e.delta(), pageWrapper);
-            case AguiEvent.TextMessageEnd e -> listener.onTextMessageEnd(e, pageWrapper);
-            case AguiEvent.ToolCallStart e -> {
-                listener.onToolCallStart(e, pageWrapper);
-                toolCallNameMap.put(e.toolCallId(), e.toolCallName());
-                if ("AskUserQuestion".equals(e.toolCallName())) toolCallArgsBuffer.put(e.toolCallId(), new StringBuilder());
-            }
-            case AguiEvent.ToolCallArgs e -> {
-                listener.onToolCallArgs(e, pageWrapper);
-                StringBuilder argsBuf = toolCallArgsBuffer.get(e.toolCallId());
-                if (argsBuf != null) argsBuf.append(e.delta());
-            }
-            case AguiEvent.ToolCallEnd e -> {
-                listener.onToolCallEnd(e, pageWrapper);
-                if ("AskUserQuestion".equals(toolCallNameMap.get(e.toolCallId()))) {
-                    notifyAskUserQuestion(e.toolCallId());
+            switch (event) {
+                case AguiEvent.RunStarted e -> listener.onRunStarted(e, pageWrapper);
+                case AguiEvent.RunFinished e -> listener.onRunFinished(e, pageWrapper);
+                case AguiEvent.TextMessageStart e -> listener.onTextMessageStart(e, pageWrapper);
+                case AguiEvent.TextMessageContent e -> listener.onTextMessageContent(e.delta(), pageWrapper);
+                case AguiEvent.TextMessageEnd e -> listener.onTextMessageEnd(e, pageWrapper);
+                case AguiEvent.ToolCallStart e -> {
+                    listener.onToolCallStart(e, pageWrapper);
+                    toolCallNameMap.put(e.toolCallId(), e.toolCallName());
+                    if ("AskUserQuestion".equals(e.toolCallName())) toolCallArgsBuffer.put(e.toolCallId(), new StringBuilder());
                 }
-                toolCallNameMap.remove(e.toolCallId());
-                toolCallArgsBuffer.remove(e.toolCallId());
+                case AguiEvent.ToolCallArgs e -> {
+                    listener.onToolCallArgs(e, pageWrapper);
+                    StringBuilder argsBuf = toolCallArgsBuffer.get(e.toolCallId());
+                    if (argsBuf != null) argsBuf.append(e.delta());
+                }
+                case AguiEvent.ToolCallEnd e -> {
+                    listener.onToolCallEnd(e, pageWrapper);
+                    if ("AskUserQuestion".equals(toolCallNameMap.get(e.toolCallId()))) {
+                        notifyAskUserQuestion(e.toolCallId());
+                    }
+                    toolCallNameMap.remove(e.toolCallId());
+                    toolCallArgsBuffer.remove(e.toolCallId());
+                }
+                case AguiEvent.ToolCallResult e -> listener.onToolCallResult(e, pageWrapper);
+                case AguiEvent.StateSnapshot e -> listener.onStateSnapshot(e, pageWrapper);
+                case AguiEvent.StateDelta e -> listener.onStateDelta(e, pageWrapper);
+                case AguiEvent.Custom e -> {
+                    String name = e.name();
+                    if ("HUMAN_APPROVAL".equals(name)) listener.onHumanApproval(e, pageWrapper);
+                    else if ("TOOL_EXECUTE".equals(name)) listener.onToolExecute(e, pageWrapper);
+                    else if ("AGENT_OUTPUT".equals(name) || "AGENT_OUTPUT_END".equals(name)) listener.onAgentOutput(e, pageWrapper);
+                    else listener.onCustomEvent(e, pageWrapper);
+                }
+                default -> { }
             }
-            case AguiEvent.ToolCallResult e -> listener.onToolCallResult(e, pageWrapper);
-            case AguiEvent.StateSnapshot e -> listener.onStateSnapshot(e, pageWrapper);
-            case AguiEvent.StateDelta e -> listener.onStateDelta(e, pageWrapper);
-            case AguiEvent.Custom e -> {
-                String name = e.name();
-                if ("HUMAN_APPROVAL".equals(name)) listener.onHumanApproval(e, pageWrapper);
-                else if ("TOOL_EXECUTE".equals(name)) listener.onToolExecute(e, pageWrapper);
-                else if ("AGENT_OUTPUT".equals(name) || "AGENT_OUTPUT_END".equals(name)) listener.onAgentOutput(e, pageWrapper);
-                else listener.onCustomEvent(e, pageWrapper);
+        } finally {
+            // RunFinished 的 listener 回调全部执行完毕后，才通知 collector 完成
+            // 这确保 awaitCompletion 返回时 onRunFinished 已经执行完，session.close() 安全
+            if (event instanceof AguiEvent.RunFinished && collector != null) {
+                collector.signalCompletion();
             }
-            default -> { }
         }
     }
 
@@ -615,10 +628,22 @@ public class HeadlessBrowserSession implements AutoCloseable {
         private final CountDownLatch completionLatch = new CountDownLatch(1);
         private volatile Throwable error;
 
+        /**
+         * 添加事件到列表（不触发 completionLatch）
+         * <p>
+         * completionLatch 由 {@link HeadlessBrowserSession#handleSseEvent} 在
+         * listener 回调全部执行完毕后显式调用 {@link #signalCompletion} 触发，
+         * 确保 awaitCompletion 返回时回调已全部完成，session.close() 安全。
+         */
         void addEvent(AguiEvent event) {
             events.add(event);
-            if (event instanceof AguiEvent.RunFinished) completionLatch.countDown();
         }
+
+        /** RunFinished 回调执行完毕后，由 handleSseEvent 调用 */
+        void signalCompletion() {
+            completionLatch.countDown();
+        }
+
         void signalError(Throwable t) { this.error = t; completionLatch.countDown(); }
         List<AguiEvent> awaitCompletion(long timeoutMs) {
             try { completionLatch.await(timeoutMs, TimeUnit.MILLISECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }

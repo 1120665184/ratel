@@ -25,6 +25,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { history, Outlet, useLocation } from 'umi';
 import { useOperationTabStore} from '@/stores/operationTab';
+import { useForwardedPropsStore } from '@/stores/forwardedProps';
 import styles from './index.module.less';
 
 export default function LayoutComponent() {
@@ -50,9 +51,14 @@ function LayoutRouter() {
     const successEvent = onEvent(EventType.LOGIN_SUCCESS, (payload) => {
       console.log('登录成功, payload:', JSON.stringify(payload));
       // 如果 LOGIN_SUCCESS 事件携带了 threadId，存储到 headlessStore
-      const threadId = (payload as { threadId?: string } | undefined)?.threadId;
+      const { threadId, isHeadless } = payload as { threadId?: string; isHeadless?: boolean } || {};
       if (threadId) {
         useHeadlessStore.getState().setThreadId(threadId);
+      }
+      // 无头浏览器登录时，自动切换为 AI 操作模式
+      if (isHeadless) {
+        useHeadlessStore.getState().setHeadless(true);
+        useForwardedPropsStore.getState().setOperationMode('ai');
       }
 
       history.push(homePath);

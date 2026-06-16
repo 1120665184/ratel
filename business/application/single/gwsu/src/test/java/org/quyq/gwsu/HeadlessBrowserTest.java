@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -52,14 +53,6 @@ public class HeadlessBrowserTest {
                     file.set(wrapper.stopRecording());
                     log.info("智能体结束");
 
-                    File file1 = file.get();
-                    if(Objects.nonNull(file1)) {
-                        try {
-                            Files.delete(file1.toPath());
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
                 }
 
                 @Override
@@ -92,8 +85,7 @@ public class HeadlessBrowserTest {
                     log.info("执行错误:{}" ,error.getMessage());
                 }
             });
-        }catch (Exception e){
-            log.info("" , e);
+
         }
         finally {
             if(Objects.nonNull(file.get())){
@@ -123,6 +115,11 @@ public class HeadlessBrowserTest {
                 log.info("事件：{}" , objectMapper.writeValueAsString(event));
             }
         });
+    }
+
+    @Test
+    public void newSession(){
+        browserManager.newSession("1");
     }
 
 }

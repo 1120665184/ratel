@@ -73,8 +73,8 @@ export default function LoginHeadless() {
 
                 if (cancelled) return;
 
-                // 登录成功，携带 threadId 发送事件
-                emitEvent(EventType.LOGIN_SUCCESS, { threadId: threadIdParam || null });
+                // 登录成功，携带 threadId 和无头模式标记发送事件
+                emitEvent(EventType.LOGIN_SUCCESS, { threadId: threadIdParam || null, isHeadless: true });
 
                 setStatus('success');
                 document.body.setAttribute('data-headless-login-status', 'success');

@@ -48,9 +48,12 @@ public class UserController {
     public R<SysUserDetailVO> currentUserInfo() {
         return securityUtils.getSubject()
                 .map(v -> {
+                    String loginType = v.getLoginType();
                     boolean admin = v.isAdmin();
                     return R.ok(v.userInfo().map(user -> (SysUserDetailVO) user)
-                            .map(user -> user.setAdmin(admin)).orElse(null));
+                            .map(user -> user
+                                    .setAdmin(admin)
+                                    .setLoginType(loginType)).orElse(null));
                 })
                 .orElseGet(R::ok);
     }

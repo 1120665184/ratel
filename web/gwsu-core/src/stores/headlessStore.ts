@@ -25,12 +25,16 @@ const STORAGE_KEY = 'gwsu_headless_thread_id';
 interface HeadlessState {
   /** 无头浏览器会话的 threadId，用于恢复聊天记录 */
   threadId: string | null;
+  /** 是否为无头浏览器模式 */
+  isHeadless: boolean;
   /** 设置 threadId（同步到 localStorage） */
   setThreadId: (threadId: string | null) => void;
   /** 获取 threadId（优先从内存，否则从 localStorage） */
   getThreadId: () => string | null;
   /** 清除 threadId（同步清除 localStorage） */
   clearThreadId: () => void;
+  /** 设置是否为无头浏览器模式 */
+  setHeadless: (isHeadless: boolean) => void;
 }
 
 /**
@@ -68,6 +72,7 @@ function createOrGetStore(): StoreApi<HeadlessState> {
 
   const store = createStore<HeadlessState>((set, get) => ({
     threadId: initialThreadId,
+    isHeadless: false,
 
     setThreadId: (threadId) => {
       saveThreadIdToStorage(threadId);
@@ -87,6 +92,10 @@ function createOrGetStore(): StoreApi<HeadlessState> {
     clearThreadId: () => {
       localStorage.removeItem(STORAGE_KEY);
       set({ threadId: null });
+    },
+
+    setHeadless: (isHeadless) => {
+      set({ isHeadless });
     },
   }));
 

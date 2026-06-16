@@ -161,7 +161,8 @@ public class BrowserContextPool implements AutoCloseable {
 
     private BrowserContext createNewContext() {
         return browser.newContext(new NewContextOptions()
-                .setViewportSize(1920, 1080));
+                .setViewportSize(1920, 1080)
+                .setDeviceScaleFactor(1.0));
     }
 
     private void safeClose(BrowserContext ctx) {
