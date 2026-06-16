@@ -1,7 +1,6 @@
 package org.quyq.gwsu.security.headless;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.microsoft.playwright.*;
 import io.agentscope.core.agui.event.AguiEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +29,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * 2. 先订阅 Redis channel（brain_sse_event_channel_{threadId}），再放行请求
  * 3. Redis 消息实时到达，反序列化为 AguiEvent 后分发给 listener
  * 4. 收到 RunFinished 事件后销毁 Redis 监听器
+ * <p>
+ * 审批/提问交互策略：
+ * - 审批和回答问题由 HeadlessBrowserManager 的 approval()/userAnswer() 独立发起
+ * - 通过前端隐藏表单提交，无需操作可见 UI 元素
+ * - submitApproval()/submitUserAnswer() 填充隐藏表单并触发提交
  */
 @Slf4j
 public class HeadlessBrowserSession implements AutoCloseable {
@@ -48,23 +52,19 @@ public class HeadlessBrowserSession implements AutoCloseable {
     /** sendMessage 互斥锁，保证同一 Session 不会并发调用 */
     private final ReentrantLock sendLock = new ReentrantLock();
 
-    /** UI 操作线程池 */
-    private ExecutorService uiExecutor;
-
     /** 当前活跃的事件收集器（每次 sendMessage 重建） */
     private final AtomicReference<SseEventCollector> currentEventCollector = new AtomicReference<>();
 
-    /** 当前活跃的监听器和处理器（每次 sendMessage 更新） */
+    /** 当前活跃的监听器（每次 sendMessage 更新） */
     private final AtomicReference<HeadlessAgentListener> currentListener = new AtomicReference<>();
-    private final AtomicReference<HeadlessApprovalHandler> currentApprovalHandler = new AtomicReference<>();
+
+    /** 页面操作包装器（供 listener 在事件回调中操作浏览器） */
+    private final HeadlessPageWrapper pageWrapper;
 
     /** toolCallId → toolCallName 映射 */
     private final ConcurrentHashMap<String, String> toolCallNameMap = new ConcurrentHashMap<>();
     /** toolCallId → 累积的 TOOL_CALL_ARGS delta */
     private final ConcurrentHashMap<String, StringBuilder> toolCallArgsBuffer = new ConcurrentHashMap<>();
-
-    private final AtomicReference<CompletableFuture<HeadlessApprovalHandler.ApprovalResult>> approvalFuture = new AtomicReference<>();
-    private final AtomicReference<CompletableFuture<Map<String, String>>> askQuestionFuture = new AtomicReference<>();
 
     /** 当前 Redis 监听容器，收到 RunFinished 后销毁 */
     private volatile RedisMessageListenerContainer currentRedisListener = null;
@@ -81,6 +81,9 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
         // 1. 创建 Page
         this.page = context.newPage();
+
+        // 2. 创建页面操作包装器
+        this.pageWrapper = new HeadlessPageWrapper(context, page);
 
         // 2. page.route() 拦截 SSE 请求，提取 threadId 并订阅 Redis
         page.route("**" + SSE_URL_PATTERN + "**", route -> {
@@ -108,12 +111,6 @@ public class HeadlessBrowserSession implements AutoCloseable {
             if (text != null && text.startsWith("[Headless")) {
                 log.info("[BrowserConsole] {}", text);
             }
-        });
-
-        this.uiExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "headless-ui-" + System.currentTimeMillis());
-            t.setDaemon(true);
-            return t;
         });
     }
 
@@ -297,21 +294,17 @@ public class HeadlessBrowserSession implements AutoCloseable {
         }
     }
 
-    public List<AguiEvent> sendMessage(
-            String message,
-            HeadlessAgentListener listener,
-            HeadlessApprovalHandler approvalHandler) {
+    // ==================== 发送消息 ====================
 
+    public List<AguiEvent> sendMessage(String message, HeadlessAgentListener listener) {
         sendLock.lock();
         try {
             toolCallNameMap.clear();
             toolCallArgsBuffer.clear();
-            cancelPendingFutures();
 
             SseEventCollector collector = new SseEventCollector();
             currentEventCollector.set(collector);
             currentListener.set(listener);
-            currentApprovalHandler.set(approvalHandler);
 
             try {
                 triggerAssistant(message);
@@ -328,25 +321,119 @@ public class HeadlessBrowserSession implements AutoCloseable {
         }
     }
 
-    public List<AguiEvent> sendMessage(String message, HeadlessAgentListener listener) {
-        return sendMessage(message, listener, null);
+    // ==================== 审批/回答问题（通过隐藏表单提交） ====================
+
+    /**
+     * 通过隐藏表单提交审批结果，并监听后续 SSE 事件
+     * <p>
+     * 流程：等待聊天就绪 → 填充隐藏表单 → 触发提交 → 等待 SSE 流完成
+     *
+     * @param approved     是否批准
+     * @param rejectReason 拒绝原因（批准时为 null）
+     * @param listener     事件监听器，接收提交后的 SSE 事件
+     */
+    void submitApproval(boolean approved, String rejectReason, HeadlessAgentListener listener) {
+        sendLock.lock();
+        try {
+            toolCallNameMap.clear();
+            toolCallArgsBuffer.clear();
+
+            SseEventCollector collector = new SseEventCollector();
+            currentEventCollector.set(collector);
+            currentListener.set(listener);
+
+            // 等待前端聊天就绪
+            page.waitForFunction(
+                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
+                    null, new Page.WaitForFunctionOptions().setTimeout(30_000));
+            log.debug("前端聊天已就绪，开始提交审批");
+
+            String result = approved ? "APPROVED" : "REJECTED";
+            String reason = rejectReason != null ? rejectReason : "";
+
+            // 填充隐藏表单并触发提交，同时等待 agent run 请求发送
+            try {
+                page.waitForRequest(
+                        req -> req.url().contains(SSE_URL_PATTERN),
+                        () -> page.evaluate("args => {" +
+                                "  var r = document.querySelector('[data-testid=\"headless-approval-result\"]');" +
+                                "  var re = document.querySelector('[data-testid=\"headless-approval-reject-reason\"]');" +
+                                "  if (r) r.value = args[0];" +
+                                "  if (re) re.value = args[1];" +
+                                "  var btn = document.querySelector('[data-testid=\"headless-approval-submit\"]');" +
+                                "  if (btn) btn.click();" +
+                                "}", new Object[]{ result, reason })
+                );
+            } catch (PlaywrightException e) {
+                log.warn("等待审批请求发送超时，审批可能已提交");
+            }
+
+            log.info("审批结果已提交: result={}, hasRejectReason={}", result, !reason.isEmpty());
+
+            // 等待后续 SSE 流完成
+            collector.awaitCompletion(sseTimeoutMs);
+        } catch (Exception e) {
+            log.error("提交审批失败", e);
+            throw new RuntimeException("提交审批失败", e);
+        } finally {
+            sendLock.unlock();
+        }
     }
 
-    public void approve() { approve(null); }
+    /**
+     * 通过隐藏表单提交用户回答，并监听后续 SSE 事件
+     * <p>
+     * 流程：等待聊天就绪 → 填充隐藏表单（answers + toolCallId）→ 触发提交 → 等待 SSE 流完成
+     *
+     * @param toolCallId 工具调用 ID，用于关联 AskUserQuestion 工具调用
+     * @param answers    问题答案，key 为问题文本，value 为用户回答
+     * @param listener   事件监听器，接收提交后的 SSE 事件
+     */
+    void submitUserAnswer(String toolCallId, Map<String, String> answers, HeadlessAgentListener listener) {
+        sendLock.lock();
+        try {
+            toolCallNameMap.clear();
+            toolCallArgsBuffer.clear();
 
-    public void approve(HeadlessApprovalHandler.ApprovalResult result) {
-        CompletableFuture<HeadlessApprovalHandler.ApprovalResult> future = approvalFuture.get();
-        if (future != null) future.complete(result != null ? result : HeadlessApprovalHandler.ApprovalResult.accept());
-    }
+            SseEventCollector collector = new SseEventCollector();
+            currentEventCollector.set(collector);
+            currentListener.set(listener);
 
-    public void reject(String reason) {
-        CompletableFuture<HeadlessApprovalHandler.ApprovalResult> future = approvalFuture.get();
-        if (future != null) future.complete(HeadlessApprovalHandler.ApprovalResult.reject(reason));
-    }
+            // 等待前端聊天就绪
+            page.waitForFunction(
+                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
+                    null, new Page.WaitForFunctionOptions().setTimeout(30_000));
+            log.debug("前端聊天已就绪，开始提交用户回答");
 
-    public void answerQuestion(Map<String, String> answers) {
-        CompletableFuture<Map<String, String>> future = askQuestionFuture.get();
-        if (future != null) future.complete(answers);
+            String answersJson = gson.toJson(answers);
+
+            // 填充隐藏表单并触发提交，同时等待 agent run 请求发送
+            try {
+                page.waitForRequest(
+                        req -> req.url().contains(SSE_URL_PATTERN),
+                        () -> page.evaluate("args => {" +
+                                "  var a = document.querySelector('[data-testid=\"headless-question-answers\"]');" +
+                                "  var t = document.querySelector('[data-testid=\"headless-question-tool-call-id\"]');" +
+                                "  if (a) a.value = args[0];" +
+                                "  if (t) t.value = args[1];" +
+                                "  var btn = document.querySelector('[data-testid=\"headless-question-submit\"]');" +
+                                "  if (btn) btn.click();" +
+                                "}", new Object[]{ answersJson, toolCallId })
+                );
+            } catch (PlaywrightException e) {
+                log.warn("等待回答问题请求发送超时，回答可能已提交");
+            }
+
+            log.info("用户回答已提交: toolCallId={}", toolCallId);
+
+            // 等待后续 SSE 流完成
+            collector.awaitCompletion(sseTimeoutMs);
+        } catch (Exception e) {
+            log.error("提交用户回答失败", e);
+            throw new RuntimeException("提交用户回答失败", e);
+        } finally {
+            sendLock.unlock();
+        }
     }
 
     public void ensureHomePage(String baseUrl) {
@@ -360,28 +447,19 @@ public class HeadlessBrowserSession implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
-        cancelPendingFutures();
         destroyRedisListener();
         toolCallNameMap.clear();
         toolCallArgsBuffer.clear();
-        if (uiExecutor != null) uiExecutor.shutdownNow();
         try { if (page != null && !page.isClosed()) page.close(); } catch (Exception e) { log.warn("关闭Page异常", e); }
         try { if (context != null) context.close(); } catch (Exception e) { log.warn("关闭Context异常", e); }
     }
 
     // ==================== 内部实现 ====================
 
-    private void cancelPendingFutures() {
-        CompletableFuture<HeadlessApprovalHandler.ApprovalResult> af = approvalFuture.getAndSet(null);
-        if (af != null) af.cancel(true);
-        CompletableFuture<Map<String, String>> aqf = askQuestionFuture.getAndSet(null);
-        if (aqf != null) aqf.cancel(true);
-    }
-
     private void notifyListenerError(Throwable error) {
         HeadlessAgentListener listener = currentListener.get();
         if (listener != null) {
-            try { listener.onError(error); } catch (Exception e) { log.warn("通知监听器错误失败", e); }
+            try { listener.onError(error, pageWrapper); } catch (Exception e) { log.warn("通知监听器错误失败", e); }
         }
     }
 
@@ -455,64 +533,51 @@ public class HeadlessBrowserSession implements AutoCloseable {
         if (collector != null) collector.addEvent(event);
         if (listener == null) return;
 
-        listener.onEvent(event);
+        listener.onEvent(event, pageWrapper);
 
         switch (event) {
-            case AguiEvent.RunStarted e -> listener.onRunStarted(e);
-            case AguiEvent.RunFinished e -> listener.onRunFinished(e);
-            case AguiEvent.TextMessageStart e -> listener.onTextMessageStart(e);
-            case AguiEvent.TextMessageContent e -> listener.onTextMessageContent(e.delta());
-            case AguiEvent.TextMessageEnd e -> listener.onTextMessageEnd(e);
+            case AguiEvent.RunStarted e -> listener.onRunStarted(e, pageWrapper);
+            case AguiEvent.RunFinished e -> listener.onRunFinished(e, pageWrapper);
+            case AguiEvent.TextMessageStart e -> listener.onTextMessageStart(e, pageWrapper);
+            case AguiEvent.TextMessageContent e -> listener.onTextMessageContent(e.delta(), pageWrapper);
+            case AguiEvent.TextMessageEnd e -> listener.onTextMessageEnd(e, pageWrapper);
             case AguiEvent.ToolCallStart e -> {
-                listener.onToolCallStart(e);
+                listener.onToolCallStart(e, pageWrapper);
                 toolCallNameMap.put(e.toolCallId(), e.toolCallName());
                 if ("AskUserQuestion".equals(e.toolCallName())) toolCallArgsBuffer.put(e.toolCallId(), new StringBuilder());
             }
             case AguiEvent.ToolCallArgs e -> {
-                listener.onToolCallArgs(e);
+                listener.onToolCallArgs(e, pageWrapper);
                 StringBuilder argsBuf = toolCallArgsBuffer.get(e.toolCallId());
                 if (argsBuf != null) argsBuf.append(e.delta());
             }
             case AguiEvent.ToolCallEnd e -> {
-                listener.onToolCallEnd(e);
-                if ("AskUserQuestion".equals(toolCallNameMap.get(e.toolCallId()))) handleAskUserQuestionEvent(e.toolCallId());
+                listener.onToolCallEnd(e, pageWrapper);
+                if ("AskUserQuestion".equals(toolCallNameMap.get(e.toolCallId()))) {
+                    notifyAskUserQuestion(e.toolCallId());
+                }
                 toolCallNameMap.remove(e.toolCallId());
                 toolCallArgsBuffer.remove(e.toolCallId());
             }
-            case AguiEvent.ToolCallResult e -> listener.onToolCallResult(e);
-            case AguiEvent.StateSnapshot e -> listener.onStateSnapshot(e);
-            case AguiEvent.StateDelta e -> listener.onStateDelta(e);
+            case AguiEvent.ToolCallResult e -> listener.onToolCallResult(e, pageWrapper);
+            case AguiEvent.StateSnapshot e -> listener.onStateSnapshot(e, pageWrapper);
+            case AguiEvent.StateDelta e -> listener.onStateDelta(e, pageWrapper);
             case AguiEvent.Custom e -> {
                 String name = e.name();
-                if ("HUMAN_APPROVAL".equals(name)) { listener.onHumanApproval(e); handleHumanApprovalEvent(e); }
-                else if ("TOOL_EXECUTE".equals(name)) listener.onToolExecute(e);
-                else if ("AGENT_OUTPUT".equals(name) || "AGENT_OUTPUT_END".equals(name)) listener.onAgentOutput(e);
-                else listener.onCustomEvent(e);
+                if ("HUMAN_APPROVAL".equals(name)) listener.onHumanApproval(e, pageWrapper);
+                else if ("TOOL_EXECUTE".equals(name)) listener.onToolExecute(e, pageWrapper);
+                else if ("AGENT_OUTPUT".equals(name) || "AGENT_OUTPUT_END".equals(name)) listener.onAgentOutput(e, pageWrapper);
+                else listener.onCustomEvent(e, pageWrapper);
             }
             default -> { }
         }
     }
 
-    private void handleHumanApprovalEvent(AguiEvent.Custom event) {
-        HeadlessApprovalHandler handler = currentApprovalHandler.get();
-        if (handler != null) {
-            submitUiTask(() -> operateApprovalUI(handler.handleApproval(event)));
-        } else {
-            final var approvalFuture = new CompletableFuture<HeadlessApprovalHandler.ApprovalResult>();
-            this.approvalFuture.set(approvalFuture);
-            submitUiTask(() -> {
-                try {
-                    operateApprovalUI(approvalFuture.get(sseTimeoutMs, TimeUnit.MILLISECONDS));
-                } catch (TimeoutException e) { notifyListenerError(new TimeoutException("审批等待超时")); }
-                catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                catch (ExecutionException e) { notifyListenerError(e.getCause()); }
-                finally { HeadlessBrowserSession.this.approvalFuture.compareAndSet(approvalFuture, null); }
-            });
-        }
-    }
-
+    /**
+     * 解析 AskUserQuestion 参数并通知监听器
+     */
     @SuppressWarnings("unchecked")
-    private void handleAskUserQuestionEvent(String toolCallId) {
+    private void notifyAskUserQuestion(String toolCallId) {
         StringBuilder argsBuf = toolCallArgsBuffer.get(toolCallId);
         Map<String, Object> questions;
         if (argsBuf != null && !argsBuf.isEmpty()) {
@@ -523,47 +588,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
             questions = Map.of();
         }
         HeadlessAgentListener listener = currentListener.get();
-        if (listener != null) listener.onAskUserQuestion(toolCallId, questions);
-        HeadlessApprovalHandler handler = currentApprovalHandler.get();
-        if (handler != null) {
-            submitUiTask(() -> operateAskUserQuestionUI(handler.handleAskUserQuestion(toolCallId, questions)));
-        } else {
-            final var askFuture = new CompletableFuture<Map<String, String>>();
-            askQuestionFuture.set(askFuture);
-            submitUiTask(() -> {
-                try { operateAskUserQuestionUI(askFuture.get(sseTimeoutMs, TimeUnit.MILLISECONDS)); }
-                catch (TimeoutException e) { notifyListenerError(new TimeoutException("提问等待超时")); }
-                catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                catch (ExecutionException e) { notifyListenerError(e.getCause()); }
-                finally { askQuestionFuture.compareAndSet(askFuture, null); }
-            });
-        }
-    }
-
-    private void submitUiTask(Runnable task) {
-        if (closed) return;
-        uiExecutor.submit(() -> { try { task.run(); } catch (Exception e) { log.error("UI操作执行失败", e); } });
-    }
-
-    private void operateApprovalUI(HeadlessApprovalHandler.ApprovalResult result) {
-        try {
-            if (result.approved()) page.locator("[data-testid='btn-approve']").click();
-            else {
-                page.locator("[data-testid='btn-reject']").click();
-                if (result.rejectReason() != null && !result.rejectReason().isEmpty()) {
-                    page.locator("[data-testid='input-reject-reason']").fill(result.rejectReason());
-                    page.locator("[data-testid='btn-submit-reject']").click();
-                }
-            }
-        } catch (Exception e) { log.error("审批界面操作失败", e); }
-    }
-
-    private void operateAskUserQuestionUI(Map<String, String> answers) {
-        try {
-            for (Map.Entry<String, String> entry : answers.entrySet())
-                page.locator(String.format("[data-testid='option-item']:has-text('%s')", entry.getValue())).click();
-            page.locator("[data-testid='btn-submit-answer']").click();
-        } catch (Exception e) { log.error("提问界面操作失败", e); }
+        if (listener != null) listener.onAskUserQuestion(toolCallId, questions, pageWrapper);
     }
 
     private void triggerAssistant(String message) {

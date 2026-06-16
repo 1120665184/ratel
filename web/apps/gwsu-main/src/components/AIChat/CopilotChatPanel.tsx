@@ -330,6 +330,78 @@ export function CopilotChatPanel({
       <HumanApprovalBar />
       {/* AskUserQuestion 选择框 */}
       <AskUserQuestionBar />
+      {/* 隐藏表单 - 无头浏览器审批/回答问题专用，用户不可见 */}
+      <div style={{ display: 'none' }} data-testid="headless-forms">
+        {/* 审批表单 */}
+        <input data-testid="headless-approval-result" readOnly />
+        <input data-testid="headless-approval-reject-reason" readOnly />
+        <button
+          data-testid="headless-approval-submit"
+          onClick={async () => {
+            const resultEl = document.querySelector<HTMLInputElement>('[data-testid="headless-approval-result"]');
+            const reasonEl = document.querySelector<HTMLInputElement>('[data-testid="headless-approval-reject-reason"]');
+            const result = resultEl?.value;
+            if (!result) return;
+
+            const rejectReason = reasonEl?.value ?? '';
+            const content = result === 'REJECTED' && rejectReason
+              ? JSON.stringify({ result, rejectReason })
+              : JSON.stringify({ result });
+
+            const msgId = crypto.randomUUID();
+            agent.addMessage({ id: msgId, role: 'approval', content } as any);
+            clearHumanApproval();
+
+            try { await agent.runAgent(); } catch (e) { console.error('[HeadlessApproval] runAgent失败:', e); }
+
+            // 清除 agent 消息列表中的 approval 消息，避免下次请求时带上
+            const currentMessages = agent.messages || [];
+            const filteredMessages = currentMessages.filter((msg: any) => msg.role !== 'approval');
+            if (filteredMessages.length !== currentMessages.length) {
+              agent.setMessages(filteredMessages);
+            }
+
+            // 重置表单值
+            if (resultEl) resultEl.value = '';
+            if (reasonEl) reasonEl.value = '';
+          }}
+        />
+        {/* 回答问题表单 */}
+        <input data-testid="headless-question-answers" readOnly />
+        <input data-testid="headless-question-tool-call-id" readOnly />
+        <button
+          data-testid="headless-question-submit"
+          onClick={async () => {
+            const answersEl = document.querySelector<HTMLInputElement>('[data-testid="headless-question-answers"]');
+            const toolCallIdEl = document.querySelector<HTMLInputElement>('[data-testid="headless-question-tool-call-id"]');
+            const answersJson = answersEl?.value;
+            const toolCallId = toolCallIdEl?.value;
+            if (!answersJson || !toolCallId) return;
+
+            try {
+              const answers = JSON.parse(answersJson);
+              const answer = { answers, annotations: {} };
+
+              const msgId = crypto.randomUUID();
+              agent.addMessage({
+                id: msgId,
+                role: 'tool',
+                content: JSON.stringify(answer),
+                toolCallId,
+              } as any);
+              clearAskUserQuestion();
+
+              try { await agent.runAgent(); } catch (e) { console.error('[HeadlessQuestion] runAgent失败:', e); }
+            } catch (e) {
+              console.error('[HeadlessQuestion] 提交失败:', e);
+            }
+
+            // 重置表单值
+            if (answersEl) answersEl.value = '';
+            if (toolCallIdEl) toolCallIdEl.value = '';
+          }}
+        />
+      </div>
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <div ref={copilotChatRef} style={{ display: 'contents' }}>
         <CopilotChatConfigurationProvider

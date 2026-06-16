@@ -49,6 +49,21 @@
             <version>${playwright.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.quyq.gwsu</groupId>
+            <artifactId>business-kit-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jcodec</groupId>
+            <artifactId>jcodec</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jcodec</groupId>
+            <artifactId>jcodec-javase</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>
