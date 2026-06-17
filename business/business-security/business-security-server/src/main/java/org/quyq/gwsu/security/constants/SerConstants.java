@@ -17,4 +17,19 @@ public interface SerConstants {
 
     }
 
+
+    interface Headless {
+
+        String GRAPH_PARAM_QUERY = "query";
+
+        String GRAPH_PARAM_THREAD_ID = "threadId";
+
+        String GRAPH_PARAM_USER_ID = "userId";
+
+        String GRAPH_PARAM_ROUTE_INFO = "routeInfo";
+
+        String GRAPH_PARAM_OUTPUT = "output";
+
+    }
+
 }

@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.headless;
+package org.quyq.gwsu.security.headless.session;
 
 import com.google.gson.Gson;
 import com.microsoft.playwright.*;
@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.security.brain.push.AguiEventRedisPusher;
+import org.quyq.gwsu.security.headless.HeadlessAgentListener;
+import org.quyq.gwsu.security.headless.parser.HeadlessSseEventParser;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
@@ -74,7 +76,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
     private volatile boolean closed = false;
 
-    HeadlessBrowserSession(BrowserContext context, long sseTimeoutMs, CacheUtils cacheUtils) {
+    public HeadlessBrowserSession(BrowserContext context, long sseTimeoutMs, CacheUtils cacheUtils) {
         this.context = context;
         this.sseTimeoutMs = sseTimeoutMs;
         this.cacheUtils = cacheUtils;
@@ -153,7 +155,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      *    - 如果正常 → 等待 data-headless-login-status 变为 success
      * 2. URL 无 token 参数 → 直接 certification 登录
      */
-    void authenticate(String loginUrl) {
+    public void authenticate(String loginUrl) {
         log.info("开始无头浏览器认证: loginUrl={}", loginUrl);
 
         boolean hasToken = loginUrl.contains("token=");
@@ -332,7 +334,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * @param rejectReason 拒绝原因（批准时为 null）
      * @param listener     事件监听器，接收提交后的 SSE 事件
      */
-    void submitApproval(boolean approved, String rejectReason, HeadlessAgentListener listener) {
+    public void submitApproval(boolean approved, String rejectReason, HeadlessAgentListener listener) {
         sendLock.lock();
         try {
             toolCallNameMap.clear();
@@ -389,7 +391,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * @param answers    问题答案，key 为问题文本，value 为用户回答
      * @param listener   事件监听器，接收提交后的 SSE 事件
      */
-    void submitUserAnswer(String toolCallId, Map<String, String> answers, HeadlessAgentListener listener) {
+    public void submitUserAnswer(String toolCallId, Map<String, String> answers, HeadlessAgentListener listener) {
         sendLock.lock();
         try {
             toolCallNameMap.clear();

@@ -32,6 +32,7 @@ public interface IBrainHistoryService {
      */
     List<AguiMessage> getSessionMessages(String sessionId, String userId);
 
+
     /**
      * 删除会话
      *

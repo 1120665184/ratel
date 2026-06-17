@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.headless;
+package org.quyq.gwsu.security.headless.parser;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

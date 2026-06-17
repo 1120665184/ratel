@@ -47,6 +47,13 @@ public enum SecurityErrorCode implements ReturnCode {
     E06003("详细介绍不能为空"),
     E06004("业务名称已存在"),
 
+    E07001("路由信息数据为空,执行失败！"),
+    E07002("审批信息数据为空，执行失败！"),
+    E07003("用户回复信息数据为空，执行失败！"),
+    E07004("toolCallId数据为空，执行失败！"),
+    E07005("用户ID不能为空"),
+    E07006("用户回复不能为空"),
+
     ;
 
     private final String msg;

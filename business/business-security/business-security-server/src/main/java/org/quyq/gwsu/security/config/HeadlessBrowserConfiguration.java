@@ -5,7 +5,7 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 import lombok.Data;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
-import org.quyq.gwsu.security.headless.BrowserContextPool;
+import org.quyq.gwsu.security.headless.pool.BrowserContextPool;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;

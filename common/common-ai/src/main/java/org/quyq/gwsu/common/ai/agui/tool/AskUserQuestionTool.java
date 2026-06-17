@@ -6,6 +6,7 @@ import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.ToolSuspendException;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
 
 import java.util.List;
 import java.util.Objects;
@@ -18,7 +19,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AskUserQuestionTool {
 
-    @Tool(name = "AskUserQuestion", description = """
+    @Tool(name = AIConstants.ToolName.ASK_USER_QUESTION, description = """
             Use this tool when you need to ask the user questions during execution. This allows you to:
             
             Gather user preferences or requirements

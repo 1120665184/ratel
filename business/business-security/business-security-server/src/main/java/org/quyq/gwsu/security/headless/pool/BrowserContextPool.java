@@ -1,11 +1,10 @@
-package org.quyq.gwsu.security.headless;
+package org.quyq.gwsu.security.headless.pool;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Browser.NewContextOptions;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;

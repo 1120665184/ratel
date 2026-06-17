@@ -5,6 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.security.config.HeadlessBrowserConfiguration;
+import org.quyq.gwsu.security.headless.pool.BrowserContextPool;
+import org.quyq.gwsu.security.headless.session.HeadlessAccessSession;
+import org.quyq.gwsu.security.headless.session.HeadlessBrowserSession;
 
 import java.util.List;
 import java.util.Map;
@@ -173,7 +176,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
     /**
      * 从 Redis 读取分布式会话
      */
-    private HeadlessAccessSession getAccessSession(String userId) {
+    public HeadlessAccessSession getAccessSession(String userId) {
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         return cacheUtils.withRebel(() -> {
             Map<String, String> map = cacheUtils.hGetAll(key, String.class);
@@ -256,7 +259,16 @@ public class HeadlessBrowserManager implements AutoCloseable {
             cacheUtils.hDelete(key, HeadlessAccessSession.HASH_KEY_THREAD_ID);
             return null;
         });
-        log.info("已清除用户 threadId，下次将创建新会话: userId={}", userId);
+        log.debug("已清除用户 threadId，下次将创建新会话: userId={}", userId);
+    }
+
+    public void newSession(String userId , String threadId) {
+        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
+        cacheUtils.withRebel(() -> {
+            cacheUtils.hSet(key , HeadlessAccessSession.HASH_KEY_THREAD_ID , threadId);
+            return null;
+        });
+        log.debug("已设置新会话threadID，下次将使用设置值: userId={}", userId);
     }
 
     /**

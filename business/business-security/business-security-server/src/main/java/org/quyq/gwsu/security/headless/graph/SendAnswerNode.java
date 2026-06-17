@@ -1,0 +1,57 @@
+package org.quyq.gwsu.security.headless.graph;
+
+
+import com.alibaba.cloud.ai.graph.OverAllState;
+import com.alibaba.cloud.ai.graph.action.NodeAction;
+import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.core.utils.AssertUtils;
+import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
+import org.quyq.gwsu.security.constants.SerConstants;
+import org.quyq.gwsu.security.errcode.SecurityErrorCode;
+import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
+import org.quyq.gwsu.security.headless.domain.RouterInfo;
+
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
+/**
+ * @author Quyq
+ * @date 2026/6/17
+ * @description 发送用户问题回复节点
+ */
+@RequiredArgsConstructor
+public class SendAnswerNode implements NodeAction {
+
+    private final HeadlessBrowserManager headlessBrowserManager;
+
+    private final ExecutorService executorService = ThreadPoolUtil.newVirtualThreadPerTaskExecutor();
+
+    @Override
+    public Map<String, Object> apply(OverAllState state){
+        RouterInfo routerInfo = state.value(SerConstants.Headless.GRAPH_PARAM_ROUTE_INFO, RouterInfo.class).orElse(null);
+        AssertUtils.notNull(routerInfo , SecurityErrorCode.E07001);
+
+        Map<String, String> answerInfo = routerInfo.getAnswerInfo();
+        AssertUtils.notNull(answerInfo , SecurityErrorCode.E07003);
+        String toolCallId = routerInfo.getToolCallId();
+        AssertUtils.hasText(toolCallId , SecurityErrorCode.E07004);
+
+        String userId = state.value(SerConstants.Headless.GRAPH_PARAM_USER_ID, String.class).orElse("");
+
+        HeadlessMessageHandler handler = new HeadlessMessageHandler();
+
+        //发送用户回复
+        executorService.submit(() -> {
+            headlessBrowserManager.userAnswer(
+                    userId,
+                    toolCallId,
+                    answerInfo,
+                    handler
+            );
+            handler.complete();
+        });
+
+
+        return Map.of(SerConstants.Headless.GRAPH_PARAM_OUTPUT, handler.asFlux());
+    }
+}

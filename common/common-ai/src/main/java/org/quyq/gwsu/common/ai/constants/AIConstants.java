@@ -33,4 +33,10 @@ public interface AIConstants {
 
     }
 
+    interface ToolName {
+
+        String ASK_USER_QUESTION = "AskUserQuestion";
+
+    }
+
 }

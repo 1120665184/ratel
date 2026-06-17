@@ -1,22 +1,29 @@
 package org.quyq.gwsu;
 
 
+import com.alibaba.cloud.ai.graph.CompiledGraph;
+import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
+import com.google.gson.Gson;
 import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.message.Msg;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
-import org.quyq.gwsu.security.headless.HeadlessPageWrapper;
+import org.quyq.gwsu.security.headless.domain.HeadlessCallConfig;
+import org.quyq.gwsu.security.headless.service.IHeadlessService;
+import org.quyq.gwsu.security.headless.service.impl.HeadlessServiceImpl;
+import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.boot.test.context.SpringBootTest;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,6 +41,9 @@ public class HeadlessBrowserTest {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private IHeadlessService headlessService;
 
 
     @Test
@@ -120,6 +130,57 @@ public class HeadlessBrowserTest {
     @Test
     public void newSession(){
         browserManager.newSession("1");
+    }
+
+
+    @Test
+    public void graph(){
+        Gson gson = new Gson();
+        Message message = headlessService.stream("数据查询", HeadlessCallConfig.builder()
+                        .userId("1")
+                        .build())
+                .doOnNext(v -> System.out.println("内容输出：" + gson.toJson(v)))
+                .doOnComplete(() -> {
+                    System.out.println("完成");
+                })
+                .blockLast();
+
+
+
+        System.out.println(1);
+//        CompiledGraph headlessGraph = headlessService.headlessGraph;
+//
+//        headlessGraph.stream(Map.of(
+//                SerConstants.Headless.GRAPH_PARAM_QUERY , "你好",
+//                SerConstants.Headless.GRAPH_PARAM_USER_ID , "1",
+//                SerConstants.Headless.GRAPH_PARAM_THREAD_ID , ""
+//        ))
+//                .doOnNext(output -> {
+//                    // 处理流式输出
+//                    if (output instanceof StreamingOutput<?> streamingOutput) {
+//                        // 流式输出块
+//                        String chunk = streamingOutput.chunk();
+//                        if (chunk != null && !chunk.isEmpty()) {
+//                            System.out.print(chunk); // 实时打印流式内容
+//                        }
+//                    }
+//                    else {
+//                        // 普通节点输出
+//                        String nodeId = output.node();
+//                        Map<String, Object> state = output.state().data();
+//
+//                        if (state.containsKey("result")) {
+//                            System.out.println("最终结果: " + state.get("result"));
+//                        }
+//                    }
+//                })
+//                .doOnComplete(() -> {
+//
+//                })
+//                .doOnError(error -> {
+//                    System.err.println("流式输出错误: " + error.getMessage());
+//                })
+//                .blockLast();
     }
 
 }

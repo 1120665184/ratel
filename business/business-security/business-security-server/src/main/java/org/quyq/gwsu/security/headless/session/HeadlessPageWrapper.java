@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.headless;
+package org.quyq.gwsu.security.headless.session;
 
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Locator;

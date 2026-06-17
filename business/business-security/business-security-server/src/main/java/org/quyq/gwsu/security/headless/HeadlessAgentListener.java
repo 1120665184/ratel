@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.headless;
 
 import io.agentscope.core.agui.event.AguiEvent;
+import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
 
 import java.util.Map;
 

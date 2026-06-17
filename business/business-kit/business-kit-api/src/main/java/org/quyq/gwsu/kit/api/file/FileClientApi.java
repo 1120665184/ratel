@@ -23,7 +23,8 @@ import java.util.Map;
 /**
  * @author Quyq
  * @date 2026/6/6
- * @description
+ * @description 文件上传有现成工具类提供，无需使用该api ，见{@link org.quyq.gwsu.kit.api.utils.FileUtils}
+ *
  */
 @ApiClient(value = CoreConstants.Server.KIT_NAME, note = "文件上传API", fallbackFactory = FileClientApiFallbackFactory.class)
 @HttpExchange("/file")
