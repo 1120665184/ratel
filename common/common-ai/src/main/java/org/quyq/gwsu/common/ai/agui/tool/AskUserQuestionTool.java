@@ -21,28 +21,28 @@ public class AskUserQuestionTool {
 
     @Tool(name = AIConstants.ToolName.ASK_USER_QUESTION, description = """
             Use this tool when you need to ask the user questions during execution. This allows you to:
-            
+
             Gather user preferences or requirements
             Clarify ambiguous instructions
             Get decisions on implementation choices as you work
             Offer choices to the user about what direction to take.
+
             Usage notes:
-            
-            Users will always be able to select "Other" to provide custom text input
-            Use multiSelect: true to allow multiple answers to be selected for a question
-            If you recommend a specific option, make that the first option in the list and add "(Recommended)" at the end of the label
-            
-            Parameters:
-            
-            - questions (required): 1-4 questions to ask, each with:
-                - question (required): The complete question to ask the user
-                - header (required): Very short label (max 12 chars)
-                - options (required): 2-4 options, each with label and description
-                - multiSelect (required): Allow multiple selections (default false)
-            
-            - answers: User answers collected by the component
-            - annotations: Optional per-question annotations with preview and notes
-            
+            - Users will always be able to select "Other" to provide custom text input, so do NOT include an "Other" or "其他" option in your options list.
+            - Use multiSelect: true to allow multiple answers to be selected for a question
+            - If you recommend a specific option, make that the first option in the list and add "(Recommended)" at the end of the label
+
+            CRITICAL: The "questions" parameter MUST be a JSON array of objects, NOT a string.
+            Do NOT wrap the array in quotes. Output the array directly.
+
+            Correct format:
+            "questions": [{"question": "...", "header": "...", "options": [{"label": "...", "description": "..."}], "multiSelect": false}]
+
+            Wrong format (DO NOT do this):
+            "questions": "[{...}]"   <-- This is a string, NOT an array!
+
+            Example:
+            "questions": [{"question": "Which framework?", "header": "Framework", "options": [{"label": "React (Recommended)", "description": "Component-based UI"}, {"label": "Vue", "description": "Progressive framework"}], "multiSelect": false}]
             """)
     public ToolResultBlock askUserQuestion(@ToolParam(name = "questions", description = "1-4 questions to ask")
                                            List<QuestionParam> questions) {

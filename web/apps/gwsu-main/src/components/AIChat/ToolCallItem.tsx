@@ -89,8 +89,14 @@ export function ToolCallItem(props: ToolCallItemProps) {
   // 技能展示名
   const skillId = isSkill ? (args?.skillId as string) ?? '' : '';
 
+  // 安全获取 questions 数组，格式异常时返回空数组以跳过渲染
+  const questionsList: Record<string, unknown>[] = useMemo(() => {
+    if (!isQuestion || !Array.isArray(args?.questions)) return [];
+    return args.questions as Record<string, unknown>[];
+  }, [isQuestion, args?.questions]);
+
   // 问题展示名：取第一个问题的 header
-  const questionHeader = isQuestion ? (args?.questions as Record<string, unknown>[])?.[0]?.header as string ?? '问题' : '';
+  const questionHeader = isQuestion ? (questionsList[0]?.header as string) ?? '问题' : '';
 
   const displayName = isSkill ? skillId : isQuestion ? questionHeader : name;
 
@@ -151,18 +157,18 @@ export function ToolCallItem(props: ToolCallItemProps) {
           )}
 
           {/* 问题：展示每个问题和用户回答 */}
-          {isQuestion && (
+          {isQuestion && questionsList.length > 0 && (
             <>
-              {(args?.questions as Record<string, unknown>[])?.map((q: Record<string, unknown>, idx: number) => {
+              {questionsList.map((q: Record<string, unknown>, idx: number) => {
                 const questionText = q.question as string;
                 const options = q.options as Record<string, string>[];
                 const answer = questionAnswer?.answers?.[questionText];
                 const annotation = questionAnswer?.annotations?.[questionText];
                 return (
                   <div key={idx} className={styles.detailSection}>
-                    <div className={styles.detailLabel}>问题 {(args?.questions as Record<string, unknown>[])?.length && (args?.questions as Record<string, unknown>[]).length > 1 ? `${idx + 1}` : ''}</div>
+                    <div className={styles.detailLabel}>问题 {questionsList.length > 1 ? `${idx + 1}` : ''}</div>
                     <div className={styles.questionText}>{questionText}</div>
-                    {options && options.length > 0 && (
+                    {Array.isArray(options) && options.length > 0 && (
                       <div className={styles.questionOptions}>
                         {options.map((opt, optIdx) => (
                           <span key={optIdx} className={styles.questionOption}>
