@@ -45,7 +45,7 @@ public class IntentRecognitionNode implements NodeAction {
 
     private final HeadlessBrowserManager headlessBrowserManager;
 
-    private final static String HEADLESS_RECOGNITION_NODE_KEY = "headless_recognition_node";
+    public final static String HEADLESS_RECOGNITION_NODE_KEY = "headless_recognition_node";
 
     private final Gson gson = new Gson();
 

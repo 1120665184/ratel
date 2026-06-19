@@ -9,6 +9,7 @@ import io.agentscope.core.message.Msg;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
@@ -22,6 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +83,7 @@ public class HeadlessBrowserTest {
                 }
 
                 @Override
-                public void onAskUserQuestion(String toolCallId, Map<String, Object> questions, HeadlessPageWrapper wrapper) {
+                public void onAskUserQuestion(String threadId,String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
                     log.info("询问用户问题：{}" , objectMapper.writeValueAsString(questions));
                 }
 
@@ -136,18 +138,25 @@ public class HeadlessBrowserTest {
     @Test
     public void graph(){
         Gson gson = new Gson();
-        Message message = headlessService.stream("数据查询", HeadlessCallConfig.builder()
+        Message message = headlessService.stream("删除名叫\"叶帆\"的用户", HeadlessCallConfig.builder()
                         .userId("1")
+                        .threadId("9")
                         .build())
                 .doOnNext(v -> System.out.println("内容输出：" + gson.toJson(v)))
                 .doOnComplete(() -> {
                     System.out.println("完成");
                 })
+                .doOnError(throwable -> {
+                    System.out.println("执行错误:"+throwable.getMessage());
+                })
                 .blockLast();
+        try {
+            TimeUnit.SECONDS.sleep(10);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
 
-
-        System.out.println(1);
 //        CompiledGraph headlessGraph = headlessService.headlessGraph;
 //
 //        headlessGraph.stream(Map.of(

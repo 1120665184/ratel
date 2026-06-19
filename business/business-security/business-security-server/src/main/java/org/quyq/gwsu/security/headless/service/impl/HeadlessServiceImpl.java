@@ -86,9 +86,9 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
     public CompiledGraph buildGraph() throws GraphStateException {
 
         IntentRecognitionNode intentRecognitionNode = new IntentRecognitionNode(session, headlessBrowserManager);
-        SendChatNode sendChatNode = new SendChatNode(headlessBrowserManager);
-        SendAnswerNode sendAnswerNode = new SendAnswerNode(headlessBrowserManager);
-        SendApprovalNode sendApprovalNode = new SendApprovalNode(headlessBrowserManager);
+        SendChatNode sendChatNode = new SendChatNode(session ,headlessBrowserManager);
+        SendAnswerNode sendAnswerNode = new SendAnswerNode(session ,headlessBrowserManager);
+        SendApprovalNode sendApprovalNode = new SendApprovalNode(session ,headlessBrowserManager);
 
         KeyStrategyFactory keyStrategyFactory = () -> {
             Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();

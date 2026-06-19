@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jcodec.api.awt.AWTSequenceEncoder;
 import org.jcodec.common.io.NIOUtils;
 import org.jcodec.common.io.SeekableByteChannel;
+import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.file.dto.FileProperty;
 import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
 import org.quyq.gwsu.kit.api.utils.FileUtils;
@@ -43,7 +44,7 @@ public class HeadlessPageWrapper {
     private final Page page;
 
     /** 录制帧率（每秒帧数） */
-    private static final int RECORDING_FPS = 5;
+    private static final int RECORDING_FPS = 2;
 
     /** 录制截图间隔（毫秒） */
     private static final int RECORDING_INTERVAL_MS = 1000 / RECORDING_FPS;
@@ -272,7 +273,7 @@ public class HeadlessPageWrapper {
      * @param file 要上传的文件（如 screenshot 或 stopRecording 返回的文件）
      * @return 上传后的文件 ID
      */
-    public String upload(File file) {
+    public KitFileInfoVO upload(File file) {
         return upload(file, buildProperty());
     }
 
@@ -283,15 +284,14 @@ public class HeadlessPageWrapper {
      * @param property 文件属性（有效期、权限等）
      * @return 上传后的文件 ID
      */
-    public String upload(File file, FileProperty property) {
+    public KitFileInfoVO upload(File file, FileProperty property) {
         try {
             KitFileInfoVO fileInfo = FileUtils.upload(file, property);
-            String fileId = fileInfo.getFileId();
-            log.info("文件已上传，fileId={}, fileName={}", fileId, file.getName());
-            return fileId;
+            log.info("文件已上传，fileId={}, fileName={}", fileInfo.getFileId(), file.getName());
+            return fileInfo;
         } catch (Exception e) {
             log.error("文件上传失败: {}", file.getName(), e);
-            throw new RuntimeException("文件上传失败", e);
+            throw new BusinessException( e);
         } finally {
             deleteQuietly(file.toPath());
         }

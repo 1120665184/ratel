@@ -31,10 +31,13 @@ import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.accessor.HeadersContextThreadLocalAccessor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
+import org.quyq.gwsu.common.security.domain.Subject;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.http.MediaType;
@@ -63,6 +66,8 @@ public abstract class AguiController implements DisposableBean {
     private final AguiRequestProcessor processor;
 
     private final WebToolUtils webToolUtils;
+
+    private final SecurityUtils securityUtils;
 
     private final long sseTimeout;
 
@@ -250,15 +255,17 @@ public abstract class AguiController implements DisposableBean {
      *
      * @return
      */
-    protected abstract String getCurrUserId();
+    private String getCurrUserId() {
+        return securityUtils.userInfo().map(UserInfo::getUserId).orElse(null);
+    }
 
 
     protected SseEmitter handlerAgentConnect(ChatDTO request) {
         SseEmitter emitter = new SseEmitter(sseTimeout);
         RunAgentInput body = request.body();
         executorService.submit(() -> {
-            sendEvent(null ,emitter, new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
-            sendEvent(null,emitter, new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
+            sendEvent(null, emitter, new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
+            sendEvent(null, emitter, new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
             emitter.complete();
         });
 
@@ -409,6 +416,18 @@ public abstract class AguiController implements DisposableBean {
         return emitter;
     }
 
+    /**
+     * 是否是无头浏览形式访问
+     *
+     * @return
+     */
+    private boolean isHeadless() {
+        String loginType = securityUtils.getSubject()
+                .map(Subject::getLoginType).orElse(null);
+
+        return "headless".equals(loginType);
+    }
+
     private void sendEvent(RunAgentInput param, SseEmitter emitter, AguiEvent event) {
         try {
             String jsonData = encoder.encodeToJson(event);
@@ -443,7 +462,7 @@ public abstract class AguiController implements DisposableBean {
     }
 
     private void pushEvent(RunAgentInput param, AguiEvent event) {
-        if (Objects.isNull(param) || CollectionUtils.isEmpty(pushers)) {
+        if (Objects.isNull(param) || !isHeadless() || CollectionUtils.isEmpty(pushers)) {
             return;
         }
 

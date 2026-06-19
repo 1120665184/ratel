@@ -9,15 +9,19 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
+
 /**
  * @author Quyq
  * @date 2026/6/15
- * @description
+ * @description 基于Redis List的SSE事件推送器，使用LPUSH写入事件，消费端通过RPOP按序读取
  */
 @RequiredArgsConstructor
 public class AguiEventRedisPusher implements AguiEventPusher {
 
-    public static final String BRAIN_SSE_EVENT_CHANNEL_PREFIX = "brain_sse_event_channel_";
+    public static final String BRAIN_SSE_EVENT_LIST_PREFIX = "brain_sse_event_list:";
+
+    private static final Duration LIST_TTL = Duration.ofHours(1);
 
     private final CacheUtils cacheUtils;
 
@@ -29,8 +33,12 @@ public class AguiEventRedisPusher implements AguiEventPusher {
 
         String threadId = param.getThreadId();
         if (StringUtils.hasText(threadId)) {
-            cacheUtils.withRebel(() -> cacheUtils.convertAndSend(BRAIN_SSE_EVENT_CHANNEL_PREFIX + threadId,
-                    objectMapper.writeValueAsString(event)));
+            String key = BRAIN_SSE_EVENT_LIST_PREFIX + threadId;
+            cacheUtils.withRebel(() -> {
+                cacheUtils.lPush(key, objectMapper.writeValueAsString(event));
+                cacheUtils.expire(key, LIST_TTL);
+                return null;
+            });
         }
 
     }

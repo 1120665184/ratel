@@ -23,6 +23,11 @@
             <artifactId>common-cache</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.quyq.gwsu</groupId>
+            <artifactId>common-security</artifactId>
+        </dependency>
+
 
 
         <dependency>

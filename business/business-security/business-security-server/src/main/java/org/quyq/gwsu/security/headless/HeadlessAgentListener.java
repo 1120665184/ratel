@@ -1,8 +1,10 @@
 package org.quyq.gwsu.security.headless;
 
 import io.agentscope.core.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -71,10 +73,11 @@ public interface HeadlessAgentListener {
      * 通过 TOOL_CALL_START 的 toolCallName=AskUserQuestion 识别
      * 收到此事件后，调用方需通过 HeadlessBrowserManager.userAnswer() 提交回答
      *
+     * @param threadId 当前 SSE 会话的线程 ID
      * @param toolCallId 工具调用 ID
      * @param questions 问题数据（从 TOOL_CALL_ARGS 中累积解析）
      */
-    default void onAskUserQuestion(String toolCallId, Map<String, Object> questions, HeadlessPageWrapper wrapper) {}
+    default void onAskUserQuestion(String threadId, String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {}
 
     /** TOOL_EXECUTE：前端工具执行请求（CUSTOM 类型） */
     default void onToolExecute(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {}

@@ -54,16 +54,11 @@ public class BrainController implements DisposableBean {
                            IBrainHistoryService brainHistoryService, WebToolUtils webToolUtils) {
         this.brainHistoryService = brainHistoryService;
         this.securityUtils = securityUtils;
-        this.aguiController = new AguiController(brainService.buildAguiProcessor(), webToolUtils, 600000L) {
+        this.aguiController = new AguiController(brainService.buildAguiProcessor(), webToolUtils, securityUtils,600000L) {
             @Override
             protected CopilotKitInfo handleInfo() {
                 return new CopilotKitInfo()
                         .addAgent(new CopilotKitInfo.Agents(IBrainService.AGENT_ID, "平台中央大脑"));
-            }
-
-            @Override
-            protected String getCurrUserId() {
-                return securityUtils.userInfo().map(UserInfo::getUserId).orElse(null);
             }
         };
 

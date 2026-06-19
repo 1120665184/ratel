@@ -1,16 +1,20 @@
 package org.quyq.gwsu.security.headless.session;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.microsoft.playwright.*;
 import io.agentscope.core.agui.event.AguiEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
+import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.security.brain.push.AguiEventRedisPusher;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
 import org.quyq.gwsu.security.headless.parser.HeadlessSseEventParser;
-import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -28,9 +32,10 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>
  * SSE 事件接收策略：
  * 1. page.route() 拦截 agent/run 请求，从请求体中提取 threadId
- * 2. 先订阅 Redis channel（brain_sse_event_channel_{threadId}），再放行请求
- * 3. Redis 消息实时到达，反序列化为 AguiEvent 后分发给 listener
- * 4. 收到 RunFinished 事件后销毁 Redis 监听器
+ * 2. 启动单线程消费 Redis List（brain_sse_event_list_{threadId}），再放行请求
+ * 3. 通过 rPop 阻塞消费 List 中的消息，反序列化为 AguiEvent 后分发给 listener
+ * 4. 收到 RunFinished 事件后停止消费
+ * 5. Session 关闭时删除 Redis List 数据
  * <p>
  * 审批/提问交互策略：
  * - 审批和回答问题由 HeadlessBrowserManager 的 approval()/userAnswer() 独立发起
@@ -45,33 +50,56 @@ public class HeadlessBrowserSession implements AutoCloseable {
     private final BrowserContext context;
     private final Page page;
     private final HeadlessSseEventParser parser = new HeadlessSseEventParser();
-    private final Gson gson = new Gson();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final CacheUtils cacheUtils;
 
-    /** SSE 等待超时（毫秒），从配置注入 */
+    /**
+     * SSE 等待超时（毫秒），从配置注入
+     */
     private final long sseTimeoutMs;
 
-    /** sendMessage 互斥锁，保证同一 Session 不会并发调用 */
+    /**
+     * sendMessage 互斥锁，保证同一 Session 不会并发调用
+     */
     private final ReentrantLock sendLock = new ReentrantLock();
 
-    /** 当前活跃的事件收集器（每次 sendMessage 重建） */
+    /**
+     * 当前活跃的事件收集器（每次 sendMessage 重建）
+     */
     private final AtomicReference<SseEventCollector> currentEventCollector = new AtomicReference<>();
 
-    /** 当前活跃的监听器（每次 sendMessage 更新） */
+    /**
+     * 当前活跃的监听器（每次 sendMessage 更新）
+     */
     private final AtomicReference<HeadlessAgentListener> currentListener = new AtomicReference<>();
 
-    /** 页面操作包装器（供 listener 在事件回调中操作浏览器） */
+    /**
+     * 页面操作包装器（供 listener 在事件回调中操作浏览器）
+     */
     private final HeadlessPageWrapper pageWrapper;
 
-    /** toolCallId → toolCallName 映射 */
+    /**
+     * toolCallId → toolCallName 映射
+     */
     private final ConcurrentHashMap<String, String> toolCallNameMap = new ConcurrentHashMap<>();
-    /** toolCallId → 累积的 TOOL_CALL_ARGS delta */
+    /**
+     * toolCallId → 累积的 TOOL_CALL_ARGS delta
+     */
     private final ConcurrentHashMap<String, StringBuilder> toolCallArgsBuffer = new ConcurrentHashMap<>();
 
-    /** 当前 Redis 监听容器，收到 RunFinished 后销毁 */
-    private volatile RedisMessageListenerContainer currentRedisListener = null;
+    /**
+     * 消息消费线程池（单线程），保证事件按序处理
+     */
+    private volatile ExecutorService messageConsumer = null;
 
-    /** 当前 SSE 会话的 threadId，从拦截的请求中提取 */
+    /**
+     * 当前消费的 Redis List key，Session 关闭时删除
+     */
+    private volatile String currentListKey = null;
+
+    /**
+     * 当前 SSE 会话的 threadId，从拦截的请求中提取
+     */
     private volatile String currentThreadId = null;
 
     private volatile boolean closed = false;
@@ -97,7 +125,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 if (threadId != null) {
                     this.currentThreadId = threadId;
                     log.info("[HeadlessSSE] 检测到agent/run请求, threadId={}", threadId);
-                    subscribeRedisEvents(threadId);
+                    startMessageConsumer(threadId);
                 } else {
                     log.warn("[HeadlessSSE] 无法从请求体中提取threadId");
                 }
@@ -150,9 +178,9 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * <p>
      * 流程：
      * 1. URL 含 token 参数 → 先导航到带 token 的登录页面
-     *    - 通过 page.onResponse 监听网络请求，检测 /system/manager/current 返回 401
-     *    - 如果 401 → 清除无效 token，重新导航到只有 certification 的 URL 回退登录
-     *    - 如果正常 → 等待 data-headless-login-status 变为 success
+     * - 通过 page.onResponse 监听网络请求，检测 /system/manager/current 返回 401
+     * - 如果 401 → 清除无效 token，重新导航到只有 certification 的 URL 回退登录
+     * - 如果正常 → 等待 data-headless-login-status 变为 success
      * 2. URL 无 token 参数 → 直接 certification 登录
      */
     public void authenticate(String loginUrl) {
@@ -229,7 +257,8 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 log.info("[HeadlessAuth] 超时且 token 已失效，回退到 certification 登录");
                 try {
                     page.evaluate("() => { localStorage.removeItem('gwsu_token'); localStorage.removeItem('gwsu_isLoggedIn'); }");
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
                 String fallbackUrl = stripTokenParam(loginUrl);
                 authenticateDirect(fallbackUrl);
             } else {
@@ -238,7 +267,10 @@ public class HeadlessBrowserSession implements AutoCloseable {
             }
         } finally {
             // 移除响应监听器（避免影响后续请求）
-            try { page.offResponse(responseListener); } catch (Exception ignored) {}
+            try {
+                page.offResponse(responseListener);
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -364,7 +396,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                                 "  if (re) re.value = args[1];" +
                                 "  var btn = document.querySelector('[data-testid=\"headless-approval-submit\"]');" +
                                 "  if (btn) btn.click();" +
-                                "}", new Object[]{ result, reason })
+                                "}", new Object[]{result, reason})
                 );
             } catch (PlaywrightException e) {
                 log.warn("等待审批请求发送超时，审批可能已提交");
@@ -407,7 +439,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
             log.debug("前端聊天已就绪，开始提交用户回答");
 
-            String answersJson = gson.toJson(answers);
+            String answersJson = objectMapper.writeValueAsString(answers);
 
             // 填充隐藏表单并触发提交，同时等待 agent run 请求发送
             try {
@@ -420,7 +452,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                                 "  if (t) t.value = args[1];" +
                                 "  var btn = document.querySelector('[data-testid=\"headless-question-submit\"]');" +
                                 "  if (btn) btn.click();" +
-                                "}", new Object[]{ answersJson, toolCallId })
+                                "}", new Object[]{answersJson, toolCallId})
                 );
             } catch (PlaywrightException e) {
                 log.warn("等待回答问题请求发送超时，回答可能已提交");
@@ -449,12 +481,21 @@ public class HeadlessBrowserSession implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
-        destroyRedisListener();
+        stopMessageConsumer();
+        deleteListKey();
         pageWrapper.markClosed();
         toolCallNameMap.clear();
         toolCallArgsBuffer.clear();
-        try { if (page != null && !page.isClosed()) page.close(); } catch (Exception e) { log.warn("关闭Page异常", e); }
-        try { if (context != null) context.close(); } catch (Exception e) { log.warn("关闭Context异常", e); }
+        try {
+            if (page != null && !page.isClosed()) page.close();
+        } catch (Exception e) {
+            log.warn("关闭Page异常", e);
+        }
+        try {
+            if (context != null) context.close();
+        } catch (Exception e) {
+            log.warn("关闭Context异常", e);
+        }
     }
 
     // ==================== 内部实现 ====================
@@ -462,7 +503,11 @@ public class HeadlessBrowserSession implements AutoCloseable {
     private void notifyListenerError(Throwable error) {
         HeadlessAgentListener listener = currentListener.get();
         if (listener != null) {
-            try { listener.onError(error, pageWrapper); } catch (Exception e) { log.warn("通知监听器错误失败", e); }
+            try {
+                listener.onError(error, pageWrapper);
+            } catch (Exception e) {
+                log.warn("通知监听器错误失败", e);
+            }
         }
     }
 
@@ -471,7 +516,8 @@ public class HeadlessBrowserSession implements AutoCloseable {
      */
     private String extractThreadId(String postData) {
         try {
-            Map<String, Object> map = gson.fromJson(postData, Map.class);
+            Map<String, Object> map = objectMapper.readValue(postData, new TypeReference<>() {
+            });
             Object body = map.get("body");
             if (body instanceof Map<?, ?> bodyMap) {
                 Object threadId = bodyMap.get("threadId");
@@ -486,46 +532,73 @@ public class HeadlessBrowserSession implements AutoCloseable {
     }
 
     /**
-     * 订阅 Redis channel 接收 SSE 事件
+     * 启动单线程消费 Redis List 中的 SSE 事件
+     * <p>
+     * 使用 rPop 阻塞读取，单线程串行处理，保证事件顺序性
      */
-    private void subscribeRedisEvents(String threadId) {
-        destroyRedisListener();
+    private void startMessageConsumer(String threadId) {
+        stopMessageConsumer();
 
-        String channel = AguiEventRedisPusher.BRAIN_SSE_EVENT_CHANNEL_PREFIX + threadId;
-        log.info("[HeadlessSSE] 订阅Redis channel: {}", channel);
+        String listKey = AguiEventRedisPusher.BRAIN_SSE_EVENT_LIST_PREFIX + threadId;
+        currentListKey = listKey;
+        log.info("[HeadlessSSE] 启动Redis List消费: listKey={}", listKey);
 
-        MessageListener listener = (message, pattern) -> {
-            try {
-                String msg = (String) cacheUtils.getSerializer().deserialize(message.getBody());
-                AguiEvent event = parser.parseEvent(msg);
-                if (event != null) {
-                    handleSseEvent(event);
-                    if (event instanceof AguiEvent.RunFinished) {
-                        log.info("[HeadlessSSE] 收到RunFinished, 销毁Redis监听器: threadId={}", threadId);
-                        destroyRedisListener();
+        messageConsumer = ThreadPoolUtil.newVirtualThreadPerTaskExecutor();
+
+        messageConsumer.submit(() -> {
+            while (!closed && !Thread.currentThread().isInterrupted()) {
+                try {
+                    String msg = cacheUtils.withRebel(() -> cacheUtils.rPop(listKey, 5, TimeUnit.SECONDS));
+                    if (msg != null) {
+                        AguiEvent event = parser.parseEvent(msg);
+                        if (event != null) {
+                            handleSseEvent(event);
+                            if (event instanceof AguiEvent.RunFinished) {
+                                log.info("[HeadlessSSE] 收到RunFinished, 停止消费: threadId={}", threadId);
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    if (!closed && !Thread.currentThread().isInterrupted()) {
+                        log.warn("[HeadlessSSE] Redis消息消费异常: {}", e.getMessage(), e);
                     }
                 }
-            } catch (Exception e) {
-                log.warn("[HeadlessSSE] Redis消息处理异常: {}", e.getMessage(), e);
             }
-        };
-
-        currentRedisListener = cacheUtils.withRebel(() -> cacheUtils.addListener(channel, listener));
-        log.info("[HeadlessSSE] Redis监听器已就绪: threadId={}", threadId);
+            log.info("[HeadlessSSE] 消费线程退出: threadId={}", threadId);
+        });
     }
 
     /**
-     * 销毁当前 Redis 监听器
+     * 停止消息消费线程
      */
-    private void destroyRedisListener() {
-        RedisMessageListenerContainer listener = currentRedisListener;
-        if (listener != null) {
-            currentRedisListener = null;
+    private void stopMessageConsumer() {
+        ExecutorService consumer = messageConsumer;
+        if (consumer != null) {
+            messageConsumer = null;
+            consumer.shutdownNow();
             try {
-                listener.stop();
-                listener.destroy();
+                if (!consumer.awaitTermination(5, TimeUnit.SECONDS)) {
+                    log.warn("[HeadlessSSE] 消费线程未能在5秒内退出");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * 删除当前消费的 Redis List 数据
+     */
+    private void deleteListKey() {
+        String key = currentListKey;
+        if (key != null) {
+            currentListKey = null;
+            try {
+                cacheUtils.withRebel(() -> cacheUtils.delete(key));
+                log.info("[HeadlessSSE] 已删除Redis List: key={}", key);
             } catch (Exception e) {
-                log.warn("[HeadlessSSE] 销毁Redis监听器异常: {}", e.getMessage());
+                log.warn("[HeadlessSSE] 删除Redis List异常: {}", e.getMessage());
             }
         }
     }
@@ -552,7 +625,8 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 case AguiEvent.ToolCallStart e -> {
                     listener.onToolCallStart(e, pageWrapper);
                     toolCallNameMap.put(e.toolCallId(), e.toolCallName());
-                    if ("AskUserQuestion".equals(e.toolCallName())) toolCallArgsBuffer.put(e.toolCallId(), new StringBuilder());
+                    if ("AskUserQuestion".equals(e.toolCallName()))
+                        toolCallArgsBuffer.put(e.toolCallId(), new StringBuilder());
                 }
                 case AguiEvent.ToolCallArgs e -> {
                     listener.onToolCallArgs(e, pageWrapper);
@@ -574,11 +648,16 @@ public class HeadlessBrowserSession implements AutoCloseable {
                     String name = e.name();
                     if ("HUMAN_APPROVAL".equals(name)) listener.onHumanApproval(e, pageWrapper);
                     else if ("TOOL_EXECUTE".equals(name)) listener.onToolExecute(e, pageWrapper);
-                    else if ("AGENT_OUTPUT".equals(name) || "AGENT_OUTPUT_END".equals(name)) listener.onAgentOutput(e, pageWrapper);
+                    else if ("AGENT_OUTPUT".equals(name) || "AGENT_OUTPUT_END".equals(name))
+                        listener.onAgentOutput(e, pageWrapper);
                     else listener.onCustomEvent(e, pageWrapper);
                 }
-                default -> { }
+                default -> {
+                }
             }
+        }catch (Exception e) {
+            log.error("headless -->事件输出异常" , e);
+            listener.onError(e , pageWrapper);
         } finally {
             // RunFinished 的 listener 回调全部执行完毕后，才通知 collector 完成
             // 这确保 awaitCompletion 返回时 onRunFinished 已经执行完，session.close() 安全
@@ -594,16 +673,25 @@ public class HeadlessBrowserSession implements AutoCloseable {
     @SuppressWarnings("unchecked")
     private void notifyAskUserQuestion(String toolCallId) {
         StringBuilder argsBuf = toolCallArgsBuffer.get(toolCallId);
-        Map<String, Object> questions;
+
         if (argsBuf != null && !argsBuf.isEmpty()) {
-            Map<String, Object> parsed = null;
-            try { parsed = gson.fromJson(argsBuf.toString(), Map.class); } catch (Exception e) { log.warn("AskUserQuestion参数解析失败: {}", toolCallId, e); }
-            questions = parsed != null ? parsed : Map.of();
-        } else {
-            questions = Map.of();
+            JsonNode jsonNode = objectMapper.readTree(argsBuf.toString());
+
+            JsonNode questionItem = jsonNode.get("questions");
+
+            if(Objects.isNull(questionItem) || !questionItem.isArray()){
+                return;
+            }
+            List<AskUserQuestionTool.QuestionParam> obj = objectMapper.readValue(questionItem.toString(), new TypeReference<List<AskUserQuestionTool.QuestionParam>>() {
+            });
+
+            HeadlessAgentListener listener = currentListener.get();
+            if (listener != null) listener.onAskUserQuestion(currentThreadId, toolCallId, obj, pageWrapper);
+
         }
-        HeadlessAgentListener listener = currentListener.get();
-        if (listener != null) listener.onAskUserQuestion(toolCallId, questions, pageWrapper);
+
+
+
     }
 
     private void triggerAssistant(String message) {
@@ -641,17 +729,33 @@ public class HeadlessBrowserSession implements AutoCloseable {
             events.add(event);
         }
 
-        /** RunFinished 回调执行完毕后，由 handleSseEvent 调用 */
+        /**
+         * RunFinished 回调执行完毕后，由 handleSseEvent 调用
+         */
         void signalCompletion() {
             completionLatch.countDown();
         }
 
-        void signalError(Throwable t) { this.error = t; completionLatch.countDown(); }
+        void signalError(Throwable t) {
+            this.error = t;
+            completionLatch.countDown();
+        }
+
         List<AguiEvent> awaitCompletion(long timeoutMs) {
-            try { completionLatch.await(timeoutMs, TimeUnit.MILLISECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            try {
+                completionLatch.await(timeoutMs, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             return getEvents();
         }
-        List<AguiEvent> getEvents() { return List.copyOf(events); }
-        Throwable getError() { return error; }
+
+        List<AguiEvent> getEvents() {
+            return List.copyOf(events);
+        }
+
+        Throwable getError() {
+            return error;
+        }
     }
 }

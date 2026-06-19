@@ -3,6 +3,7 @@ package org.quyq.gwsu.security.headless.graph;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
+import io.agentscope.core.session.Session;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
@@ -22,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 @RequiredArgsConstructor
 public class SendApprovalNode implements NodeAction {
 
+    private final Session session;
+
     private final HeadlessBrowserManager headlessBrowserManager;
 
     private final ExecutorService executorService = ThreadPoolUtil.newVirtualThreadPerTaskExecutor();
@@ -37,7 +40,7 @@ public class SendApprovalNode implements NodeAction {
 
         String userId = state.value(SerConstants.Headless.GRAPH_PARAM_USER_ID, String.class).orElse("");
 
-        HeadlessMessageHandler handler = new HeadlessMessageHandler();
+        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId , session);
 
         //发送审批消息
         executorService.submit(() -> {
