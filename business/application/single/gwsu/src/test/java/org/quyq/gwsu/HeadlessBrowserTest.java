@@ -138,9 +138,9 @@ public class HeadlessBrowserTest {
     @Test
     public void graph(){
         Gson gson = new Gson();
-        Message message = headlessService.stream("删除名叫\"叶帆\"的用户", HeadlessCallConfig.builder()
+        Message message = headlessService.stream("帮我统计一下消费最多的前五个客户", HeadlessCallConfig.builder()
                         .userId("1")
-                        .threadId("9")
+                        .threadId("1")
                         .build())
                 .doOnNext(v -> System.out.println("内容输出：" + gson.toJson(v)))
                 .doOnComplete(() -> {
@@ -150,46 +150,6 @@ public class HeadlessBrowserTest {
                     System.out.println("执行错误:"+throwable.getMessage());
                 })
                 .blockLast();
-        try {
-            TimeUnit.SECONDS.sleep(10);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-
-//        CompiledGraph headlessGraph = headlessService.headlessGraph;
-//
-//        headlessGraph.stream(Map.of(
-//                SerConstants.Headless.GRAPH_PARAM_QUERY , "你好",
-//                SerConstants.Headless.GRAPH_PARAM_USER_ID , "1",
-//                SerConstants.Headless.GRAPH_PARAM_THREAD_ID , ""
-//        ))
-//                .doOnNext(output -> {
-//                    // 处理流式输出
-//                    if (output instanceof StreamingOutput<?> streamingOutput) {
-//                        // 流式输出块
-//                        String chunk = streamingOutput.chunk();
-//                        if (chunk != null && !chunk.isEmpty()) {
-//                            System.out.print(chunk); // 实时打印流式内容
-//                        }
-//                    }
-//                    else {
-//                        // 普通节点输出
-//                        String nodeId = output.node();
-//                        Map<String, Object> state = output.state().data();
-//
-//                        if (state.containsKey("result")) {
-//                            System.out.println("最终结果: " + state.get("result"));
-//                        }
-//                    }
-//                })
-//                .doOnComplete(() -> {
-//
-//                })
-//                .doOnError(error -> {
-//                    System.err.println("流式输出错误: " + error.getMessage());
-//                })
-//                .blockLast();
     }
 
 }

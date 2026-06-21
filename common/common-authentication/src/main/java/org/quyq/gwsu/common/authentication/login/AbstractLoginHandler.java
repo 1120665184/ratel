@@ -19,12 +19,12 @@ import org.quyq.gwsu.common.authentication.login.interceptor.LoginInterceptorUti
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.ExceptionMsgHandler;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
+import org.quyq.gwsu.common.security.api.IRoleInfoClientApi;
+import org.quyq.gwsu.common.security.api.vo.UserRoleInfo;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.enums.VisitorType;
-import org.quyq.gwsu.common.security.api.IRoleInfoClientApi;
-import org.quyq.gwsu.common.security.api.vo.UserRoleInfo;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
@@ -61,7 +61,7 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
                     try {
                         U auth = toAuth(loginDTO, properties);
 
-                        Subject<U> subject = buildSubject(auth, visitorType);
+                        Subject<U> subject = buildSubject(auth);
                         context.setSubject(subject);
 
                         loginVO.setUserId(auth.getUserId());
@@ -86,7 +86,7 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
                                 tokenInfo.tokenValue != null && tokenInfo.tokenValue.chars().filter(c -> c == '.').count() == 2 ? "JWT" : "UUID",
                                 tokenInfo.tokenValue);
 
-                        putSessionData(auth, subject);
+                        putSessionData(auth, subject, visitorType);
 
 
                         // 阶段2: 登录成功后
@@ -112,7 +112,7 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
     }
 
 
-    private void putSessionData(U auth, Subject<U> subject) {
+    private void putSessionData(U auth, Subject<U> subject , VisitorType visitorType) {
         // 加载数据资源信息
         List<WorkspaceInfo> workspaceList = DataResourceScopeManager.workspaceList(auth);
         //账号session存储用户信息
@@ -125,11 +125,15 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
         tokenSession.set(SecurityConstants.Session.SESSION_CURR_WORKSPACE, workspaceList.getFirst());
         tokenSession.set(SecurityConstants.Session.SESSION_CURR_DATA_RESOURCE,
                 DataResourceScopeManager.dataResource(workspaceList.getFirst(), auth, subject.getDataScope()));
+        // 访问者类型
+        tokenSession.set(SecurityConstants.Session.SESSION_USER_VISITOR_TYPE , visitorType);
+        //登录类型
+        tokenSession.set(SecurityConstants.Session.SESSION_USER_LOGIN_TYPE , loginType());
     }
 
 
-    private Subject<U> buildSubject(U user, VisitorType visitorType) {
-        Subject<U> subject = new Subject<>(visitorType, user, loginType());
+    private Subject<U> buildSubject(U user) {
+        Subject<U> subject = new Subject<>(user);
 
         // 加载角色、作用域信息
         List<IRoleInfoClientApi> roleClientApi = SpringUtils.getBeansOfType(IRoleInfoClientApi.class);

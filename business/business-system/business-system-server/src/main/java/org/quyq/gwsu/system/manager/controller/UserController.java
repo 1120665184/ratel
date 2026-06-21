@@ -12,6 +12,7 @@ import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
+import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.system.api.manager.dto.ChangePasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.ResetPasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
@@ -40,6 +41,7 @@ public class UserController {
 
     private final ISysUserService userService;
     private final SecurityUtils securityUtils;
+    private final SessionUtils sessionUtils;
 
     @LoginAllowAccess
     @GetMapping("current")
@@ -48,7 +50,7 @@ public class UserController {
     public R<SysUserDetailVO> currentUserInfo() {
         return securityUtils.getSubject()
                 .map(v -> {
-                    String loginType = v.getLoginType();
+                    String loginType = sessionUtils.getLoginType();
                     boolean admin = v.isAdmin();
                     return R.ok(v.userInfo().map(user -> (SysUserDetailVO) user)
                             .map(user -> user

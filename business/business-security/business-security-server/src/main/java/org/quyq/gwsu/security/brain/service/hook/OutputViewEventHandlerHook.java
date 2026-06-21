@@ -217,7 +217,7 @@ public class OutputViewEventHandlerHook implements Hook, RuntimeContextAware {
         RunAgentInput input = sseEmitter.input();
         AguiEvent.Custom endEvent = new AguiEvent.Custom(input.getThreadId(), input.getRunId(),
                 "AGENT_OUTPUT_END", TextBlock.builder().text("done").build());
-        sendEvent(sseEmitter.emitter(), endEvent);
+        sseEmitter.sendEvent(endEvent);
     }
 
     /**
@@ -236,7 +236,8 @@ public class OutputViewEventHandlerHook implements Hook, RuntimeContextAware {
         RunAgentInput input = sseEmitter.input();
         AguiEvent.Custom customAguiEvent = new AguiEvent.Custom(input.getThreadId(), input.getRunId(),
                 "AGENT_OUTPUT", TextBlock.builder().text(json).build());
-        sendEvent(sseEmitter.emitter(), customAguiEvent);
+
+        sseEmitter.sendEvent(customAguiEvent);
     }
 
     /**
@@ -250,14 +251,6 @@ public class OutputViewEventHandlerHook implements Hook, RuntimeContextAware {
         escape = false;
     }
 
-    private void sendEvent(SseEmitter emitter, AguiEvent event) {
-        try {
-            String jsonData = encoder.encodeToJson(event);
-            emitter.send(SseEmitter.event().data(jsonData, MediaType.APPLICATION_JSON));
-        } catch (IOException e) {
-            log.debug("Failed to send SSE event: {}", e.getMessage());
-        }
-    }
 
     @Override
     public void setRuntimeContext(RuntimeContext context) {

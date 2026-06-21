@@ -17,7 +17,6 @@ import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
-import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
 import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -30,9 +29,7 @@ import reactor.core.publisher.Sinks;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -67,7 +64,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
     @Override
     public void onTextMessageContent(String delta, HeadlessPageWrapper wrapper) {
-       // log.info("内容输出：{}", delta);
+        // log.info("内容输出：{}", delta);
         sink.tryEmitNext(getContent(delta));
 
     }
@@ -85,7 +82,8 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     public void onHumanApproval(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
         File file = null;
         String threadId = event.getThreadId();
-        HumanApprovalInfo approvalInfo = gson.fromJson(gson.toJson(event.value()) , new TypeToken<HumanApprovalInfo>() {}.getType());
+        HumanApprovalInfo approvalInfo = gson.fromJson(gson.toJson(event.value()), new TypeToken<HumanApprovalInfo>() {
+        }.getType());
 
         String tip = approvalInfo.stage() == ApprovalStage.POST_REASONING ? approvalInfo.reasoningStageInfo().getFirst().tip() : approvalInfo.actingStageInfo().tip();
 
@@ -94,7 +92,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .textContent(tip)
                 .build();
 
-        sink.tryEmitNext(getContent(msg , null , null));
+        sink.tryEmitNext(getContent(msg, null, null));
 
         try {
             //录像
@@ -103,17 +101,17 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                     .role(MsgRole.ASSISTANT)
                     .textContent("\n以下是操作记录：\n")
                     .build();
-            sink.tryEmitNext(getContent(sp , record , MimeType.valueOf("video/mp4")));
+            sink.tryEmitNext(getContent(sp, record, MimeType.valueOf("video/mp4")));
         } catch (IOException e) {
-            log.error("操作记录发送失败" , e);
+            log.error("操作记录发送失败", e);
         } finally {
-            if(Objects.nonNull(file)){
+            if (Objects.nonNull(file)) {
                 file.delete();
             }
         }
 
         //记录图记忆
-        session.save(CommonSessionKey.of(threadId , userId) ,IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY , List.of(msg));
+        session.save(CommonSessionKey.of(threadId, userId), IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
 
 
     }
@@ -122,12 +120,12 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     @Override
     public void onAskUserQuestion(String threadId, String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
         StringBuilder sb = new StringBuilder("请您回答以下几个问题：\n");
-        for (int i = 0 ; i < questions.size(); i++) {
+        for (int i = 0; i < questions.size(); i++) {
             AskUserQuestionTool.QuestionParam question = questions.get(i);
             StringBuilder qStr = new StringBuilder();
             qStr.append(i + 1).append(".").append(question.question())
                     .append("【").append(question.multiSelect() ? "多选" : "单选").append("】\n");
-            for (int j = 0 ; j < question.options().size(); j++) {
+            for (int j = 0; j < question.options().size(); j++) {
                 AskUserQuestionTool.QuestionOption option = question.options().get(j);
                 qStr.append("  选项").append(j + 1).append(". ").append(option.label()).append("(")
                         .append(option.description()).append(")\n");
@@ -141,10 +139,38 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .textContent(sb.toString())
                 .build();
 
-        sink.tryEmitNext(getContent(msg , null , null));
+        sink.tryEmitNext(getContent(msg, null, null));
         //记录图记忆
-        session.save(CommonSessionKey.of(threadId , userId) ,IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY , List.of(msg));
+        session.save(CommonSessionKey.of(threadId, userId), IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
 
+    }
+
+
+    @Override
+    public void onAgentOutput(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
+        //AI输出面板内容输出完成，截取AI输出区截图
+        if("AGENT_OUTPUT_END".equals(event.name())){
+            File file = null;
+            try {
+                file = wrapper.screenshot("#ai-output-panel");
+                if (file == null) {
+                    log.warn("AI输出区截图失败，未获取到截图文件");
+                    return;
+                }
+                byte[] screenshot = FileUtils.readFileToByteArray(file);
+                Msg msg = Msg.builder()
+                        .role(MsgRole.ASSISTANT)
+                        .textContent("\n以下是助手为您输出的内容：\n")
+                        .build();
+                sink.tryEmitNext(getContent(msg, screenshot, MimeType.valueOf("image/png")));
+            } catch (IOException e) {
+                log.error("AI输出区截图发送失败", e);
+            } finally {
+                if (Objects.nonNull(file)) {
+                    file.delete();
+                }
+            }
+        }
     }
 
     @Override
@@ -162,10 +188,9 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     }
 
 
-
-    private ChatResponse getContent(Msg msg , byte[] resource , MimeType mimeType) {
+    private ChatResponse getContent(Msg msg, byte[] resource, MimeType mimeType) {
         AssistantMessage m = AgentScopeMessageUtils.toAssistantMessage(msg);
-        if(ArrayUtil.isNotEmpty(resource)){
+        if (ArrayUtil.isNotEmpty(resource)) {
             AssistantMessage message = AssistantMessage.builder()
                     .properties(m.getMetadata())
                     .content(m.getText())
@@ -201,7 +226,6 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .build());
         return new ChatResponse(List.of(new Generation(message)));
     }
-
 
 
 }

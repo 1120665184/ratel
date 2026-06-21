@@ -78,7 +78,7 @@ const AiOutputPanel: React.FC = () => {
   }, [handleClear]);
 
   return (
-    <div className={styles.aiOutputPanel}>
+    <div id="ai-output-panel" className={styles.aiOutputPanel}>
       {hasContent && spec && (
         <JSONUIProvider>
           <Renderer spec={spec} registry={registry} />

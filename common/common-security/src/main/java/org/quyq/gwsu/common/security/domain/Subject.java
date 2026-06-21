@@ -11,15 +11,15 @@ import org.jspecify.annotations.NonNull;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
+import org.quyq.gwsu.common.core.enums.TerminalType;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.deserializer.VisitorDeserializer;
 import org.quyq.gwsu.common.security.enums.DataScope;
-import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.springframework.util.CollectionUtils;
-import org.quyq.gwsu.common.core.enums.TerminalType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -33,23 +33,11 @@ import java.util.Optional;
 public class Subject<T extends Visitor> {
 
     @JsonCreator
-    public Subject(@NonNull @JsonProperty("subjectType") VisitorType subjectType,
-                   @NonNull @JsonProperty("detail") T info,
-                   @NonNull @JsonProperty("loginType") String loginType) {
-        this.subjectType = subjectType;
+    public Subject(
+            @NonNull @JsonProperty("detail") T info) {
         this.detail = info;
-        this.loginType = loginType;
     }
 
-    /**
-     * 登录主体类型
-     */
-    private final VisitorType subjectType;
-
-    /**
-     * 登录类型
-     */
-    private final String loginType;
 
     private TerminalType terminalType;
     /**
@@ -61,7 +49,6 @@ public class Subject<T extends Visitor> {
      * 数据权限作用域
      */
     private DataScope dataScope;
-
 
 
     /**
@@ -86,7 +73,7 @@ public class Subject<T extends Visitor> {
      */
     public <U extends UserInfo> Optional<U> userInfo() {
 
-        if (VisitorType.USER.equals(subjectType)) {
+        if (Objects.nonNull(detail) && detail instanceof UserInfo) {
             return Optional.of((U) detail);
         }
 
@@ -100,9 +87,11 @@ public class Subject<T extends Visitor> {
      * @return
      */
     public <U extends ClientInfo> Optional<U> clientInfo() {
-        if (VisitorType.CLIENT.equals(subjectType)) {
+
+        if (Objects.nonNull(detail) && detail instanceof ClientInfo) {
             return Optional.of((U) detail);
         }
+
         return Optional.empty();
     }
 
@@ -112,8 +101,7 @@ public class Subject<T extends Visitor> {
      * @return
      */
     public boolean isAdmin() {
-        return VisitorType.USER == this.subjectType
-                && !CollectionUtils.isEmpty(roles) && roles.contains(SecurityConstants.Authentication.ROLE_SUPER_ADMIN_FLAG);
+        return !CollectionUtils.isEmpty(roles) && roles.contains(SecurityConstants.Authentication.ROLE_SUPER_ADMIN_FLAG);
     }
 
 

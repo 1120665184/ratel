@@ -4,7 +4,6 @@ package org.quyq.gwsu.common.ai.agui;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.agentscope.core.agui.AguiException;
-import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.agui.processor.AguiRequestProcessor;
@@ -36,8 +35,8 @@ import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
-import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
+import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.http.MediaType;
@@ -48,7 +47,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 import reactor.util.context.Context;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 
@@ -69,11 +67,11 @@ public abstract class AguiController implements DisposableBean {
 
     private final SecurityUtils securityUtils;
 
+    private final SessionUtils sessionUtils;
+
     private final long sseTimeout;
 
     private final ExecutorService executorService = ThreadPoolUtil.newVirtualThreadPerTaskExecutor();
-
-    private final AguiEventEncoder encoder = new AguiEventEncoder();
 
     private final static EmitterWrapperManager CURR_EMITTER = new EmitterWrapperManager();
 
@@ -263,9 +261,10 @@ public abstract class AguiController implements DisposableBean {
     protected SseEmitter handlerAgentConnect(ChatDTO request) {
         SseEmitter emitter = new SseEmitter(sseTimeout);
         RunAgentInput body = request.body();
+        AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(request.body(), emitter, false, pushers);
         executorService.submit(() -> {
-            sendEvent(null, emitter, new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
-            sendEvent(null, emitter, new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
+            wrapper.sendEvent(new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
+            wrapper.sendEvent(new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
             emitter.complete();
         });
 
@@ -340,11 +339,12 @@ public abstract class AguiController implements DisposableBean {
         //传递到reactor中，保证tid正确
         Observation observation = ObservationThreadLocalAccessor.getInstance().getValue();
 
+        AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter, isHeadless(), pushers);
         executorService.submit(
                 () -> {
                     Disposable subscription;
                     try {
-                        AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter);
+
                         // Process request - returns both agent and event stream
                         AguiRequestProcessor.ProcessResult result =
                                 processor.process(input, headerAgentId, pathAgentId, userId);
@@ -384,14 +384,13 @@ public abstract class AguiController implements DisposableBean {
                                                 , ObservationThreadLocalAccessor.KEY, observation
                                         ))
                                         .subscribe(
-                                                event -> sendEvent(input, emitter, event),
+                                                event -> sendEvent(wrapper, event),
                                                 error -> {
                                                     log.error(
                                                             "Error during AG-UI run: {}",
                                                             error.getMessage());
                                                     sendErrorAndComplete(
-                                                            input,
-                                                            emitter,
+                                                            wrapper,
                                                             error.getMessage());
                                                 },
                                                 () -> {
@@ -406,10 +405,10 @@ public abstract class AguiController implements DisposableBean {
 
                     } catch (AguiException.AgentNotFoundException e) {
                         log.error("Agent not found: {}", e.getMessage());
-                        sendErrorAndComplete(input, emitter, e.getMessage());
+                        sendErrorAndComplete(wrapper, e.getMessage());
                     } catch (Exception e) {
                         log.error("Error processing AG-UI request: {}", e.getMessage());
-                        sendErrorAndComplete(input, emitter, e.getMessage());
+                        sendErrorAndComplete(wrapper, e.getMessage());
                     }
                 });
 
@@ -422,51 +421,22 @@ public abstract class AguiController implements DisposableBean {
      * @return
      */
     private boolean isHeadless() {
-        String loginType = securityUtils.getSubject()
-                .map(Subject::getLoginType).orElse(null);
-
+        String loginType = sessionUtils.getLoginType();
         return "headless".equals(loginType);
     }
 
-    private void sendEvent(RunAgentInput param, SseEmitter emitter, AguiEvent event) {
-        try {
-            String jsonData = encoder.encodeToJson(event);
-            emitter.send(SseEmitter.event().data(jsonData, MediaType.APPLICATION_JSON));
-            pushEvent(param, event);
-        } catch (IOException e) {
-            log.debug("Failed to send SSE event: {}", e.getMessage());
-        }
+    private void sendEvent(AIRunnerInstanceWrapper wrapper, AguiEvent event) {
+        wrapper.sendEvent(event);
     }
 
     private void sendErrorAndComplete(
-            RunAgentInput param, SseEmitter emitter, String errorMessage) {
+            AIRunnerInstanceWrapper wrapper, String errorMessage) {
+        RunAgentInput param = wrapper.input();
         AguiEvent.Raw errorEvent = new AguiEvent.Raw(param.getThreadId(), param.getRunId(), Map.of("error", errorMessage));
         AguiEvent.RunFinished finishEvent = new AguiEvent.RunFinished(param.getThreadId(), param.getRunId());
-        try {
-            String errorJson =
-                    encoder.encodeToJson(errorEvent);
-            String finishJson = encoder.encodeToJson(finishEvent);
-            emitter.send(SseEmitter.event().data(errorJson, MediaType.APPLICATION_JSON));
-            emitter.send(SseEmitter.event().data(finishJson, MediaType.APPLICATION_JSON));
-            emitter.complete();
-            pushEvent(param, errorEvent);
-            pushEvent(param, finishEvent);
-        } catch (IOException e) {
-            log.debug("Failed to send error event: {}", e.getMessage());
-            try {
-                emitter.completeWithError(e);
-            } catch (Exception ex) {
-                log.debug("Failed to complete emitter with error: {}", ex.getMessage());
-            }
-        }
-    }
 
-    private void pushEvent(RunAgentInput param, AguiEvent event) {
-        if (Objects.isNull(param) || !isHeadless() || CollectionUtils.isEmpty(pushers)) {
-            return;
-        }
-
-        pushers.forEach(pusher -> pusher.push(param, event));
+        wrapper.sendEvent(errorEvent);
+        wrapper.sendEvent(finishEvent);
 
     }
 

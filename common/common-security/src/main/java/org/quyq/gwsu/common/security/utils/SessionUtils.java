@@ -6,6 +6,7 @@ import cn.hutool.jwt.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
+import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.springframework.util.StringUtils;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
@@ -32,6 +33,22 @@ public class SessionUtils {
 
     private static final String TOKEN_KEY = "token";
 
+
+    /**
+     * 获取当前登录用户的访问者类型
+     *
+     * @return
+     */
+    public VisitorType getVisitorType() {
+        Optional<VisitorType> value = getValue(SecurityConstants.Session.SESSION_USER_VISITOR_TYPE);
+
+        return value.orElse(null);
+    }
+
+    public String getLoginType() {
+        Optional<String> value = getValue(SecurityConstants.Session.SESSION_USER_LOGIN_TYPE);
+        return value.orElse(null);
+    }
 
     /**
      * <p>

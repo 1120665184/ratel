@@ -118,6 +118,16 @@ public interface SecurityConstants {
          * 当前数据资源
          */
         String SESSION_CURR_DATA_RESOURCE = "$$dataResource";
+
+        /**
+         * 访问者类型
+         */
+        String SESSION_USER_VISITOR_TYPE = "$$userVisitorType";
+
+        /**
+         * 用户登录类型
+         */
+        String SESSION_USER_LOGIN_TYPE = "$$userLoginType";
     }
 
     interface DataResource {

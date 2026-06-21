@@ -7,6 +7,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
@@ -73,7 +74,8 @@ public class PropertiesSettingFilter implements Filter {
 
 
     private void putUserName(Subject<Visitor> subject, Map<String, String> headers) {
-        if (VisitorType.USER == subject.getSubjectType()) {
+        Visitor detail = subject.getDetail();
+        if (detail instanceof UserInfo) {
             subject.userInfo().ifPresent(userInfo ->
                     headers.put(CoreConstants.Headers.AUTHORIZATION_USER_NAME, userInfo.getUserName())
             );

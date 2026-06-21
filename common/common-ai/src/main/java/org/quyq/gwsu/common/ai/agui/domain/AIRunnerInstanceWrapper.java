@@ -5,10 +5,14 @@ import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.springframework.http.MediaType;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Quyq
@@ -18,7 +22,10 @@ import java.io.IOException;
 @Slf4j
 public record AIRunnerInstanceWrapper(
         RunAgentInput input ,
-        SseEmitter emitter
+        SseEmitter emitter ,
+        //是否是无头浏览器访问
+        boolean headless,
+        List<AguiEventPusher> pushers
 ) {
 
     public static final AguiEventEncoder ENCODER = new AguiEventEncoder();
@@ -31,6 +38,12 @@ public record AIRunnerInstanceWrapper(
         try {
             String jsonData = ENCODER.encodeToJson(event);
             emitter.send(SseEmitter.event().data(jsonData, MediaType.APPLICATION_JSON));
+
+            if(Objects.isNull(input) || !headless || CollectionUtils.isEmpty(pushers)) {
+                return;
+            }
+            pushers.forEach(pusher -> pusher.push(input, event));
+
         } catch (IOException e) {
             log.debug("Failed to send SSE event: {}", e.getMessage());
         }
