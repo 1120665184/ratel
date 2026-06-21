@@ -18,14 +18,16 @@ import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
 import org.quyq.gwsu.security.headless.domain.HeadlessCallConfig;
+import org.quyq.gwsu.security.headless.domain.HeadlessResponse;
 import org.quyq.gwsu.security.headless.domain.RouterInfo;
+import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.security.headless.graph.IntentRecognitionNode;
 import org.quyq.gwsu.security.headless.graph.SendAnswerNode;
 import org.quyq.gwsu.security.headless.graph.SendApprovalNode;
 import org.quyq.gwsu.security.headless.graph.SendChatNode;
 import org.quyq.gwsu.security.headless.service.IHeadlessService;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -56,7 +58,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
 
     @Override
-    public Flux<Message> stream(String query, HeadlessCallConfig config) {
+    public Flux<HeadlessResponse> stream(String query, HeadlessCallConfig config) {
 
         AssertUtils.hasText(query, SecurityErrorCode.E07006);
         String userId = config.getUserId();
@@ -79,16 +81,23 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
                         || output.getOutputType() == OutputType.AGENT_HOOK_STREAMING
                         || output.getOutputType() == OutputType.GRAPH_NODE_STREAMING
                 ))
-                .flatMap(streamingOutput -> Flux.just(streamingOutput.message()));
+                .flatMap(streamingOutput -> {
+                    Message message = streamingOutput.message();
+                    HeadlessAgentStatus status = (HeadlessAgentStatus) message.getMetadata().get("status");
+                    message.getMetadata().remove("status");
+                    return Flux.just(new HeadlessResponse(status, message));
+                }).startWith(
+                        Flux.just(new HeadlessResponse(HeadlessAgentStatus.CONNECTION, AssistantMessage.builder().content("").build()))
+                );
     }
 
 
     public CompiledGraph buildGraph() throws GraphStateException {
 
         IntentRecognitionNode intentRecognitionNode = new IntentRecognitionNode(session, headlessBrowserManager);
-        SendChatNode sendChatNode = new SendChatNode(session ,headlessBrowserManager);
-        SendAnswerNode sendAnswerNode = new SendAnswerNode(session ,headlessBrowserManager);
-        SendApprovalNode sendApprovalNode = new SendApprovalNode(session ,headlessBrowserManager);
+        SendChatNode sendChatNode = new SendChatNode(session, headlessBrowserManager);
+        SendAnswerNode sendAnswerNode = new SendAnswerNode(session, headlessBrowserManager);
+        SendApprovalNode sendApprovalNode = new SendApprovalNode(session, headlessBrowserManager);
 
         KeyStrategyFactory keyStrategyFactory = () -> {
             Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();

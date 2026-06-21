@@ -1,23 +1,18 @@
 package org.quyq.gwsu;
 
 
-import com.alibaba.cloud.ai.graph.CompiledGraph;
-import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
 import com.google.gson.Gson;
 import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.message.Msg;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
-import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
 import org.quyq.gwsu.security.headless.domain.HeadlessCallConfig;
+import org.quyq.gwsu.security.headless.domain.HeadlessResponse;
 import org.quyq.gwsu.security.headless.service.IHeadlessService;
-import org.quyq.gwsu.security.headless.service.impl.HeadlessServiceImpl;
 import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
-import org.springframework.ai.chat.messages.Message;
 import org.springframework.boot.test.context.SpringBootTest;
 import tools.jackson.databind.ObjectMapper;
 
@@ -26,7 +21,6 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -49,7 +43,7 @@ public class HeadlessBrowserTest {
 
 
     @Test
-    public void sendMessage() throws Exception{
+    public void sendMessage() throws Exception {
         AtomicReference<File> file = new AtomicReference<>();
         try {
             browserManager.sendMessage("1", "帮我跳转到用户管理界面", new HeadlessAgentListener() {
@@ -74,33 +68,32 @@ public class HeadlessBrowserTest {
 
                 @Override
                 public void onTextMessageContent(String delta, HeadlessPageWrapper wrapper) {
-                    log.info("输出内容：{}" , delta);
+                    log.info("输出内容：{}", delta);
                 }
 
                 @Override
                 public void onHumanApproval(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
-                    log.info("审批事件:{}" , objectMapper.writeValueAsString(event));
+                    log.info("审批事件:{}", objectMapper.writeValueAsString(event));
                 }
 
                 @Override
-                public void onAskUserQuestion(String threadId,String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
-                    log.info("询问用户问题：{}" , objectMapper.writeValueAsString(questions));
+                public void onAskUserQuestion(String threadId, String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
+                    log.info("询问用户问题：{}", objectMapper.writeValueAsString(questions));
                 }
 
                 @Override
                 public void onAgentOutput(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
-                    log.info("输出面板内容：{}" , objectMapper.writeValueAsString(event));
+                    log.info("输出面板内容：{}", objectMapper.writeValueAsString(event));
                 }
 
                 @Override
                 public void onError(Throwable error, HeadlessPageWrapper wrapper) {
-                    log.info("执行错误:{}" ,error.getMessage());
+                    log.info("执行错误:{}", error.getMessage());
                 }
             });
 
-        }
-        finally {
-            if(Objects.nonNull(file.get())){
+        } finally {
+            if (Objects.nonNull(file.get())) {
                 Files.delete(file.get().toPath());
             }
         }
@@ -109,45 +102,45 @@ public class HeadlessBrowserTest {
     }
 
     @Test
-    public void userAnswer(){
-        browserManager.userAnswer("1" ,"call_f103a5a252e245f9861f4ca1" ,Map.of("请问您今天需要我帮您做什么？" ,"咨询问题"),
+    public void userAnswer() {
+        browserManager.userAnswer("1", "call_f103a5a252e245f9861f4ca1", Map.of("请问您今天需要我帮您做什么？", "咨询问题"),
                 new HeadlessAgentListener() {
                     @Override
                     public void onEvent(AguiEvent event, HeadlessPageWrapper wrapper) {
-                        log.info("事件：{}" , objectMapper.writeValueAsString(event));
+                        log.info("事件：{}", objectMapper.writeValueAsString(event));
                     }
                 });
     }
 
     @Test
-    public void approval(){
-        browserManager.approval("1" , false , "不想跳转了" ,new HeadlessAgentListener() {
+    public void approval() {
+        browserManager.approval("1", false, "不想跳转了", new HeadlessAgentListener() {
             @Override
             public void onEvent(AguiEvent event, HeadlessPageWrapper wrapper) {
-                log.info("事件：{}" , objectMapper.writeValueAsString(event));
+                log.info("事件：{}", objectMapper.writeValueAsString(event));
             }
         });
     }
 
     @Test
-    public void newSession(){
+    public void newSession() {
         browserManager.newSession("1");
     }
 
 
     @Test
-    public void graph(){
+    public void graph() {
         Gson gson = new Gson();
-        Message message = headlessService.stream("帮我统计一下消费最多的前五个客户", HeadlessCallConfig.builder()
+        HeadlessResponse message = headlessService.stream("帮我统计一下消费最多的前五个客户", HeadlessCallConfig.builder()
                         .userId("1")
-                        .threadId("1")
+                        .threadId("2")
                         .build())
                 .doOnNext(v -> System.out.println("内容输出：" + gson.toJson(v)))
                 .doOnComplete(() -> {
                     System.out.println("完成");
                 })
                 .doOnError(throwable -> {
-                    System.out.println("执行错误:"+throwable.getMessage());
+                    System.out.println("执行错误:" + throwable.getMessage());
                 })
                 .blockLast();
     }

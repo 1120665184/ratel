@@ -11,7 +11,14 @@ import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
 import org.quyq.gwsu.security.headless.domain.RouterInfo;
+import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.content.Media;
+import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -54,7 +61,14 @@ public class SendAnswerNode implements NodeAction {
             handler.complete();
         });
 
-
-        return Map.of(SerConstants.Headless.GRAPH_PARAM_OUTPUT, handler.asFlux());
+        return Map.of(SerConstants.Headless.GRAPH_PARAM_OUTPUT, handler.asFlux()
+                .startWith(Flux.just(
+                        new ChatResponse(List.of(new Generation(
+                                AssistantMessage.builder()
+                                        .properties(Map.of("status" , HeadlessAgentStatus.INITING))
+                                        .content("")
+                                        .build()
+                        )))
+                )));
     }
 }

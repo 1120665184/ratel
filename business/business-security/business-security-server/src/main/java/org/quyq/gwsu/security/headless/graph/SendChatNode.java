@@ -8,7 +8,13 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
+import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -40,6 +46,14 @@ public class SendChatNode implements NodeAction {
         });
 
 
-        return Map.of(SerConstants.Headless.GRAPH_PARAM_OUTPUT, handler.asFlux());
+        return Map.of(SerConstants.Headless.GRAPH_PARAM_OUTPUT, handler.asFlux()
+                .startWith(Flux.just(
+                        new ChatResponse(List.of(new Generation(
+                                AssistantMessage.builder()
+                                        .properties(Map.of("status" , HeadlessAgentStatus.INITING))
+                                        .content("")
+                                        .build()
+                        )))
+                )));
     }
 }

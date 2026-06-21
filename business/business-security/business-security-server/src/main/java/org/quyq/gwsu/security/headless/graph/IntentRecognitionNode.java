@@ -20,6 +20,7 @@ import org.quyq.gwsu.security.constants.SerConstants;
 import org.quyq.gwsu.security.headless.HeadlessBrowserManager;
 import org.quyq.gwsu.security.headless.domain.RouterInfo;
 import org.quyq.gwsu.security.headless.enums.GraphRouteType;
+import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.security.headless.session.HeadlessAccessSession;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -185,7 +186,7 @@ public class IntentRecognitionNode implements NodeAction {
     private ChatResponse getContent(Msg msg) {
 
         AssistantMessage message = AgentScopeMessageUtils.toAssistantMessage(msg);
-
+        message.getMetadata().put("status" , HeadlessAgentStatus.COMPLETE);
         return new ChatResponse(List.of(new Generation(message)));
     }
 

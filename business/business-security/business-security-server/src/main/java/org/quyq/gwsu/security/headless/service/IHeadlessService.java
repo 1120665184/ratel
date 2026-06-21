@@ -1,10 +1,8 @@
 package org.quyq.gwsu.security.headless.service;
 
 
-import io.agentscope.core.message.Msg;
 import org.quyq.gwsu.security.headless.domain.HeadlessCallConfig;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.model.ChatResponse;
+import org.quyq.gwsu.security.headless.domain.HeadlessResponse;
 import reactor.core.publisher.Flux;
 
 /**
@@ -15,6 +13,6 @@ import reactor.core.publisher.Flux;
 public interface IHeadlessService {
 
 
-    Flux<Message> stream(String query, HeadlessCallConfig config);
+    Flux<HeadlessResponse> stream(String query, HeadlessCallConfig config);
 
 }

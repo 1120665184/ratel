@@ -18,6 +18,7 @@ import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
+import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -49,6 +50,8 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
     private final Session session;
 
+    private HeadlessAgentStatus status = HeadlessAgentStatus.INITING;
+
 
     @Override
     public void onRunStarted(AguiEvent.RunStarted event, HeadlessPageWrapper wrapper) {
@@ -62,17 +65,24 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         wrapper.discardRecording();
     }
 
+
     @Override
     public void onTextMessageContent(String delta, HeadlessPageWrapper wrapper) {
+        status = HeadlessAgentStatus.OUTPUTTING;
         // log.info("内容输出：{}", delta);
         sink.tryEmitNext(getContent(delta));
 
     }
 
+    @Override
+    public void onToolCallStart(AguiEvent.ToolCallStart event, HeadlessPageWrapper wrapper) {
+        status = HeadlessAgentStatus.CALLING;
+    }
 
     @Override
     public void onEvent(AguiEvent event, HeadlessPageWrapper wrapper) {
         if (event instanceof AguiEvent.ReasoningMessageContent e) {
+            status = HeadlessAgentStatus.THINKING;
             sink.tryEmitNext(getReasoning(e.delta()));
         }
     }
@@ -148,6 +158,10 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
     @Override
     public void onAgentOutput(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
+        if("AGENT_OUTPUT".equals(event.name()) && status != HeadlessAgentStatus.SHOWING){
+            status = HeadlessAgentStatus.SHOWING;
+            sink.tryEmitNext(getContent(""));
+        }
         //AI输出面板内容输出完成，截取AI输出区截图
         if("AGENT_OUTPUT_END".equals(event.name())){
             File file = null;
@@ -184,12 +198,15 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
 
     public void complete() {
+        status = HeadlessAgentStatus.COMPLETE;
+        sink.tryEmitNext(getContent(""));
         sink.tryEmitComplete();
     }
 
 
     private ChatResponse getContent(Msg msg, byte[] resource, MimeType mimeType) {
         AssistantMessage m = AgentScopeMessageUtils.toAssistantMessage(msg);
+        m.getMetadata().put("status" ,status);
         if (ArrayUtil.isNotEmpty(resource)) {
             AssistantMessage message = AssistantMessage.builder()
                     .properties(m.getMetadata())
@@ -200,6 +217,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                             .mimeType(mimeType)
                             .build()))
                     .build();
+
             return new ChatResponse(List.of(new Generation(message)));
         }
 
@@ -213,7 +231,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .role(MsgRole.ASSISTANT)
                 .textContent(delta)
                 .build());
-
+        message.getMetadata().put("status" ,status);
         return new ChatResponse(List.of(new Generation(message)));
     }
 
@@ -224,6 +242,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                         .thinking(reasoning)
                         .build())
                 .build());
+        message.getMetadata().put("status" ,status);
         return new ChatResponse(List.of(new Generation(message)));
     }
 
