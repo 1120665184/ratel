@@ -190,5 +190,56 @@ export function createDefaultViewConfig(): ViewConfig {
   return { ...DEFAULT_VIEW_CONFIG };
 }
 
+/** 远程操作类型 */
+export type RemoteControlType = 'NONE' | 'DING_TALK';
+
+/** 钉钉远程操作配置 */
+export interface DingTalkRemoteConfig {
+  /** 协议 */
+  protocol: string;
+  /** 区域 */
+  regionId: string;
+  /** 端点 */
+  endpoint: string;
+  /** Client ID */
+  clientId: string;
+  /** Client Secret */
+  clientSecret: string;
+  /** AI 输出卡片模板 ID */
+  aiCardTemplateId: string;
+}
+
+/** 远程操作配置 */
+export interface RemoteControlConfig {
+  /** 类型 */
+  type: RemoteControlType;
+  /** 钉钉配置 */
+  dingTalk: DingTalkRemoteConfig;
+}
+
+/** 钉钉远程操作默认配置 */
+export const DEFAULT_DINGTALK_REMOTE_CONFIG: DingTalkRemoteConfig = {
+  protocol: 'https',
+  regionId: 'central',
+  endpoint: 'api.dingtalk.com',
+  clientId: '',
+  clientSecret: '',
+  aiCardTemplateId: '68ea56be-c3a1-4f47-8575-065572e2a601.schema',
+};
+
+/** 创建默认的远程操作配置 */
+export function createDefaultRemoteControlConfig(): RemoteControlConfig {
+  return {
+    type: 'NONE',
+    dingTalk: { ...DEFAULT_DINGTALK_REMOTE_CONFIG },
+  };
+}
+
+/** 远程操作类型选项 */
+export const REMOTE_CONTROL_TYPE_OPTIONS = [
+  { label: '无', value: 'NONE' as RemoteControlType },
+  { label: '钉钉', value: 'DING_TALK' as RemoteControlType },
+];
+
 /** 助手配置 Tab 标识 */
-export type AssistantTabKey = 'view' | 'llm';
+export type AssistantTabKey = 'view' | 'llm' | 'remote';

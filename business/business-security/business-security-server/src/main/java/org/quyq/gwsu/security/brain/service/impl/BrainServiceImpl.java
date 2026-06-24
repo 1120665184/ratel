@@ -111,10 +111,15 @@ public class BrainServiceImpl implements IBrainService {
                 .description("当需要操作用户可视化界面时，加载此技能查看用户的完整菜单和功能列表以及获取操作界面相关工具")
                 .skillContent(menuContent)
                 .build();
-
+        String loginType = sessionUtils.getLoginType();
+        List<String> disableTool = new ArrayList<>();
+        if("headless".equals(loginType)) {
+            disableTool = List.of("EnterAiMode" ,"ExitAiMode");
+        }
         skillBox.registration()
                 .skill(userMenuSkill)
                 .tool(webTool)
+                .disableTools(disableTool)
                 .apply();
 
         return skillBox;
@@ -339,7 +344,7 @@ public class BrainServiceImpl implements IBrainService {
                 .toolExecutionConfig(ExecutionConfig.builder()
                         .timeout(Duration.of(10, ChronoUnit.MINUTES))
                         .build())
-                .enableAgentTracingLog(true)
+             //   .enableAgentTracingLog(true)
                 .disableSubagents()
                 .disableShellTool()
                 .disableMemoryTools()
@@ -389,6 +394,11 @@ public class BrainServiceImpl implements IBrainService {
 
 
     private String buildSysPrompt() {
+        String loginType = sessionUtils.getLoginType();
+        String headlessContent = "界面操作模式（human：人类操作模式 | ai：AI操作模式）：{operationMode}";
+        if("headless".equals(loginType)) {
+            headlessContent ="**特别注意**：您当前已经处于“AI操作模式” ，可以直接调用操作界面相关工具 ，禁止调用`EnterAiMode`和`ExitAiMode`工具";
+        }
         return """
                 # 角色
                 你是管理平台的智能助手「中枢大脑」，协助用户完成平台相关问题与任务。
@@ -442,8 +452,9 @@ public class BrainServiceImpl implements IBrainService {
                 
                 # 当前界面信息
                 - 界面路由地址：{currentPath}
-                - 界面操作模式（human：人类操作模式 | ai：AI操作模式）：{operationMode}
-                """;
+                - %s
+                
+                """.formatted(headlessContent);
     }
 
 

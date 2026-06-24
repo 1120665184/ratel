@@ -5,6 +5,7 @@ import type {
   SysUserQueryDTO,
   SysAccountBindDTO,
   DeptUserCountMap,
+  DingTalkAccountOption,
 } from '@/pages/user/types';
 
 /** 分页查询用户 */
@@ -41,6 +42,12 @@ export async function bindAccount(userId: string, data: SysAccountBindDTO): Prom
 /** 解绑账号 */
 export async function unbindAccount(userId: string, accountId: string): Promise<void> {
   await del<void>(`/system/manager/${userId}/account/${accountId}`);
+}
+
+/** 获取可绑定的钉钉账号列表 */
+export async function getBindableDingTalkAccounts(): Promise<DingTalkAccountOption[]> {
+  const res = await get<DingTalkAccountOption[]>('/system/manager/dingtalk/bindable');
+  return res.data ?? [];
 }
 
 /** 获取各部门用户数量 */

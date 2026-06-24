@@ -82,7 +82,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
                         || output.getOutputType() == OutputType.GRAPH_NODE_STREAMING
                 ))
                 .flatMap(streamingOutput -> {
-                    Message message = streamingOutput.message();
+                    AssistantMessage message = (AssistantMessage) streamingOutput.message();
                     HeadlessAgentStatus status = (HeadlessAgentStatus) message.getMetadata().get("status");
                     message.getMetadata().remove("status");
                     return Flux.just(new HeadlessResponse(status, message));

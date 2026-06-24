@@ -110,7 +110,7 @@ public abstract class AbstractFileService implements IFileService {
 
     @Override
     @Transactional
-    public KitFileInfo upload(FileUploadDTO form) {
+    public KitFileInfoVO upload(FileUploadDTO form) {
         String uniqueId = createUniqueId(form.getFile());
         KitFileMetaInfo metaInfo = getMetaFileByUniqueId(uniqueId);
         if (Objects.nonNull(metaInfo) && fileIsExist(metaInfo.getFileGroup(), metaInfo.getFileUrl())) {
@@ -121,7 +121,7 @@ public abstract class AbstractFileService implements IFileService {
         if (Objects.isNull(metaInfo)) {
             metaInfo = buildMetaFileInfo(form.getFile(), form.getCategorize(), uniqueId);
         }
-        KitFileInfo fileInfo = buildFileInfo(form, metaInfo);
+        KitFileInfoVO fileInfo = buildFileInfo(form, metaInfo);
 
         toUpload(metaInfo, form.getFile());
         return fileInfo;
@@ -231,7 +231,6 @@ public abstract class AbstractFileService implements IFileService {
      * 不同文件服务类型下载实现
      *
      * @param file
-     * @param response
      */
     abstract byte[] toDownloadBytes(KitFileInfoVO file) throws IOException;
 
@@ -302,7 +301,7 @@ public abstract class AbstractFileService implements IFileService {
 
     @Override
     @Transactional
-    public KitFileInfo completeMultipartUpload(ChunkMultipartDTO form) {
+    public KitFileInfoVO completeMultipartUpload(ChunkMultipartDTO form) {
         List<KitFileChunkInfo> chunkInfos = getChunkInfoByUploadId(form.getUploadId(), null);
         if (StringUtils.isEmpty(chunkInfos))
             throw new BusinessException("合并失败");
@@ -335,7 +334,7 @@ public abstract class AbstractFileService implements IFileService {
                     .setFileSize(String.valueOf(fileSize));
             metaInfoMapper.updateById(metaInfo);
         }
-        KitFileInfo fileInfo = buildFileInfo(fileName, form, metaInfo);
+        KitFileInfoVO fileInfo = buildFileInfo(fileName, form, metaInfo);
 
         doCompleteMultipart(chunkInfos);
 
@@ -363,7 +362,7 @@ public abstract class AbstractFileService implements IFileService {
         if (ObjectUtils.isEmpty(chunkInfos)) {
             return Collections.emptyList();
         }
-        String uniqueId = chunkInfos.iterator().next().getUniqueId();
+        String uniqueId = chunkInfos.getFirst().getUniqueId();
 
         KitFileMetaInfo metaInfo = getMetaFileByUniqueId(uniqueId);
         if (Objects.nonNull(metaInfo) && fileIsExist(metaInfo.getFileGroup(), metaInfo.getFileUrl())) {
@@ -532,7 +531,7 @@ public abstract class AbstractFileService implements IFileService {
         }
     }
 
-    private KitFileInfo buildFileInfo(String fileName, FileUploadDTO form, KitFileMetaInfo meta) {
+    private KitFileInfoVO buildFileInfo(String fileName, FileUploadDTO form, KitFileMetaInfo meta) {
         KitFileInfo fileInfo = KitFileInfo.buildByMetaFile(meta);
         if (Objects.isNull(fileInfo))
             return null;
@@ -545,10 +544,10 @@ public abstract class AbstractFileService implements IFileService {
         fileInfo.setVisitors(form.getVisitors());
         fileInfo.setExpiredTime(form.getExpiredTime());
         fileInfoMapper.insert(fileInfo);
-        return fileInfo;
+        return KitFileInfo.buildVO(fileInfo , meta);
     }
 
-    private KitFileInfo buildFileInfo(FileUploadDTO form, KitFileMetaInfo meta) {
+    private KitFileInfoVO buildFileInfo(FileUploadDTO form, KitFileMetaInfo meta) {
         KitFileInfo fileInfo = KitFileInfo.buildByMetaFile(meta);
         if (Objects.isNull(fileInfo))
             return null;
@@ -562,7 +561,7 @@ public abstract class AbstractFileService implements IFileService {
         fileInfo.setVisitors(form.getVisitors());
         fileInfo.setExpiredTime(form.getExpiredTime());
         fileInfoMapper.insert(fileInfo);
-        return fileInfo;
+        return KitFileInfo.buildVO(fileInfo , meta);
 
     }
 

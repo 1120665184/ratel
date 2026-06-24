@@ -116,39 +116,40 @@ public class LoginManager {
     }
 
     private LoginResult redirect(Object content, String redirectUrl) {
-        StringBuilder param = new StringBuilder(redirectUrl.contains("?") ? "&" : "?");
+        StringBuilder param = new StringBuilder();
+        String separator = redirectUrl.contains("?") ? "&" : "?";
+
         if (content instanceof Map<?, ?> mapV) {
             int i = 0;
             for (Map.Entry<?, ?> entry : mapV.entrySet()) {
-                if (i++ > 0) {
-                    param.append("&");
-                }
-                param.append(entry.getKey()).append("=").append(entry.getValue());
+                if (entry.getValue() == null) continue;
+                param.append(i++ == 0 ? separator : "&");
+                param.append(entry.getKey()).append("=").append(URLEncoder.encode(String.valueOf(entry.getValue()), StandardCharsets.UTF_8));
             }
         } else {
+            boolean first = true;
             Field[] fields = ReflectUtil.getFields(content.getClass());
-            for (int i = 0; i < fields.length; i++) {
-                Field f = fields[i];
-                if (i > 0)
-                    param.append("&");
+            for (Field f : fields) {
                 Object fieldValue = ReflectUtil.getFieldValue(content, f);
+                if (fieldValue == null) continue;
+
                 if (fieldValue instanceof Map<?, ?> mapVal) {
-                    int j = 0;
+                    if (mapVal.isEmpty()) continue;
                     for (Map.Entry<?, ?> entry : mapVal.entrySet()) {
-                        if (j++ > 0) {
-                            param.append("&");
-                        }
-                        param.append(entry.getKey()).append("=").append(entry.getValue());
+                        if (entry.getValue() == null) continue;
+                        param.append(first ? separator : "&");
+                        first = false;
+                        param.append(entry.getKey()).append("=").append(URLEncoder.encode(String.valueOf(entry.getValue()), StandardCharsets.UTF_8));
                     }
                 } else {
-                    param.append(f.getName()).append("=").append(fieldValue);
+                    param.append(first ? separator : "&");
+                    first = false;
+                    param.append(f.getName()).append("=").append(URLEncoder.encode(String.valueOf(fieldValue), StandardCharsets.UTF_8));
                 }
-
             }
         }
 
-        String url = URLEncoder.encode(redirectUrl + param, StandardCharsets.UTF_8);
-        return new LoginResult(url, null);
+        return new LoginResult(redirectUrl + param, null);
     }
 
 

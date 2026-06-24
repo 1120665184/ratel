@@ -65,6 +65,9 @@ public class SingleProcessorFilter implements Filter {
             try {
                 chain.doFilter(requestToUse, responseToUse);
             } finally {
+                // 从实际响应中同步状态码，避免 applyResponse 覆盖为默认 200
+                context.setHttpStatus(responseToUse.getStatus());
+
                 if (wrapper != null) {
                     // 捕获原始响应体
                     byte[] content = wrapper.getContentAsByteArray();

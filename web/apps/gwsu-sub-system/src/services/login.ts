@@ -2,7 +2,7 @@
  * 登录相关 API 服务
  */
 
-import {post} from '@gwsu/core';
+import {get, post} from '@gwsu/core';
 
 /**
  * 登录响应数据
@@ -79,4 +79,22 @@ export async function headlessLogin(params: HeadlessLoginParams): Promise<LoginT
         params
     );
     return response.data;
+}
+
+/**
+ * 钉钉授权地址响应
+ */
+export interface DingTalkAuthUrl {
+    /** 授权跳转地址 */
+    url: string;
+    /** 扩展数据 */
+    extraData?: Record<string, string>;
+}
+
+/**
+ * 获取钉钉快捷登录授权地址
+ */
+export async function getDingTalkAuthUrl(): Promise<string> {
+    const response = await get<DingTalkAuthUrl>(`/system/auth/url/manager/dingtalk`);
+    return response.data.url;
 }

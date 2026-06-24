@@ -17,11 +17,13 @@ import org.quyq.gwsu.system.api.manager.dto.ChangePasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.ResetPasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
+import org.quyq.gwsu.system.api.manager.vo.DingTalkAccountOptionVO;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
 import org.quyq.gwsu.system.errcode.SystemErrorCode;
 import org.quyq.gwsu.system.manager.domain.SysAccount;
 import org.quyq.gwsu.system.manager.domain.SysUser;
+import org.quyq.gwsu.system.manager.service.ISysAccountService;
 import org.quyq.gwsu.system.manager.service.ISysUserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +42,7 @@ import java.util.List;
 public class UserController {
 
     private final ISysUserService userService;
+    private final ISysAccountService accountService;
     private final SecurityUtils securityUtils;
     private final SessionUtils sessionUtils;
 
@@ -92,8 +95,18 @@ public class UserController {
     @PostMapping("/{id}/account")
     @Operation(summary = "绑定账号")
     public R<Void> bindAccount(@PathVariable String id, @RequestBody SysAccountBindDTO dto) {
-        userService.bindAccount(id, dto);
+        if ("dingtalk".equals(dto.getIdentityType())) {
+            userService.bindDingTalkAccount(id, dto);
+        } else {
+            userService.bindAccount(id, dto);
+        }
         return R.ok();
+    }
+
+    @GetMapping("/dingtalk/bindable")
+    @Operation(summary = "获取可绑定的钉钉账号列表")
+    public R<List<DingTalkAccountOptionVO>> listBindableDingTalkAccounts() {
+        return R.ok(accountService.listBindableDingTalkAccounts());
     }
 
     @DeleteMapping("/{id}/account/{accountId}")

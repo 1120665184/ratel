@@ -20,7 +20,7 @@ public interface IFileService {
 
     KitFileInfoVO getById(String id);
 
-    KitFileInfo upload(FileUploadDTO form);
+    KitFileInfoVO upload(FileUploadDTO form);
 
     FileStreamWrapper download(String fileId, String range);
 
@@ -32,7 +32,7 @@ public interface IFileService {
         throw new BusinessException(KitErrorCode.E01001);
     }
 
-    default KitFileInfo completeMultipartUpload(ChunkMultipartDTO form) {
+    default KitFileInfoVO completeMultipartUpload(ChunkMultipartDTO form) {
         throw new BusinessException(KitErrorCode.E01001);
     }
 

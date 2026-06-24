@@ -3,6 +3,7 @@ package org.quyq.gwsu.security.headless.session;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.WaitForSelectorState;
 import lombok.extern.slf4j.Slf4j;
 import org.jcodec.api.awt.AWTSequenceEncoder;
 import org.jcodec.common.io.NIOUtils;
@@ -231,11 +232,16 @@ public class HeadlessPageWrapper {
         return screenshot(null);
     }
 
+    /** 元素等待超时（毫秒） */
+    private static final int ELEMENT_WAIT_TIMEOUT_MS = 5_000;
+
     /**
      * 获取指定元素的截图
      * <p>
      * 通过 CSS 选择器定位元素，截取该元素渲染后的样式截图（包含所有 CSS 效果）。
      * 如果选择器为 null 或空，则截取整个页面。
+     * 指定元素时会先等待元素出现在 DOM 中（最多 {@value #ELEMENT_WAIT_TIMEOUT_MS}ms），
+     * 超时则降级为整页截图。
      *
      * @param selector CSS 选择器，如 "#app"、".chat-container"、"[data-testid='xxx']"
      * @return PNG 格式的截图文件
@@ -249,6 +255,17 @@ public class HeadlessPageWrapper {
             byte[] bytes;
             if (selector != null && !selector.isEmpty()) {
                 Locator locator = page.locator(selector);
+                try {
+                    locator.waitFor(new Locator.WaitForOptions()
+                            .setState(WaitForSelectorState.VISIBLE)
+                            .setTimeout(ELEMENT_WAIT_TIMEOUT_MS));
+                } catch (Exception e) {
+                    log.warn("等待元素出现超时，降级为整页截图: selector={}, error={}", selector, e.getMessage());
+                    bytes = page.screenshot(new Page.ScreenshotOptions().setFullPage(true));
+                    Path tempFile = Files.createTempFile("headless-screenshot-", ".png");
+                    Files.write(tempFile, bytes);
+                    return tempFile.toFile();
+                }
                 bytes = locator.screenshot(new Locator.ScreenshotOptions());
             } else {
                 bytes = page.screenshot(new Page.ScreenshotOptions().setFullPage(true));

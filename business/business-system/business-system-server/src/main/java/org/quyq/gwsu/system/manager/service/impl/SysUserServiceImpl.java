@@ -185,6 +185,33 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void bindDingTalkAccount(String userId, SysAccountBindDTO dto) {
+        // 1. 如果有 originalUserId，表示切换绑定，需要删除原钉钉用户
+        if (dto.getOriginalUserId() != null) {
+            String originalUserId = dto.getOriginalUserId();
+            // 删除原用户的所有账号记录
+            accountMapper.delete(new LambdaQueryWrapper<SysAccount>()
+                    .eq(SysAccount::getUserId, originalUserId));
+            // 删除原用户-部门关联
+            userDeptService.remove(new LambdaQueryWrapper<SysUserDept>()
+                    .eq(SysUserDept::getUserId, originalUserId));
+            // 删除原用户本身
+            removeById(originalUserId);
+        }
+
+        // 2. 为当前用户创建钉钉绑定
+        SysAccount account = new SysAccount();
+        account.setUserId(userId);
+        account.setIdentityType("dingtalk");
+        account.setIdentifier(dto.getIdentifier());
+        account.setStatus(1);
+        account.setVerified(true);
+        account.setBindTime(LocalDateTime.now());
+        accountMapper.insert(account);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void unbindAccount(String userId, String accountId) {
         Long count = accountMapper.selectCount(new LambdaQueryWrapper<SysAccount>()
                 .eq(SysAccount::getUserId, userId));

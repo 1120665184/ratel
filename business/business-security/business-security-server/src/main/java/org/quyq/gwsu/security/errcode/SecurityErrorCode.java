@@ -53,6 +53,12 @@ public enum SecurityErrorCode implements ReturnCode {
     E07004("toolCallId数据为空，执行失败！"),
     E07005("用户ID不能为空"),
     E07006("用户回复不能为空"),
+    E07007("钉钉Client ID，未配置，初始化失败"),
+    E07008("钉钉Client Secret 未配置,初始化失败"),
+    E07009("未启用钉钉远程操作功能"),
+    E07010("钉钉用户unionId获取失败"),
+    E07011("ai输出卡片模板ID不能为空"),
+    E07012("远程操作必填配置项不能为空")
 
     ;
 

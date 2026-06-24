@@ -92,7 +92,7 @@ public class IntentRecognitionNode implements NodeAction {
         //判断是否为回复AI内容
         boolean isAnswer = newMsg.getRole() == MsgRole.ASSISTANT && newMsg.getContent().stream()
                 .anyMatch(v -> (v instanceof ToolUseBlock t) && t.getName().equals(AIConstants.ToolName.ASK_USER_QUESTION));
-
+        String toolCallId = null;
 
         String systemContent = "无";
 
@@ -115,6 +115,7 @@ public class IntentRecognitionNode implements NodeAction {
                     toolCallId: %s
                     问题内容：%s
                     """.formatted(toolUseBlock.getId(), gson.toJson(toolUseBlock.getInput()));
+            toolCallId = toolUseBlock.getId();
         }
 
         //追加节点会话历史消息
@@ -160,6 +161,8 @@ public class IntentRecognitionNode implements NodeAction {
             //返回AI回复
             return Map.of(SerConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId,
                     SerConstants.Headless.GRAPH_PARAM_OUTPUT, output);
+        }else if(type == GraphRouteType.ANSWER && StringUtils.hasText(toolCallId)){
+            routerInfo.setToolCallId(toolCallId);
         }
 
 

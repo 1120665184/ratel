@@ -54,6 +54,17 @@ export interface SysAccountBindDTO {
   identityType: string;
   identifier: string;
   credential?: string;
+  /** 绑定钉钉时，原钉钉账号所属用户ID（用于切换绑定，删除原用户） */
+  originalUserId?: string;
+}
+
+/** 可绑定的钉钉账号选项 */
+export interface DingTalkAccountOption {
+  id: string;
+  identifier: string;
+  userId: string;
+  nickname: string;
+  userName: string;
 }
 
 /** 部门用户数统计 */
@@ -65,7 +76,7 @@ export interface DeptUserCountMap {
 export const IDENTITY_TYPE_MAP: Record<string, { label: string; icon: string }> = {
   password: { label: '用户名密码', icon: '\u{1F511}' },
   phone: { label: '手机号登录', icon: '\u{1F4F1}' },
-  wechat: { label: '微信登录', icon: '\u{1F4AC}' },
+  dingtalk: { label: '钉钉登录', icon: '\u{1F4AC}' },
 };
 
 /** 性别映射 */

@@ -15,6 +15,7 @@ import org.quyq.gwsu.common.cache.utils.IDGenerationUtils;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
+import org.quyq.gwsu.common.core.enums.TerminalType;
 import org.quyq.gwsu.common.core.exception.ArgumentException;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.exception.handler.GlobalExceptionFunctionHandler;
@@ -220,11 +221,11 @@ public class LoginWebConfiguration {
         form.setCode(request.param(LambdaUtil.getFieldName(ThreePlatformLoginDTO::getCode)).orElse(null));
         form.setExtraParam(request.params());
         form.setType(request.pathVariable("loginType"));
+        form.setTerminal(TerminalType.WEB);
 
         AccountType accountType = AccountType.fromString(request.pathVariable(USER_TYPE));
 
         return response(loginManager.login(form, accountType, VisitorType.USER));
-
     }
 
     private ServerResponse response(LoginManager.LoginResult result) {

@@ -78,7 +78,10 @@ public class KitFileInfo extends BaseDO {
     }
 
 
-    public static KitFileInfoVO buildVO(KitFileInfo fileInfo) {
+    public static KitFileInfoVO buildVO(KitFileInfo fileInfo , KitFileMetaInfo metaInfo) {
+        if(Objects.isNull(fileInfo)){
+            return null;
+        }
         KitFileInfoVO vo = new KitFileInfoVO();
         vo.setFileId(fileInfo.getFileId());
         vo.setFileMetaId(fileInfo.getFileMetaId());
@@ -90,6 +93,9 @@ public class KitFileInfo extends BaseDO {
         vo.setScope(fileInfo.getScope());
         vo.setDisposable(fileInfo.getDisposable());
         vo.copyBaseProperties(fileInfo);
+        if(Objects.nonNull(metaInfo)){
+            vo.setMediaType(metaInfo.getMediaType());
+        }
         return vo;
     }
 

@@ -5,21 +5,24 @@ import {
   ReloadOutlined,
   EyeOutlined,
   ApiOutlined,
+  ControlOutlined,
 } from '@ant-design/icons';
 import { fetchConfigsBatch } from '@gwsu/core';
-import { saveOrUpdateConfig } from '../services/config';
+import { saveOrUpdateConfig, saveRemoteControlConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
-import type { AssistantConfig, ModelProvider, GeminiConfig, ViewConfig, AssistantTabKey } from './types';
-import { createDefaultAssistantConfig, createDefaultViewConfig } from './types';
+import type { AssistantConfig, ModelProvider, GeminiConfig, ViewConfig, RemoteControlConfig, AssistantTabKey } from './types';
+import { createDefaultAssistantConfig, createDefaultViewConfig, createDefaultRemoteControlConfig, DEFAULT_DINGTALK_REMOTE_CONFIG } from './types';
 import ProviderSelector from './ProviderSelector';
 import ProviderConfigForm from './ProviderConfigForm';
 import GenerateOptionsForm from './GenerateOptionsForm';
 import ViewConfigForm from './ViewConfigForm';
+import RemoteControlForm from './RemoteControlForm';
 import styles from './index.module.less';
 
 const LLM_CONFIG_KEY = 'assistant_llm_config';
 const VIEW_CONFIG_KEY = 'assistant_view_config';
+const REMOTE_CONTROL_CONFIG_KEY = 'assistant_remote_control_config';
 
 const AssistantConfigTab: React.FC = () => {
   const { message } = App.useApp();
@@ -35,10 +38,14 @@ const AssistantConfigTab: React.FC = () => {
   const [viewConfig, setViewConfig] = useState<ViewConfig>(createDefaultViewConfig());
   const [viewConfigId, setViewConfigId] = useState<string | undefined>();
 
+  // 远程操作配置
+  const [remoteControlConfig, setRemoteControlConfig] = useState<RemoteControlConfig>(createDefaultRemoteControlConfig());
+  const [remoteControlConfigId, setRemoteControlConfigId] = useState<string | undefined>();
+
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const configMap = await fetchConfigsBatch([LLM_CONFIG_KEY, VIEW_CONFIG_KEY]);
+      const configMap = await fetchConfigsBatch([LLM_CONFIG_KEY, VIEW_CONFIG_KEY, REMOTE_CONTROL_CONFIG_KEY]);
 
       // 解析 LLM 配置
       const llmInfo = configMap[LLM_CONFIG_KEY] as ConfigInfo | undefined;
@@ -84,6 +91,26 @@ const AssistantConfigTab: React.FC = () => {
         setViewConfig(createDefaultViewConfig());
         setViewConfigId(undefined);
       }
+
+      // 解析远程操作配置
+      const remoteInfo = configMap[REMOTE_CONTROL_CONFIG_KEY] as ConfigInfo | undefined;
+      if (remoteInfo?.configValue) {
+        try {
+          const parsed = JSON.parse(remoteInfo.configValue) as RemoteControlConfig;
+          setRemoteControlConfig({
+            type: parsed.type || 'NONE',
+            dingTalk: { ...DEFAULT_DINGTALK_REMOTE_CONFIG, ...parsed.dingTalk },
+          });
+          setRemoteControlConfigId(remoteInfo.id);
+        } catch {
+          message.warning('远程操作配置解析失败，已恢复默认值');
+          setRemoteControlConfig(createDefaultRemoteControlConfig());
+          setRemoteControlConfigId(remoteInfo.id);
+        }
+      } else {
+        setRemoteControlConfig(createDefaultRemoteControlConfig());
+        setRemoteControlConfigId(undefined);
+      }
     } catch {
       // error handled by request util
     } finally {
@@ -111,6 +138,10 @@ const AssistantConfigTab: React.FC = () => {
     setViewConfig(updated);
   };
 
+  const handleRemoteControlConfigChange = (updated: RemoteControlConfig) => {
+    setRemoteControlConfig(updated);
+  };
+
   const handleSave = async () => {
     // LLM 配置校验
     if (activeTab === 'llm') {
@@ -133,6 +164,27 @@ const AssistantConfigTab: React.FC = () => {
       }
     }
 
+    // 远程操作配置校验
+    if (activeTab === 'remote' && remoteControlConfig.type === 'DING_TALK') {
+      const dt = remoteControlConfig.dingTalk;
+      if (!dt.protocol || !dt.regionId || !dt.endpoint) {
+        message.warning('请填写完整的钉钉连接配置');
+        return;
+      }
+      if (!dt.clientId) {
+        message.warning('请填写 Client ID');
+        return;
+      }
+      if (!dt.clientSecret) {
+        message.warning('请填写 Client Secret');
+        return;
+      }
+      if (!dt.aiCardTemplateId) {
+        message.warning('请填写 AI 输出卡片模板 ID');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       // 保存当前激活的 Tab 配置
@@ -150,7 +202,7 @@ const AssistantConfigTab: React.FC = () => {
           message.success('LLM 配置保存成功');
           fetchConfig();
         }
-      } else {
+      } else if (activeTab === 'view') {
         const success = await saveOrUpdateConfig({
           id: viewConfigId,
           configKey: VIEW_CONFIG_KEY,
@@ -162,6 +214,12 @@ const AssistantConfigTab: React.FC = () => {
         });
         if (success) {
           message.success('展示配置保存成功');
+          fetchConfig();
+        }
+      } else if (activeTab === 'remote') {
+        const success = await saveRemoteControlConfig(remoteControlConfig);
+        if (success) {
+          message.success('远程操作配置保存成功');
           fetchConfig();
         }
       }
@@ -183,6 +241,7 @@ const AssistantConfigTab: React.FC = () => {
   const tabs: { key: AssistantTabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'view', label: '展示配置', icon: <EyeOutlined /> },
     { key: 'llm', label: 'LLM 配置', icon: <ApiOutlined /> },
+    { key: 'remote', label: '远程操作', icon: <ControlOutlined /> },
   ];
 
   return (
@@ -229,6 +288,13 @@ const AssistantConfigTab: React.FC = () => {
                 />
               </Card>
             </>
+          )}
+
+          {activeTab === 'remote' && (
+            <RemoteControlForm
+              value={remoteControlConfig}
+              onChange={handleRemoteControlConfigChange}
+            />
           )}
 
           {/* 操作栏 */}

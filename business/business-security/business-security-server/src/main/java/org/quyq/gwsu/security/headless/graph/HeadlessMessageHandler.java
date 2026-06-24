@@ -1,7 +1,6 @@
 package org.quyq.gwsu.security.headless.graph;
 
 
-import cn.hutool.core.util.ArrayUtil;
 import com.alibaba.cloud.ai.agent.agentscope.AgentScopeMessageUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -12,11 +11,13 @@ import io.agentscope.core.message.ThinkingBlock;
 import io.agentscope.core.session.Session;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
+import org.quyq.gwsu.common.core.exception.BusinessException;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
+import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
 import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.security.headless.session.HeadlessPageWrapper;
@@ -29,7 +30,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,7 +44,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
     private final Sinks.Many<ChatResponse> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-    Gson gson = new Gson();
+    private final Gson gson = new Gson();
 
     private final String userId;
 
@@ -77,6 +77,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     @Override
     public void onToolCallStart(AguiEvent.ToolCallStart event, HeadlessPageWrapper wrapper) {
         status = HeadlessAgentStatus.CALLING;
+        sink.tryEmitNext(getContent(""));
     }
 
     @Override
@@ -84,8 +85,11 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         if (event instanceof AguiEvent.ReasoningMessageContent e) {
             status = HeadlessAgentStatus.THINKING;
             sink.tryEmitNext(getReasoning(e.delta()));
+        } else if (event instanceof AguiEvent.Raw e) {
+            sink.tryEmitError(new BusinessException(e.rawEvent().toString()));
         }
     }
+
 
     //人工审核流处理
     @Override
@@ -102,18 +106,18 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .textContent(tip)
                 .build();
 
-        sink.tryEmitNext(getContent(msg, null, null));
+        sink.tryEmitNext(getContent(msg, null));
 
         try {
             //录像
-            byte[] record = FileUtils.readFileToByteArray(file = wrapper.stopRecording());
+            file = wrapper.stopRecording();
+            KitFileInfoVO upload = wrapper.upload(file);
+
             Msg sp = Msg.builder()
                     .role(MsgRole.ASSISTANT)
                     .textContent("\n以下是操作记录：\n")
                     .build();
-            sink.tryEmitNext(getContent(sp, record, MimeType.valueOf("video/mp4")));
-        } catch (IOException e) {
-            log.error("操作记录发送失败", e);
+            sink.tryEmitNext(getContent(sp, upload));
         } finally {
             if (Objects.nonNull(file)) {
                 file.delete();
@@ -129,18 +133,18 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     //问用户问题处理
     @Override
     public void onAskUserQuestion(String threadId, String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
-        StringBuilder sb = new StringBuilder("请您回答以下几个问题：\n");
+        StringBuilder sb = new StringBuilder("# 请您回答以下几个问题：\n\r");
         for (int i = 0; i < questions.size(); i++) {
             AskUserQuestionTool.QuestionParam question = questions.get(i);
             StringBuilder qStr = new StringBuilder();
-            qStr.append(i + 1).append(".").append(question.question())
-                    .append("【").append(question.multiSelect() ? "多选" : "单选").append("】\n");
+            qStr.append("## ").append(i + 1).append(".").append(question.question())
+                    .append("【").append(question.multiSelect() ? "多选" : "单选").append("】\n\r");
             for (int j = 0; j < question.options().size(); j++) {
                 AskUserQuestionTool.QuestionOption option = question.options().get(j);
-                qStr.append("  选项").append(j + 1).append(". ").append(option.label()).append("(")
-                        .append(option.description()).append(")\n");
+                qStr.append("* 选项").append(j + 1).append(". ").append(option.label()).append("(")
+                        .append(option.description()).append(")\n\r");
             }
-            qStr.append("  选项").append(question.options().size() + 1).append(". ").append("其他，描述您的想法\n");
+            qStr.append("* 选项").append(question.options().size() + 1).append(". ").append("其他，描述您的想法\n");
             sb.append(qStr).append("\n");
 
         }
@@ -149,7 +153,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .textContent(sb.toString())
                 .build();
 
-        sink.tryEmitNext(getContent(msg, null, null));
+        sink.tryEmitNext(getContent(msg, null));
         //记录图记忆
         session.save(CommonSessionKey.of(threadId, userId), IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
 
@@ -158,12 +162,12 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
     @Override
     public void onAgentOutput(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
-        if("AGENT_OUTPUT".equals(event.name()) && status != HeadlessAgentStatus.SHOWING){
+        if ("AGENT_OUTPUT".equals(event.name()) && status != HeadlessAgentStatus.SHOWING) {
             status = HeadlessAgentStatus.SHOWING;
             sink.tryEmitNext(getContent(""));
         }
         //AI输出面板内容输出完成，截取AI输出区截图
-        if("AGENT_OUTPUT_END".equals(event.name())){
+        if ("AGENT_OUTPUT_END".equals(event.name())) {
             File file = null;
             try {
                 file = wrapper.screenshot("#ai-output-panel");
@@ -171,14 +175,13 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                     log.warn("AI输出区截图失败，未获取到截图文件");
                     return;
                 }
-                byte[] screenshot = FileUtils.readFileToByteArray(file);
+                //               byte[] screenshot = FileUtils.readFileToByteArray(file);
+                KitFileInfoVO fileInfo = wrapper.upload(file);
                 Msg msg = Msg.builder()
                         .role(MsgRole.ASSISTANT)
                         .textContent("\n以下是助手为您输出的内容：\n")
                         .build();
-                sink.tryEmitNext(getContent(msg, screenshot, MimeType.valueOf("image/png")));
-            } catch (IOException e) {
-                log.error("AI输出区截图发送失败", e);
+                sink.tryEmitNext(getContent(msg, fileInfo));
             } finally {
                 if (Objects.nonNull(file)) {
                     file.delete();
@@ -203,27 +206,30 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         sink.tryEmitComplete();
     }
 
-
-    private ChatResponse getContent(Msg msg, byte[] resource, MimeType mimeType) {
+    private ChatResponse getContent(Msg msg, KitFileInfoVO fileInfo) {
         AssistantMessage m = AgentScopeMessageUtils.toAssistantMessage(msg);
-        m.getMetadata().put("status" ,status);
-        if (ArrayUtil.isNotEmpty(resource)) {
+        m.getMetadata().put("status", status);
+        if (Objects.nonNull(fileInfo)) {
+            FileDomainInfo fileDomainInfo = ConfigInfoUtils.getByObject("upload_server_info_config", FileDomainInfo.class);
+            String fileDomain = fileDomainInfo.fileDomain;
             AssistantMessage message = AssistantMessage.builder()
                     .properties(m.getMetadata())
                     .content(m.getText())
                     .toolCalls(m.getToolCalls())
                     .media(List.of(Media.builder()
-                            .data(resource)
-                            .mimeType(mimeType)
+                            .data("%s/kit/file/stream/%s".formatted(fileDomain, fileInfo.getFileId()))
+                            .mimeType(MimeType.valueOf(fileInfo.getMediaType()))
                             .build()))
                     .build();
 
             return new ChatResponse(List.of(new Generation(message)));
         }
-
-
         return new ChatResponse(List.of(new Generation(m)));
     }
+
+    record FileDomainInfo(String fileDomain) {
+    }
+
 
     private ChatResponse getContent(String delta) {
 
@@ -231,9 +237,10 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                 .role(MsgRole.ASSISTANT)
                 .textContent(delta)
                 .build());
-        message.getMetadata().put("status" ,status);
+        message.getMetadata().put("status", status);
         return new ChatResponse(List.of(new Generation(message)));
     }
+
 
     private ChatResponse getReasoning(String reasoning) {
         AssistantMessage message = AgentScopeMessageUtils.toAssistantMessage(Msg.builder()
@@ -242,7 +249,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
                         .thinking(reasoning)
                         .build())
                 .build());
-        message.getMetadata().put("status" ,status);
+        message.getMetadata().put("status", status);
         return new ChatResponse(List.of(new Generation(message)));
     }
 

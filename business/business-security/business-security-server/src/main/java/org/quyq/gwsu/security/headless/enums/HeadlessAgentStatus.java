@@ -16,6 +16,7 @@ public enum HeadlessAgentStatus {
     OUTPUTTING("输出中"),
     CALLING("能力调用中"),
     SHOWING("展示中"),
+    ERROR("错误"),
     COMPLETE("完成")
     ;
 

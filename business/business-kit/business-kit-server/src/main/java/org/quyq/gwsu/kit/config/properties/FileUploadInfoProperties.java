@@ -17,6 +17,11 @@ public class FileUploadInfoProperties {
     private FileServiceType type;
 
     /**
+     * 文件下载地址domain
+     */
+    private String fileDomain;
+
+    /**
      * 文件组
      */
     private String group;

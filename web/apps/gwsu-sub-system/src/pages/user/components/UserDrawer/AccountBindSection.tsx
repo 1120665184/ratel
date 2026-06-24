@@ -6,6 +6,7 @@ import { bindAccount, unbindAccount } from "@/services/user";
 import AccountBindForm from "./AccountBindForm";
 import { AuthGate } from "@gwsu/core";
 import { PERM_EDIT } from '../../permissionConstants';
+import styles from './AccountBindSection.module.less';
 
 interface AccountBindSectionProps {
   userId: string;
@@ -20,14 +21,40 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({
   onRefresh,
   readOnly = false,
 }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const [expandedType, setExpandedType] = useState<string | null>(null);
 
-  const allTypes = ["password", "phone", "wechat"];
+  const allTypes = ["password", "phone", "dingtalk"];
   const accountMap = new Map(accounts.map((a) => [a.identityType, a]));
 
   const handleBind =
     (_identityType: string) => async (data: SysAccountBindDTO) => {
+      // 钉钉绑定时，需要确认提示
+      if (_identityType === "dingtalk" && data.originalUserId) {
+        return new Promise<void>((resolve, reject) => {
+          modal.confirm({
+            title: "操作确认",
+            content: "绑定会注销原有账号，确定操作吗？",
+            okButtonProps: { "data-ai-approval": "true" },
+            onOk: async () => {
+              try {
+                await bindAccount(userId, data);
+                message.success("绑定成功");
+                setExpandedType(null);
+                onRefresh();
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            },
+            onCancel: () => {
+              // 用户取消确认，表单保持打开，不关闭
+              reject(new Error("用户取消"));
+            },
+          });
+        });
+      }
+
       try {
         await bindAccount(userId, data);
         message.success("绑定成功");
@@ -47,70 +74,38 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({
 
   return (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-        账号绑定
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className={styles.sectionTitle}>账号绑定</div>
+      <div className={styles.bindList}>
         {allTypes.map((type) => {
           const account = accountMap.get(type);
           const typeInfo = IDENTITY_TYPE_MAP[type] || {
             label: type,
-            icon: "🔑",
+            icon: "\u{1F511}",
           };
 
           return (
             <div
               key={type}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: expandedType === type ? "flex-start" : "center",
-                padding: "10px 12px",
-                background: "#fafafa",
-                borderRadius: 6,
-                border: "1px solid #f0f0f0",
-                flexDirection: "column",
-              }}
+              className={`${styles.bindItem} ${expandedType === type ? styles.bindItemExpanded : ""}`}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  width: "100%",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>{typeInfo.icon}</span>
+              <div className={styles.bindItemHeader}>
+                <div className={styles.bindItemInfo}>
+                  <span className={styles.bindItemIcon}>{typeInfo.icon}</span>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 500 }}>
-                      {typeInfo.label}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#999" }}>
+                    <div className={styles.bindItemLabel}>{typeInfo.label}</div>
+                    <div className={styles.bindItemIdentifier}>
                       {account ? account.identifier : "未绑定"}
                     </div>
                   </div>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
+                <div className={styles.bindItemActions}>
                   {account ? (
                     <>
                       <Tag color="success">已绑定</Tag>
                       {!readOnly && (
                         <AuthGate buttonKey={PERM_EDIT}>
                           <a
-                            style={{ color: "#ff4d4f", fontSize: 11 }}
+                            className={styles.unbindLink}
                             data-ai-approval
                             onClick={() => handleUnbind(account.id)}
                           >
@@ -121,7 +116,7 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({
                     </>
                   ) : (
                     !readOnly && (
-                      <AuthGate buttonKey="4_edit">
+                      <AuthGate buttonKey={PERM_EDIT}>
                         <a onClick={() => setExpandedType(type)}>绑定</a>
                       </AuthGate>
                     )
@@ -129,14 +124,7 @@ const AccountBindSection: React.FC<AccountBindSectionProps> = ({
                 </div>
               </div>
               {expandedType === type && (
-                <div
-                  style={{
-                    width: "100%",
-                    marginTop: 8,
-                    borderTop: "1px dashed #e8e8e8",
-                    paddingTop: 8,
-                  }}
-                >
+                <div className={styles.bindFormWrapper}>
                   <AccountBindForm
                     identityType={type}
                     onSubmit={handleBind(type)}

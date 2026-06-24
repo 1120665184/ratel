@@ -3,6 +3,7 @@ package org.quyq.gwsu.common.authentication.login.domain;
 
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -36,6 +37,6 @@ public class ThreePlatformConfig {
     /**
      * 其他扩展属性
      */
-    private Map<String, String> properties;
+    private Map<String, String> properties = new HashMap<>();
 
 }

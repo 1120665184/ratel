@@ -24,6 +24,8 @@ public interface ISysUserService extends IService<SysUser> {
 
     void bindAccount(String userId, SysAccountBindDTO dto);
 
+    void bindDingTalkAccount(String userId, SysAccountBindDTO dto);
+
     void unbindAccount(String userId, String accountId);
 
     void removeUsers(List<String> ids);

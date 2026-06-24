@@ -2,6 +2,7 @@ package org.quyq.gwsu.security.headless.domain;
 
 
 import org.quyq.gwsu.security.headless.enums.HeadlessAgentStatus;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 
 /**
@@ -11,6 +12,6 @@ import org.springframework.ai.chat.messages.Message;
  */
 public record HeadlessResponse(
         HeadlessAgentStatus status ,
-        Message message
+        AssistantMessage message
 ) {
 }

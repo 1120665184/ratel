@@ -54,6 +54,7 @@
         <aws.version>1.12.425</aws.version>
         <playwright.version>1.60.0</playwright.version>
         <jcodec.version>0.2.5</jcodec.version>
+        <dingtalk.stream.version>1.3.12</dingtalk.stream.version>
 
     </properties>
 

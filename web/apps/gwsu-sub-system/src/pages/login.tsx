@@ -1,9 +1,9 @@
-import React, {useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 // @ts-ignore
 import {history} from 'umi';
 import {App} from 'antd';
 import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo, encryptPassword} from '@gwsu/core';
-import {login, TerminalType} from '../services/login';
+import {login, TerminalType, getDingTalkAuthUrl} from '../services/login';
 import styles from './login.module.less';
 
 export default function Login() {
@@ -11,6 +11,55 @@ export default function Login() {
     const [username, setUsername] = useState('admin');
     const [password, setPassword] = useState('admin123');
     const [loading, setLoading] = useState(false);
+
+    const handleLoginSuccess = useCallback(async (loginToken: { token: string; userId: string; expires: number; alterMsg?: string }) => {
+        const expireTime = Date.now() + loginToken.expires * 1000;
+
+        useUserStore.getState().setTokenInfo({
+            token: loginToken.token,
+            userId: loginToken.userId,
+            expires: loginToken.expires,
+            expireTime,
+        });
+
+        const userInfo = await fetchCurrentUserInfo();
+        useUserStore.getState().setUserInfo(userInfo);
+
+        if (loginToken.alterMsg) {
+            message.warning(loginToken.alterMsg);
+        }
+
+        await useMenuStore.getState().loadMenus();
+
+        emitEvent(EventType.LOGIN_SUCCESS);
+
+        message.success('登录成功');
+    }, [message]);
+
+    /** 检查 URL 中是否携带了钉钉回调返回的 token 参数 */
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (!token) return;
+
+        const userId = params.get('userId');
+        const expires = params.get('expires');
+        const alterMsg = params.get('alterMsg');
+
+        if (!userId || !expires) return;
+
+        // 清除 URL 中的 token 参数，避免刷新重复登录
+        window.history.replaceState({}, '', window.location.pathname);
+
+        handleLoginSuccess({
+            token,
+            userId,
+            expires: Number(expires),
+            alterMsg: alterMsg || undefined,
+        }).catch(() => {
+            message.error('钉钉登录失败，请重试');
+        });
+    }, [handleLoginSuccess, message]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,31 +79,25 @@ export default function Login() {
                 password: encryptPassword(password),
             });
 
-            const expireTime = Date.now() + loginToken.expires * 1000;
-
-            useUserStore.getState().setTokenInfo({
-                token: loginToken.token,
-                userId: loginToken.userId,
-                expires: loginToken.expires,
-                expireTime,
-            });
-
-            const userInfo = await fetchCurrentUserInfo();
-            useUserStore.getState().setUserInfo(userInfo);
-
-            if (loginToken.alterMsg) {
-                message.warning(loginToken.alterMsg);
-            }
-
-            await useMenuStore.getState().loadMenus();
-
-            emitEvent(EventType.LOGIN_SUCCESS);
-
-            message.success('登录成功');
+            await handleLoginSuccess(loginToken);
         } catch (error) {
             // 错误提示已在 request.ts 中统一处理
         } finally {
             setLoading(false);
+        }
+    };
+
+    /** 钉钉快捷登录 - 直接重定向到钉钉授权页 */
+    const handleDingTalkLogin = async () => {
+        try {
+            const authUrl = await getDingTalkAuthUrl();
+            if (!authUrl) {
+                message.error('获取钉钉授权地址失败');
+                return;
+            }
+            window.location.href = authUrl;
+        } catch {
+            message.error('获取钉钉授权地址失败');
         }
     };
 
@@ -126,8 +169,6 @@ export default function Login() {
                         />
                     </div>
 
-
-
                     <button
                         type="submit"
                         className={`${styles.button} ${loading ? styles.buttonLoading : ''}`}
@@ -145,7 +186,24 @@ export default function Login() {
                     </button>
                 </form>
 
+                {/* 第三方登录 */}
+                <div className={styles.dividerSection}>
+                    <div className={styles.dividerLine}/>
+                    <span className={styles.dividerText}>其他登录方式</span>
+                    <div className={styles.dividerLine}/>
+                </div>
 
+                <button
+                    type="button"
+                    className={styles.dingtalkButton}
+                    onClick={handleDingTalkLogin}
+                    aria-label="钉钉快捷登录"
+                >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 13.2c-.2.52-.84.96-1.44 1.12-.36.08-.84.12-1.4.12-.56 0-1.2-.08-1.6-.2-.56-.16-1.08-.44-1.52-.8-.2-.16-.4-.32-.56-.48-.04.16-.08.32-.16.44-.2.36-.56.6-.96.68-.12.04-.24.04-.36.04-.32 0-.6-.12-.84-.32-.28-.24-.44-.56-.48-.92v-.08l.04-.32c.08-.4.24-.76.48-1.04.08-.08.12-.2.16-.32-.28-.36-.52-.72-.72-1.12-.24-.48-.36-1-.36-1.52 0-.72.2-1.36.56-1.88.04-.04.04-.08.08-.12.28-.36.64-.64 1.08-.84.44-.2.92-.28 1.4-.28.52 0 1 .12 1.44.36.4.2.76.52 1.04.88.32.4.52.84.64 1.36.08.32.12.68.12 1.04 0 .6-.12 1.16-.36 1.64-.2.4-.48.76-.8 1.08.04.12.08.24.16.36.2.36.52.6.88.76.16.08.32.12.48.12.08 0 .16 0 .2-.04.12-.04.2-.12.24-.2.04-.08.04-.16 0-.24-.04-.08-.12-.16-.2-.2-.16-.08-.32-.12-.48-.12-.12 0-.24 0-.36.04l-.08-.16z"/>
+                    </svg>
+                    <span>钉钉快捷登录</span>
+                </button>
             </div>
         </div>
     );

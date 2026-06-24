@@ -7,14 +7,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.authentication.dataresource.DataResourceAttributeProvider;
 import org.quyq.gwsu.common.authentication.dataresource.domain.ResourceRuleKeyProperties;
+import org.quyq.gwsu.common.authentication.login.impl.dingtalk.DingTalkLoginHandler;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.security.api.IAccountInfoClientApi;
 import org.quyq.gwsu.system.api.common.dto.UserDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
+import org.quyq.gwsu.system.manager.domain.SysAccount;
+import org.quyq.gwsu.system.manager.service.ISysAccountService;
 import org.quyq.gwsu.system.manager.service.ISysUserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Quyq
@@ -25,11 +30,13 @@ import java.util.List;
 @RequestMapping("basic")
 @Tag(name = "基础接口模块")
 @RequiredArgsConstructor
-public class BasicController {
+public class BasicController implements IAccountInfoClientApi {
 
     private final List<DataResourceAttributeProvider> attributeProviders;
 
     private final ISysUserService userService;
+
+    private final ISysAccountService accountService;
 
     @Operation(summary = "获取数据资源属性列表，用于数据权限配置的选项")
     @GetMapping("dataResourceAttribute")
@@ -49,6 +56,14 @@ public class BasicController {
         form.setAsc(dto.getAsc());
         form.setOrderByColumn(dto.getOrderByColumn());
         return R.ok(userService.pageByCondition(form));
+    }
+
+    @Override
+    @Operation(summary = "获取钉钉用户关联的本系统的用户ID")
+    @GetMapping("getUserIdByDingTalkUnionId/{unionId}")
+    public R<String> getUserIdByDingTalkUnionId(@PathVariable String unionId) {
+        SysAccount accountInfo = accountService.getByIdentifier(DingTalkLoginHandler.THREAD_DINGTALK_LOGIN_TYPE, unionId);
+        return R.ok(Optional.ofNullable(accountInfo).map(SysAccount::getUserId).orElse(null));
     }
 
 

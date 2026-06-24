@@ -55,7 +55,7 @@ public class FileController implements FileClientApi {
     @Override
     public R<KitFileInfoVO> uploadSingle(@ModelAttribute FileUploadDTO form) {
         allowFileType.valid(form.getFile());
-        return R.ok(KitFileInfo.buildVO(fileServiceManager.get().upload(form)));
+        return R.ok(fileServiceManager.get().upload(form));
     }
 
     @PostMapping("info/{fileId}")
@@ -135,7 +135,7 @@ public class FileController implements FileClientApi {
     @Operation(summary = "分片上传：分片合并")
     @Override
     public R<KitFileInfoVO> completeMultipartUpload(@RequestBody ChunkMultipartDTO form) {
-        return R.ok(KitFileInfo.buildVO(fileServiceManager.get().completeMultipartUpload(form)));
+        return R.ok(fileServiceManager.get().completeMultipartUpload(form));
     }
 
     @GetMapping("/chunk")

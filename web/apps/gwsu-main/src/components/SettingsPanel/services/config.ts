@@ -1,6 +1,7 @@
 import {  post, del } from '@gwsu/core';
 import type { ConfigVO} from '@gwsu/core';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
+import type { RemoteControlConfig } from '../AssistantConfigTab/types';
 
 const BASE = '/security/config';
 
@@ -40,5 +41,11 @@ export async function saveOrUpdateConfig(data: Partial<ConfigInfo>) {
 /** 批量删除配置 */
 export async function deleteConfigs(ids: string[]) {
   const res = await del<boolean>(BASE, ids);
+  return res.data;
+}
+
+/** 保存远程操作配置 */
+export async function saveRemoteControlConfig(config: RemoteControlConfig) {
+  const res = await post<boolean>('/security/headless/config/remote-control', config);
   return res.data;
 }
