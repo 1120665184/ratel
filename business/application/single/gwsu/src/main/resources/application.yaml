@@ -36,9 +36,23 @@ org.quyq:
     # 登录超时
     timeout: 18000
     is-concurrent: true
+    platform:
+      three-platform:
+        dingtalk:
+          client-id:
+          client-secret:
+          # 生成token后以重定向的形式返回数据，重定向地址见redirect-url
+          redirect: true
+          # 和redirect配合使用
+          redirect-url: <viewBaseUrl>/sub-system/login
+          properties:
+            # 钉钉服务器回调本系统的回调地址
+            redirect_uri: <apiBaseUrl>/system/auth/callback/manager/dingtalk
+
   security:
     ignore-urls:
       - /system/auth/**
+      - /kit/file/stream/*
     auth-allow-urls:
       - /modules/list
       - /system/workspace/**

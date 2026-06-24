@@ -1,6 +1,8 @@
 package org.quyq.gwsu.common.authentication.login.domain;
 
 
+import cn.hutool.core.bean.BeanUtil;
+import com.google.gson.Gson;
 import lombok.Data;
 
 import java.util.HashMap;
@@ -13,6 +15,8 @@ import java.util.Map;
  */
 @Data
 public class ThreePlatformConfig {
+
+    private final static Gson GSON = new Gson();
 
     /**
      * 客户ID
@@ -38,5 +42,10 @@ public class ThreePlatformConfig {
      * 其他扩展属性
      */
     private Map<String, String> properties = new HashMap<>();
+
+
+    public ThreePlatformConfig copy(){
+        return GSON.fromJson(GSON.toJson(this), ThreePlatformConfig.class);
+    }
 
 }

@@ -16,6 +16,7 @@ import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.core.exception.BusinessException;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseUrlProperties;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
 import org.quyq.gwsu.security.headless.HeadlessAgentListener;
@@ -210,8 +211,8 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         AssistantMessage m = AgentScopeMessageUtils.toAssistantMessage(msg);
         m.getMetadata().put("status", status);
         if (Objects.nonNull(fileInfo)) {
-            FileDomainInfo fileDomainInfo = ConfigInfoUtils.getByObject("upload_server_info_config", FileDomainInfo.class);
-            String fileDomain = fileDomainInfo.fileDomain;
+            BaseUrlProperties baseUrlProperties = ConfigInfoUtils.getByObject(BaseUrlProperties.CONFIG_KEY, BaseUrlProperties.class);
+            String fileDomain = baseUrlProperties.apiBaseUrl();
             AssistantMessage message = AssistantMessage.builder()
                     .properties(m.getMetadata())
                     .content(m.getText())
@@ -225,9 +226,6 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
             return new ChatResponse(List.of(new Generation(message)));
         }
         return new ChatResponse(List.of(new Generation(m)));
-    }
-
-    record FileDomainInfo(String fileDomain) {
     }
 
 

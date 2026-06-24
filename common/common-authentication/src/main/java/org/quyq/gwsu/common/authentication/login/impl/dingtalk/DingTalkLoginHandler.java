@@ -26,6 +26,21 @@ import java.util.Optional;
  * @author Quyq
  * @date 2026/6/22
  * @description 钉钉三方快捷登录
+ * * 配置示例：
+ * * org.quyq:
+ * *   auth:
+ * *     platform:
+ * *       three-platform:
+ * *         dingtalk:
+ * *           client-id: ***
+ * *           client-secret: ***
+ * *           # 生成token后以重定向的形式返回数据，重定向地址见redirect-url
+ * *           redirect: true
+ * *           # 和redirect配合使用
+ * *           redirect-url: [viewBaseUrl]/sub-system/login
+ * *           properties:
+ * *             # 钉钉服务器回调本系统的回调地址
+ * *             redirect_uri: [apiBaseUrl]/system/auth/callback/manager/dingtalk
  */
 @Slf4j
 public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractThreePlatformLoginHandler<T> {
@@ -66,13 +81,13 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
     protected T callback(ThreePlatformLoginDTO loginVO, ThreePlatformConfig config) {
         String code = Optional.ofNullable(loginVO.getExtraParam().get("authCode"))
                 .map(List::getFirst).orElse(null);
-        if(!StringUtils.hasText(code)){
+        if (!StringUtils.hasText(code)) {
             String error = Optional.ofNullable(loginVO.getExtraParam().get("error"))
                     .map(List::getFirst).orElse(null);
-            if(!StringUtils.hasText(error)){
+            if (!StringUtils.hasText(error)) {
                 error = "未获取到code";
             }
-            throw new AuthException(CommonErrorCode.E03006 , error);
+            throw new AuthException(CommonErrorCode.E03006, error);
 
         }
 
@@ -89,8 +104,8 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
                             "grantType", "authorization_code"))
                     .retrieve()
                     .body(AccessTokenRes.class);
-        }catch (RestClientException e){
-            throw new AuthException(CommonErrorCode.E03006 , "获取钉钉Access Token异常:"+e.getMessage());
+        } catch (RestClientException e) {
+            throw new AuthException(CommonErrorCode.E03006, "获取钉钉Access Token异常:" + e.getMessage());
         }
 
 
@@ -102,21 +117,22 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
                     .retrieve()
                     .body(DingTalkInfo.class);
 
-            if(Objects.isNull(body)){
-                throw new AuthException(CommonErrorCode.E03006 , "没有获取到钉钉用户信息");
+            if (Objects.isNull(body)) {
+                throw new AuthException(CommonErrorCode.E03006, "没有获取到钉钉用户信息");
             }
 
             return getUserByDingTalkInfo(body);
 
-        }catch (RestClientException e){
+        } catch (RestClientException e) {
             log.error(e.getMessage(), e);
-            throw new AuthException(CommonErrorCode.E03006 , "钉钉用户信息获取失败:" +e.getMessage());
+            throw new AuthException(CommonErrorCode.E03006, "钉钉用户信息获取失败:" + e.getMessage());
         }
 
     }
 
     /**
      * 通过钉钉用户信息获取本信息的信息
+     *
      * @param info
      * @return
      */
@@ -132,16 +148,18 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
             String refreshToken,
             Long expireIn,
             String corpId
-    ){}
+    ) {
+    }
 
 
     protected record DingTalkInfo(
-            String nick ,
+            String nick,
             String avatarUrl,
             String mobile,
             String openId,
             String unionId,
             String email
-    ){}
+    ) {
+    }
 
 }

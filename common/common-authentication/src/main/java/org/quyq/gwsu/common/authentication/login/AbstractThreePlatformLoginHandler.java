@@ -7,16 +7,24 @@ import org.quyq.gwsu.common.authentication.exception.AuthException;
 import org.quyq.gwsu.common.authentication.login.domain.ThreePlatformConfig;
 import org.quyq.gwsu.common.authentication.login.domain.ThreePlatformLoginDTO;
 import org.quyq.gwsu.common.authentication.login.domain.WebCallInfo;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
-import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseUrlProperties;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
  * @author Quyq
  * @date 2026/4/8
  * @description 对接第三方平台、门户认证实现抽象类
+ * <p>
+ *
  */
 public abstract class AbstractThreePlatformLoginHandler<T extends UserInfo> extends AbstractLoginHandler<ThreePlatformLoginDTO, T> {
 
@@ -26,13 +34,28 @@ public abstract class AbstractThreePlatformLoginHandler<T extends UserInfo> exte
      *
      * @return
      */
-    protected ThreePlatformConfig getConfig(){
+    protected ThreePlatformConfig getConfig() {
         LoginProperties properties = SpringUtils.getBean(LoginProperties.class);
         Optional<ThreePlatformConfig> config = Optional.ofNullable(properties.getThreePlatform().get(loginType()));
         if (config.isPresent()) {
-            return config.get();
+            ThreePlatformConfig copy = config.get().copy();
+            BaseUrlProperties baseUrlProperties = ConfigInfoUtils.getByObject(BaseUrlProperties.CONFIG_KEY, BaseUrlProperties.class);
+            if (StringUtils.hasText(copy.getRedirectUrl())) {
+                copy.setRedirectUrl(replaceUrl(baseUrlProperties, copy.getRedirectUrl()));
+            }
+            if (!CollectionUtils.isEmpty(copy.getProperties())) {
+                Map<String, String> newV = new HashMap<>(copy.getProperties().size());
+                copy.getProperties().forEach((k, v) -> newV.put(k, replaceUrl(baseUrlProperties, v)));
+                copy.setProperties(newV);
+            }
+            return copy;
         }
-        throw new AuthException(CommonErrorCode.E04003 , "三方登录方式【%s】缺少必要的配置信息，请联系管理员配置".formatted(loginType()));
+        throw new AuthException(CommonErrorCode.E04003, "三方登录方式【%s】缺少必要的配置信息，请联系管理员配置".formatted(loginType()));
+    }
+
+    private String replaceUrl(BaseUrlProperties baseUrlProperties, String old) {
+        return old.replace("<apiBaseUrl>", baseUrlProperties.apiBaseUrl())
+                .replace("<viewBaseUrl>", baseUrlProperties.viewBaseUrl());
     }
 
     /**
