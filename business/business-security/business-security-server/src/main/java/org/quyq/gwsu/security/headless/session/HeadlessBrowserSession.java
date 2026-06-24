@@ -136,12 +136,12 @@ public class HeadlessBrowserSession implements AutoCloseable {
         });
 
         // 3. 转发浏览器控制台日志（调试用）
-        page.onConsoleMessage(msg -> {
-            String text = msg.text();
-            if (text != null && text.startsWith("[Headless")) {
-                log.info("[BrowserConsole] {}", text);
-            }
-        });
+//        page.onConsoleMessage(msg -> {
+//            String text = msg.text();
+//            if (text != null && text.startsWith("[Headless")) {
+//                log.info("[BrowserConsole] {}", text);
+//            }
+//        });
     }
 
     /**
@@ -227,7 +227,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
             // 检查是否 token 失效
             if (tokenExpired[0]) {
-                log.info("[HeadlessAuth] token 已失效，回退到 certification 登录");
+                log.trace("[HeadlessAuth] token 已失效，回退到 certification 登录");
                 // 清除浏览器中无效的 token
                 page.evaluate("() => { localStorage.removeItem('gwsu_token'); localStorage.removeItem('gwsu_isLoggedIn'); }");
                 // 构造移除 token 但保留 threadId 的 URL
@@ -241,7 +241,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
             Object statusObj = page.evaluate("document.body.getAttribute('data-headless-login-status')");
             String status = statusObj != null ? statusObj.toString() : "";
             if ("success".equals(status)) {
-                log.info("token 恢复会话成功");
+                log.trace("token 恢复会话成功");
                 return;
             }
 
@@ -254,7 +254,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
         } catch (PlaywrightException e) {
             // 超时也可能是因为 token 失效导致页面跳转
             if (tokenExpired[0]) {
-                log.info("[HeadlessAuth] 超时且 token 已失效，回退到 certification 登录");
+                log.trace("[HeadlessAuth] 超时且 token 已失效，回退到 certification 登录");
                 try {
                     page.evaluate("() => { localStorage.removeItem('gwsu_token'); localStorage.removeItem('gwsu_isLoggedIn'); }");
                 } catch (Exception ignored) {
@@ -278,7 +278,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * 直接 certification 登录（无 token 参数）
      */
     private void authenticateDirect(String loginUrl) {
-        log.info("开始 certification 登录: loginUrl={}", loginUrl);
+        log.trace("开始 certification 登录: loginUrl={}", loginUrl);
 
         page.navigate(loginUrl);
         page.waitForLoadState();
@@ -298,7 +298,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
             log.error("无头浏览器 certification 登录失败: status={}", status);
             throw new RuntimeException("无头浏览器登录失败: " + status);
         }
-        log.info("certification 登录成功");
+        log.trace("certification 登录成功");
     }
 
     /**
@@ -541,7 +541,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
         String listKey = AguiEventRedisPusher.BRAIN_SSE_EVENT_LIST_PREFIX + threadId;
         currentListKey = listKey;
-        log.info("[HeadlessSSE] 启动Redis List消费: listKey={}", listKey);
+        log.debug("[HeadlessSSE] 启动Redis List消费: listKey={}", listKey);
 
         messageConsumer = ThreadPoolUtil.newVirtualThreadPerTaskExecutor();
 
@@ -554,7 +554,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                         if (event != null) {
                             handleSseEvent(event);
                             if (event instanceof AguiEvent.RunFinished) {
-                                log.info("[HeadlessSSE] 收到RunFinished, 停止消费: threadId={}", threadId);
+                                log.trace("[HeadlessSSE] 收到RunFinished, 停止消费: threadId={}", threadId);
                                 break;
                             }
                         }
@@ -565,7 +565,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                     }
                 }
             }
-            log.info("[HeadlessSSE] 消费线程退出: threadId={}", threadId);
+            log.trace("[HeadlessSSE] 消费线程退出: threadId={}", threadId);
         });
     }
 
