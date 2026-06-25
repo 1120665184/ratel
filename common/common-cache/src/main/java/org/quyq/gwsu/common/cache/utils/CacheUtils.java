@@ -731,7 +731,7 @@ public class CacheUtils {
     }
 
     /**
-     * 执行业务逻辑（带分布式锁），默认等待10秒，持有锁30秒
+     * 执行业务逻辑（带分布式锁），默认等待10秒，自动续锁
      *
      * @param key    锁的键
      * @param action 业务逻辑执行器
@@ -739,7 +739,7 @@ public class CacheUtils {
      * @return 业务逻辑执行结果
      */
     public <T> T executeWithLock(String key, Supplier<T> action) {
-        return executeWithLock(key, 10, 30, TimeUnit.SECONDS, action);
+        return executeWithLock(key, 10, -1, TimeUnit.SECONDS, action);
     }
 
     /**
@@ -766,6 +766,17 @@ public class CacheUtils {
      */
     public void executeWithLock(String key, Runnable action) {
         executeWithLock(key, 10, 30, TimeUnit.SECONDS, action);
+    }
+
+    /**
+     * 判断指定锁是否正在被持有（任何线程）
+     *
+     * @param key 锁的键
+     * @return 锁被持有时返回 true，否则返回 false
+     */
+    public boolean isLocked(String key) {
+        RLock lock = redissonClient.getLock(lockKey(key));
+        return lock.isLocked();
     }
 
     // ================================ Lua 脚本 ================================

@@ -1,6 +1,5 @@
 package org.quyq.gwsu.security.headless;
 
-import io.agentscope.core.agui.event.AguiEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
@@ -9,7 +8,6 @@ import org.quyq.gwsu.security.headless.pool.BrowserContextPool;
 import org.quyq.gwsu.security.headless.session.HeadlessAccessSession;
 import org.quyq.gwsu.security.headless.session.HeadlessBrowserSession;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +34,8 @@ public class HeadlessBrowserManager implements AutoCloseable {
     private final BrowserContextPool contextPool;
     private final CacheUtils cacheUtils;
 
+    private final String lockKey = "headless_lock:%s";
+
     public HeadlessBrowserManager(HeadlessBrowserConfiguration config,
                                   BrowserContextPool contextPool,
                                   CacheUtils cacheUtils) {
@@ -60,14 +60,8 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param listener 事件监听器
      * @return SSE 事件列表
      */
-    public List<AguiEvent> sendMessage(String userId, String message, HeadlessAgentListener listener) {
-        String lockKey = "headless_lock:" + userId;
-        return cacheUtils.executeWithLock(lockKey, () ->
-                executeWithSession(userId, "发送消息", session -> {
-                    List<AguiEvent> events = session.sendMessage(message, listener);
-                    return events;
-                })
-        );
+    public void sendMessage(String userId, String message, HeadlessAgentListener listener) {
+        executeWithSession(userId, "发送消息", session -> session.sendMessage(message, listener));
     }
 
     /**
@@ -82,13 +76,10 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param listener     事件监听器，接收提交后的 SSE 事件
      */
     public void approval(String userId, boolean approved, String rejectReason, HeadlessAgentListener listener) {
-        String lockKey = "headless_lock:" + userId;
-        cacheUtils.executeWithLock(lockKey, () ->
-                executeWithSession(userId, "审批", session -> {
-                    session.submitApproval(approved, rejectReason, listener);
-                    return null;
-                })
-        );
+        executeWithSession(userId, "审批", session -> {
+            session.submitApproval(approved, rejectReason, listener);
+            return null;
+        });
     }
 
     /**
@@ -103,13 +94,10 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param listener   事件监听器，接收提交后的 SSE 事件
      */
     public void userAnswer(String userId, String toolCallId, Map<String, String> answers, HeadlessAgentListener listener) {
-        String lockKey = "headless_lock:" + userId;
-        cacheUtils.executeWithLock(lockKey, () ->
-                executeWithSession(userId, "回答问题", session -> {
-                    session.submitUserAnswer(toolCallId, answers, listener);
-                    return null;
-                })
-        );
+        executeWithSession(userId, "回答问题", session -> {
+            session.submitUserAnswer(toolCallId, answers, listener);
+            return null;
+        });
     }
 
     // ==================== 公共会话执行模板 ====================
@@ -120,9 +108,9 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * 统一处理：获取分布式会话 → 借用 BrowserContext → 创建 Session → 认证 → 执行操作 → 保存会话 → 归还资源
      * sendMessage / approval / userAnswer 的区别仅在于 action 中的操作不同
      *
-     * @param userId   用户 ID
+     * @param userId     用户 ID
      * @param actionName 操作名称（用于日志）
-     * @param action  会话操作回调
+     * @param action     会话操作回调
      * @return 操作结果
      */
     private <T> T executeWithSession(String userId, String actionName, SessionAction<T> action) {
@@ -157,7 +145,11 @@ public class HeadlessBrowserManager implements AutoCloseable {
             // 7. 归还资源
             if (session != null) {
                 var ctx = session.getBrowserContext();
-                try { session.close(); } catch (Exception e) { log.warn("关闭 Session 异常: userId={}", userId, e); }
+                try {
+                    session.close();
+                } catch (Exception e) {
+                    log.warn("关闭 Session 异常: userId={}", userId, e);
+                }
                 contextPool.returnAndReplenish(ctx);
             }
         }
@@ -262,10 +254,10 @@ public class HeadlessBrowserManager implements AutoCloseable {
         log.debug("已清除用户 threadId，下次将创建新会话: userId={}", userId);
     }
 
-    public void newSession(String userId , String threadId) {
+    public void newSession(String userId, String threadId) {
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {
-            cacheUtils.hSet(key , HeadlessAccessSession.HASH_KEY_THREAD_ID , threadId);
+            cacheUtils.hSet(key, HeadlessAccessSession.HASH_KEY_THREAD_ID, threadId);
             return null;
         });
         log.debug("已设置新会话threadID，下次将使用设置值: userId={}", userId);

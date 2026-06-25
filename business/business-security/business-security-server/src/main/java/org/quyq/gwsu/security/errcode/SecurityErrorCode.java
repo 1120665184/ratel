@@ -58,7 +58,8 @@ public enum SecurityErrorCode implements ReturnCode {
     E07009("未启用钉钉远程操作功能"),
     E07010("钉钉用户unionId获取失败"),
     E07011("ai输出卡片模板ID不能为空"),
-    E07012("远程操作必填配置项不能为空")
+    E07012("远程操作必填配置项不能为空"),
+    E07013("会话正在运行中，请稍后尝试"),
 
     ;
 

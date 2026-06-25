@@ -5,12 +5,11 @@ import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agui.adapter.AguiAdapterConfig;
 import io.agentscope.core.agui.processor.AguiRequestProcessor;
 import io.agentscope.core.agui.registry.AguiAgentRegistry;
-import io.agentscope.core.hook.Hook;
-import io.agentscope.core.hook.HookEvent;
-import io.agentscope.core.hook.PreReasoningEvent;
+import io.agentscope.core.hook.*;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.model.ExecutionConfig;
 import io.agentscope.core.session.Session;
 import io.agentscope.core.skill.AgentSkill;
@@ -18,6 +17,7 @@ import io.agentscope.core.skill.SkillBox;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.DefaultAgentResolver;
 import org.quyq.gwsu.common.ai.agui.ThreadSessionManager;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
@@ -113,8 +113,8 @@ public class BrainServiceImpl implements IBrainService {
                 .build();
         String loginType = sessionUtils.getLoginType();
         List<String> disableTool = new ArrayList<>();
-        if("headless".equals(loginType)) {
-            disableTool = List.of("EnterAiMode" ,"ExitAiMode");
+        if ("headless".equals(loginType)) {
+            disableTool = List.of("EnterAiMode", "ExitAiMode");
         }
         skillBox.registration()
                 .skill(userMenuSkill)
@@ -337,14 +337,14 @@ public class BrainServiceImpl implements IBrainService {
                 .session(agentSession)
                 .sysPrompt(buildSysPrompt())
                 .model(ModelProvider.generateModel())
-                .hooks(List.of(new ForwardedPropsHook(subjectSystemPrompt), outputViewEventHandlerHook))
+                .hooks(List.of(new StatisticsLLmCountHook(), new ForwardedPropsHook(subjectSystemPrompt), outputViewEventHandlerHook))
                 .toolkit(toolkit)
                 .skillBox(skillBox)
                 .maxIters(100)
                 .toolExecutionConfig(ExecutionConfig.builder()
                         .timeout(Duration.of(10, ChronoUnit.MINUTES))
                         .build())
-             //   .enableAgentTracingLog(true)
+                //   .enableAgentTracingLog(true)
                 .disableSubagents()
                 .disableShellTool()
                 .disableMemoryTools()
@@ -396,8 +396,8 @@ public class BrainServiceImpl implements IBrainService {
     private String buildSysPrompt() {
         String loginType = sessionUtils.getLoginType();
         String headlessContent = "界面操作模式（human：人类操作模式 | ai：AI操作模式）：{operationMode}";
-        if("headless".equals(loginType)) {
-            headlessContent ="**特别注意**：您当前已经处于“AI操作模式” ，可以直接调用操作界面相关工具 ，禁止调用`EnterAiMode`和`ExitAiMode`工具";
+        if ("headless".equals(loginType)) {
+            headlessContent = "**特别注意**：您当前已经处于“AI操作模式” ，可以直接调用操作界面相关工具 ，禁止调用`EnterAiMode`和`ExitAiMode`工具";
         }
         return """
                 # 角色
@@ -479,6 +479,144 @@ public class BrainServiceImpl implements IBrainService {
                 .build();
     }
 
+    @Slf4j
+    private static class StatisticsLLmCountHook implements Hook {
+
+        private final List<Statistics> LLMcount = new ArrayList<>();
+
+        private final List<StatisticsTool> toolCount = new ArrayList<>();
+
+        @Override
+        public <T extends HookEvent> Mono<T> onEvent(T event) {
+
+            return Mono.defer(() -> {
+
+                if (event instanceof PreReasoningEvent) {
+                    LLMcount.add(new Statistics(LLMcount.size() + 1, LocalDateTime.now(), 0L));
+                } else if (event instanceof PostReasoningEvent) {
+                    Statistics last = LLMcount.getLast();
+                    Duration between = Duration.between(last.start, LocalDateTime.now());
+                    LLMcount.set(LLMcount.size() - 1, Statistics.build(last, between.toMillis()));
+
+                }  else if (event instanceof PreActingEvent e){
+                    ToolUseBlock toolUse = e.getToolUse();
+                    toolCount.add(new StatisticsTool(toolCount.size() + 1, toolUse.getName() , LocalDateTime.now(), 0L ));
+
+                } else if (event instanceof PostActingEvent e){
+                    StatisticsTool last = toolCount.getLast();
+                    Duration between = Duration.between(last.start, LocalDateTime.now());
+                    toolCount.set(toolCount.size() - 1, StatisticsTool.build(last, between.toMillis()));
+                }
+                else if (event instanceof PostCallEvent) {
+                    log.debug(printCountLog());
+                    LLMcount.clear();
+                    toolCount.clear();
+                }
+
+
+                return Mono.just(event);
+            });
+        }
+
+        private String printCountLog() {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+            StringBuilder sb = new StringBuilder();
+
+            // ========== 模型调用统计 ==========
+            if (!LLMcount.isEmpty()) {
+                sb.append("\n智能体运行完成，共调用 ").append(LLMcount.size()).append(" 次模型，每次开始时间和耗时如下：\n");
+                sb.append("| 序号 | 开始时间                 | 耗时      |\n");
+                sb.append("|------|--------------------------|-----------|\n");
+                for (Statistics stat : LLMcount) {
+                    sb.append("| ")
+                            .append(String.format("%-4d", stat.count))
+                            .append(" | ")
+                            .append(stat.start.format(formatter))
+                            .append(" | ")
+                            .append(String.format("%-9s", formatSmartPerfect(stat.timeConsuming)))
+                            .append(" |\n");
+                }
+            } else {
+                sb.append("\n智能体运行完成，没有模型调用记录。");
+            }
+
+            // ========== 工具调用统计 ==========
+            if (!toolCount.isEmpty()) {
+                sb.append("\n工具调用统计（共 ").append(toolCount.size()).append(" 次）：\n");
+                sb.append("| 序号 | 工具名称       | 开始时间                 | 耗时      |\n");
+                sb.append("|------|----------------|--------------------------|-----------|\n");
+                for (StatisticsTool stat : toolCount) {
+                    sb.append("| ")
+                            .append(String.format("%-4d", stat.count))
+                            .append(" | ")
+                            .append(String.format("%-14s", stat.toolName)) // 预留宽度，可自行调整
+                            .append(" | ")
+                            .append(stat.start.format(formatter))
+                            .append(" | ")
+                            .append(String.format("%-9s", formatSmartPerfect(stat.timeConsuming)))
+                            .append(" |\n");
+                }
+            } else {
+                // 如果已输出模型记录，但无工具调用，追加一行提示；若模型也无记录，前面已提示，这里避免重复
+                if (!LLMcount.isEmpty()) {
+                    sb.append("\n本次运行无工具调用。");
+                }
+            }
+
+            return sb.toString();
+        }
+
+        public String formatSmartPerfect(long timeConsuming) {
+            long millis = Math.abs(timeConsuming);
+
+            if (millis == 0) {
+                return "0秒";
+            }
+            if (millis < 1000) {
+                return millis + "毫秒";
+            }
+
+            long seconds = millis / 1000;
+            long minutes = seconds / 60;
+            long hours = minutes / 60;
+            long days = hours / 24;
+
+            long remainSeconds = seconds % 60;
+            long remainMinutes = minutes % 60;
+            long remainHours = hours % 24;
+
+            StringBuilder sb = new StringBuilder();
+            if (days > 0) sb.append(days).append("天");
+            if (remainHours > 0) sb.append(remainHours).append("小时");
+            if (remainMinutes > 0) sb.append(remainMinutes).append("分");
+            if (remainSeconds > 0) sb.append(remainSeconds).append("秒");
+
+            // 兜底：如果上面什么都没加（比如刚好是整数小时），至少显示秒数
+            if (sb.isEmpty()) {
+                sb.append(remainSeconds).append("秒");
+            }
+            return sb.toString();
+        }
+
+        //统计工具调用
+        record StatisticsTool(int count, String toolName, LocalDateTime start, long timeConsuming) {
+            public static StatisticsTool build(StatisticsTool statisticsTool, long timeConsuming) {
+                return new StatisticsTool(statisticsTool.count, statisticsTool.toolName, statisticsTool.start, timeConsuming);
+            }
+        }
+
+        //统计模型调用次数
+        record Statistics(int count, LocalDateTime start, long timeConsuming) {
+
+            public static Statistics build(Statistics statistics, long timeConsuming) {
+                return new Statistics(statistics.count, statistics.start, timeConsuming);
+            }
+
+
+        }
+
+
+    }
 
     /**
      * 系统提示词动态参数替换

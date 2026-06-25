@@ -14,6 +14,7 @@ import org.quyq.gwsu.security.headless.entrance.dingtalk.DingTalkClient;
 import org.quyq.gwsu.security.headless.entrance.dingtalk.domain.DingTalkMessage;
 import org.quyq.gwsu.security.headless.entrance.dingtalk.domain.DingTalkUser;
 import org.quyq.gwsu.security.headless.entrance.dingtalk.domain.PrivateChatResponse;
+import org.quyq.gwsu.security.headless.enums.MsgSourceType;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -132,22 +133,22 @@ public class DingTalkMsgUtils {
     /**
      * 消息撤回
      *
-     * @param conversationType 2，群聊消息 1，私聊消息
+     * @param sourceType
      * @param conversationId
      * @param processQueryKeys
      */
-    public void revoke(int conversationType, String conversationId, Set<String> processQueryKeys) {
+    public void revoke(MsgSourceType sourceType, String conversationId, Set<String> processQueryKeys) {
         EntranceConfig.DingTalk config = DingTalkClient.getDingTalkConfig();
 
         HashMap<String, Object> params = new HashMap<>();
 
         params.put("robotCode", config.getClientId());
-        if (2 == conversationType) {
+        if (MsgSourceType.GROUP == sourceType) {
             params.put("openConversationId", conversationId);
         }
         params.put("processQueryKeys", processQueryKeys);
         String url = "/v1.0/robot/groupMessages/recall";
-        if (1 == conversationType) {
+        if (MsgSourceType.PRIVATE_CHAT == sourceType) {
             url = "/v1.0/robot/otoMessages/batchRecall";
         }
 
