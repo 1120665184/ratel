@@ -50,7 +50,7 @@ export interface LoginParams {
  */
 export interface HeadlessLoginParams {
     /** 登录类型 */
-    type: 'headless';
+    type: 'connect';
     /** 终端类型 */
     terminal: TerminalType.PC;
     /** 临时认证凭证 */

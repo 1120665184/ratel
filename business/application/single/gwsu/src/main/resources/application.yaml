@@ -5,6 +5,10 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+  # 智能体流式响应可能耗时较长，默认30s超时不够，设为5分钟
+  mvc:
+    async:
+      request-timeout: 300s
   servlet:
     multipart:
       max-file-size: 10MB
@@ -39,8 +43,8 @@ org.quyq:
     platform:
       three-platform:
         dingtalk:
-          client-id:
-          client-secret:
+          client-id: dingmbe5hbufmzgz9wwh
+          client-secret: wTdEPnlAElkZHE5lFw9vXSAkdVQQg0mexlYYRrpMiZZ8oebLhGlodX8DN3mFTDJh
           # 生成token后以重定向的形式返回数据，重定向地址见redirect-url
           redirect: true
           # 和redirect配合使用

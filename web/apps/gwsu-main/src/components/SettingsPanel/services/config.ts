@@ -46,6 +46,6 @@ export async function deleteConfigs(ids: string[]) {
 
 /** 保存远程操作配置 */
 export async function saveRemoteControlConfig(config: RemoteControlConfig) {
-  const res = await post<boolean>('/security/headless/config/remote-control', config);
+  const res = await post<boolean>('/security/connect/config/remote-control', config);
   return res.data;
 }

@@ -18,6 +18,7 @@
         <module>gwsu-system</module>
         <module>gwsu-log</module>
         <module>gwsu-kit</module>
+        <module>gwsu-headless</module>
     </modules>
 
     <dependencies>

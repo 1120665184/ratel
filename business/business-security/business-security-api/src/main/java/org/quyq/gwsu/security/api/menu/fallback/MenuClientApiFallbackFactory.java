@@ -27,35 +27,6 @@ public class MenuClientApiFallbackFactory implements FallbackFactory<MenuClientA
                 return R.fail("菜单服务暂时不可用: " + cause.getMessage());
             }
 
-            @Override
-            public R<List<MenuVO>> listTreeBySubjectId(Integer owner, String subjectId) {
-                return R.fail("菜单服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<List<MenuVO>> listTree(MenuQueryDTO query) {
-                return R.fail("菜单服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<List<Map<String, Object>>> listOwners() {
-                return R.fail("菜单服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<List<Map<String, Object>>> listPositions() {
-                return R.fail("菜单服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<List<MenuVO>> listButtonsByMenuId(Integer owner, String menuId) {
-                return R.fail("菜单服务暂时不可用: " + cause.getMessage());
-            }
-
-            @Override
-            public R<Boolean> batchSort(List<MenuSortDTO> sortItems) {
-                return R.fail("菜单服务暂时不可用: " + cause.getMessage());
-            }
         };
     }
 }

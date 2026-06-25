@@ -46,7 +46,6 @@ public class SecurityMenuController implements MenuClientApi {
 
     @Operation(summary = "查询菜单树")
     @PostMapping("/tree")
-    @Override
     public R<List<MenuVO>> listTree(@RequestBody MenuQueryDTO query) {
         MenuOwner menuOwner = AssertUtils.notNull(query.getOwner(), SecurityErrorCode.E01002);
         return R.ok(menuService.listTree(query, menuOwner , false));
@@ -54,7 +53,6 @@ public class SecurityMenuController implements MenuClientApi {
 
     @Operation(summary = "根据用户ID查询菜单树")
     @GetMapping("/tree/{owner}/by-subject/{subjectId}")
-    @Override
     public R<List<MenuVO>> listTreeBySubjectId(
             @PathVariable Integer owner,
             @PathVariable String subjectId) {
@@ -134,7 +132,6 @@ public class SecurityMenuController implements MenuClientApi {
 
     @Operation(summary = "批量更新菜单排序和父级")
     @PutMapping("/sort")
-    @Override
     public R<Boolean> batchSort(@RequestBody List<MenuSortDTO> sortItems) {
         return R.ok(menuService.batchSort(sortItems));
     }

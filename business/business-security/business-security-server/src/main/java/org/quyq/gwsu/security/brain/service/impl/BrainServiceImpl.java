@@ -31,7 +31,7 @@ import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
 import org.quyq.gwsu.security.api.menu.vo.MenuVO;
-import org.quyq.gwsu.security.brain.ModelProvider;
+import org.quyq.gwsu.common.ai.model.ModelProvider;
 import org.quyq.gwsu.security.brain.service.IBrainService;
 import org.quyq.gwsu.security.brain.service.agent.DatabaseSearchAgent;
 import org.quyq.gwsu.security.brain.service.agent.OutputViewAgent;
@@ -113,7 +113,7 @@ public class BrainServiceImpl implements IBrainService {
                 .build();
         String loginType = sessionUtils.getLoginType();
         List<String> disableTool = new ArrayList<>();
-        if ("headless".equals(loginType)) {
+        if ("connect".equals(loginType)) {
             disableTool = List.of("EnterAiMode", "ExitAiMode");
         }
         skillBox.registration()
@@ -396,7 +396,7 @@ public class BrainServiceImpl implements IBrainService {
     private String buildSysPrompt() {
         String loginType = sessionUtils.getLoginType();
         String headlessContent = "界面操作模式（human：人类操作模式 | ai：AI操作模式）：{operationMode}";
-        if ("headless".equals(loginType)) {
+        if ("connect".equals(loginType)) {
             headlessContent = "**特别注意**：您当前已经处于“AI操作模式” ，可以直接调用操作界面相关工具 ，禁止调用`EnterAiMode`和`ExitAiMode`工具";
         }
         return """

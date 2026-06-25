@@ -14,7 +14,7 @@ import org.quyq.gwsu.common.authentication.domain.AbstractLoginDTO;
 @Data
 public class HeadlessLoginDTO extends AbstractLoginDTO {
 
-    public static final String LOGIN_TYPE = "headless";
+    public static final String LOGIN_TYPE = "connect";
 
     private String certificationKey;
 

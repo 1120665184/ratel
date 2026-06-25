@@ -22,7 +22,7 @@ export default function LoginHeadless() {
             const msg = '缺少认证凭证参数';
             setStatus('error');
             setErrorMsg(msg);
-            document.body.setAttribute('data-headless-login-status', 'error: ' + msg);
+            document.body.setAttribute('data-connect-login-status', 'error: ' + msg);
             return;
         }
 
@@ -41,7 +41,7 @@ export default function LoginHeadless() {
                     };
                 } else {
                     loginToken = await headlessLogin({
-                        type: 'headless',
+                        type: 'connect',
                         terminal: TerminalType.PC,
                         certificationKey,
                     });
@@ -77,18 +77,18 @@ export default function LoginHeadless() {
                 emitEvent(EventType.LOGIN_SUCCESS, { threadId: threadIdParam || null, isHeadless: true });
 
                 setStatus('success');
-                document.body.setAttribute('data-headless-login-status', 'success');
+                document.body.setAttribute('data-connect-login-status', 'success');
 
                 // 设置无头模式事件前缀，供 CopilotKit 事件回调输出到 console
                 const shortCert = certificationKey.substring(0, 8);
-                document.body.setAttribute('data-headless-event-prefix', `${shortCert}-HeadlessEvent`);
+                document.body.setAttribute('data-connect-event-prefix', `${shortCert}-HeadlessEvent`);
             } catch (error) {
                 if (cancelled) return;
 
                 const msg = error instanceof Error ? error.message : '登录失败';
                 setStatus('error');
                 setErrorMsg(msg);
-                document.body.setAttribute('data-headless-login-status', 'error: ' + msg);
+                document.body.setAttribute('data-connect-login-status', 'error: ' + msg);
             }
         })();
 

@@ -33,4 +33,7 @@ public interface ErrorCodeConstants {
      */
     String KIT_ERROR_CODE_MODULE = "04";
 
+
+    String HEADLESS_ERROR_CODE_MODULE = "05";
+
 }

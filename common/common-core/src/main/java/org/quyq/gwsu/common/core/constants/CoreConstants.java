@@ -132,6 +132,11 @@ public interface CoreConstants {
          */
         String KIT_NAME = "gwsu-kit";
 
+        /**
+         * 无头智能体服务
+         */
+        String HEADLESS_NAME = "gwsu-headless";
+
     }
 
 

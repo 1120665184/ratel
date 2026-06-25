@@ -30,6 +30,11 @@
 
         <dependency>
             <groupId>org.quyq.gwsu</groupId>
+            <artifactId>business-headless-server</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.quyq.gwsu</groupId>
             <artifactId>business-kit-server</artifactId>
         </dependency>
 

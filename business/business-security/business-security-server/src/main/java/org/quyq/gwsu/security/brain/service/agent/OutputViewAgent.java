@@ -12,7 +12,7 @@ import io.agentscope.core.tool.subagent.SubAgentConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.AgentException;
-import org.quyq.gwsu.security.brain.ModelProvider;
+import org.quyq.gwsu.common.ai.model.ModelProvider;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 

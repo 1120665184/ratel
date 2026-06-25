@@ -1,7 +1,6 @@
 package org.quyq.gwsu.security.brain.service.agent;
 
 import io.agentscope.core.ReActAgent;
-import io.agentscope.core.hook.Hook;
 import io.agentscope.core.memory.Memory;
 import io.agentscope.core.session.Session;
 import io.agentscope.core.skill.AgentSkill;
@@ -12,7 +11,6 @@ import io.agentscope.core.tool.subagent.SubAgentConfig;
 import io.agentscope.harness.agent.hook.AgentTraceHook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.quyq.gwsu.common.ai.AgentException;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.Subject;
@@ -21,7 +19,7 @@ import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.security.api.tablemodel.vo.BusinessFunctionDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.BusinessFunctionVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
-import org.quyq.gwsu.security.brain.ModelProvider;
+import org.quyq.gwsu.common.ai.model.ModelProvider;
 import org.quyq.gwsu.security.brain.service.tool.DatabaseSearchTool;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityBusinessFunctionService;

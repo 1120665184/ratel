@@ -18,6 +18,7 @@
         <module>business-system</module>
         <module>business-log</module>
         <module>business-kit</module>
+        <module>business-headless</module>
     </modules>
 
 
