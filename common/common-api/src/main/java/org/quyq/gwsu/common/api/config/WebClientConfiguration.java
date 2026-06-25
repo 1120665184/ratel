@@ -1,25 +1,25 @@
 package org.quyq.gwsu.common.api.config;
 
-import io.netty.channel.ChannelOption;
 import org.quyq.gwsu.common.api.interceptor.ApiClientWebClientFilter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
-import org.springframework.cloud.client.loadbalancer.DeferringLoadBalancerInterceptor;
-import org.springframework.cloud.client.loadbalancer.reactive.ReactorLoadBalancerExchangeFilterFunction;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Duration;
 import java.util.List;
 
 /**
- * WebClient 自动配置，提供带负载均衡和请求头传播的 WebClient.Builder
+ * WebClient 自动配置，提供带 Jackson 编解码和请求头传播的 WebClient.Builder
+ * <p>
+ * 负载均衡不在此处配置，而是由 {@link org.quyq.gwsu.common.api.proxy.RemoteApiClientFactory}
+ * 根据 {@link org.quyq.gwsu.common.api.annotation.ApiClient#loadBalancer()} 属性按客户端注入。
  *
  * @author Quyq
  * @date 2026/6/25
@@ -28,56 +28,29 @@ import java.util.List;
 public class WebClientConfiguration {
 
     /**
-     * 分布式模式：带 Spring Cloud LoadBalancer 的 WebClient.Builder
-     */
-    @AutoConfiguration
-    @ConditionalOnClass(DeferringLoadBalancerInterceptor.class)
-    public static class WebClientLoadBalancerConfiguration {
-
-        @Bean
-        public WebClient.Builder loadBalancedWebClientBuilder(
-                List<ApiClientWebClientFilter> filters,
-                ObjectProvider<ReactorLoadBalancerExchangeFilterFunction> loadBalancerFilterProvider,
-                ObjectProvider<HttpClient> httpClientProvider) {
-
-            WebClient.Builder builder = createWebClientBuilder(filters, httpClientProvider);
-
-            ReactorLoadBalancerExchangeFilterFunction lbFilter = loadBalancerFilterProvider.getIfAvailable();
-            if (lbFilter != null) {
-                builder.filter(lbFilter);
-            }
-
-            return builder;
-        }
-    }
-
-    /**
-     * 单点/无负载均衡模式：不带 LoadBalancer 的 WebClient.Builder
+     * WebClient.Builder 基础配置
+     * <ul>
+     *   <li>使用容器中的 JsonMapper 配置 Jackson 编解码器</li>
+     *   <li>优先使用容器中的 ClientHttpConnector（Spring Boot 自动配置提供，含超时设置）</li>
+     *   <li>注册请求头传播过滤器</li>
+     * </ul>
      */
     @Bean
-    @ConditionalOnMissingClass(value = "org.springframework.cloud.client.loadbalancer.DeferringLoadBalancerInterceptor")
     public WebClient.Builder loadBalancedWebClientBuilder(
             List<ApiClientWebClientFilter> filters,
-            ObjectProvider<HttpClient> httpClientProvider) {
-
-        return createWebClientBuilder(filters, httpClientProvider);
-    }
-
-    /**
-     * 创建 WebClient.Builder 基础配置
-     */
-    private static WebClient.Builder createWebClientBuilder(
-            List<ApiClientWebClientFilter> filters,
-            ObjectProvider<HttpClient> httpClientProvider) {
-
-        HttpClient httpClient = httpClientProvider.getIfAvailable(() ->
-                HttpClient.create()
-                        .responseTimeout(Duration.ofSeconds(30))
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-        );
+            ObjectProvider<ClientHttpConnector> clientHttpConnectorProvider,
+            JsonMapper jsonMapper) {
 
         WebClient.Builder builder = WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient));
+                .codecs(configurer -> {
+                    configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(jsonMapper));
+                    configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(jsonMapper));
+                });
+
+        ClientHttpConnector connector = clientHttpConnectorProvider.getIfAvailable();
+        if (connector != null) {
+            builder.clientConnector(connector);
+        }
 
         if (!filters.isEmpty()) {
             builder.filter(createFilterFunction(filters));

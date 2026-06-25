@@ -2,14 +2,12 @@ package org.quyq.gwsu.common.api.proxy;
 
 import org.quyq.gwsu.common.api.client.ApiClientFactory;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
-import org.springframework.stereotype.Component;
 
 /**
  * @author Quyq
  * @date 2026/3/13
  * @description 单应用模式本地调用代理工厂，直接查找 API 接口的实现类
  */
-@Component
 public class LocalApiClientFactory implements ApiClientFactory {
 
     @Override

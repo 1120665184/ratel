@@ -7,10 +7,7 @@ import org.quyq.gwsu.common.api.config.properties.CircuitBreakerProperties;
 import org.quyq.gwsu.common.api.proxy.LocalApiClientFactory;
 import org.quyq.gwsu.common.api.proxy.RemoteApiClientFactory;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -18,8 +15,11 @@ import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.client.loadbalancer.reactive.ReactorLoadBalancerExchangeFilterFunction;
+import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -47,17 +47,20 @@ public class ApiClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnClass({ReactorLoadBalancerExchangeFilterFunction.class})
     public RemoteApiClientFactory remoteApiClientFactory(
-            @Lazy WebClient.Builder webClientBuilder,
-            CircuitBreakerProperties circuitBreakerProperties) {
-        return new RemoteApiClientFactory(webClientBuilder, circuitBreakerProperties);
+            WebClient.Builder webClientBuilder,
+            CircuitBreakerProperties circuitBreakerProperties,
+            ObjectProvider<ReactorLoadBalancerExchangeFilterFunction> defaultLbFilterProvider,
+            ObjectProvider<LoadBalancerClientFactory> lbClientFactoryProvider) {
+        return new RemoteApiClientFactory(webClientBuilder, circuitBreakerProperties, defaultLbFilterProvider, lbClientFactoryProvider);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public UnifiedApiClientFactory unifiedApiClientFactory(
             LocalApiClientFactory localApiClientFactory,
-            RemoteApiClientFactory remoteApiClientFactory) {
+            ObjectProvider<RemoteApiClientFactory> remoteApiClientFactory) {
         return new UnifiedApiClientFactory(localApiClientFactory, remoteApiClientFactory);
     }
 

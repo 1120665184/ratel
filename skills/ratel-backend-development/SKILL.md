@@ -19,7 +19,7 @@ type: skill
 |------|------|---------|
 | [01-project-and-conventions.md](reference/01-project-and-conventions.md) | 项目结构、命名规范、SQL规范、错误码 | 编写任何后端代码 |
 | [02-layer-architecture.md](reference/02-layer-architecture.md) | Domain/DTO/VO/Mapper/Service/Controller 分层 | 创建实体类、数据访问层 |
-| [03-api-client.md](reference/03-api-client.md) | API Client 跨模块调用 | 跨模块服务调用 |
+| [03-api-client.md](reference/03-api-client.md) | API Client 跨模块调用、Flux/Mono 响应式、自定义负载均衡 | 跨模块服务调用 |
 | [04-common-utils.md](reference/04-common-utils.md) | 公共模块工具类 | 使用工具类、缓存、安全等 |
 | [05-checklist.md](reference/05-checklist.md) | 开发检查清单 | 自查 |
 
@@ -43,10 +43,10 @@ AssertUtils.hasText(name, XxxErrorCode.E00001);     // 参数校验
 
 ### 部署模式
 
-| 模式 | 调用方式 | 检测方式 |
-|------|---------|---------|
-| 单体 | `LocalApiClientFactory` | `DeployUtils.isSingle()` |
-| 分布式 | `RemoteApiClientFactory` HTTP + 熔断 | 自动检测 Nacos |
+| 模式 | 调用方式 | HTTP 客户端 | 检测方式 |
+|------|---------|------------|---------|
+| 单体 | `LocalApiClientFactory` | 无（本地调用） | `DeployUtils.isSingle()` |
+| 分布式 | `RemoteApiClientFactory` HTTP + 熔断 | `WebClient` | 自动检测 Nacos |
 
 ### Controller 必须注解
 

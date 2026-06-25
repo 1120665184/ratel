@@ -66,12 +66,12 @@ public class ApiClientRuntimeHintsRegistrar implements RuntimeHintsRegistrar {
                         "org.springframework.web.reactive.function.client.WebClient",
                         MemberCategory.values())
                 .registerTypeIfPresent(classLoader,
-                        "org.springframework.web.service.invoker.support.WebClientAdapter",
+                        "org.springframework.web.reactive.function.client.support.WebClientAdapter",
                         MemberCategory.values());
 
         hints.proxies()
-                .registerJdkProxyIfPresent(classLoader,
-                        "org.springframework.web.reactive.function.client.WebClient");
+                .registerJdkProxy(
+                        org.springframework.aot.hint.TypeReference.of("org.springframework.web.reactive.function.client.WebClient"));
     }
 
     /**
