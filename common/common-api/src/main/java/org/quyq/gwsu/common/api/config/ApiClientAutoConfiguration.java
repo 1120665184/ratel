@@ -23,7 +23,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Set;
 
@@ -48,9 +48,9 @@ public class ApiClientAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public RemoteApiClientFactory remoteApiClientFactory(
-            @Lazy RestClient.Builder restClientBuilder,
+            @Lazy WebClient.Builder webClientBuilder,
             CircuitBreakerProperties circuitBreakerProperties) {
-        return new RemoteApiClientFactory(restClientBuilder, circuitBreakerProperties);
+        return new RemoteApiClientFactory(webClientBuilder, circuitBreakerProperties);
     }
 
     @Bean
