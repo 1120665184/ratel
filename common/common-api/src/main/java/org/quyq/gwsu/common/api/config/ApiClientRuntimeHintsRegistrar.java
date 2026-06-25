@@ -9,6 +9,7 @@ import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.aot.hint.TypeReference;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -58,6 +59,19 @@ public class ApiClientRuntimeHintsRegistrar implements RuntimeHintsRegistrar {
                 // ignore
             }
         }
+
+        // WebClient 相关 AOT 提示
+        hints.reflection()
+                .registerTypeIfPresent(classLoader,
+                        "org.springframework.web.reactive.function.client.WebClient",
+                        MemberCategory.values())
+                .registerTypeIfPresent(classLoader,
+                        "org.springframework.web.service.invoker.support.WebClientAdapter",
+                        MemberCategory.values());
+
+        hints.proxies()
+                .registerJdkProxyIfPresent(classLoader,
+                        "org.springframework.web.reactive.function.client.WebClient");
     }
 
     /**
