@@ -1,6 +1,7 @@
 package org.quyq.gwsu.common.api.config;
 
 
+import org.quyq.gwsu.common.api.interceptor.ApiClientWebClientFilter;
 import org.quyq.gwsu.common.core.interceptor.ApiClientInterceptor;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.utils.ProjectUtils;
@@ -33,6 +34,24 @@ public class InterceptorAutoConfiguration {
 
                 headers.remove(CoreConstants.Headers.SERVER_FROM_APP);
                 headers.add(CoreConstants.Headers.SERVER_FROM_APP , projectUtils.getApplicationName());
+            });
+        };
+    }
+
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.web.reactive.function.client.WebClient")
+    public ApiClientWebClientFilter commonHeaderApiClientWebClientFilter(ProjectUtils projectUtils) {
+        return (requestBuilder) -> {
+            Map<String, String> currHeaders = ServletUtils.getHeaders();
+
+            currHeaders.forEach((k, v) -> {
+                if (!CoreConstants.Headers.REQUEST_IGNORE_HEADER.contains(k.toLowerCase(Locale.ROOT)))
+                    requestBuilder.header(k, v);
+            });
+
+            requestBuilder.headers(headers -> {
+                headers.remove(CoreConstants.Headers.SERVER_FROM_APP);
+                headers.add(CoreConstants.Headers.SERVER_FROM_APP, projectUtils.getApplicationName());
             });
         };
     }
