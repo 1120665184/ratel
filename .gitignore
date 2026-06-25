@@ -68,3 +68,5 @@ yarn-error.log*
 .superpowers/
 docs/superpowers
 .agentscope
+
+application.yml
