@@ -10,15 +10,19 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.core.pool.BrowserContextPool;
+import org.quyq.gwsu.headless.core.pool.SessionCleanupTask;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
 
 import javax.sql.DataSource;
 
 @Data
 @Configuration
+@EnableScheduling
 @ConfigurationProperties(prefix = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".headless.browser")
 public class HeadlessBrowserConfiguration {
 
@@ -121,5 +125,20 @@ public class HeadlessBrowserConfiguration {
             BrowserContextPool contextPool,
             CacheUtils cacheUtils) {
         return new HeadlessBrowserManager(this, contextPool, cacheUtils);
+    }
+
+    @Bean
+    public SessionCleanupTask sessionCleanupTask(BrowserContextPool contextPool) {
+        return new SessionCleanupTask(contextPool, this);
+    }
+
+    @Bean
+    public SchedulingConfigurer sessionCleanupScheduler(SessionCleanupTask task) {
+        return registrar -> {
+            long intervalMs = this.cleanupIntervalMinutes * 60L * 1000L;
+            registrar.addFixedDelayTask(() -> task.cleanup(), intervalMs);
+            log.info("Session 缓存清理任务已注册: 间隔={}分钟, 最大沉寂={}分钟",
+                    this.cleanupIntervalMinutes, this.sessionMaxIdleMinutes);
+        };
     }
 }
