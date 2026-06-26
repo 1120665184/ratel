@@ -1,6 +1,10 @@
 package org.quyq.gwsu.common.api.loadbalancer;
 
 import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.loadbalancer.DefaultRequest;
+import org.springframework.cloud.client.loadbalancer.Request;
+import org.springframework.cloud.client.loadbalancer.RequestDataContext;
+import org.springframework.cloud.client.loadbalancer.RequestData;
 import org.springframework.cloud.client.loadbalancer.Response;
 import org.springframework.cloud.loadbalancer.core.ReactorServiceInstanceLoadBalancer;
 import org.springframework.web.reactive.function.client.ClientRequest;
@@ -16,6 +20,9 @@ import java.net.URI;
  * <p>
  * 使用指定的负载均衡策略选择服务实例，并将请求 URI 中的逻辑服务名替换为实际地址。
  * 用于 {@link org.quyq.gwsu.common.api.annotation.ApiClient#loadBalancer()} 指定的自定义策略场景。
+ * <p>
+ * 会将请求的 HTTP 方法和 URL 封装为 {@link RequestDataContext} 传入 LoadBalancer，
+ * 使自定义 LoadBalancer 能从 Request 中获取 URL 信息（如查询参数）进行路由决策。
  *
  * @author Quyq
  * @date 2026/6/25
@@ -30,7 +37,12 @@ public class ServiceInstanceLoadBalancerFilterFunction implements ExchangeFilter
 
     @Override
     public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction next) {
-        return loadBalancer.choose()
+        // 构建 LoadBalancer Request，携带请求的 HTTP 方法和 URL 信息
+        RequestData requestData = new RequestData(request);
+        RequestDataContext context = new RequestDataContext(requestData, "default");
+        DefaultRequest<RequestDataContext> lbRequest = new DefaultRequest<>(context);
+
+        return loadBalancer.choose(lbRequest)
                 .flatMap(response -> {
                     ServiceInstance instance = response.getServer();
                     if (instance == null) {

@@ -5,9 +5,11 @@ import org.quyq.gwsu.common.api.annotation.ApiClient;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.api.factory.HeadlessClientApiFactory;
+import org.quyq.gwsu.headless.api.loadbalancer.UserIdStickyLoadBalancer;
 import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 import reactor.core.publisher.Flux;
@@ -18,7 +20,7 @@ import reactor.core.publisher.Flux;
  * @description
  */
 @ApiClient(value = CoreConstants.Server.HEADLESS_NAME , note = "无头智能体API" ,
-fallbackFactory = HeadlessClientApiFactory.class)
+fallbackFactory = HeadlessClientApiFactory.class, loadBalancer = UserIdStickyLoadBalancer.class)
 @HttpExchange("headless")
 public interface HeadlessClientApi {
 
@@ -29,6 +31,6 @@ public interface HeadlessClientApi {
      * @return
      */
     @PostExchange(value = "stream", accept = MediaType.TEXT_EVENT_STREAM_VALUE)
-    Flux<HeadlessResponse> stream(@RequestBody HeadlessDTO form);
+    Flux<HeadlessResponse> stream(@RequestParam("userId") String userId , @RequestBody HeadlessDTO form);
 
 }

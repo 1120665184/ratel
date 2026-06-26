@@ -16,6 +16,6 @@ public class HeadlessClientApiFactory implements FallbackFactory<HeadlessClientA
     @Override
     public HeadlessClientApi create(Throwable cause) {
         log.error("", cause);
-        return form -> Flux.error(cause);
+        return (userId, form) -> Flux.error(cause);
     }
 }

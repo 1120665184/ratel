@@ -321,6 +321,7 @@ public class HeadlessPageWrapper {
      */
     private FileProperty buildProperty() {
         return FileProperty.builder()
+                .categorize("headless")
                 .scopePublic()
                 .expiredTime(LocalDateTime.now().plusDays(15))
                 .build();

@@ -10,10 +10,7 @@ import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import org.quyq.gwsu.headless.domain.HeadlessCallConfig;
 import org.quyq.gwsu.headless.service.IHeadlessService;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 /**
@@ -32,10 +29,10 @@ public class HeadlessController implements HeadlessClientApi {
     @Override
     @PostMapping(value = "stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(description = "无头智能体调用")
-    public Flux<HeadlessResponse> stream(@RequestBody HeadlessDTO form) {
+    public Flux<HeadlessResponse> stream(@RequestParam String userId, @RequestBody HeadlessDTO form) {
 
         return headlessService.stream(form.message().getTextContent(), HeadlessCallConfig.builder()
-                .userId(form.userId())
+                .userId(userId)
                 .threadId(form.threadId())
                 .build());
 

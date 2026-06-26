@@ -8,7 +8,6 @@ package org.quyq.gwsu.headless.api.dto;
  */
 public record HeadlessDTO(
         UserMsg message ,
-        String userId ,
         String threadId
 ) {
 }

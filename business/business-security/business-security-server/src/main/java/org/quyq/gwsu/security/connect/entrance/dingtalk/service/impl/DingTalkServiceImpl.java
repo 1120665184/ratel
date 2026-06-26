@@ -101,14 +101,11 @@ public class DingTalkServiceImpl implements IDingTalkService {
         AtomicReference<Map<String, String>> lastParam = new AtomicReference<>(buildParam(HeadlessAgentStatus.CONNECTION, 0, null, null));
 
         //发送卡片
-        Set<String> processQueryKeys = dingTalkCardUtils.sendCard(outTrackId, sourceType, mappingInfo.getStaffId(), lastParam.get());
+        dingTalkCardUtils.sendCard(outTrackId, sourceType, mappingInfo.getStaffId(), lastParam.get());
 
         AssistantResponse response = new AssistantResponse();
-        headlessClientApi.stream(new HeadlessDTO(
-                        UserMsg.ofText(content.content.getContent()),
-                        mappingInfo.getSubjectId(),
-                        null
-                ))
+        headlessClientApi.stream(mappingInfo.getSubjectId() ,new HeadlessDTO(
+                        UserMsg.ofText(content.content.getContent()),null))
                 .doOnNext(chunk -> {
                     if (status.get() == HeadlessAgentStatus.ERROR) {
                         return;
