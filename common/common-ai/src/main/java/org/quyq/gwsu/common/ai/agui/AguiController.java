@@ -422,7 +422,7 @@ public abstract class AguiController implements DisposableBean {
      */
     private boolean isHeadless() {
         String loginType = sessionUtils.getLoginType();
-        return "connect".equals(loginType);
+        return "headless".equals(loginType);
     }
 
     private void sendEvent(AIRunnerInstanceWrapper wrapper, AguiEvent event) {

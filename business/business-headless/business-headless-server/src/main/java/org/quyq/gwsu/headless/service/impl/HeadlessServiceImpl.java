@@ -25,6 +25,7 @@ import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.domain.HeadlessCallConfig;
 import org.quyq.gwsu.headless.domain.RouterInfo;
+import org.quyq.gwsu.headless.enums.GraphRouteType;
 import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
 import org.quyq.gwsu.headless.graph.IntentRecognitionNode;
 import org.quyq.gwsu.headless.graph.SendAnswerNode;
@@ -135,10 +136,10 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
                 .addEdge(StateGraph.START, "intentRecognitionNode")
                 .addConditionalEdges("intentRecognitionNode", AsyncEdgeAction.edge_async(state ->
                                 state.value(HeadlessConstants.Headless.GRAPH_PARAM_ROUTE_INFO, RouterInfo.class)
-                                        .map(v -> v.getType().name()).orElse("")
+                                        .map(v -> v.getType().name()).orElse(GraphRouteType.UNKNOWN.name())
                         ),
                         Map.of(
-                                "", StateGraph.END,
+                                "UNKNOWN", StateGraph.END,
                                 "CHAT", "sendChatNode",
                                 "APPROVAL", "sendApprovalNode",
                                 "ANSWER", "sendAnswerNode"

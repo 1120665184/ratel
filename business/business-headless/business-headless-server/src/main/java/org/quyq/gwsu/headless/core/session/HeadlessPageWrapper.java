@@ -118,7 +118,7 @@ public class HeadlessPageWrapper {
         frameBuffer.clear();
 
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "connect-recording");
+            Thread t = new Thread(r, "headless-recording");
             t.setDaemon(true);
             return t;
         });
@@ -168,7 +168,7 @@ public class HeadlessPageWrapper {
         log.info("屏幕录制已停止，共捕获 {} 帧", frames.size());
 
         try {
-            Path mp4File = Files.createTempFile("connect-recording-", ".mp4");
+            Path mp4File = Files.createTempFile("headless-recording-", ".mp4");
             encodeToMp4(frames, mp4File);
             log.info("MP4 视频已生成: {}，大小: {} bytes", mp4File, Files.size(mp4File));
             return mp4File.toFile();
@@ -262,7 +262,7 @@ public class HeadlessPageWrapper {
                 } catch (Exception e) {
                     log.warn("等待元素出现超时，降级为整页截图: selector={}, error={}", selector, e.getMessage());
                     bytes = page.screenshot(new Page.ScreenshotOptions().setFullPage(true));
-                    Path tempFile = Files.createTempFile("connect-screenshot-", ".png");
+                    Path tempFile = Files.createTempFile("headless-screenshot-", ".png");
                     Files.write(tempFile, bytes);
                     return tempFile.toFile();
                 }
@@ -270,7 +270,7 @@ public class HeadlessPageWrapper {
             } else {
                 bytes = page.screenshot(new Page.ScreenshotOptions().setFullPage(true));
             }
-            Path tempFile = Files.createTempFile("connect-screenshot-", ".png");
+            Path tempFile = Files.createTempFile("headless-screenshot-", ".png");
             Files.write(tempFile, bytes);
             return tempFile.toFile();
         } catch (Exception e) {

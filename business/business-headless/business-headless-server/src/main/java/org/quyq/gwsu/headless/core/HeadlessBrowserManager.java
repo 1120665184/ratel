@@ -43,7 +43,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
         this.contextPool = contextPool;
         this.cacheUtils = cacheUtils;
 
-        log.info("HeadlessBrowserManager 初始化完成: maxContexts={}, minIdle={}, connect={}, sessionTtlHours={}",
+        log.info("HeadlessBrowserManager 初始化完成: maxContexts={}, minIdle={}, headless={}, sessionTtlHours={}",
                 config.getMaxContexts(), config.getMinIdle(), config.isHeadless(), config.getSessionTtlHours());
     }
 

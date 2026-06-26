@@ -219,12 +219,12 @@ export function CopilotChatPanel({
       }
 
       // 会话恢复完成，通知后端可以发送消息
-      document.body.setAttribute('data-connect-chat-ready', 'true');
+      document.body.setAttribute('data-headless-chat-ready', 'true');
     } catch (error) {
       console.error('加载会话消息失败:', error);
       message.error('加载会话消息失败');
       // 即使失败也标记就绪，避免后端一直等待
-      document.body.setAttribute('data-connect-chat-ready', 'true');
+      document.body.setAttribute('data-headless-chat-ready', 'true');
     }
   };
 
@@ -245,7 +245,7 @@ export function CopilotChatPanel({
       return () => clearTimeout(timer);
     } else {
       // 无历史会话，直接标记就绪
-      document.body.setAttribute('data-connect-chat-ready', 'true');
+      document.body.setAttribute('data-headless-chat-ready', 'true');
     }
   }, [headlessThreadId]);
 
@@ -338,8 +338,12 @@ export function CopilotChatPanel({
         <button
           data-testid="headless-approval-submit"
           onClick={async () => {
-            const resultEl = document.querySelector<HTMLInputElement>('[data-testid="connect-approval-result"]');
-            const reasonEl = document.querySelector<HTMLInputElement>('[data-testid="connect-approval-reject-reason"]');
+            const resultEl = document.querySelector<HTMLInputElement>(
+              '[data-testid="headless-approval-result"]',
+            );
+            const reasonEl = document.querySelector<HTMLInputElement>(
+              '[data-testid="headless-approval-reject-reason"]',
+            );
             const result = resultEl?.value;
             if (!result) return;
 
@@ -372,8 +376,12 @@ export function CopilotChatPanel({
         <button
           data-testid="headless-question-submit"
           onClick={async () => {
-            const answersEl = document.querySelector<HTMLInputElement>('[data-testid="connect-question-answers"]');
-            const toolCallIdEl = document.querySelector<HTMLInputElement>('[data-testid="connect-question-tool-call-id"]');
+            const answersEl = document.querySelector<HTMLInputElement>(
+              '[data-testid="headless-question-answers"]',
+            );
+            const toolCallIdEl = document.querySelector<HTMLInputElement>(
+              '[data-testid="headless-question-tool-call-id"]',
+            );
             const answersJson = answersEl?.value;
             const toolCallId = toolCallIdEl?.value;
             if (!answersJson || !toolCallId) return;

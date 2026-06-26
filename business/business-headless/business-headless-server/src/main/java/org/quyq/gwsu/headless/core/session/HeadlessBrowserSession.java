@@ -180,7 +180,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * 1. URL 含 token 参数 → 先导航到带 token 的登录页面
      * - 通过 page.onResponse 监听网络请求，检测 /system/manager/current 返回 401
      * - 如果 401 → 清除无效 token，重新导航到只有 certification 的 URL 回退登录
-     * - 如果正常 → 等待 data-connect-login-status 变为 success
+     * - 如果正常 → 等待 data-headless-login-status 变为 success
      * 2. URL 无 token 参数 → 直接 certification 登录
      */
     public void authenticate(String loginUrl) {
@@ -220,9 +220,9 @@ public class HeadlessBrowserSession implements AutoCloseable {
             page.navigate(loginUrl);
             page.waitForLoadState();
 
-            // 等待前端设置 data-connect-login-status 属性
+            // 等待前端设置 data-headless-login-status 属性
             page.waitForFunction(
-                    "() => document.body && document.body.getAttribute('data-connect-login-status') !== null",
+                    "() => document.body && document.body.getAttribute('data-headless-login-status') !== null",
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
 
             // 检查是否 token 失效
@@ -238,7 +238,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
             }
 
             // token 有效，检查登录状态
-            Object statusObj = page.evaluate("document.body.getAttribute('data-connect-login-status')");
+            Object statusObj = page.evaluate("document.body.getAttribute('data-headless-login-status')");
             String status = statusObj != null ? statusObj.toString() : "";
             if ("success".equals(status)) {
                 log.trace("token 恢复会话成功");
@@ -285,14 +285,14 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
         try {
             page.waitForFunction(
-                    "() => document.body && document.body.getAttribute('data-connect-login-status') !== null",
+                    "() => document.body && document.body.getAttribute('data-headless-login-status') !== null",
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
         } catch (PlaywrightException e) {
             log.error("无头浏览器 certification 登录超时", e);
             throw new RuntimeException("无头浏览器登录超时", e);
         }
 
-        Object statusObj = page.evaluate("document.body.getAttribute('data-connect-login-status')");
+        Object statusObj = page.evaluate("document.body.getAttribute('data-headless-login-status')");
         String status = statusObj != null ? statusObj.toString() : "";
         if (!"success".equals(status)) {
             log.error("无头浏览器 certification 登录失败: status={}", status);
@@ -378,7 +378,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
             // 等待前端聊天就绪
             page.waitForFunction(
-                    "() => document.body.getAttribute('data-connect-chat-ready') === 'true'",
+                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
             log.debug("前端聊天已就绪，开始提交审批");
 
@@ -390,11 +390,11 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 page.waitForRequest(
                         req -> req.url().contains(SSE_URL_PATTERN),
                         () -> page.evaluate("args => {" +
-                                "  var r = document.querySelector('[data-testid=\"connect-approval-result\"]');" +
-                                "  var re = document.querySelector('[data-testid=\"connect-approval-reject-reason\"]');" +
+                                "  var r = document.querySelector('[data-testid=\"headless-approval-result\"]');" +
+                                "  var re = document.querySelector('[data-testid=\"headless-approval-reject-reason\"]');" +
                                 "  if (r) r.value = args[0];" +
                                 "  if (re) re.value = args[1];" +
-                                "  var btn = document.querySelector('[data-testid=\"connect-approval-submit\"]');" +
+                                "  var btn = document.querySelector('[data-testid=\"headless-approval-submit\"]');" +
                                 "  if (btn) btn.click();" +
                                 "}", new Object[]{result, reason})
                 );
@@ -435,7 +435,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
             // 等待前端聊天就绪
             page.waitForFunction(
-                    "() => document.body.getAttribute('data-connect-chat-ready') === 'true'",
+                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
             log.debug("前端聊天已就绪，开始提交用户回答");
 
@@ -446,11 +446,11 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 page.waitForRequest(
                         req -> req.url().contains(SSE_URL_PATTERN),
                         () -> page.evaluate("args => {" +
-                                "  var a = document.querySelector('[data-testid=\"connect-question-answers\"]');" +
-                                "  var t = document.querySelector('[data-testid=\"connect-question-tool-call-id\"]');" +
+                                "  var a = document.querySelector('[data-testid=\"headless-question-answers\"]');" +
+                                "  var t = document.querySelector('[data-testid=\"headless-question-tool-call-id\"]');" +
                                 "  if (a) a.value = args[0];" +
                                 "  if (t) t.value = args[1];" +
-                                "  var btn = document.querySelector('[data-testid=\"connect-question-submit\"]');" +
+                                "  var btn = document.querySelector('[data-testid=\"headless-question-submit\"]');" +
                                 "  if (btn) btn.click();" +
                                 "}", new Object[]{answersJson, toolCallId})
                 );
@@ -656,7 +656,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 }
             }
         }catch (Exception e) {
-            log.error("connect -->事件输出异常" , e);
+            log.error("headless -->事件输出异常" , e);
             listener.onError(e , pageWrapper);
         } finally {
             // RunFinished 的 listener 回调全部执行完毕后，才通知 collector 完成
@@ -698,7 +698,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
         try {
             // 等待前端聊天就绪（历史消息回显完成）
             page.waitForFunction(
-                    "() => document.body.getAttribute('data-connect-chat-ready') === 'true'",
+                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
             log.debug("前端聊天已就绪，开始发送消息");
 

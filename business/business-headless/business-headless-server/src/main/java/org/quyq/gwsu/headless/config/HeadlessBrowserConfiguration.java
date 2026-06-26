@@ -19,7 +19,7 @@ import javax.sql.DataSource;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".connect.browser")
+@ConfigurationProperties(prefix = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".headless.browser")
 public class HeadlessBrowserConfiguration {
 
     /**

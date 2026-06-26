@@ -49,12 +49,12 @@ export interface LoginParams {
  * 无头浏览器快速登录请求参数
  */
 export interface HeadlessLoginParams {
-    /** 登录类型 */
-    type: 'connect';
-    /** 终端类型 */
-    terminal: TerminalType.PC;
-    /** 临时认证凭证 */
-    certificationKey: string;
+  /** 登录类型 */
+  type: "headless";
+  /** 终端类型 */
+  terminal: TerminalType.PC;
+  /** 临时认证凭证 */
+  certificationKey: string;
 }
 
 /**

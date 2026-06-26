@@ -161,7 +161,8 @@ public class IntentRecognitionNode implements NodeAction {
 
             //返回AI回复
             return Map.of(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId,
-                    HeadlessConstants.Headless.GRAPH_PARAM_OUTPUT, output);
+                    HeadlessConstants.Headless.GRAPH_PARAM_OUTPUT, output,
+                    HeadlessConstants.Headless.GRAPH_PARAM_ROUTE_INFO, routerInfo);
         }else if(type == GraphRouteType.ANSWER && StringUtils.hasText(toolCallId)){
             routerInfo.setToolCallId(toolCallId);
         }
