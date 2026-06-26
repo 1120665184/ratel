@@ -104,6 +104,11 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
     private volatile boolean closed = false;
 
+    /**
+     * token 是否已失效标记（由 SSE 请求返回 401 时设置）
+     */
+    private volatile boolean tokenExpired = false;
+
     public HeadlessBrowserSession(BrowserContext context, long sseTimeoutMs, CacheUtils cacheUtils) {
         this.context = context;
         this.sseTimeoutMs = sseTimeoutMs;
@@ -129,9 +134,16 @@ public class HeadlessBrowserSession implements AutoCloseable {
                 } else {
                     log.warn("[HeadlessSSE] 无法从请求体中提取threadId");
                 }
-                route.fallback();
-            } else {
-                route.fallback();
+            }
+
+            route.fallback();
+        });
+
+        // 2.1 监听 SSE 请求的响应，检测 401 标记 token 失效
+        page.onResponse(response -> {
+            if (response.url().contains(SSE_URL_PATTERN) && response.status() == 401) {
+                this.tokenExpired = true;
+                log.warn("[HeadlessSSE] 检测到 401 响应，token 已失效");
             }
         });
 
@@ -184,6 +196,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * 2. URL 无 token 参数 → 直接 certification 登录
      */
     public void authenticate(String loginUrl) {
+        this.tokenExpired = false;  // 重置 token 失效标记
         log.info("开始无头浏览器认证: loginUrl={}", loginUrl);
 
         boolean hasToken = loginUrl.contains("token=");
@@ -476,6 +489,50 @@ public class HeadlessBrowserSession implements AutoCloseable {
             page.navigate(baseUrl);
             page.waitForLoadState();
         }
+    }
+
+    /**
+     * 释放运行时资源，将 Session 置为可复用状态（不关闭浏览器）
+     * <p>
+     * 缓存复用时调用此方法而非 close()，保留 BrowserContext 和 Page，
+     * 仅清理 SSE 消费者、Redis List 等运行时状态。
+     */
+    public void release() {
+        stopMessageConsumer();
+        deleteListKey();
+        toolCallNameMap.clear();
+        toolCallArgsBuffer.clear();
+        currentEventCollector.set(null);
+        currentListener.set(null);
+        tokenExpired = false;
+
+        // 关闭可能残留的多余标签页，防止内存泄漏
+        try {
+            for (Page p : context.pages()) {
+                if (p != this.page && !p.isClosed()) {
+                    log.debug("关闭残留标签页: {}", p.url());
+                    p.close();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("清理残留标签页失败: {}", e.getMessage());
+        }
+
+        log.debug("Session 已释放运行时资源，可复用: threadId={}", currentThreadId);
+    }
+
+    /**
+     * 检查 token 是否已失效（SSE 请求返回 401）
+     */
+    public boolean isTokenExpired() {
+        return tokenExpired;
+    }
+
+    /**
+     * 重置 token 失效标记（重新认证后调用）
+     */
+    public void resetTokenExpired() {
+        this.tokenExpired = false;
     }
 
     @Override
