@@ -5,6 +5,7 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.headless.config.HeadlessBrowserConfiguration;
 import org.quyq.gwsu.headless.core.pool.BrowserContextPool;
+import org.quyq.gwsu.headless.core.pool.SessionWrapper;
 import org.quyq.gwsu.headless.core.session.HeadlessAccessSession;
 import org.quyq.gwsu.headless.core.session.HeadlessBrowserSession;
 
@@ -33,8 +34,6 @@ public class HeadlessBrowserManager implements AutoCloseable {
     private final HeadlessBrowserConfiguration config;
     private final BrowserContextPool contextPool;
     private final CacheUtils cacheUtils;
-
-    private final String lockKey = "headless_lock:%s";
 
     public HeadlessBrowserManager(HeadlessBrowserConfiguration config,
                                   BrowserContextPool contextPool,
@@ -103,54 +102,96 @@ public class HeadlessBrowserManager implements AutoCloseable {
     // ==================== 公共会话执行模板 ====================
 
     /**
-     * 公共会话执行模板
+     * 公共会话执行模板（缓存复用版本）
      * <p>
-     * 统一处理：获取分布式会话 → 借用 BrowserContext → 创建 Session → 认证 → 执行操作 → 保存会话 → 归还资源
-     * sendMessage / approval / userAnswer 的区别仅在于 action 中的操作不同
-     *
-     * @param userId     用户 ID
-     * @param actionName 操作名称（用于日志）
-     * @param action     会话操作回调
-     * @return 操作结果
+     * 流程：
+     * 1. 从 sessionCache 查找 userId 对应的缓存 Session
+     * 2. 命中且 IDLE → 复用，直接执行操作（跳过认证）
+     * 3. 操作中发现 401 → 重新认证后重试
+     * 4. 未命中 → 从 idleQueue 借用 BrowserContext，创建新 Session，认证后执行
+     * 5. 操作完成 → release() 释放运行时资源 → 缓存 Session
      */
     private <T> T executeWithSession(String userId, String actionName, SessionAction<T> action) {
         HeadlessBrowserSession session = null;
+        boolean fromCache = false;
+
         try {
-            // 1. 从 Redis 读取分布式会话
-            HeadlessAccessSession accessSession = getAccessSession(userId);
-
-            // 2. 从池中借用 BrowserContext
-            var ctx = contextPool.borrow(config.getBorrowTimeoutSeconds(), TimeUnit.SECONDS);
-
-            // 3. 创建临时会话
-            session = new HeadlessBrowserSession(ctx, config.getSseTimeoutMs(), cacheUtils);
-
-            // 4. 构造登录 URL 并执行认证
-            String loginUrl = buildLoginUrl(userId, accessSession);
-            try {
-                session.authenticate(loginUrl);
-            } catch (Exception e) {
-                log.error("{}登录失败: userId={}", actionName, userId, e);
-                throw new RuntimeException(actionName + "登录失败: userId=" + userId, e);
+            // 1. 尝试从缓存获取
+            SessionWrapper wrapper = contextPool.getCachedSession(userId);
+            if (wrapper != null) {
+                session = wrapper.getSession();
+                fromCache = true;
+                log.debug("{}复用缓存Session: userId={}", actionName, userId);
             }
 
-            // 5. 执行具体操作
+            // 2. 缓存未命中，创建新 Session
+            if (session == null) {
+                var ctx = contextPool.borrowIdle(config.getBorrowTimeoutSeconds(), TimeUnit.SECONDS);
+                contextPool.incrementTotal();
+                session = new HeadlessBrowserSession(ctx, config.getSseTimeoutMs(), cacheUtils);
+
+                // 认证
+                HeadlessAccessSession accessSession = getAccessSession(userId);
+                String loginUrl = buildLoginUrl(userId, accessSession);
+                try {
+                    session.authenticate(loginUrl);
+                } catch (Exception e) {
+                    log.error("{}登录失败: userId={}", actionName, userId, e);
+                    throw new RuntimeException(actionName + "登录失败: userId=" + userId, e);
+                }
+            }
+
+            // 3. 执行操作
             T result = action.execute(session);
 
-            // 6. 从浏览器提取会话信息并保存到 Redis
+            // 4. 检测 401，token 失效则重新认证后重试
+            if (session.isTokenExpired()) {
+                log.warn("{}检测到token失效(401)，重新认证: userId={}", actionName, userId);
+                String certificationUrl = buildCertificationLoginUrl(userId);
+                try {
+                    session.authenticate(certificationUrl);
+                } catch (Exception e) {
+                    log.error("{}重新认证失败: userId={}", actionName, userId, e);
+                    throw new RuntimeException(actionName + "重新认证失败: userId=" + userId, e);
+                }
+                // 重试操作
+                result = action.execute(session);
+            }
+
+            // 5. 从浏览器提取会话信息并保存到 Redis
+            HeadlessAccessSession accessSession = getAccessSession(userId);
             saveAccessSession(userId, session, accessSession);
 
             return result;
+
+        } catch (Exception e) {
+            // 操作异常，如果是从缓存获取的，移除缓存并销毁
+            if (fromCache && session != null) {
+                log.warn("{}缓存Session操作异常，移除缓存: userId={}", actionName, userId, e);
+                contextPool.removeCachedSession(userId);
+                session = null;  // 标记已处理，finally 中不再处理
+            }
+            throw e instanceof RuntimeException re ? re : new RuntimeException(e);
         } finally {
-            // 7. 归还资源
             if (session != null) {
-                var ctx = session.getBrowserContext();
-                try {
-                    session.close();
-                } catch (Exception e) {
-                    log.warn("关闭 Session 异常: userId={}", userId, e);
+                if (fromCache) {
+                    // 缓存复用：释放运行时资源，标记 IDLE，放回缓存
+                    try {
+                        session.release();
+                    } catch (Exception e) {
+                        log.warn("释放缓存Session异常: userId={}", userId, e);
+                    }
+                    contextPool.markIdle(userId);
+                } else {
+                    // 新建 Session：release 后放入缓存
+                    try {
+                        session.release();
+                        contextPool.cacheSession(userId, session);
+                    } catch (Exception e) {
+                        log.warn("缓存Session异常，销毁: userId={}", userId, e);
+                        contextPool.removeCachedSession(userId);
+                    }
                 }
-                contextPool.returnAndReplenish(ctx);
             }
         }
     }
@@ -238,35 +279,61 @@ public class HeadlessBrowserManager implements AutoCloseable {
     }
 
     /**
+     * 构造仅 certification 的登录 URL（用于 token 失效后的回退登录）
+     */
+    private String buildCertificationLoginUrl(String userId) {
+        String certificationKey = UUID.randomUUID().toString();
+
+        cacheUtils.withRebel(() -> {
+            cacheUtils.set(
+                    SecurityConstants.Authentication.HEADLESS_LOGIN_CERTIFICATION_CACHE_PREFIX + certificationKey,
+                    userId,
+                    2, TimeUnit.MINUTES
+            );
+            return null;
+        });
+
+        return config.getLoginUrl() + "?certification=" + certificationKey;
+    }
+
+    /**
      * 开启新会话
      * <p>
-     * 清除 Redis 中的 threadId，保留 token。下次 sendMessage 时会以已有 token 登录，
-     * 但不携带 threadId，从而创建新的聊天线程。
+     * 清除 Redis 中的 threadId，同时从缓存中移除旧 Session（强制下次新建）
      *
      * @param userId 用户 ID
      */
     public void newSession(String userId) {
+        // 清除缓存 Session（新会话需要全新的浏览器状态）
+        contextPool.removeCachedSession(userId);
+
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {
             cacheUtils.hDelete(key, HeadlessAccessSession.HASH_KEY_THREAD_ID);
             return null;
         });
-        log.debug("已清除用户 threadId，下次将创建新会话: userId={}", userId);
+        log.debug("已清除用户 threadId 和缓存 Session，下次将创建新会话: userId={}", userId);
     }
 
     public void newSession(String userId, String threadId) {
+        // 清除缓存 Session（切换 threadId 需要新的浏览器状态）
+        contextPool.removeCachedSession(userId);
+
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {
             cacheUtils.hSet(key, HeadlessAccessSession.HASH_KEY_THREAD_ID, threadId);
             return null;
         });
-        log.debug("已设置新会话threadID，下次将使用设置值: userId={}", userId);
+        log.debug("已设置新会话threadID并清除缓存Session: userId={}", userId);
     }
 
     /**
      * 删除用户的分布式会话
      */
     public void removeAccessSession(String userId) {
+        // 同步清除缓存 Session
+        contextPool.removeCachedSession(userId);
+
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {
             cacheUtils.delete(key);
