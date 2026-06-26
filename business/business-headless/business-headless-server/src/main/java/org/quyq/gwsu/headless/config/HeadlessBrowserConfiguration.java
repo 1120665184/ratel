@@ -57,6 +57,30 @@ public class HeadlessBrowserConfiguration {
      */
     private long borrowTimeoutSeconds = 60;
 
+    /**
+     * 是否启用 Session 缓存复用，默认 true
+     */
+    private boolean sessionCacheEnabled = true;
+
+    /**
+     * Session 缓存沉寂淘汰时间（分钟），借用时沉寂超过此时间的 Session 可被淘汰，默认 10
+     */
+    private int sessionEvictIdleMinutes = 10;
+
+    /**
+     * Session 缓存最大存活时间（分钟），定时任务强制清除沉寂超过此时间的 Session，默认 30
+     */
+    private int sessionMaxIdleMinutes = 30;
+
+    /**
+     * Session 缓存最大数量（按用户计），默认等于 maxContexts
+     */
+    private int maxCachedSessions = 30;
+
+    /**
+     * 定时清除扫描间隔（分钟），默认 5
+     */
+    private int cleanupIntervalMinutes = 5;
 
     /**
      * 智能体会话记录表名
