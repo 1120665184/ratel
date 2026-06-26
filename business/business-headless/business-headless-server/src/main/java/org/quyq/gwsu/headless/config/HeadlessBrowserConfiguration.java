@@ -5,6 +5,7 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 import io.agentscope.core.session.Session;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.session.DatabaseSession;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
@@ -21,6 +22,7 @@ import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import javax.sql.DataSource;
 
 @Data
+@Slf4j
 @Configuration
 @EnableScheduling
 @ConfigurationProperties(prefix = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".headless.browser")
