@@ -113,7 +113,7 @@ public class HeadlessBrowserConfiguration {
 
     @Bean(destroyMethod = "close")
     public BrowserContextPool browserContextPool(Browser browser) {
-        return new BrowserContextPool(browser, minIdle, maxContexts);
+        return new BrowserContextPool(browser, this);
     }
 
     @Bean(destroyMethod = "close")
