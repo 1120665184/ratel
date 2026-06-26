@@ -1,6 +1,7 @@
 package org.quyq.gwsu.headless.service.impl;
 
 
+import com.alibaba.cloud.ai.agent.agentscope.AgentScopeMessageUtils;
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.action.AsyncEdgeAction;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
@@ -16,10 +17,7 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
-import org.quyq.gwsu.headless.api.dto.AudioBlock;
-import org.quyq.gwsu.headless.api.dto.ImageBlock;
-import org.quyq.gwsu.headless.api.dto.TextBlock;
-import org.quyq.gwsu.headless.api.dto.VideoBlock;
+import org.quyq.gwsu.headless.api.dto.*;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.api.vo.AssistantMsg;
 import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
@@ -43,12 +41,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -86,8 +79,9 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
         AssertUtils.hasText(userId, HeadlessErrorCode.E01005);
 
         RLock lock = cacheUtils.getLock(lockKey.formatted(userId));
+        // leaseTime=-1：锁不自动过期，持有到操作完成才释放
         boolean acquired = lock.tryLock(0, -1, TimeUnit.SECONDS);
-        if(!acquired){
+        if (!acquired) {
             return Flux.just(HeadlessResponse.busy());
         }
 
@@ -120,7 +114,16 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
                     log.error("智能体流式处理异常: {}", error.getMessage(), error);
                     return Flux.just(HeadlessResponse.error(error.getMessage()));
                 })
-                .doOnComplete(lock::unlock);
+
+                .doFinally(signal -> {
+                    try {
+                        if (lock.isLocked()) {
+                            lock.forceUnlock();
+                        }
+                    } catch (Exception e) {
+                        //ignore
+                    }
+                });
     }
 
 
@@ -179,10 +182,17 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
      * 将 Spring AI 的 AssistantMessage 转换为自定义的 AssistantMsg
      */
     private AssistantMsg convertToAssistantMsg(AssistantMessage aiMessage) {
-        List<org.quyq.gwsu.headless.api.dto.ContentBlock> blocks = new ArrayList<>();
+        List<ContentBlock> blocks = new ArrayList<>();
 
+        String thinking = Optional.ofNullable(aiMessage.getMetadata().get(AgentScopeMessageUtils.REASONING_CONTENT_KEY))
+                .map(Object::toString)
+                .orElse(null);
         if (StringUtils.hasText(aiMessage.getText())) {
             blocks.add(TextBlock.builder().text(aiMessage.getText()).build());
+        } else if (StringUtils.hasText(thinking)) {
+            blocks.add(ThinkingBlock.builder()
+                    .thinking(thinking)
+                    .build());
         }
 
         List<Media> media = aiMessage.getMedia();

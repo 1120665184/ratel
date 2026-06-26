@@ -183,10 +183,12 @@ public class HeadlessBrowserManager implements AutoCloseable {
                     }
                     contextPool.markIdle(userId);
                 } else {
-                    // 新建 Session：release 后放入缓存
+                    // 新建 Session：release 后放入缓存，标记为 IDLE
                     try {
                         session.release();
-                        contextPool.cacheSession(userId, session);
+                        if (contextPool.cacheSession(userId, session)) {
+                            contextPool.markIdle(userId);
+                        }
                     } catch (Exception e) {
                         log.warn("缓存Session异常，销毁: userId={}", userId, e);
                         contextPool.removeCachedSession(userId);

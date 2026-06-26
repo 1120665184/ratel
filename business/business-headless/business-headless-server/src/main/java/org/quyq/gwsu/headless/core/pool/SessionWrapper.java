@@ -1,63 +1,58 @@
 package org.quyq.gwsu.headless.core.pool;
 
+import lombok.Getter;
 import org.quyq.gwsu.headless.core.session.HeadlessBrowserSession;
 
 import java.time.Instant;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 缓存 Session 包装器
  * <p>
- * 封装 HeadlessBrowserSession 的状态、时间信息和并发控制锁，
- * 用于 BrowserContextPool 的 sessionCache 管理。
+ * 封装 HeadlessBrowserSession 的状态和时间信息，使用 AtomicReference + CAS
+ * 实现无锁状态转换，彻底避免虚拟线程环境下锁的线程归属问题。
  */
+@Getter
 public class SessionWrapper {
 
     private final HeadlessBrowserSession session;
     private final String userId;
-    private volatile SessionState state;
+    private final AtomicReference<SessionState> stateRef;
     private volatile Instant lastActiveTime;
     private final Instant createTime;
-    private final ReentrantLock stateLock = new ReentrantLock();
 
     public SessionWrapper(HeadlessBrowserSession session, String userId) {
         this.session = session;
         this.userId = userId;
-        this.state = SessionState.ACTIVE;
+        this.stateRef = new AtomicReference<>(SessionState.ACTIVE);
         this.lastActiveTime = Instant.now();
         this.createTime = Instant.now();
     }
 
-    public HeadlessBrowserSession getSession() {
-        return session;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
     public SessionState getState() {
-        return state;
-    }
-
-    public Instant getLastActiveTime() {
-        return lastActiveTime;
-    }
-
-    public Instant getCreateTime() {
-        return createTime;
-    }
-
-    public ReentrantLock getStateLock() {
-        return stateLock;
+        return stateRef.get();
     }
 
     /**
-     * 安全地变更状态，同时更新 lastActiveTime
-     * 必须在持有 stateLock 的情况下调用
+     * CAS 状态转换：从期望状态转换到新状态
+     *
+     * @param expected 期望的当前状态
+     * @param newState 目标状态
+     * @return true=转换成功，false=当前状态不是 expected（并发冲突）
      */
-    public void transitionTo(SessionState newState) {
-        this.state = newState;
+    public boolean compareAndSetState(SessionState expected, SessionState newState) {
+        boolean success = stateRef.compareAndSet(expected, newState);
+        if (success && newState == SessionState.ACTIVE) {
+            this.lastActiveTime = Instant.now();
+        }
+        return success;
+    }
+
+    /**
+     * 强制设置状态（仅用于 EVICTING 等必须成功的场景）
+     */
+    public void setState(SessionState newState) {
+        stateRef.set(newState);
         if (newState == SessionState.ACTIVE) {
             this.lastActiveTime = Instant.now();
         }
@@ -67,7 +62,7 @@ public class SessionWrapper {
      * 计算沉寂时长（秒）
      */
     public long idleDurationSeconds() {
-        if (state == SessionState.IDLE) {
+        if (stateRef.get() == SessionState.IDLE) {
             return Instant.now().getEpochSecond() - lastActiveTime.getEpochSecond();
         }
         return 0;
@@ -77,6 +72,6 @@ public class SessionWrapper {
      * 检查是否沉寂超过指定分钟数
      */
     public boolean isIdleLongerThan(int minutes) {
-        return state == SessionState.IDLE && idleDurationSeconds() >= minutes * 60L;
+        return stateRef.get() == SessionState.IDLE && idleDurationSeconds() >= minutes * 60L;
     }
 }

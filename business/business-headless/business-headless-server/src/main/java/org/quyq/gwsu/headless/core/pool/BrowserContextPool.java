@@ -71,18 +71,13 @@ public class BrowserContextPool implements AutoCloseable {
         SessionWrapper wrapper = sessionCache.get(userId);
         if (wrapper == null) return null;
 
-        wrapper.getStateLock().lock();
-        try {
-            if (wrapper.getState() == SessionState.IDLE) {
-                wrapper.transitionTo(SessionState.ACTIVE);
-                log.debug("缓存命中: userId={}, 沉寂时长={}s", userId, wrapper.idleDurationSeconds());
-                return wrapper;
-            }
-            // ACTIVE 或 EVICTING 状态，不可复用
-            return null;
-        } finally {
-            wrapper.getStateLock().unlock();
+        // CAS：IDLE → ACTIVE，无锁状态转换
+        if (wrapper.compareAndSetState(SessionState.IDLE, SessionState.ACTIVE)) {
+            log.debug("缓存命中: userId={}, 沉寂时长={}s", userId, wrapper.idleDurationSeconds());
+            return wrapper;
         }
+        // ACTIVE 或 EVICTING 状态，不可复用
+        return null;
     }
 
     /**
@@ -119,14 +114,8 @@ public class BrowserContextPool implements AutoCloseable {
     public void markIdle(String userId) {
         SessionWrapper wrapper = sessionCache.get(userId);
         if (wrapper != null) {
-            wrapper.getStateLock().lock();
-            try {
-                if (wrapper.getState() == SessionState.ACTIVE) {
-                    wrapper.transitionTo(SessionState.IDLE);
-                }
-            } finally {
-                wrapper.getStateLock().unlock();
-            }
+            // CAS：ACTIVE → IDLE
+            wrapper.compareAndSetState(SessionState.ACTIVE, SessionState.IDLE);
         }
     }
 
@@ -152,14 +141,11 @@ public class BrowserContextPool implements AutoCloseable {
 
         for (Map.Entry<String, SessionWrapper> entry : sessionCache.entrySet()) {
             SessionWrapper wrapper = entry.getValue();
-            wrapper.getStateLock().lock();
-            try {
-                if (wrapper.getState() == SessionState.IDLE && wrapper.isIdleLongerThan(idleMinutes)) {
-                    wrapper.transitionTo(SessionState.EVICTING);
-                    toEvict.add(entry.getKey());
-                }
-            } finally {
-                wrapper.getStateLock().unlock();
+            // CAS：IDLE → EVICTING
+            if (wrapper.getState() == SessionState.IDLE
+                    && wrapper.isIdleLongerThan(idleMinutes)
+                    && wrapper.compareAndSetState(SessionState.IDLE, SessionState.EVICTING)) {
+                toEvict.add(entry.getKey());
             }
         }
 
