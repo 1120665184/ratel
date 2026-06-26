@@ -10,7 +10,9 @@ import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
 import io.agentscope.core.session.Session;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
@@ -32,6 +34,7 @@ import org.quyq.gwsu.headless.graph.SendAnswerNode;
 import org.quyq.gwsu.headless.graph.SendApprovalNode;
 import org.quyq.gwsu.headless.graph.SendChatNode;
 import org.quyq.gwsu.headless.service.IHeadlessService;
+import org.redisson.api.RLock;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.InitializingBean;
@@ -46,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Quyq
@@ -63,9 +67,14 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
     private final SecurityUtils securityUtils;
 
+    private final CacheUtils cacheUtils;
+
     public CompiledGraph headlessGraph;
 
+    private final String lockKey = "headless:lock:%s";
 
+
+    @SneakyThrows
     @Override
     public Flux<HeadlessResponse> stream(String query, HeadlessCallConfig config) {
 
@@ -75,6 +84,12 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
             userId = securityUtils.userInfo().map(UserInfo::getUserId).orElse("");
         }
         AssertUtils.hasText(userId, HeadlessErrorCode.E01005);
+
+        RLock lock = cacheUtils.getLock(lockKey.formatted(userId));
+        boolean acquired = lock.tryLock(0, -1, TimeUnit.SECONDS);
+        if(!acquired){
+            return Flux.just(HeadlessResponse.busy());
+        }
 
         return headlessGraph.stream(Map.of(
                         HeadlessConstants.Headless.GRAPH_PARAM_QUERY, query,
@@ -104,7 +119,8 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
                 .onErrorResume(error -> {
                     log.error("智能体流式处理异常: {}", error.getMessage(), error);
                     return Flux.just(HeadlessResponse.error(error.getMessage()));
-                });
+                })
+                .doOnComplete(lock::unlock);
     }
 
 

@@ -94,7 +94,9 @@ public class DingTalkServiceImpl implements IDingTalkService {
         }
         String outTrackId = IdUtil.getSnowflakeNextIdStr();
 
-        AtomicBoolean error = new AtomicBoolean(false);
+        AtomicReference<HeadlessAgentStatus> status = new AtomicReference<>(HeadlessAgentStatus.CONNECTION);
+        String[] errInfo = new String[1];
+
         AtomicInteger progress = new AtomicInteger(0);
         AtomicReference<Map<String, String>> lastParam = new AtomicReference<>(buildParam(HeadlessAgentStatus.CONNECTION, 0, null, null));
 
@@ -108,22 +110,22 @@ public class DingTalkServiceImpl implements IDingTalkService {
                         null
                 ))
                 .doOnNext(chunk -> {
-                    if (error.get()) {
+                    if (status.get() == HeadlessAgentStatus.ERROR) {
                         return;
                     }
-                    HeadlessAgentStatus status = chunk.status();
+                    status.set(chunk.status());
                     AssistantMsg message = chunk.message();
                     log.debug("消息: status={}, text={}", status, objectMapper.writeValueAsString(message));
 
                     // 服务端错误已包装为 ERROR 状态事件，直接处理
-                    if (HeadlessAgentStatus.ERROR == status) {
-                        error.set(true);
+                    if (HeadlessAgentStatus.ERROR == status.get() || HeadlessAgentStatus.BUSY == status.get()) {
+                        errInfo[0] = chunk.errorMessage();
                         log.error("智能体返回错误: {}", chunk.errorMessage());
                         return;
                     }
 
-                    setProgress(progress, status);
-                    if (HeadlessAgentStatus.CONNECTION == status) {
+                    setProgress(progress, status.get());
+                    if (HeadlessAgentStatus.CONNECTION == status.get()) {
                         dingTalkCardUtils.streamAiCard(outTrackId, "content", "loading", false);
                     }
                     String imageUrl = null;
@@ -138,7 +140,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
                     }
 
                     //更新状态
-                    Map<String, String> params = buildParam(status, progress.get(), imageUrl, videoUrl);
+                    Map<String, String> params = buildParam(status.get(), progress.get(), imageUrl, videoUrl);
                     if (!lastParam.get().equals(params)) {
                         lastParam.set(params);
                         dingTalkCardUtils.updateCard(outTrackId, params);
@@ -155,7 +157,14 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
                 })
                 .doOnComplete(() -> {
-                    dingTalkCardUtils.streamAiCard(outTrackId, "content", error.get() ? errMsg : response.getContent(), true);
+                    HeadlessAgentStatus tmp = status.get();
+                    String msg = response.getContent();
+                    if(HeadlessAgentStatus.ERROR == tmp) {
+                        msg = errMsg;
+                    }else if(HeadlessAgentStatus.BUSY == tmp) {
+                        msg = errInfo[0];
+                    }
+                    dingTalkCardUtils.streamAiCard(outTrackId, "content", msg, true);
                 })
                 .doOnError(throwable -> {
                     log.error(throwable.getMessage(), throwable);

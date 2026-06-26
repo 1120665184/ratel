@@ -696,6 +696,15 @@ public class CacheUtils {
     // ================================ 分布式锁 ================================
 
     /**
+     * 获取分布式锁，只有在复杂场景下需要细粒度控制锁时使用该方法 ，否则可以直接使用{@link #executeWithLock(String, Supplier)} 来替代
+     * @param lockKey
+     * @return
+     */
+    public RLock getLock(String lockKey) {
+        return redissonClient.getLock(lockKey(lockKey));
+    }
+
+    /**
      * 执行业务逻辑（带分布式锁）
      *
      * @param key       锁的键

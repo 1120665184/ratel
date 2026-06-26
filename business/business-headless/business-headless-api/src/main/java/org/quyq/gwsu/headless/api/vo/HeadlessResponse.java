@@ -27,4 +27,10 @@ public record HeadlessResponse(
     public static HeadlessResponse error(String errorMessage) {
         return new HeadlessResponse(HeadlessAgentStatus.ERROR, AssistantMsg.empty(), errorMessage);
     }
+
+    public static HeadlessResponse busy() {
+        return new HeadlessResponse(HeadlessAgentStatus.BUSY, AssistantMsg.empty(), "助手正在回答中，请稍后尝试...");
+    }
+
+
 }
