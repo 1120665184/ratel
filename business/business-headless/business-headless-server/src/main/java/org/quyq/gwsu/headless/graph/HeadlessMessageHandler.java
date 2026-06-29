@@ -100,7 +100,6 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     //人工审核流处理
     @Override
     public void onHumanApproval(AguiEvent.Custom event, HeadlessPageWrapper wrapper) {
-        File file = null;
         String threadId = event.getThreadId();
         HumanApprovalInfo approvalInfo = gson.fromJson(gson.toJson(event.value()), new TypeToken<HumanApprovalInfo>() {
         }.getType());
@@ -114,21 +113,15 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
         sink.tryEmitNext(getContent(msg, null));
 
-        try {
-            //录像
-            file = wrapper.stopRecording();
-            KitFileInfoVO upload = wrapper.upload(file);
+        //录像
+        File file = wrapper.stopRecording();
+        KitFileInfoVO upload = wrapper.upload(file);
 
-            Msg sp = Msg.builder()
-                    .role(MsgRole.ASSISTANT)
-                    .textContent("\n\r以下是操作记录：\n")
-                    .build();
-            sink.tryEmitNext(getContent(sp, upload));
-        } finally {
-            if (Objects.nonNull(file)) {
-                file.delete();
-            }
-        }
+        Msg sp = Msg.builder()
+                .role(MsgRole.ASSISTANT)
+                .textContent("\n\r以下是操作记录：\n")
+                .build();
+        sink.tryEmitNext(getContent(sp, upload));
 
         //记录图记忆
         session.save(CommonSessionKey.of(threadId, userId), IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
@@ -139,7 +132,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     //问用户问题处理
     @Override
     public void onAskUserQuestion(String threadId, String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
-        StringBuilder sb = new StringBuilder("\n# 请您回答以下几个问题：\n\r");
+        StringBuilder sb = new StringBuilder("\n\r# 请您回答以下几个问题：\n\r");
         for (int i = 0; i < questions.size(); i++) {
             AskUserQuestionTool.QuestionParam question = questions.get(i);
             StringBuilder qStr = new StringBuilder();
@@ -174,25 +167,18 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         }
         //AI输出面板内容输出完成，截取AI输出区截图
         if ("AGENT_OUTPUT_END".equals(event.name())) {
-            File file = null;
-            try {
-                file = wrapper.screenshot("#ai-output-panel");
-                if (file == null) {
-                    log.warn("AI输出区截图失败，未获取到截图文件");
-                    return;
-                }
-                //               byte[] screenshot = FileUtils.readFileToByteArray(file);
-                KitFileInfoVO fileInfo = wrapper.upload(file);
-                Msg msg = Msg.builder()
-                        .role(MsgRole.ASSISTANT)
-                        .textContent("\n以下是助手为您输出的内容：\n")
-                        .build();
-                sink.tryEmitNext(getContent(msg, fileInfo));
-            } finally {
-                if (Objects.nonNull(file)) {
-                    file.delete();
-                }
+            File file = wrapper.screenshot("#ai-output-panel");
+            if (file == null) {
+                log.warn("AI输出区截图失败，未获取到截图文件");
+                return;
             }
+            //               byte[] screenshot = FileUtils.readFileToByteArray(file);
+            KitFileInfoVO fileInfo = wrapper.upload(file);
+            Msg msg = Msg.builder()
+                    .role(MsgRole.ASSISTANT)
+                    .textContent("\n以下是助手为您输出的内容：\n")
+                    .build();
+            sink.tryEmitNext(getContent(msg, fileInfo));
         }
     }
 
