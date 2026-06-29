@@ -2,7 +2,6 @@ import { CheckCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icon
 import { Button } from 'antd';
 import { useAgent } from '@copilotkit/react-core/v2';
 import {
-  dispatchHumanApproval,
   clearHumanApproval,
 } from '@/services/human-approval';
 import { clearAskUserQuestion } from '@/services/ask-user-question';
