@@ -1,8 +1,18 @@
-import { CopilotChat, CopilotChatConfigurationProvider } from '@copilotkit/react-core/v2';
+import {
+  CopilotChat,
+  CopilotChatConfigurationProvider,
+} from '@copilotkit/react-core/v2';
 import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-core/v2/styles.css';
 import { App, Button, Tooltip } from 'antd';
-import { RobotOutlined, CompressOutlined, DragOutlined, CloseOutlined, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  RobotOutlined,
+  CompressOutlined,
+  DragOutlined,
+  CloseOutlined,
+  HistoryOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
@@ -13,10 +23,23 @@ import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { HumanApprovalBar } from './HumanApprovalBar';
 import { AskUserQuestionBar } from './AskUserQuestionBar';
 import { AiModeControlBar } from './AiModeControlBar';
+import { HeadlessSubmitBar } from './HeadlessSubmitBar';
 import { createCustomRenderMessage } from './CustomRenderMessage';
-import { getSessionMessages, getApprovalStatus, type BrainMessage } from '@/services/brain';
-import { dispatchHumanApproval, clearHumanApproval, onHumanApproval } from '@/services/human-approval';
-import { dispatchAskUserQuestion, clearAskUserQuestion, onAskUserQuestion } from '@/services/ask-user-question';
+import {
+  getSessionMessages,
+  getApprovalStatus,
+  type BrainMessage,
+} from '@/services/brain';
+import {
+  dispatchHumanApproval,
+  clearHumanApproval,
+  onHumanApproval,
+} from '@/services/human-approval';
+import {
+  dispatchAskUserQuestion,
+  clearAskUserQuestion,
+  onAskUserQuestion,
+} from '@/services/ask-user-question';
 import { useHeadlessStore } from '@gwsu/core';
 import styles from './copilot-override.module.less';
 
@@ -50,12 +73,23 @@ export function CopilotChatPanel({
   onDraggable,
   onHide,
 }: CopilotChatPanelProps) {
-  const { viewMode, setViewMode, panelState, setPanelPosition, currentThreadId, setCurrentThreadId, viewConfig } = usePanelContext();
+  const {
+    viewMode,
+    setViewMode,
+    panelState,
+    setPanelPosition,
+    currentThreadId,
+    setCurrentThreadId,
+    viewConfig,
+  } = usePanelContext();
   const { agent } = useAgent({ agentId: 'brain' });
   const { message } = App.useApp();
 
   // 根据展示配置动态创建消息渲染组件
-  const CustomMessageView = useMemo(() => createCustomRenderMessage(viewConfig), [viewConfig]);
+  const CustomMessageView = useMemo(
+    () => createCustomRenderMessage(viewConfig),
+    [viewConfig],
+  );
 
   // CopilotChat 组件容器 ref，用于精确控制其内部输入框
   const copilotChatRef = useRef<HTMLDivElement>(null);
@@ -91,8 +125,12 @@ export function CopilotChatPanel({
   const [hasAskQuestion, setHasAskQuestion] = useState(false);
 
   useEffect(() => {
-    const unsubApproval = onHumanApproval((payload) => setHasApproval(payload !== null));
-    const unsubAskQuestion = onAskUserQuestion((payload) => setHasAskQuestion(payload !== null));
+    const unsubApproval = onHumanApproval((payload) =>
+      setHasApproval(payload !== null),
+    );
+    const unsubAskQuestion = onAskUserQuestion((payload) =>
+      setHasAskQuestion(payload !== null),
+    );
     return () => {
       unsubApproval();
       unsubAskQuestion();
@@ -170,37 +208,57 @@ export function CopilotChatPanel({
       const formattedMessages = messages.map((msg: BrainMessage) => ({
         id: msg.id,
         role: msg.role,
-        content: typeof msg.content === 'string' ? msg.content : (msg.content ? JSON.stringify(msg.content) : ''),
-        ...(msg.toolCalls && msg.toolCalls.length > 0 ? { toolCalls: msg.toolCalls } : {}),
+        content:
+          typeof msg.content === 'string'
+            ? msg.content
+            : msg.content
+            ? JSON.stringify(msg.content)
+            : '',
+        ...(msg.toolCalls && msg.toolCalls.length > 0
+          ? { toolCalls: msg.toolCalls }
+          : {}),
         ...(msg.toolCallId ? { toolCallId: msg.toolCallId } : {}),
         ...(msg.encryptedValue ? { encryptedValue: msg.encryptedValue } : {}),
       }));
       // 所有 agent 状态同步设置，再触发重渲染，确保重渲染时消息已就绪
       agent.setMessages([]);
       agent.threadId = sessionId;
-      agent.setMessages(formattedMessages as Parameters<typeof agent.setMessages>[0]);
+      agent.setMessages(
+        formattedMessages as Parameters<typeof agent.setMessages>[0],
+      );
       setCurrentThreadId(sessionId);
 
       // 检查是否需要恢复 AskUserQuestion 弹框
       // 最新一条消息如果是 AskUserQuestion 工具调用且无对应结果，则恢复弹框
       try {
-        const lastMsg = messages[messages.length - 1] as BrainMessage | undefined;
+        const lastMsg = messages[messages.length - 1] as
+          | BrainMessage
+          | undefined;
         if (lastMsg?.role === 'assistant' && lastMsg.toolCalls?.length) {
           const askQuestionToolCall = lastMsg.toolCalls.find(
-            (tc) => tc.function?.name === 'AskUserQuestion'
+            (tc) => tc.function?.name === 'AskUserQuestion',
           );
           if (askQuestionToolCall) {
-            const args = typeof askQuestionToolCall.function?.arguments === 'string'
-              ? JSON.parse(askQuestionToolCall.function.arguments)
-              : askQuestionToolCall.function?.arguments ?? askQuestionToolCall.args ?? {};
+            const args =
+              typeof askQuestionToolCall.function?.arguments === 'string'
+                ? JSON.parse(askQuestionToolCall.function.arguments)
+                : askQuestionToolCall.function?.arguments ??
+                  askQuestionToolCall.args ??
+                  {};
             dispatchAskUserQuestion({
               toolCallId: askQuestionToolCall.id as string,
-              questions: Array.isArray(args.questions) ? args.questions.map((q: Record<string, unknown>) => ({
-                question: String(q.question ?? ''),
-                header: String(q.header ?? ''),
-                options: Array.isArray(q.options) ? q.options : (q.options ? [q.options] : []),
-                multiSelect: Boolean(q.multiSelect),
-              })) : [],
+              questions: Array.isArray(args.questions)
+                ? args.questions.map((q: Record<string, unknown>) => ({
+                    question: String(q.question ?? ''),
+                    header: String(q.header ?? ''),
+                    options: Array.isArray(q.options)
+                      ? q.options
+                      : q.options
+                      ? [q.options]
+                      : [],
+                    multiSelect: Boolean(q.multiSelect),
+                  }))
+                : [],
             });
           }
         }
@@ -254,10 +312,13 @@ export function CopilotChatPanel({
     setIsDragging(true);
   }, []);
 
-  const handleDragStop = useCallback((_e: DraggableEvent, data: DraggableData) => {
-    setIsDragging(false);
-    setPanelPosition({ x: data.x, y: data.y });
-  }, [setPanelPosition]);
+  const handleDragStop = useCallback(
+    (_e: DraggableEvent, data: DraggableData) => {
+      setIsDragging(false);
+      setPanelPosition({ x: data.x, y: data.y });
+    },
+    [setPanelPosition],
+  );
 
   // 渲染聊天内容（不含外层容器）
   const renderChatContent = () => (
@@ -326,90 +387,12 @@ export function CopilotChatPanel({
       </div>
       {/* AI模式终止控制 - 最上方 */}
       <AiModeControlBar />
+      {/* 无头浏览器提交控制（默认隐藏，后端控制显隐） */}
+      <HeadlessSubmitBar />
       {/* 人工审批卡片 */}
       <HumanApprovalBar />
       {/* AskUserQuestion 选择框 */}
       <AskUserQuestionBar />
-      {/* 隐藏表单 - 无头浏览器审批/回答问题专用，用户不可见 */}
-      <div style={{ display: 'none' }} data-testid="headless-forms">
-        {/* 审批表单 */}
-        <input data-testid="headless-approval-result" readOnly />
-        <input data-testid="headless-approval-reject-reason" readOnly />
-        <button
-          data-testid="headless-approval-submit"
-          onClick={async () => {
-            const resultEl = document.querySelector<HTMLInputElement>(
-              '[data-testid="headless-approval-result"]',
-            );
-            const reasonEl = document.querySelector<HTMLInputElement>(
-              '[data-testid="headless-approval-reject-reason"]',
-            );
-            const result = resultEl?.value;
-            if (!result) return;
-
-            const rejectReason = reasonEl?.value ?? '';
-            const content = result === 'REJECTED' && rejectReason
-              ? JSON.stringify({ result, rejectReason })
-              : JSON.stringify({ result });
-
-            const msgId = crypto.randomUUID();
-            agent.addMessage({ id: msgId, role: 'approval', content } as any);
-            clearHumanApproval();
-
-            try { await agent.runAgent(); } catch (e) { console.error('[HeadlessApproval] runAgent失败:', e); }
-
-            // 清除 agent 消息列表中的 approval 消息，避免下次请求时带上
-            const currentMessages = agent.messages || [];
-            const filteredMessages = currentMessages.filter((msg: any) => msg.role !== 'approval');
-            if (filteredMessages.length !== currentMessages.length) {
-              agent.setMessages(filteredMessages);
-            }
-
-            // 重置表单值
-            if (resultEl) resultEl.value = '';
-            if (reasonEl) reasonEl.value = '';
-          }}
-        />
-        {/* 回答问题表单 */}
-        <input data-testid="headless-question-answers" readOnly />
-        <input data-testid="headless-question-tool-call-id" readOnly />
-        <button
-          data-testid="headless-question-submit"
-          onClick={async () => {
-            const answersEl = document.querySelector<HTMLInputElement>(
-              '[data-testid="headless-question-answers"]',
-            );
-            const toolCallIdEl = document.querySelector<HTMLInputElement>(
-              '[data-testid="headless-question-tool-call-id"]',
-            );
-            const answersJson = answersEl?.value;
-            const toolCallId = toolCallIdEl?.value;
-            if (!answersJson || !toolCallId) return;
-
-            try {
-              const answers = JSON.parse(answersJson);
-              const answer = { answers, annotations: {} };
-
-              const msgId = crypto.randomUUID();
-              agent.addMessage({
-                id: msgId,
-                role: 'tool',
-                content: JSON.stringify(answer),
-                toolCallId,
-              } as any);
-              clearAskUserQuestion();
-
-              try { await agent.runAgent(); } catch (e) { console.error('[HeadlessQuestion] runAgent失败:', e); }
-            } catch (e) {
-              console.error('[HeadlessQuestion] 提交失败:', e);
-            }
-
-            // 重置表单值
-            if (answersEl) answersEl.value = '';
-            if (toolCallIdEl) toolCallIdEl.value = '';
-          }}
-        />
-      </div>
       {/* CopilotChat 组件 - 隐藏默认 header */}
       <div ref={copilotChatRef} style={{ display: 'contents' }}>
         <CopilotChatConfigurationProvider
@@ -460,14 +443,23 @@ export function CopilotChatPanel({
     >
       <div
         ref={(el) => {
-          (nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-          (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+          (nodeRef as React.MutableRefObject<HTMLDivElement | null>).current =
+            el;
+          (
+            wrapperRef as React.MutableRefObject<HTMLDivElement | null>
+          ).current = el;
         }}
-        className={`${styles.copilotChatWrapper} ${isHidden ? styles.hiddenWrapper : ''} ${isDraggableMode ? styles.draggableWrapper : ''} ${className || ''}`}
-        style={isDraggableMode ? {
-          width: panelState.width,
-          height: panelState.height,
-        } : style}
+        className={`${styles.copilotChatWrapper} ${
+          isHidden ? styles.hiddenWrapper : ''
+        } ${isDraggableMode ? styles.draggableWrapper : ''} ${className || ''}`}
+        style={
+          isDraggableMode
+            ? {
+                width: panelState.width,
+                height: panelState.height,
+              }
+            : style
+        }
       >
         {viewMode === 'history' ? renderHistoryContent() : renderChatContent()}
       </div>

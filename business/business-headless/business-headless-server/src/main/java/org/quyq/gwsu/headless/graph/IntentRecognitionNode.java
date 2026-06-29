@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.ai.model.ModelProvider;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
+import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
@@ -30,10 +31,9 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
+import java.awt.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * @author Quyq
@@ -48,6 +48,8 @@ public class IntentRecognitionNode implements NodeAction {
     private final HeadlessBrowserManager headlessBrowserManager;
 
     public final static String HEADLESS_RECOGNITION_NODE_KEY = "headless_recognition_node";
+
+    private final static int ROUTE_RECOGNIZE = 3;
 
     private final Gson gson = new Gson();
 
@@ -130,14 +132,33 @@ public class IntentRecognitionNode implements NodeAction {
             }
         }
 
-        RouterInfo routerInfo = Optional.ofNullable(
-                        agent.call(Msg.builder()
-                                        .role(MsgRole.USER)
-                                        .textContent(userTemplate.formatted(systemContent, query))
-                                        .build(), RouterInfo.class)
-                                .block()
-                ).map(r -> r.getStructuredData(RouterInfo.class))
-                .orElseThrow();
+        RouterInfo routerInfo;
+        int retryCount = 0;
+        PropertiesCheckResult checkR = null;
+        do {
+
+            if(retryCount > 0){
+                systemContent += """
+                        \n**注意：** 解析的路由信息数据缺失，重新解析，上次解析的错误信息如下：
+                        %s
+                        """.formatted(checkR.errInfo);
+            }
+
+            routerInfo = Optional.ofNullable(
+                            agent.call(Msg.builder()
+                                            .role(MsgRole.USER)
+                                            .textContent(userTemplate.formatted(systemContent, query))
+                                            .build(), RouterInfo.class)
+                                    .block()
+                    ).map(r -> r.getStructuredData(RouterInfo.class))
+                    .orElseThrow();
+
+            checkR = propertiesCheck(routerInfo);
+        }while (!checkR.pass && retryCount++ < ROUTE_RECOGNIZE);
+
+        if(!checkR.pass){
+            throw new BusinessException("路由解析错误，错误信息：%s".formatted(checkR.errInfo));
+        }
 
 
         GraphRouteType type = routerInfo.getType();
@@ -174,6 +195,34 @@ public class IntentRecognitionNode implements NodeAction {
         return Map.of(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId,
                 HeadlessConstants.Headless.GRAPH_PARAM_ROUTE_INFO, routerInfo);
     }
+
+
+    private PropertiesCheckResult propertiesCheck(RouterInfo type) {
+        if(GraphRouteType.CHAT == type.getType()){
+            return new PropertiesCheckResult(true , null);
+        }else if(GraphRouteType.ANSWER == type.getType()){
+            if(Objects.isNull(type.getAnswerInfo())){
+                return new PropertiesCheckResult(false , "判断出的路由信息为：ANSWER , 但是 `answerInfo`属性 为NULL");
+            }else if(!StringUtils.hasText(type.getToolCallId())){
+                return new PropertiesCheckResult(false , "判断出的路由信息为：ANSWER , 但是 `toolCallId` 为NULL");
+            }
+        }else if (GraphRouteType.APPROVAL == type.getType()){
+            if(Objects.isNull(type.getApprovalInfo())){
+                return new PropertiesCheckResult(false , "判断出的路由信息为：APPROVAL , 但是 `approvalInfo`属性 为NULL");
+            }
+        }else if (GraphRouteType.UNKNOWN == type.getType()){
+            if(Objects.isNull(type.getUnknownReply())){
+                return new PropertiesCheckResult(false , "判断出的路由信息为：UNKNOWN , 但是 `unknownReply`属性 为NULL");
+            }
+        }else if (Objects.isNull(type.getType())){
+            return new PropertiesCheckResult(false , "没有正确解析出路由类型");
+        }
+
+        return new PropertiesCheckResult(true , null);
+
+    }
+
+    record PropertiesCheckResult(boolean pass , String errInfo){}
 
 
     private ReActAgent buildAgent() {
@@ -246,14 +295,21 @@ public class IntentRecognitionNode implements NodeAction {
                 - **目标**：判断用户是否回答了所有问题。
                 - **解析 system 中的元数据**：
                 - 提取 `toolCallId`（字符串）。
-                - 提取问题列表（通常为 JSON 数组，例如 `["问题1", "问题2"]`）。
+                - 提取问题列表，通常为 JSON 数组，每个问题可能是一个对象或字符串。**如果问题包含选项**，其格式可能为：`{"question": "您一天中哪个时段工作效率最高？", "options": ["上午(早上精力最充沛)", "下午(午后状态更好)", "看心情(没有固定偏好)"]}`，也可能直接以字符串形式给出选项。
                 - **分析用户回复原话**：
-                - 将用户回复与问题列表逐一匹配，判断哪些问题已被回答（通过语义理解，不一定要求完全匹配，只要用户明确给出了对应答案即可）。
-                - **若所有问题都有明确答案** → 类型 `ANSWER`，构造 `answerInfo` 映射（问题原文 → 用户回答），并**务必填充 `toolCallId`**（从 system 中获取）。
-                - **若部分问题未回答或全部未回答** → 类型 `UNKNOWN`，构造 `answerInfo` 仅包含已回答的问题（可为空），并生成 `unknownReply`，清晰列出尚未回答的问题，引导用户补充。
+                - 遍历每个问题，判断用户回复中是否包含对该问题的答案。
+                - **对于带选项的问题**：
+                - 如果用户回答明确匹配其中一个选项（如“上午”或“下午”），则将该选项作为答案。
+                - 如果用户回答**不匹配任何选项**（例如用户输入“晚上”或“深夜”等），则视为选择了“其他”选项，**答案应记录为**：`"用户选择了自定义回答：{用户回答的原话}"`（例如 `"用户选择了自定义回答：晚上"`）。
+                - 若用户回答包含多个内容，需合理拆分到对应问题。
+                - **判断回答完整性**：
+                - **若所有问题都有明确答案**（包括自定义内容作为“其他”的回答）→ 类型 `ANSWER`，构造 `answerInfo` 映射（问题原文 → 用户回答（按上述规则处理）），并**务必填充 `toolCallId`**。
+                - **若部分问题未回答** → 类型 `UNKNOWN`，构造 `answerInfo` 仅包含已回答的问题（可按上述规则处理），并生成 `unknownReply`，清晰列出尚未回答的问题，引导用户补充。
                 - **`UNKNOWN` 回复示例**：`“您还有以下问题未回答：1. 您的居住城市？2. 您的年龄？请补充回答。”`
-                - **注意**：若 system 中未提供问题列表或 `toolCallId`，则尝试从历史会话中提取；若仍缺失，可在 `unknownReply` 中说明“未检测到待回答问题，请重新表述”。
-                
+                - **注意**：
+                    - 即使某个问题的答案不在选项中，只要用户明确给出了答案，都应视为有效回答，不应触发 `UNKNOWN`。
+                    - 若 system 中未提供问题列表或 `toolCallId`，则尝试从历史会话中提取；若仍缺失，可在 `unknownReply` 中说明“未检测到待回答问题，请重新表述”。                
+                                
                 ### 4. 其他情况
                 - 若 `<system>` 内容既不是“无”也不含上述关键词，则按“无”处理，归为 `CHAT`。
                 
@@ -288,6 +344,152 @@ public class IntentRecognitionNode implements NodeAction {
                 3. **提取答案时尽量忠实于用户原话**，但可适当归纳，确保 `answerInfo` 的 value 准确反映用户回答。
                 4.**拒绝原因**仅当用户明确提供时才提取；若用户拒绝但未给原因`refuseReason`为空字符串即可。
                 
+                ## 示例
+                
+                ### 示例一： CHAT
+                **输入**：
+                ```text
+                <system>无</system>
+                ## 用户回复内容：
+                今天天气真好！
+                ```
+                **输出**：
+                ```json
+                {
+                  "type": "CHAT",
+                  "approvalInfo": null,
+                  "answerInfo": null,
+                  "unknownReply": null,
+                  "toolCallId": null
+                }
+                ```
+                
+                ### 示例二：审批同意
+                **输入**：
+                ```text
+                <system>用户消息属于审批回复
+                       审批提醒内容元数据：{"approvalId":"123"}</system>
+                ## 用户回复内容：
+                同意，没意见。
+                ```
+                **输出**：
+                ```json
+                {
+                  "type": "APPROVAL",
+                  "approvalInfo": {
+                    "agree": true,
+                    "refuseReason": ""
+                  },
+                  "answerInfo": null,
+                  "unknownReply": null,
+                  "toolCallId": null
+                }
+                ```
+                
+                ### 示例三：审批拒绝（带原因）
+                **输入**：
+                ```text
+                <system>用户消息属于审批回复</system>
+                ## 用户回复内容：
+                拒绝，因为预算超支。
+                ```
+                **输出**：
+                ```json
+                {
+                   "type": "APPROVAL",
+                   "approvalInfo": {
+                     "agree": false,
+                     "refuseReason": "预算超支"
+                   },
+                   "answerInfo": null,
+                   "unknownReply": null,
+                   "toolCallId": null
+                 }
+                ```
+                
+                ### 示例四：审批态度模糊 → UNKNOWN
+                **输入**：
+                ```text
+                <system>用户消息属于审批回复</system>
+                ## 用户回复内容：
+                我再想想吧。
+                ```
+                **输出**：
+                ```json
+                {
+                  "type": "UNKNOWN",
+                  "approvalInfo": null,
+                  "answerInfo": null,
+                  "unknownReply": "系统识别到您的消息涉及审批，但您的意图尚不明确。请明确回复“同意”或“拒绝”以继续处理。",
+                  "toolCallId": null
+                }
+                ```
+                
+                ### 示例 5：回答全部问题（带选项，用户选择选项内）
+                **输入**：
+                ```text
+                <system>用户消息属于回答模型提出的问题
+                toolCallId: call_123
+                问题内容：[{"question":"您一天中哪个时段工作效率最高？","options":["上午","下午","看心情"]}]</system>
+                ## 用户回复内容：
+                上午
+                ```
+                **输出**：
+                ```json
+                {
+                  "type": "ANSWER",
+                  "approvalInfo": null,
+                  "answerInfo": {
+                    "您一天中哪个时段工作效率最高？": "上午"
+                  },
+                  "unknownReply": null,
+                  "toolCallId": "call_123"
+                }
+                ```
+                
+                ### 示例 6：回答全部问题（用户选择“其他”自定义）
+                **输入**：
+                ```text
+                <system>用户消息属于回答模型提出的问题
+                toolCallId: call_456
+                问题内容：[{"question":"您一天中哪个时段工作效率最高？","options":["上午(早上精力最充沛)","下午(午后状态更好)","看心情(没有固定偏好)"]}]</system>
+                ## 用户回复内容：
+                晚上，夜深人静的时候效率最高
+                ```
+                **输出**：
+                ```json
+                {
+                  "type": "ANSWER",
+                  "approvalInfo": null,
+                  "answerInfo": {
+                    "您一天中哪个时段工作效率最高？": "用户选择了自定义回答：晚上，夜深人静的时候效率最高"
+                  },
+                  "unknownReply": null,
+                  "toolCallId": "call_456"
+                }
+                ```
+                
+                ### 示例 7：回答部分问题（带选项，其中一个未答）
+                **输入**：
+                ```text
+                <system>用户消息属于回答模型提出的问题
+                toolCallId: call_789
+                问题内容：["您的职业？", {"question":"您一天中哪个时段工作效率最高？","options":["上午","下午","看心情"]}]</system>
+                ## 用户回复内容：
+                职业是程序员，其他还没想好。
+                ```
+                **输出**：
+                ```json
+                {
+                  "type": "UNKNOWN",
+                  "approvalInfo": null,
+                  "answerInfo": {
+                    "您的职业？": "程序员"
+                  },
+                  "unknownReply": "您还有以下问题未回答：1. 您一天中哪个时段工作效率最高？请补充回答。",
+                  "toolCallId": null
+                }
+                ```
                 
                 """.replace("{askUserQuestion}", AIConstants.ToolName.ASK_USER_QUESTION);
     }

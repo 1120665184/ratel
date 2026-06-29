@@ -124,22 +124,23 @@ public class ThreadSessionManager {
      * @return true if the session exists and the agent has non-empty memory
      */
     public boolean hasMemory(String threadId) {
-        ThreadSession session = sessions.get(threadId);
-        if (session == null) {
-            return false;
-        }
-
-        Agent agent = session.getAgent();
-        // Check if the agent has a memory and if it has any messages
-        // ReActAgent is the main agent type that has memory
-        Memory memory = null;
-        if (agent instanceof ReActAgent reactAgent) {
-            memory = reactAgent.getMemory();
-        }else if (agent instanceof HarnessAgent harnessAgent) {
-            memory = harnessAgent.getDelegate().getMemory();
-        }
-
-        return memory != null && !memory.getMessages().isEmpty();
+        return true;
+//        ThreadSession session = sessions.get(threadId);
+//        if (session == null) {
+//            return false;
+//        }
+//
+//        Agent agent = session.getAgent();
+//        // Check if the agent has a memory and if it has any messages
+//        // ReActAgent is the main agent type that has memory
+//        Memory memory = null;
+//        if (agent instanceof ReActAgent reactAgent) {
+//            memory = reactAgent.getMemory();
+//        }else if (agent instanceof HarnessAgent harnessAgent) {
+//            memory = harnessAgent.getDelegate().getMemory();
+//        }
+//
+//        return memory != null && !memory.getMessages().isEmpty();
     }
 
     /**

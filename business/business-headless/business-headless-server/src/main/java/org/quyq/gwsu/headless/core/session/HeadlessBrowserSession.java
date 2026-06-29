@@ -148,12 +148,12 @@ public class HeadlessBrowserSession implements AutoCloseable {
         });
 
         // 3. 转发浏览器控制台日志（调试用）
-//        page.onConsoleMessage(msg -> {
-//            String text = msg.text();
-//            if (text != null && text.startsWith("[Headless")) {
-//                log.info("[BrowserConsole] {}", text);
-//            }
-//        });
+        page.onConsoleMessage(msg -> {
+            String text = msg.text();
+            if (text != null && text.startsWith("[Headless")) {
+                log.info("[BrowserConsole] {}", text);
+            }
+        });
     }
 
     /**
@@ -373,7 +373,14 @@ public class HeadlessBrowserSession implements AutoCloseable {
     /**
      * 通过隐藏表单提交审批结果，并监听后续 SSE 事件
      * <p>
-     * 流程：等待聊天就绪 → 填充隐藏表单 → 触发提交 → 等待 SSE 流完成
+     * 流程：等待聊天就绪 → 显示表单+填充值 → locator.click() 点击按钮 → 隐藏表单 → 等待 SSE 流完成
+     * <p>
+     * 关键：使用 page.locator().click()（Playwright 原生 click）而非 page.evaluate() 中的 JS click，
+     * 因为 Playwright 原生 click 会内部协调事件循环，确保 page.route() 回调在 click() 返回前执行完毕，
+     * 避免 awaitCompletion 阻塞后 route 回调无法执行的死锁问题。
+     * <p>
+     * 按钮需要处于可见状态才能被 locator.click() 点击，因此通过 page.evaluate() 设置
+     * data-headless-forms-visible 属性让 HeadlessSubmitBar 组件显示，点击后自动隐藏。
      *
      * @param approved     是否批准
      * @param rejectReason 拒绝原因（批准时为 null）
@@ -398,22 +405,18 @@ public class HeadlessBrowserSession implements AutoCloseable {
             String result = approved ? "APPROVED" : "REJECTED";
             String reason = rejectReason != null ? rejectReason : "";
 
-            // 填充隐藏表单并触发提交，同时等待 agent run 请求发送
-            try {
-                page.waitForRequest(
-                        req -> req.url().contains(SSE_URL_PATTERN),
-                        () -> page.evaluate("args => {" +
-                                "  var r = document.querySelector('[data-testid=\"headless-approval-result\"]');" +
-                                "  var re = document.querySelector('[data-testid=\"headless-approval-reject-reason\"]');" +
-                                "  if (r) r.value = args[0];" +
-                                "  if (re) re.value = args[1];" +
-                                "  var btn = document.querySelector('[data-testid=\"headless-approval-submit\"]');" +
-                                "  if (btn) btn.click();" +
-                                "}", new Object[]{result, reason})
-                );
-            } catch (PlaywrightException e) {
-                log.warn("等待审批请求发送超时，审批可能已提交");
-            }
+            // 1. 显示 HeadlessSubmitBar 组件 + 填充表单值
+            page.evaluate("args => {" +
+                    "  document.body.setAttribute('data-headless-forms-visible', 'true');" +
+                    "  var r = document.querySelector('[data-testid=\"headless-approval-result\"]');" +
+                    "  var re = document.querySelector('[data-testid=\"headless-approval-reject-reason\"]');" +
+                    "  if (r) r.value = args[0];" +
+                    "  if (re) re.value = args[1];" +
+                    "}", new Object[]{result, reason});
+
+            // 2. 使用 Playwright 原生 locator.click() 点击可见按钮
+            //    click() 内部会协调事件循环，确保 page.route() 回调在返回前执行完毕
+            page.locator("[data-testid='headless-approval-submit']").click();
 
             log.info("审批结果已提交: result={}, hasRejectReason={}", result, !reason.isEmpty());
 
@@ -423,6 +426,10 @@ public class HeadlessBrowserSession implements AutoCloseable {
             log.error("提交审批失败", e);
             throw new RuntimeException("提交审批失败", e);
         } finally {
+            // 确保隐藏表单（无论成功失败）
+            try {
+                page.evaluate("() => document.body.removeAttribute('data-headless-forms-visible')");
+            } catch (Exception ignored) {}
             sendLock.unlock();
         }
     }
@@ -430,7 +437,10 @@ public class HeadlessBrowserSession implements AutoCloseable {
     /**
      * 通过隐藏表单提交用户回答，并监听后续 SSE 事件
      * <p>
-     * 流程：等待聊天就绪 → 填充隐藏表单（answers + toolCallId）→ 触发提交 → 等待 SSE 流完成
+     * 流程：等待聊天就绪 → 显示表单+填充值 → locator.click() 点击按钮 → 隐藏表单 → 等待 SSE 流完成
+     * <p>
+     * 同 submitApproval，使用 Playwright 原生 locator.click() 确保 page.route() 回调
+     * 在 click() 返回前执行完毕，避免死锁。
      *
      * @param toolCallId 工具调用 ID，用于关联 AskUserQuestion 工具调用
      * @param answers    问题答案，key 为问题文本，value 为用户回答
@@ -454,22 +464,18 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
             String answersJson = objectMapper.writeValueAsString(answers);
 
-            // 填充隐藏表单并触发提交，同时等待 agent run 请求发送
-            try {
-                page.waitForRequest(
-                        req -> req.url().contains(SSE_URL_PATTERN),
-                        () -> page.evaluate("args => {" +
-                                "  var a = document.querySelector('[data-testid=\"headless-question-answers\"]');" +
-                                "  var t = document.querySelector('[data-testid=\"headless-question-tool-call-id\"]');" +
-                                "  if (a) a.value = args[0];" +
-                                "  if (t) t.value = args[1];" +
-                                "  var btn = document.querySelector('[data-testid=\"headless-question-submit\"]');" +
-                                "  if (btn) btn.click();" +
-                                "}", new Object[]{answersJson, toolCallId})
-                );
-            } catch (PlaywrightException e) {
-                log.warn("等待回答问题请求发送超时，回答可能已提交");
-            }
+            // 1. 显示 HeadlessSubmitBar 组件 + 填充表单值
+            page.evaluate("args => {" +
+                    "  document.body.setAttribute('data-headless-forms-visible', 'true');" +
+                    "  var a = document.querySelector('[data-testid=\"headless-question-answers\"]');" +
+                    "  var t = document.querySelector('[data-testid=\"headless-question-tool-call-id\"]');" +
+                    "  if (a) a.value = args[0];" +
+                    "  if (t) t.value = args[1];" +
+                    "}", new Object[]{answersJson, toolCallId});
+
+            // 2. 使用 Playwright 原生 locator.click() 点击可见按钮
+            //    click() 内部会协调事件循环，确保 page.route() 回调在返回前执行完毕
+            page.locator("[data-testid='headless-question-submit']").click();
 
             log.info("用户回答已提交: toolCallId={}", toolCallId);
 
@@ -479,6 +485,10 @@ public class HeadlessBrowserSession implements AutoCloseable {
             log.error("提交用户回答失败", e);
             throw new RuntimeException("提交用户回答失败", e);
         } finally {
+            // 确保隐藏表单（无论成功失败）
+            try {
+                page.evaluate("() => document.body.removeAttribute('data-headless-forms-visible')");
+            } catch (Exception ignored) {}
             sendLock.unlock();
         }
     }

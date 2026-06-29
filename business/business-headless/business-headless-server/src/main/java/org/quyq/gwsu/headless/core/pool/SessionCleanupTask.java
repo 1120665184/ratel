@@ -28,13 +28,13 @@ public class SessionCleanupTask {
         try {
             int evicted = contextPool.evictIdleSessions(config.getSessionMaxIdleMinutes());
             if (evicted > 0) {
-                log.info("定时清理: 淘汰 {} 个沉寂超时 Session (超时={}分钟, 缓存剩余={})",
+                log.info("[BrowserSession]定时清理: 淘汰 {} 个沉寂超时 Session (超时={}分钟, 缓存剩余={})",
                         evicted, config.getSessionMaxIdleMinutes(), contextPool.cachedSessionCount());
             } else {
-                log.debug("定时清理: 无需清理 (缓存数={})", contextPool.cachedSessionCount());
+                log.debug("[BrowserSession]定时清理: 无需清理 (缓存数={})", contextPool.cachedSessionCount());
             }
         } catch (Exception e) {
-            log.error("定时清理 Session 异常", e);
+            log.error("[BrowserSession]定时清理 Session 异常", e);
         }
     }
 }
