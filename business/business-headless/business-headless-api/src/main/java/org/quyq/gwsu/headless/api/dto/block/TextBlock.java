@@ -1,10 +1,11 @@
-package org.quyq.gwsu.headless.api.dto;
+package org.quyq.gwsu.headless.api.dto.block;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.quyq.gwsu.headless.api.dto.ContentBlock;
 
 /**
  * 文本内容块

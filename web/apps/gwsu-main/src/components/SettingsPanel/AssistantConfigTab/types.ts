@@ -224,7 +224,7 @@ export const DEFAULT_DINGTALK_REMOTE_CONFIG: DingTalkRemoteConfig = {
   endpoint: 'api.dingtalk.com',
   clientId: '',
   clientSecret: '',
-  aiCardTemplateId: '68ea56be-c3a1-4f47-8575-065572e2a601.schema',
+  aiCardTemplateId: '7f991cfb-9c52-4bac-aad2-5c60116d82cc.schema',
 };
 
 /** 创建默认的远程操作配置 */

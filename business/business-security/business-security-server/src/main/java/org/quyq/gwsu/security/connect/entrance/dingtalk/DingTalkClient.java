@@ -14,6 +14,7 @@ import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.connect.domain.EntranceConfig;
 import org.quyq.gwsu.security.connect.enums.EntranceType;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -29,11 +30,14 @@ public class DingTalkClient {
 
     private final DingTalkTextConsumer textConsumer;
 
+    private final DingTalkCardConsumer cardConsumer;
+
     public static final String ASSISTANT_REMOTE_CONTROL_CONFIG_KEY = "assistant_remote_control_config";
 
     private OpenDingTalkClient client = null;
 
     private static EntranceConfig.DingTalk CONFIG = null;
+
 
 
     public static EntranceConfig.DingTalk getDingTalkConfig() {
@@ -86,6 +90,7 @@ public class DingTalkClient {
                     }
                 })
                 .registerCallbackListener(DingTalkStreamTopics.BOT_MESSAGE_TOPIC, textConsumer)
+                .registerCallbackListener(DingTalkStreamTopics.CARD_CALLBACK_TOPIC , cardConsumer)
                 .build();
 
 

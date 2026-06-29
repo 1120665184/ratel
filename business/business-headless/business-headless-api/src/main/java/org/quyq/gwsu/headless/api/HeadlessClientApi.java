@@ -1,9 +1,12 @@
 package org.quyq.gwsu.headless.api;
 
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.quyq.gwsu.common.api.annotation.ApiClient;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
+import org.quyq.gwsu.headless.api.dto.NewChatDTO;
 import org.quyq.gwsu.headless.api.factory.HeadlessClientApiFactory;
 import org.quyq.gwsu.headless.api.loadbalancer.UserIdStickyLoadBalancer;
 import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
@@ -19,8 +22,8 @@ import reactor.core.publisher.Flux;
  * @date 2026/6/25
  * @description
  */
-@ApiClient(value = CoreConstants.Server.HEADLESS_NAME , note = "无头智能体API" ,
-fallbackFactory = HeadlessClientApiFactory.class, loadBalancer = UserIdStickyLoadBalancer.class)
+@ApiClient(value = CoreConstants.Server.HEADLESS_NAME, note = "无头智能体API",
+        fallbackFactory = HeadlessClientApiFactory.class, loadBalancer = UserIdStickyLoadBalancer.class)
 @HttpExchange("headless")
 public interface HeadlessClientApi {
 
@@ -31,6 +34,16 @@ public interface HeadlessClientApi {
      * @return
      */
     @PostExchange(value = "stream", accept = MediaType.TEXT_EVENT_STREAM_VALUE)
-    Flux<HeadlessResponse> stream(@RequestParam("userId") String userId , @RequestBody HeadlessDTO form);
+    Flux<HeadlessResponse> stream(@RequestParam("userId") String userId, @RequestBody HeadlessDTO form);
+
+    /**
+     * 主动建立新会话
+     *
+     * @param form
+     * @return
+     */
+    @PostExchange(value = "newChat")
+    @Operation(description = "")
+    R<Void> newThreadId(@RequestBody NewChatDTO form);
 
 }

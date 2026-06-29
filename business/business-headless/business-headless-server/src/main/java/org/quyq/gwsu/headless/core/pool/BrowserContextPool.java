@@ -60,20 +60,20 @@ public class BrowserContextPool implements AutoCloseable {
     // ==================== Session 缓存操作 ====================
 
     /**
-     * 从缓存中获取用户的 Session
+     * 从缓存中获取 Session
      *
-     * @param userId 用户 ID
+     * @param cacheKey 缓存键（格式：userId:threadId）
      * @return SessionWrapper，缓存未命中返回 null
      */
-    public SessionWrapper getCachedSession(String userId) {
+    public SessionWrapper getCachedSession(String cacheKey) {
         if (!config.isSessionCacheEnabled()) return null;
 
-        SessionWrapper wrapper = sessionCache.get(userId);
+        SessionWrapper wrapper = sessionCache.get(cacheKey);
         if (wrapper == null) return null;
 
         // CAS：IDLE → ACTIVE，无锁状态转换
         if (wrapper.compareAndSetState(SessionState.IDLE, SessionState.ACTIVE)) {
-            log.debug("缓存命中: userId={}, 沉寂时长={}s", userId, wrapper.idleDurationSeconds());
+            log.debug("缓存命中: cacheKey={}, 沉寂时长={}s", cacheKey, wrapper.idleDurationSeconds());
             return wrapper;
         }
         // ACTIVE 或 EVICTING 状态，不可复用
@@ -83,36 +83,36 @@ public class BrowserContextPool implements AutoCloseable {
     /**
      * 将 Session 放入缓存（操作完成后调用）
      *
-     * @param userId  用户 ID
-     * @param session 已认证的 Session
+     * @param cacheKey 缓存键（格式：userId:threadId）
+     * @param session  已认证的 Session
      * @return true=缓存成功，false=缓存未启用
      */
-    public boolean cacheSession(String userId, HeadlessBrowserSession session) {
+    public boolean cacheSession(String cacheKey, HeadlessBrowserSession session) {
         if (!config.isSessionCacheEnabled()) return false;
 
-        SessionWrapper wrapper = new SessionWrapper(session, userId);
+        SessionWrapper wrapper = new SessionWrapper(session, cacheKey);
 
         // 如果已有旧缓存，先移除
-        SessionWrapper old = sessionCache.put(userId, wrapper);
+        SessionWrapper old = sessionCache.put(cacheKey, wrapper);
         if (old != null) {
-            log.debug("替换旧缓存: userId={}", userId);
+            log.debug("替换旧缓存: cacheKey={}", cacheKey);
             destroyWrapper(old);
         }
 
         // 检查缓存数量是否超限，超限则淘汰最久沉寂的
         evictIfOverLimit();
 
-        log.debug("Session 已缓存: userId={}, 当前缓存数={}", userId, sessionCache.size());
+        log.debug("Session 已缓存: cacheKey={}, 当前缓存数={}", cacheKey, sessionCache.size());
         return true;
     }
 
     /**
      * 将 Session 标记为 IDLE（操作完成后调用）
      *
-     * @param userId 用户 ID
+     * @param cacheKey 缓存键（格式：userId:threadId）
      */
-    public void markIdle(String userId) {
-        SessionWrapper wrapper = sessionCache.get(userId);
+    public void markIdle(String cacheKey) {
+        SessionWrapper wrapper = sessionCache.get(cacheKey);
         if (wrapper != null) {
             // CAS：ACTIVE → IDLE
             wrapper.compareAndSetState(SessionState.ACTIVE, SessionState.IDLE);
@@ -120,13 +120,15 @@ public class BrowserContextPool implements AutoCloseable {
     }
 
     /**
-     * 从缓存中移除并销毁指定用户的 Session
+     * 从缓存中移除并销毁指定缓存键的 Session
+     *
+     * @param cacheKey 缓存键（格式：userId:threadId）
      */
-    public void removeCachedSession(String userId) {
-        SessionWrapper wrapper = sessionCache.remove(userId);
+    public void removeCachedSession(String cacheKey) {
+        SessionWrapper wrapper = sessionCache.remove(cacheKey);
         if (wrapper != null) {
             destroyWrapper(wrapper);
-            log.debug("已移除缓存 Session: userId={}", userId);
+            log.debug("已移除缓存 Session: cacheKey={}", cacheKey);
         }
     }
 
@@ -149,11 +151,11 @@ public class BrowserContextPool implements AutoCloseable {
             }
         }
 
-        for (String userId : toEvict) {
-            SessionWrapper wrapper = sessionCache.remove(userId);
+        for (String cacheKey : toEvict) {
+            SessionWrapper wrapper = sessionCache.remove(cacheKey);
             if (wrapper != null) {
                 destroyWrapper(wrapper);
-                log.info("淘汰沉寂超时 Session: userId={}, 沉寂时长={}s", userId, wrapper.idleDurationSeconds());
+                log.info("淘汰沉寂超时 Session: cacheKey={}, 沉寂时长={}s", cacheKey, wrapper.idleDurationSeconds());
             }
         }
 
@@ -319,11 +321,11 @@ public class BrowserContextPool implements AutoCloseable {
 
             if (oldest.isEmpty()) break;
 
-            String userId = oldest.get().getKey();
-            SessionWrapper wrapper = sessionCache.remove(userId);
+            String cacheKey = oldest.get().getKey();
+            SessionWrapper wrapper = sessionCache.remove(cacheKey);
             if (wrapper != null) {
                 destroyWrapper(wrapper);
-                log.info("缓存超限淘汰: userId={}, 当前缓存数={}", userId, sessionCache.size());
+                log.info("缓存超限淘汰: cacheKey={}, 当前缓存数={}", cacheKey, sessionCache.size());
             }
         }
     }
@@ -341,7 +343,7 @@ public class BrowserContextPool implements AutoCloseable {
         try {
             wrapper.getSession().close();
         } catch (Exception e) {
-            log.warn("销毁缓存 Session 异常: userId={}", wrapper.getUserId(), e);
+            log.warn("销毁缓存 Session 异常: cacheKey={}", wrapper.getUserId(), e);
         }
         totalCreated.decrementAndGet();
     }

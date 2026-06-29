@@ -105,33 +105,44 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * 公共会话执行模板（缓存复用版本）
      * <p>
      * 流程：
-     * 1. 从 sessionCache 查找 userId 对应的缓存 Session
-     * 2. 命中且 IDLE → 复用，直接执行操作（跳过认证）
-     * 3. 操作中发现 401 → 重新认证后重试
-     * 4. 未命中 → 从 idleQueue 借用 BrowserContext，创建新 Session，认证后执行
-     * 5. 操作完成 → release() 释放运行时资源 → 缓存 Session
+     * 1. 获取分布式会话 HeadlessAccessSession
+     * 2. 无 threadId → 直接创建新 Session（跳过缓存查找）
+     * 3. 有 threadId → 以 userId:threadId 为缓存键查找缓存 Session
+     *    - 命中且 IDLE → 复用，直接执行操作（跳过认证）
+     *    - 未命中 → 从 idleQueue 借用 BrowserContext，创建新 Session，认证后执行
+     * 4. 操作中发现 401 → 重新认证后重试
+     * 5. 操作完成 → release() 释放运行时资源 → 缓存 Session（以 userId:threadId 为键）
      */
     private <T> T executeWithSession(String userId, String actionName, SessionAction<T> action) {
         HeadlessBrowserSession session = null;
         boolean fromCache = false;
+        String cacheKey = null;
 
         try {
-            // 1. 尝试从缓存获取
-            SessionWrapper wrapper = contextPool.getCachedSession(userId);
-            if (wrapper != null) {
-                session = wrapper.getSession();
-                fromCache = true;
-                log.debug("{}复用缓存Session: userId={}", actionName, userId);
+            // 1. 获取分布式会话，决定缓存策略
+            HeadlessAccessSession accessSession = getAccessSession(userId);
+
+            // 2. 有 threadId → 尝试缓存复用；无 threadId → 直接创建新 Session
+            if (accessSession != null && accessSession.threadId() != null) {
+                cacheKey = buildCacheKey(userId, accessSession.threadId());
+                SessionWrapper wrapper = contextPool.getCachedSession(cacheKey);
+                if (wrapper != null) {
+                    session = wrapper.getSession();
+                    fromCache = true;
+                    log.debug("{}复用缓存Session: cacheKey={}", actionName, cacheKey);
+                }
             }
 
-            // 2. 缓存未命中，创建新 Session
+            // 3. 缓存未命中，创建新 Session
             if (session == null) {
                 var ctx = contextPool.borrowIdle(config.getBorrowTimeoutSeconds(), TimeUnit.SECONDS);
                 contextPool.incrementTotal();
                 session = new HeadlessBrowserSession(ctx, config.getSseTimeoutMs(), cacheUtils);
 
                 // 认证
-                HeadlessAccessSession accessSession = getAccessSession(userId);
+                if (accessSession == null) {
+                    accessSession = getAccessSession(userId);
+                }
                 String loginUrl = buildLoginUrl(userId, accessSession);
                 try {
                     session.authenticate(loginUrl);
@@ -141,10 +152,10 @@ public class HeadlessBrowserManager implements AutoCloseable {
                 }
             }
 
-            // 3. 执行操作
+            // 4. 执行操作
             T result = action.execute(session);
 
-            // 4. 检测 401，token 失效则重新认证后重试
+            // 5. 检测 401，token 失效则重新认证后重试
             if (session.isTokenExpired()) {
                 log.warn("{}检测到token失效(401)，重新认证: userId={}", actionName, userId);
                 String certificationUrl = buildCertificationLoginUrl(userId);
@@ -158,20 +169,22 @@ public class HeadlessBrowserManager implements AutoCloseable {
                 result = action.execute(session);
             }
 
-            // 5. 从浏览器提取会话信息并保存到 Redis
-            HeadlessAccessSession accessSession = getAccessSession(userId);
-            saveAccessSession(userId, session, accessSession);
+            // 6. 从浏览器提取会话信息并保存到 Redis，同时更新 cacheKey
+            HeadlessAccessSession savedSession = saveAccessSession(userId, session, accessSession);
+            if (savedSession != null && savedSession.threadId() != null) {
+                cacheKey = buildCacheKey(userId, savedSession.threadId());
+            }
 
             return result;
 
         } catch (Exception e) {
             // 操作异常，如果是从缓存获取的，移除缓存并销毁
             if (fromCache && session != null) {
-                log.warn("{}缓存Session操作异常，移除缓存: userId={}", actionName, userId, e);
-                contextPool.removeCachedSession(userId);
+                log.warn("{}缓存Session操作异常，移除缓存: cacheKey={}", actionName, cacheKey, e);
+                contextPool.removeCachedSession(cacheKey);
                 session = null;  // 标记已处理，finally 中不再处理
             }
-            throw e instanceof RuntimeException re ? re : new RuntimeException(e);
+            throw e;
         } finally {
             if (session != null) {
                 if (fromCache) {
@@ -179,19 +192,21 @@ public class HeadlessBrowserManager implements AutoCloseable {
                     try {
                         session.release();
                     } catch (Exception e) {
-                        log.warn("释放缓存Session异常: userId={}", userId, e);
+                        log.warn("释放缓存Session异常: cacheKey={}", cacheKey, e);
                     }
-                    contextPool.markIdle(userId);
+                    contextPool.markIdle(cacheKey);
                 } else {
                     // 新建 Session：release 后放入缓存，标记为 IDLE
                     try {
                         session.release();
-                        if (contextPool.cacheSession(userId, session)) {
-                            contextPool.markIdle(userId);
+                        if (cacheKey != null && contextPool.cacheSession(cacheKey, session)) {
+                            contextPool.markIdle(cacheKey);
                         }
                     } catch (Exception e) {
-                        log.warn("缓存Session异常，销毁: userId={}", userId, e);
-                        contextPool.removeCachedSession(userId);
+                        log.warn("缓存Session异常，销毁: cacheKey={}", cacheKey, e);
+                        if (cacheKey != null) {
+                            contextPool.removeCachedSession(cacheKey);
+                        }
                     }
                 }
             }
@@ -221,8 +236,10 @@ public class HeadlessBrowserManager implements AutoCloseable {
 
     /**
      * 从浏览器提取会话信息并保存到 Redis
+     *
+     * @return 保存后的 HeadlessAccessSession，用于构建缓存键
      */
-    private void saveAccessSession(String userId, HeadlessBrowserSession session, HeadlessAccessSession previousSession) {
+    private HeadlessAccessSession saveAccessSession(String userId, HeadlessBrowserSession session, HeadlessAccessSession previousSession) {
         try {
             String token = session.extractTokenFromBrowser();
             String threadId = session.extractThreadId();
@@ -232,7 +249,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
 
             if (token == null) {
                 log.warn("无法从浏览器提取 token，跳过保存 session: userId={}", userId);
-                return;
+                return previousSession;
             }
 
             HeadlessAccessSession newSession = new HeadlessAccessSession(userId, token, threadId);
@@ -245,8 +262,10 @@ public class HeadlessBrowserManager implements AutoCloseable {
             });
 
             log.debug("保存分布式会话: userId={}, threadId={}", userId, threadId);
+            return newSession;
         } catch (Exception e) {
             log.warn("保存分布式会话失败: userId={}", userId, e);
+            return previousSession;
         }
     }
 
@@ -299,6 +318,15 @@ public class HeadlessBrowserManager implements AutoCloseable {
     }
 
     /**
+     * 构建缓存键：userId:threadId
+     * <p>
+     * 同一用户不同 threadId 对应不同的缓存 Session，避免会话串扰
+     */
+    private String buildCacheKey(String userId, String threadId) {
+        return userId + ":" + threadId;
+    }
+
+    /**
      * 开启新会话
      * <p>
      * 清除 Redis 中的 threadId，同时从缓存中移除旧 Session（强制下次新建）
@@ -306,8 +334,11 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param userId 用户 ID
      */
     public void newSession(String userId) {
-        // 清除缓存 Session（新会话需要全新的浏览器状态）
-        contextPool.removeCachedSession(userId);
+        // 先移除旧缓存 Session（需要旧 threadId 构建缓存键）
+        HeadlessAccessSession accessSession = getAccessSession(userId);
+        if (accessSession != null && accessSession.threadId() != null) {
+            contextPool.removeCachedSession(buildCacheKey(userId, accessSession.threadId()));
+        }
 
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {
@@ -318,8 +349,11 @@ public class HeadlessBrowserManager implements AutoCloseable {
     }
 
     public void newSession(String userId, String threadId) {
-        // 清除缓存 Session（切换 threadId 需要新的浏览器状态）
-        contextPool.removeCachedSession(userId);
+        // 先移除旧缓存 Session（需要旧 threadId 构建缓存键）
+        HeadlessAccessSession accessSession = getAccessSession(userId);
+        if (accessSession != null && accessSession.threadId() != null) {
+            contextPool.removeCachedSession(buildCacheKey(userId, accessSession.threadId()));
+        }
 
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {
@@ -333,8 +367,11 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * 删除用户的分布式会话
      */
     public void removeAccessSession(String userId) {
-        // 同步清除缓存 Session
-        contextPool.removeCachedSession(userId);
+        // 先移除缓存 Session（需要 threadId 构建缓存键）
+        HeadlessAccessSession accessSession = getAccessSession(userId);
+        if (accessSession != null && accessSession.threadId() != null) {
+            contextPool.removeCachedSession(buildCacheKey(userId, accessSession.threadId()));
+        }
 
         String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
         cacheUtils.withRebel(() -> {

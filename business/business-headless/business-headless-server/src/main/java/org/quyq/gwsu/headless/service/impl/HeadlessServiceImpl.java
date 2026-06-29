@@ -18,6 +18,7 @@ import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.headless.api.dto.*;
+import org.quyq.gwsu.headless.api.dto.block.*;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.api.vo.AssistantMsg;
 import org.quyq.gwsu.headless.api.vo.HeadlessResponse;

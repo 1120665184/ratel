@@ -66,6 +66,11 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         wrapper.discardRecording();
     }
 
+    @Override
+    public void onTextMessageEnd(AguiEvent.TextMessageEnd event, HeadlessPageWrapper wrapper) {
+        status = HeadlessAgentStatus.OUTPUTTING;
+        sink.tryEmitNext(getContent("\n\r"));
+    }
 
     @Override
     public void onTextMessageContent(String delta, HeadlessPageWrapper wrapper) {
@@ -104,7 +109,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
         Msg msg = Msg.builder()
                 .role(MsgRole.ASSISTANT)
-                .textContent(tip)
+                .textContent("\n\r" + tip)
                 .build();
 
         sink.tryEmitNext(getContent(msg, null));
@@ -116,7 +121,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
             Msg sp = Msg.builder()
                     .role(MsgRole.ASSISTANT)
-                    .textContent("\n以下是操作记录：\n")
+                    .textContent("\n\r以下是操作记录：\n")
                     .build();
             sink.tryEmitNext(getContent(sp, upload));
         } finally {
@@ -134,7 +139,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
     //问用户问题处理
     @Override
     public void onAskUserQuestion(String threadId, String toolCallId, List<AskUserQuestionTool.QuestionParam> questions, HeadlessPageWrapper wrapper) {
-        StringBuilder sb = new StringBuilder("# 请您回答以下几个问题：\n\r");
+        StringBuilder sb = new StringBuilder("\n# 请您回答以下几个问题：\n\r");
         for (int i = 0; i < questions.size(); i++) {
             AskUserQuestionTool.QuestionParam question = questions.get(i);
             StringBuilder qStr = new StringBuilder();

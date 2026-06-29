@@ -3,7 +3,11 @@ package org.quyq.gwsu.headless.api.factory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.api.fallback.FallbackFactory;
+import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.headless.api.HeadlessClientApi;
+import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
+import org.quyq.gwsu.headless.api.dto.NewChatDTO;
+import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import reactor.core.publisher.Flux;
 
 /**
@@ -16,6 +20,16 @@ public class HeadlessClientApiFactory implements FallbackFactory<HeadlessClientA
     @Override
     public HeadlessClientApi create(Throwable cause) {
         log.error("", cause);
-        return (userId, form) -> Flux.error(cause);
+        return new HeadlessClientApi() {
+            @Override
+            public Flux<HeadlessResponse> stream(String userId, HeadlessDTO form) {
+                return Flux.error(cause);
+            }
+
+            @Override
+            public R<Void> newThreadId(NewChatDTO form) {
+                return R.fail(cause.getMessage());
+            }
+        };
     }
 }

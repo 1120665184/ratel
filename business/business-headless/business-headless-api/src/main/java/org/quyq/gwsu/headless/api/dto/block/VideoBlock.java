@@ -1,13 +1,14 @@
-package org.quyq.gwsu.headless.api.dto;
+package org.quyq.gwsu.headless.api.dto.block;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.quyq.gwsu.headless.api.dto.ContentBlock;
 
 /**
- * 音频内容块，支持 URL 或 Base64 两种来源
+ * 视频内容块，支持 URL 或 Base64 两种来源
  *
  * @author Quyq
  * @date 2026/6/25
@@ -17,17 +18,17 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AudioBlock extends ContentBlock {
+public class VideoBlock extends ContentBlock {
 
-    public static final String TYPE = "audio";
+    public static final String TYPE = "video";
 
     /**
-     * 音频 URL，与 base64 二选一
+     * 视频 URL，与 base64 二选一
      */
     private String url;
 
     /**
-     * Base64 媒体类型，如 "audio/mp3"，base64 模式时使用
+     * Base64 媒体类型，如 "video/mp4"，base64 模式时使用
      */
     private String mediaType;
 

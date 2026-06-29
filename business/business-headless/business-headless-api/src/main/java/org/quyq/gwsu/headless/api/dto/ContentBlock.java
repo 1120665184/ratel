@@ -2,6 +2,7 @@ package org.quyq.gwsu.headless.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.quyq.gwsu.headless.api.dto.block.*;
 
 /**
  * 消息内容块基类，模仿 io.agentscope.core.message.ContentBlock

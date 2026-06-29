@@ -13,9 +13,9 @@ import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.api.IAccountInfoClientApi;
 import org.quyq.gwsu.headless.api.HeadlessClientApi;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
-import org.quyq.gwsu.headless.api.dto.ImageBlock;
+import org.quyq.gwsu.headless.api.dto.block.ImageBlock;
 import org.quyq.gwsu.headless.api.dto.UserMsg;
-import org.quyq.gwsu.headless.api.dto.VideoBlock;
+import org.quyq.gwsu.headless.api.dto.block.VideoBlock;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.api.vo.AssistantMsg;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.DingTalkMessage;
@@ -33,7 +33,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -197,6 +196,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
         param.put("image_url", imageUrl);
         param.put("video_url", videoUrl);
         param.put("progress", progress + "");
+        param.put("newChat" , "true");
         return param;
     }
 
@@ -207,7 +207,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
      * @param staffId
      * @return
      */
-    protected UserStaffIdMappingInfo getUserMappingInfo(String staffId) {
+    public UserStaffIdMappingInfo getUserMappingInfo(String staffId) {
         UserStaffIdMappingInfo info = cacheUtils.get(DING_TALK_USER_MAPPING + staffId);
         if (Objects.nonNull(info) && StringUtils.hasText(info.getSubjectId())) {
             return info;
