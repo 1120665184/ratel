@@ -13,6 +13,11 @@ import lombok.Getter;
 @Builder
 public class HeadlessCallConfig {
 
+    /**
+     * 标识，用于分隔对话，如果有值，对话唯一标识判断为 sign:userId
+     */
+    private String sign;
+
     private String userId;
 
     private String threadId;

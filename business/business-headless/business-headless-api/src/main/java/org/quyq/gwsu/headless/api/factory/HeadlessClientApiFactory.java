@@ -22,7 +22,7 @@ public class HeadlessClientApiFactory implements FallbackFactory<HeadlessClientA
         log.error("", cause);
         return new HeadlessClientApi() {
             @Override
-            public Flux<HeadlessResponse> stream(String userId, HeadlessDTO form) {
+            public Flux<HeadlessResponse> stream(String userId , String sign, HeadlessDTO form) {
                 return Flux.error(cause);
             }
 

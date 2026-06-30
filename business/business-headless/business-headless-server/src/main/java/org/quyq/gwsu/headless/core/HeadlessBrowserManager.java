@@ -8,6 +8,8 @@ import org.quyq.gwsu.headless.core.pool.BrowserContextPool;
 import org.quyq.gwsu.headless.core.pool.SessionWrapper;
 import org.quyq.gwsu.headless.core.session.HeadlessAccessSession;
 import org.quyq.gwsu.headless.core.session.HeadlessBrowserSession;
+import org.quyq.gwsu.headless.domain.SubjectInfo;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 import java.util.UUID;
@@ -59,7 +61,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param listener 事件监听器
      * @return SSE 事件列表
      */
-    public void sendMessage(String userId, String message, HeadlessAgentListener listener) {
+    public void sendMessage(SubjectInfo userId, String message, HeadlessAgentListener listener) {
         executeWithSession(userId, "发送消息", session -> session.sendMessage(message, listener));
     }
 
@@ -74,7 +76,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param rejectReason 拒绝原因（批准时可为 null）
      * @param listener     事件监听器，接收提交后的 SSE 事件
      */
-    public void approval(String userId, boolean approved, String rejectReason, HeadlessAgentListener listener) {
+    public void approval(SubjectInfo userId, boolean approved, String rejectReason, HeadlessAgentListener listener) {
         executeWithSession(userId, "审批", session -> {
             session.submitApproval(approved, rejectReason, listener);
             return null;
@@ -92,7 +94,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param answers    问题答案，key 为问题文本，value 为用户回答
      * @param listener   事件监听器，接收提交后的 SSE 事件
      */
-    public void userAnswer(String userId, String toolCallId, Map<String, String> answers, HeadlessAgentListener listener) {
+    public void userAnswer(SubjectInfo userId, String toolCallId, Map<String, String> answers, HeadlessAgentListener listener) {
         executeWithSession(userId, "回答问题", session -> {
             session.submitUserAnswer(toolCallId, answers, listener);
             return null;
@@ -108,12 +110,12 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * 1. 获取分布式会话 HeadlessAccessSession
      * 2. 无 threadId → 直接创建新 Session（跳过缓存查找）
      * 3. 有 threadId → 以 userId:threadId 为缓存键查找缓存 Session
-     *    - 命中且 IDLE → 复用，直接执行操作（跳过认证）
-     *    - 未命中 → 从 idleQueue 借用 BrowserContext，创建新 Session，认证后执行
+     * - 命中且 IDLE → 复用，直接执行操作（跳过认证）
+     * - 未命中 → 从 idleQueue 借用 BrowserContext，创建新 Session，认证后执行
      * 4. 操作中发现 401 → 重新认证后重试
      * 5. 操作完成 → release() 释放运行时资源 → 缓存 Session（以 userId:threadId 为键）
      */
-    private <T> T executeWithSession(String userId, String actionName, SessionAction<T> action) {
+    private <T> T executeWithSession(SubjectInfo userId, String actionName, SessionAction<T> action) {
         HeadlessBrowserSession session = null;
         boolean fromCache = false;
         String cacheKey = null;
@@ -226,12 +228,16 @@ public class HeadlessBrowserManager implements AutoCloseable {
     /**
      * 从 Redis 读取分布式会话
      */
-    public HeadlessAccessSession getAccessSession(String userId) {
-        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
+    public HeadlessAccessSession getAccessSession(SubjectInfo userId) {
+        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + getSubjectSign(userId);
         return cacheUtils.withRebel(() -> {
             Map<String, String> map = cacheUtils.hGetAll(key, String.class);
             return HeadlessAccessSession.fromMap(map);
         });
+    }
+
+    private String getSubjectSign(SubjectInfo subjectInfo) {
+        return StringUtils.hasText(subjectInfo.sign()) ? subjectInfo.sign() + ":" + subjectInfo.userId() : subjectInfo.userId();
     }
 
     /**
@@ -239,7 +245,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
      *
      * @return 保存后的 HeadlessAccessSession，用于构建缓存键
      */
-    private HeadlessAccessSession saveAccessSession(String userId, HeadlessBrowserSession session, HeadlessAccessSession previousSession) {
+    private HeadlessAccessSession saveAccessSession(SubjectInfo userId, HeadlessBrowserSession session, HeadlessAccessSession previousSession) {
         try {
             String token = session.extractTokenFromBrowser();
             String threadId = session.extractThreadId();
@@ -248,12 +254,12 @@ public class HeadlessBrowserManager implements AutoCloseable {
             if (threadId == null && previousSession != null) threadId = previousSession.threadId();
 
             if (token == null) {
-                log.warn("无法从浏览器提取 token，跳过保存 session: userId={}", userId);
+                log.warn("无法从浏览器提取 token，跳过保存 session: userId={}", userId.userId());
                 return previousSession;
             }
 
-            HeadlessAccessSession newSession = new HeadlessAccessSession(userId, token, threadId);
-            String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
+            HeadlessAccessSession newSession = new HeadlessAccessSession(userId.userId(), token, threadId);
+            String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + getSubjectSign(userId);
 
             cacheUtils.withRebel(() -> {
                 cacheUtils.hSetAll(key, newSession.toMap());
@@ -274,13 +280,13 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * - 无 session: certification 登录
      * - 有 session: 追加 token 和 threadId
      */
-    private String buildLoginUrl(String userId, HeadlessAccessSession accessSession) {
+    private String buildLoginUrl(SubjectInfo userId, HeadlessAccessSession accessSession) {
         String certificationKey = UUID.randomUUID().toString();
 
         cacheUtils.withRebel(() -> {
             cacheUtils.set(
                     SecurityConstants.Authentication.HEADLESS_LOGIN_CERTIFICATION_CACHE_PREFIX + certificationKey,
-                    userId,
+                    userId.userId(),
                     2, TimeUnit.MINUTES
             );
             return null;
@@ -302,13 +308,13 @@ public class HeadlessBrowserManager implements AutoCloseable {
     /**
      * 构造仅 certification 的登录 URL（用于 token 失效后的回退登录）
      */
-    private String buildCertificationLoginUrl(String userId) {
+    private String buildCertificationLoginUrl(SubjectInfo userId) {
         String certificationKey = UUID.randomUUID().toString();
 
         cacheUtils.withRebel(() -> {
             cacheUtils.set(
                     SecurityConstants.Authentication.HEADLESS_LOGIN_CERTIFICATION_CACHE_PREFIX + certificationKey,
-                    userId,
+                    userId.userId(),
                     2, TimeUnit.MINUTES
             );
             return null;
@@ -322,8 +328,8 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * <p>
      * 同一用户不同 threadId 对应不同的缓存 Session，避免会话串扰
      */
-    private String buildCacheKey(String userId, String threadId) {
-        return userId + ":" + threadId;
+    private String buildCacheKey(SubjectInfo userId, String threadId) {
+        return getSubjectSign(userId) + ":" + threadId;
     }
 
     /**
@@ -333,14 +339,14 @@ public class HeadlessBrowserManager implements AutoCloseable {
      *
      * @param userId 用户 ID
      */
-    public void newSession(String userId) {
+    public void newSession(SubjectInfo userId) {
         // 先移除旧缓存 Session（需要旧 threadId 构建缓存键）
         HeadlessAccessSession accessSession = getAccessSession(userId);
         if (accessSession != null && accessSession.threadId() != null) {
             contextPool.removeCachedSession(buildCacheKey(userId, accessSession.threadId()));
         }
 
-        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
+        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + getSubjectSign(userId);
         cacheUtils.withRebel(() -> {
             cacheUtils.hDelete(key, HeadlessAccessSession.HASH_KEY_THREAD_ID);
             return null;
@@ -348,14 +354,14 @@ public class HeadlessBrowserManager implements AutoCloseable {
         log.debug("已清除用户 threadId 和缓存 Session，下次将创建新会话: userId={}", userId);
     }
 
-    public void newSession(String userId, String threadId) {
+    public void newSession(SubjectInfo userId, String threadId) {
         // 先移除旧缓存 Session（需要旧 threadId 构建缓存键）
         HeadlessAccessSession accessSession = getAccessSession(userId);
         if (accessSession != null && accessSession.threadId() != null) {
             contextPool.removeCachedSession(buildCacheKey(userId, accessSession.threadId()));
         }
 
-        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
+        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + getSubjectSign(userId);
         cacheUtils.withRebel(() -> {
             cacheUtils.hSet(key, HeadlessAccessSession.HASH_KEY_THREAD_ID, threadId);
             return null;
@@ -363,22 +369,6 @@ public class HeadlessBrowserManager implements AutoCloseable {
         log.debug("已设置新会话threadID并清除缓存Session: userId={}", userId);
     }
 
-    /**
-     * 删除用户的分布式会话
-     */
-    public void removeAccessSession(String userId) {
-        // 先移除缓存 Session（需要 threadId 构建缓存键）
-        HeadlessAccessSession accessSession = getAccessSession(userId);
-        if (accessSession != null && accessSession.threadId() != null) {
-            contextPool.removeCachedSession(buildCacheKey(userId, accessSession.threadId()));
-        }
-
-        String key = SecurityConstants.Authentication.HEADLESS_ACCESS_SESSION_PREFIX + userId;
-        cacheUtils.withRebel(() -> {
-            cacheUtils.delete(key);
-            return null;
-        });
-    }
 
     /**
      * 获取池中空闲数量

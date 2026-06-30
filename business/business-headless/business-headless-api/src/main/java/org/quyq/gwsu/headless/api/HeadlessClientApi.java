@@ -34,7 +34,8 @@ public interface HeadlessClientApi {
      * @return
      */
     @PostExchange(value = "stream", accept = MediaType.TEXT_EVENT_STREAM_VALUE)
-    Flux<HeadlessResponse> stream(@RequestParam("userId") String userId, @RequestBody HeadlessDTO form);
+    Flux<HeadlessResponse> stream(@RequestParam("userId") String userId,
+                                  @RequestParam(required = false , value = "sign") String sign, @RequestBody HeadlessDTO form);
 
     /**
      * 主动建立新会话

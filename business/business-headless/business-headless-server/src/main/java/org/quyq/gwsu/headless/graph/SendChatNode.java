@@ -9,6 +9,7 @@ import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
+import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -36,9 +37,9 @@ public class SendChatNode implements NodeAction {
     public Map<String, Object> apply(OverAllState state) {
 
         String query = state.value(HeadlessConstants.Headless.GRAPH_PARAM_QUERY, "");
-        String userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, String.class).orElse("");
+        SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
 
-        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId, session);
+        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId.userId(), session);
 
         executorService.submit(() -> {
             try {

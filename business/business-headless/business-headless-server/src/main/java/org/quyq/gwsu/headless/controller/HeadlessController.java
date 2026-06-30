@@ -13,6 +13,7 @@ import org.quyq.gwsu.headless.api.dto.NewChatDTO;
 import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.domain.HeadlessCallConfig;
+import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
 import org.quyq.gwsu.headless.service.IHeadlessService;
 import org.springframework.http.MediaType;
@@ -38,9 +39,11 @@ public class HeadlessController implements HeadlessClientApi {
     @Override
     @PostMapping(value = "stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(description = "无头智能体调用")
-    public Flux<HeadlessResponse> stream(@RequestParam String userId, @RequestBody HeadlessDTO form) {
+    public Flux<HeadlessResponse> stream(@RequestParam String userId ,
+                                         @RequestParam(required = false) String sign, @RequestBody HeadlessDTO form) {
 
-        return headlessService.stream(form.message().getTextContent(), HeadlessCallConfig.builder()
+        return headlessService.stream(form.message(), HeadlessCallConfig.builder()
+                 .sign(sign)
                 .userId(userId)
                 .threadId(form.threadId())
                 .build());
@@ -57,7 +60,7 @@ public class HeadlessController implements HeadlessClientApi {
             form.setThreadId(IdUtil.fastUUID());
         }
 
-        headlessBrowserManager.newSession(form.getUserId(), form.getThreadId());
+        headlessBrowserManager.newSession(new SubjectInfo(form.getSign(),form.getUserId()), form.getThreadId());
         return R.ok();
 
     }

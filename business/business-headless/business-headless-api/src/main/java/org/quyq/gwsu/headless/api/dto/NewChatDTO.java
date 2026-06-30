@@ -13,6 +13,8 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class NewChatDTO {
 
+    private String sign;
+
     private String userId;
 
     private String threadId;

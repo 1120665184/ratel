@@ -11,6 +11,7 @@ import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.domain.RouterInfo;
+import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -45,9 +46,9 @@ public class SendAnswerNode implements NodeAction {
         String toolCallId = routerInfo.getToolCallId();
         AssertUtils.hasText(toolCallId, HeadlessErrorCode.E01004);
 
-        String userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, String.class).orElse("");
+        SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
 
-        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId, session);
+        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId.userId(), session);
         //发送用户回复
         executorService.submit(() -> {
             try {

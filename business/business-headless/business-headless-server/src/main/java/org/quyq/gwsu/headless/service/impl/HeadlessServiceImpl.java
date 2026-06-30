@@ -26,6 +26,7 @@ import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.domain.HeadlessCallConfig;
 import org.quyq.gwsu.headless.domain.RouterInfo;
+import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.enums.GraphRouteType;
 import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
 import org.quyq.gwsu.headless.graph.IntentRecognitionNode;
@@ -70,8 +71,8 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
     @SneakyThrows
     @Override
-    public Flux<HeadlessResponse> stream(String query, HeadlessCallConfig config) {
-
+    public Flux<HeadlessResponse> stream(UserMsg msg, HeadlessCallConfig config) {
+        String query = msg.getTextContent();
         AssertUtils.hasText(query, HeadlessErrorCode.E01006);
         String userId = config.getUserId();
         if (!StringUtils.hasText(userId)) {
@@ -79,7 +80,8 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
         }
         AssertUtils.hasText(userId, HeadlessErrorCode.E01005);
 
-        RLock lock = cacheUtils.getLock(lockKey.formatted(userId));
+        String keySign = StringUtils.hasText(config.getSign()) ? config.getSign() + ":" + userId : userId;
+        RLock lock = cacheUtils.getLock(lockKey.formatted(keySign));
         // leaseTime=-1：锁不自动过期，持有到操作完成才释放
         boolean acquired = lock.tryLock(0, -1, TimeUnit.SECONDS);
         if (!acquired) {
@@ -88,7 +90,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
         return headlessGraph.stream(Map.of(
                         HeadlessConstants.Headless.GRAPH_PARAM_QUERY, query,
-                        HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, userId,
+                        HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, new SubjectInfo(config.getSign()  , userId),
                         HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, Optional.ofNullable(config.getThreadId()).orElse("")
                 ))
                 .filter(nodeOutput -> nodeOutput instanceof StreamingOutput<?>)

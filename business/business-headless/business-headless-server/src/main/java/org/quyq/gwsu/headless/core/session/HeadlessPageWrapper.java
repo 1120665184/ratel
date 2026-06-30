@@ -242,6 +242,9 @@ public class HeadlessPageWrapper {
      * 如果选择器为 null 或空，则截取整个页面。
      * 指定元素时会先等待元素出现在 DOM 中（最多 {@value #ELEMENT_WAIT_TIMEOUT_MS}ms），
      * 超时则降级为整页截图。
+     * <p>
+     * 当元素内容超出可见区域（存在滚动条）时，会通过 JavaScript 临时展开元素及其祖先容器，
+     * 截取完整内容后再恢复原始样式，从而实现长截图效果。
      *
      * @param selector CSS 选择器，如 "#app"、".chat-container"、"[data-testid='xxx']"
      * @return PNG 格式的截图文件
@@ -266,7 +269,7 @@ public class HeadlessPageWrapper {
                     Files.write(tempFile, bytes);
                     return tempFile.toFile();
                 }
-                bytes = locator.screenshot(new Locator.ScreenshotOptions());
+                bytes = screenshotFullElement(selector, locator);
             } else {
                 bytes = page.screenshot(new Page.ScreenshotOptions().setFullPage(true));
             }
@@ -276,6 +279,153 @@ public class HeadlessPageWrapper {
         } catch (Exception e) {
             log.error("获取截图失败: selector={}", selector, e);
             throw new RuntimeException("获取截图失败", e);
+        }
+    }
+
+    /**
+     * 截取元素的完整内容（长截图）
+     * <p>
+     * 通过 JavaScript 临时展开目标元素及其所有祖先容器的滚动约束，
+     * 使元素的全部内容可见，截取后再恢复原始样式。
+     * <p>
+     * 处理步骤：
+     * 1. 获取目标元素的 scrollHeight，将 height 设为 scrollHeight 以展开全部内容
+     * 2. 向上遍历祖先元素，将 overflow/overflowY 设为 visible，防止被裁剪
+     * 3. 截取展开后的元素
+     * 4. 恢复所有被修改的样式
+     *
+     * @param selector CSS 选择器
+     * @param locator  Playwright Locator
+     * @return 截图的 PNG 字节数组
+     */
+    private byte[] screenshotFullElement(String selector, Locator locator) {
+        // 临时展开元素及其祖先，返回用于恢复的 JSON token
+        String restoreToken = expandElementForFullScreenshot(selector);
+
+        try {
+            // 等待一小段时间让浏览器完成重排
+            page.waitForTimeout(100);
+            return locator.screenshot(new Locator.ScreenshotOptions());
+        } finally {
+            // 无论截图成功与否，都必须恢复原始样式
+            restoreElementStyles(restoreToken);
+        }
+    }
+
+    /**
+     * 临时展开目标元素及其祖先容器，以便截取完整内容
+     * <p>
+     * 修改内容：
+     * - 目标元素：height → scrollHeight，overflow → visible，overflowY → visible
+     * - 祖先元素：overflow → visible，overflowY → visible（仅修改有滚动裁剪的祖先）
+     * <p>
+     * 返回一个 JSON 字符串 token，包含所有被修改的原始样式，
+     * 供 {@link #restoreElementStyles(String)} 恢复使用。
+     *
+     * @param selector CSS 选择器
+     * @return 恢复用的 JSON token；如果元素不存在则返回 null
+     */
+    private String expandElementForFullScreenshot(String selector) {
+        // JavaScript 执行展开操作，返回包含原始样式的 JSON token
+        String expandJs = """
+                (selector) => {
+                    const el = document.querySelector(selector);
+                    if (!el) return null;
+
+                    const modifications = [];
+
+                    // 1. 展开目标元素：将 height 设为 scrollHeight，移除滚动约束
+                    const targetOriginal = {
+                        height: el.style.height,
+                        overflow: el.style.overflow,
+                        overflowY: el.style.overflowY,
+                        minHeight: el.style.minHeight,
+                        maxHeight: el.style.maxHeight
+                    };
+                    modifications.push({ element: el, original: targetOriginal });
+
+                    el.style.height = el.scrollHeight + 'px';
+                    el.style.overflow = 'visible';
+                    el.style.overflowY = 'visible';
+                    el.style.minHeight = '';
+                    el.style.maxHeight = '';
+
+                    // 2. 向上遍历祖先元素，移除可能裁剪内容的 overflow 限制
+                    let ancestor = el.parentElement;
+                    while (ancestor && ancestor !== document.body && ancestor !== document.documentElement) {
+                        const computed = window.getComputedStyle(ancestor);
+                        // 仅处理有滚动裁剪的祖先（overflow 为 hidden/scroll/auto）
+                        if (['hidden', 'scroll', 'auto'].includes(computed.overflow) ||
+                            ['hidden', 'scroll', 'auto'].includes(computed.overflowY)) {
+                            const ancestorOriginal = {
+                                overflow: ancestor.style.overflow,
+                                overflowY: ancestor.style.overflowY
+                            };
+                            modifications.push({ element: ancestor, original: ancestorOriginal });
+                            ancestor.style.overflow = 'visible';
+                            ancestor.style.overflowY = 'visible';
+                        }
+                        ancestor = ancestor.parentElement;
+                    }
+
+                    // 返回序列化的修改记录（用于恢复）
+                    // 因为无法直接传递 DOM 引用，改用路径索引定位元素
+                    const serializable = modifications.map(m => {
+                        const path = [];
+                        let node = m.element;
+                        while (node.parentElement) {
+                            const siblings = Array.from(node.parentElement.children);
+                            path.unshift(siblings.indexOf(node));
+                            node = node.parentElement;
+                        }
+                        return { path, original: m.original };
+                    });
+
+                    return JSON.stringify(serializable);
+                }
+                """;
+
+        Object result = page.evaluate(expandJs, selector);
+        return result != null ? result.toString() : null;
+    }
+
+    /**
+     * 恢复被 {@link #expandElementForFullScreenshot(String)} 修改的元素样式
+     * <p>
+     * 根据 token 中的 DOM 路径索引重新定位元素，并恢复原始样式属性。
+     *
+     * @param restoreToken 由 expandElementForFullScreenshot 返回的 JSON token
+     */
+    private void restoreElementStyles(String restoreToken) {
+        if (restoreToken == null || restoreToken.isEmpty()) {
+            return;
+        }
+        try {
+            String restoreJs = """
+                    (token) => {
+                        const modifications = JSON.parse(token);
+                        for (const mod of modifications) {
+                            // 根据路径索引从 document 重新定位元素
+                            let node = document.documentElement;
+                            for (const idx of mod.path) {
+                                node = node.children[idx];
+                                if (!node) break;
+                            }
+                            if (!node) continue;
+
+                            // 恢复原始样式
+                            const orig = mod.original;
+                            if ('height' in orig) node.style.height = orig.height;
+                            if ('overflow' in orig) node.style.overflow = orig.overflow;
+                            if ('overflowY' in orig) node.style.overflowY = orig.overflowY;
+                            if ('minHeight' in orig) node.style.minHeight = orig.minHeight;
+                            if ('maxHeight' in orig) node.style.maxHeight = orig.maxHeight;
+                        }
+                    }
+                    """;
+            page.evaluate(restoreJs, restoreToken);
+        } catch (Exception e) {
+            log.warn("恢复元素样式失败，页面布局可能需要刷新: {}", e.getMessage());
         }
     }
 

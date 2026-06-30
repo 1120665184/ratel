@@ -22,6 +22,7 @@ import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.core.session.HeadlessAccessSession;
 import org.quyq.gwsu.headless.domain.RouterInfo;
+import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.enums.GraphRouteType;
 import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -58,7 +59,7 @@ public class IntentRecognitionNode implements NodeAction {
     public Map<String, Object> apply(OverAllState state) {
         String threadId = (String) state.value(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID).orElse("");
         String query = state.value(HeadlessConstants.Headless.GRAPH_PARAM_QUERY, "");
-        String userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, String.class).orElse("");
+        SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
 
         if (StringUtils.hasText(threadId)) {
             headlessBrowserManager.newSession(userId, threadId);
@@ -74,7 +75,7 @@ public class IntentRecognitionNode implements NodeAction {
         InMemoryMemory memory = new InMemoryMemory();
         //加载历史记忆
         if (StringUtils.hasText(threadId)) {
-            memory.loadIfExists(session, CommonSessionKey.of(threadId, userId));
+            memory.loadIfExists(session, CommonSessionKey.of(threadId, userId.userId()));
         }
 
         List<Msg> messages = memory.getMessages();
@@ -122,7 +123,7 @@ public class IntentRecognitionNode implements NodeAction {
         }
 
         //追加节点会话历史消息
-        CommonSessionKey sessionKey = CommonSessionKey.of(threadId, userId);
+        CommonSessionKey sessionKey = CommonSessionKey.of(threadId, userId.userId());
         List<Msg> nodeHistory = new ArrayList<>();
         if (StringUtils.hasText(threadId)) {
             nodeHistory = session.getList(sessionKey, HEADLESS_RECOGNITION_NODE_KEY, Msg.class);

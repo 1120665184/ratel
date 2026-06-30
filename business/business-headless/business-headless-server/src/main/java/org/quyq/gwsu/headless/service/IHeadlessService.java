@@ -1,6 +1,7 @@
 package org.quyq.gwsu.headless.service;
 
 
+import org.quyq.gwsu.headless.api.dto.UserMsg;
 import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import org.quyq.gwsu.headless.domain.HeadlessCallConfig;
 import reactor.core.publisher.Flux;
@@ -13,6 +14,6 @@ import reactor.core.publisher.Flux;
 public interface IHeadlessService {
 
 
-    Flux<HeadlessResponse> stream(String query, HeadlessCallConfig config);
+    Flux<HeadlessResponse> stream(UserMsg msg, HeadlessCallConfig config);
 
 }

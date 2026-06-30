@@ -103,7 +103,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
         dingTalkCardUtils.sendCard(outTrackId, sourceType, mappingInfo.getStaffId(), lastParam.get());
 
         AssistantResponse response = new AssistantResponse();
-        headlessClientApi.stream(mappingInfo.getSubjectId() ,new HeadlessDTO(
+        headlessClientApi.stream(mappingInfo.getSubjectId() ,"dingtalk",new HeadlessDTO(
                         UserMsg.ofText(content.content.getContent()),null))
                 .doOnNext(chunk -> {
                     if (status.get() == HeadlessAgentStatus.ERROR) {
@@ -111,7 +111,6 @@ public class DingTalkServiceImpl implements IDingTalkService {
                     }
                     status.set(chunk.status());
                     AssistantMsg message = chunk.message();
-                    log.debug("消息: status={}, text={}", status, objectMapper.writeValueAsString(message));
 
                     // 服务端错误已包装为 ERROR 状态事件，直接处理
                     if (HeadlessAgentStatus.ERROR == status.get() || HeadlessAgentStatus.BUSY == status.get()) {
