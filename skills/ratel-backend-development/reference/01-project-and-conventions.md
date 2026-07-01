@@ -6,13 +6,14 @@
 root-pom/                    # 根 POM
 project-pom/                 # 内部模块版本管理
 common/                      # 公共基础设施
-├── common-core              # 核心工具类、领域对象
-├── common-api               # @ApiClient 框架
-├── common-cache             # Redis/Redisson
-├── common-database          # MyBatis Plus、多数据源
-├── common-deploy            # 部署模式（单体/分布式）
-├── common-security          # Casbin/ABAC 安全
-└── common-authentication    # 认证
+├── common-core              # 核心工具类、领域对象（R/BaseDO/BaseVO/BaseDTO）
+├── common-api               # @ApiClient 跨模块调用框架
+├── common-cache             # Redis/Redisson 缓存、分布式锁、ID生成
+├── common-database          # MyBatis Plus、多数据源、动态数据库标识
+├── common-deploy            # 部署模式（单体/分布式）自动检测与切换
+├── common-security          # Casbin/ABAC 安全、表模型权限、字段脱敏、数据资源
+├── common-authentication    # 认证（Sa-Token）、登录处理器、数据资源范围
+└── common-log               # 操作日志（AOP自动采集、异步分片消费）
 business/                    # 业务模块
 ├── business-xxx/
 │   ├── business-xxx-api/    # API 模块（接口、VO、DTO、枚举）
@@ -80,7 +81,7 @@ public class XxxModuleInfoProvider implements BusinessModuleInfoProvider {
 }
 ```
 
-## 1.7 前端 API 路由前缀规则
+## 1.7 API 路由前缀规则
 
 所有 API 路径必须以模块 `prefix` 为前缀：`/{模块prefix}/{业务路径}`
 

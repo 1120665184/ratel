@@ -15,13 +15,33 @@ type: skill
 
 ## 文档索引
 
+### 基础规范
+
 | 文档 | 说明 | 适用场景 |
 |------|------|---------|
 | [01-project-and-conventions.md](reference/01-project-and-conventions.md) | 项目结构、命名规范、SQL规范、错误码 | 编写任何后端代码 |
 | [02-layer-architecture.md](reference/02-layer-architecture.md) | Domain/DTO/VO/Mapper/Service/Controller 分层 | 创建实体类、数据访问层 |
-| [03-api-client.md](reference/03-api-client.md) | API Client 跨模块调用、Flux/Mono 响应式、自定义负载均衡 | 跨模块服务调用 |
-| [04-common-utils.md](reference/04-common-utils.md) | 公共模块工具类 | 使用工具类、缓存、安全等 |
-| [05-checklist.md](reference/05-checklist.md) | 开发检查清单 | 自查 |
+
+### Common 模块详解
+
+| 文档 | 说明 | 适用场景 |
+|------|------|---------|
+| [03-01-common-core.md](reference/03-01-common-core.md) | 核心工具与领域基类 | 使用 AssertUtils/R/SpringUtils 等基础工具 |
+| [03-02-common-api.md](reference/03-02-common-api.md) | @ApiClient 跨模块调用框架 | 跨模块服务调用 |
+| [03-03-common-cache.md](reference/03-03-common-cache.md) | Redis 缓存与分布式锁 | 缓存操作、分布式锁、ID生成 |
+| [03-04-common-database.md](reference/03-04-common-database.md) | 数据库与多数据源 | 多数据源、动态SQL、元数据 |
+| [03-05-common-deploy.md](reference/03-05-common-deploy.md) | 双部署模式 | 单体/分布式模式切换 |
+| [03-06-common-security.md](reference/03-06-common-security.md) | ABAC 权限与安全 | 安全校验、会话、数据权限 |
+| [03-07-common-authentication.md](reference/03-07-common-authentication.md) | 认证体系 | 登录处理器、拦截器、数据资源范围 |
+| [03-08-common-log.md](reference/03-08-common-log.md) | 操作日志 | 日志记录、忽略日志 |
+
+### 速查与专题
+
+| 文档 | 说明 | 适用场景 |
+|------|------|---------|
+| [04-utils-quick-reference.md](reference/04-utils-quick-reference.md) | 工具类与注解速查表 | 快速查找可用工具 |
+| [05-security-and-permission.md](reference/05-security-and-permission.md) | 安全与权限体系专题 | ABAC/表模型/字段脱敏/数据资源 |
+| [06-checklist.md](reference/06-checklist.md) | 开发检查清单 | 自查 |
 
 ## 快速参考
 

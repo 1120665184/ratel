@@ -55,7 +55,7 @@ public class XxxQueryDTO extends BaseDTO {
 
 ## 2.3 VO 对象
 
-- 继承 `BaseVO`，在 **api 模块** 中定义，用于返回前端响应数据
+- 继承 `BaseVO`（含 createOp/Time、modifyOp/Time），在 **api 模块** 中定义
 - 类名以 `VO` 结尾（全大写），类和属性需 `@Schema` 注解
 
 ## 2.4 Mapper 层
@@ -94,6 +94,7 @@ public interface XxxEntityMapper extends BaseMapper<XxxEntity> {
 - **类头必须加 `@TableModelPermission`**
 - 保存/更新合并为 `saveOrUpdate`
 - 必填字段用 `AssertUtils` 验证
+- 不记录日志的方法加 `@LogIgnore`
 
 ### @TableModelPermission — 表模型权限注解
 
@@ -111,6 +112,16 @@ public interface XxxEntityMapper extends BaseMapper<XxxEntity> {
 ### @TableModelField — 字段级权限
 
 标注在 Domain 字段上：`@TableModelField(show=false)` AI 不可查询；`@TableModelField(desensitize=true, strategy=SensitiveStrategy.PHONE)` 脱敏
+
+### @LogIgnore — 忽略操作日志
+
+标注在 Controller 方法上，该接口不记录操作日志：
+
+```java
+@LogIgnore
+@GetMapping("/check")
+public R<Boolean> check() { ... }
+```
 
 ### RESTful 路由
 

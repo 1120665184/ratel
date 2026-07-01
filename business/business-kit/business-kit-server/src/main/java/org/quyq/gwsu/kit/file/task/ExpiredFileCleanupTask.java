@@ -64,7 +64,6 @@ public class ExpiredFileCleanupTask {
             List<KitFileInfoVO> expiredFiles = fileInfoMapper.getExpiredFilelist(now, serverType);
 
             if (expiredFiles == null || expiredFiles.isEmpty()) {
-                log.debug("未发现过期文件");
                 return;
             }
 
