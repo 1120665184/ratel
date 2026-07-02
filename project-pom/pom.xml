@@ -72,6 +72,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.quyq.gwsu</groupId>
+                <artifactId>common-job</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
 
             <dependency>
                 <groupId>org.quyq.gwsu</groupId>
