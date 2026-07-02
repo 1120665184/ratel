@@ -11,6 +11,8 @@ import org.quyq.gwsu.security.connect.entrance.dingtalk.vo.UserStaffIdMappingInf
  */
 public interface IDingTalkService {
 
+    String SIGN = "dingtalk";
+
     /**
      * 智能体调用
      *

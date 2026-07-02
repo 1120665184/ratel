@@ -103,7 +103,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
         dingTalkCardUtils.sendCard(outTrackId, sourceType, mappingInfo.getStaffId(), lastParam.get());
 
         AssistantResponse response = new AssistantResponse();
-        headlessClientApi.stream(mappingInfo.getSubjectId() ,"dingtalk",new HeadlessDTO(
+        headlessClientApi.stream(mappingInfo.getSubjectId() ,SIGN,new HeadlessDTO(
                         UserMsg.ofText(content.content.getContent()),null))
                 .doOnNext(chunk -> {
                     if (status.get() == HeadlessAgentStatus.ERROR) {

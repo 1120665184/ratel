@@ -55,6 +55,7 @@ public class DingTalkCardConsumer implements OpenDingTalkCallbackListener<CardCa
     private CardCallbackResponse newChat(String userId, String outTrackId) {
         UserStaffIdMappingInfo userMappingInfo = dingTalkService.getUserMappingInfo(userId);
         NewChatDTO dto = new NewChatDTO();
+        dto.setSign(IDingTalkService.SIGN);
         dto.setUserId(userMappingInfo.getSubjectId());
         FeignUtils.data(headlessClientApi.newThreadId(dto));
         dingTalkMsgUtils.toMessages(List.of(userId), DingTalkMessage.sampleText()

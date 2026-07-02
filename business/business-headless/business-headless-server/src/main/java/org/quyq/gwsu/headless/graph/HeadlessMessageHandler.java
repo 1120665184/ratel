@@ -119,7 +119,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
         Msg sp = Msg.builder()
                 .role(MsgRole.ASSISTANT)
-                .textContent("\n\r以下是操作记录：\n")
+                .textContent("\n\r危险操作需要您审批，以下是操作记录，请确认是否操作：\n")
                 .build();
         sink.tryEmitNext(getContent(sp, upload));
 
