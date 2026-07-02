@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useProjectConfigStore } from '@gwsu/core';
 import styles from './dashboard.module.less';
 
 function useCurrentTime() {
@@ -20,6 +21,7 @@ function formatDate(date: Date): string {
 
 export default function Dashboard() {
   const now = useCurrentTime();
+  const projectName = useProjectConfigStore((s) => s.projectName);
 
   return (
     <div className={styles.dashboard}>
@@ -33,7 +35,7 @@ export default function Dashboard() {
 
       <div className={styles.heroCenter}>
         <h1 className={styles.brandName}>
-          Ratel
+          {projectName}
           <span className={styles.brandDots}>
             <span className={styles.dot}>.</span>
             <span className={styles.dot}>.</span>

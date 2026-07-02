@@ -3,7 +3,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {history} from 'umi';
 import {App} from 'antd';
 import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo, encryptPassword} from '@gwsu/core';
-import {login, TerminalType, getDingTalkAuthUrl} from '../services/login';
+import {login, TerminalType, getDingTalkAuthUrl, getLoginConfigInfo} from '../services/login';
 import styles from './login.module.less';
 
 export default function Login() {
@@ -11,6 +11,18 @@ export default function Login() {
     const [username, setUsername] = useState('admin');
     const [password, setPassword] = useState('admin123');
     const [loading, setLoading] = useState(false);
+    const [projectName, setProjectName] = useState('Ratel');
+
+    /** 登录页加载时获取项目配置信息 */
+    useEffect(() => {
+        getLoginConfigInfo().then((info) => {
+            if (info.projectName) {
+                setProjectName(info.projectName);
+            }
+        }).catch(() => {
+            // 获取失败时使用默认值
+        });
+    }, []);
 
     const handleLoginSuccess = useCallback(async (loginToken: { token: string; userId: string; expires: number; alterMsg?: string }) => {
         const expireTime = Date.now() + loginToken.expires * 1000;
@@ -105,7 +117,7 @@ export default function Login() {
         <div className={styles.container}>
             {/* 左侧展示区 */}
             <div className={styles.showcase}>
-                <div className={styles.brandName}>Ratel</div>
+                <div className={styles.brandName}>{projectName}</div>
 
                 <div className={styles.quoteSection}>
                     <div className={styles.quoteBar}/>

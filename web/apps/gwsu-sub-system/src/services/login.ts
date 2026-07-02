@@ -98,3 +98,19 @@ export async function getDingTalkAuthUrl(): Promise<string> {
     const response = await get<DingTalkAuthUrl>(`/system/auth/url/manager/dingtalk`);
     return response.data.url;
 }
+
+/**
+ * 登录页基础配置信息
+ */
+export interface LoginConfigInfo {
+    /** 项目名称 */
+    projectName: string;
+}
+
+/**
+ * 获取登录页基础配置信息（无需登录即可调用）
+ */
+export async function getLoginConfigInfo(): Promise<LoginConfigInfo> {
+    const response = await get<LoginConfigInfo>('/system/auth/configInfo');
+    return response.data;
+}

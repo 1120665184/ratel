@@ -5,7 +5,7 @@ import {
   ReloadOutlined,
   GlobalOutlined,
 } from '@ant-design/icons';
-import { fetchConfigsBatch } from '@gwsu/core';
+import { fetchConfigsBatch, useProjectConfigStore } from '@gwsu/core';
 import { saveOrUpdateConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
@@ -63,6 +63,10 @@ const GeneralConfigTab: React.FC = () => {
   const handleSave = async () => {
     // 基础地址配置校验
     if (activeTab === 'projectUrl') {
+      if (!baseUrlConfig.projectName) {
+        message.warning('请填写项目名称');
+        return;
+      }
       if (!baseUrlConfig.viewBaseUrl) {
         message.warning('请填写前端地址');
         return;
@@ -87,6 +91,8 @@ const GeneralConfigTab: React.FC = () => {
         });
         if (success) {
           message.success('项目地址配置保存成功');
+          // 同步更新全局项目配置 store
+          useProjectConfigStore.getState().setBaseUrlConfig(baseUrlConfig);
           fetchConfig();
         }
       }

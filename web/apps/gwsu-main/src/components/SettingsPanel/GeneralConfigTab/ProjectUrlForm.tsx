@@ -1,5 +1,5 @@
 import { Input } from 'antd';
-import { GlobalOutlined, ApiOutlined } from '@ant-design/icons';
+import { GlobalOutlined, ApiOutlined, HomeOutlined } from '@ant-design/icons';
 import type { BaseUrlConfig } from './types';
 import styles from './ProjectUrlForm.module.less';
 
@@ -15,6 +15,21 @@ const ProjectUrlForm: React.FC<ProjectUrlFormProps> = ({ value, onChange }) => {
 
   return (
     <div className={styles.projectUrlForm}>
+      <div className={styles.urlItem}>
+        <div className={styles.urlIcon}>
+          <HomeOutlined aria-hidden="true" />
+        </div>
+        <div className={styles.urlContent}>
+          <span className={styles.urlLabel}>项目名称</span>
+          <Input
+            className={styles.urlInput}
+            value={value?.projectName}
+            onChange={(e) => handleFieldChange('projectName', e.target.value)}
+            placeholder="Ratel"
+            aria-label="项目名称"
+          />
+        </div>
+      </div>
       <div className={styles.urlItem}>
         <div className={styles.urlIcon}>
           <GlobalOutlined aria-hidden="true" />

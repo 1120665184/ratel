@@ -16,7 +16,7 @@ import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.core.exception.BusinessException;
-import org.quyq.gwsu.common.security.config.properties.universal.BaseUrlProperties;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.core.HeadlessAgentListener;
@@ -207,8 +207,8 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         AssistantMessage m = AgentScopeMessageUtils.toAssistantMessage(msg);
         m.getMetadata().put("status", status);
         if (Objects.nonNull(fileInfo)) {
-            BaseUrlProperties baseUrlProperties = ConfigInfoUtils.getByObject(BaseUrlProperties.CONFIG_KEY, BaseUrlProperties.class);
-            String fileDomain = baseUrlProperties.apiBaseUrl();
+            BaseProjectInfoProperties baseProjectInfoProperties = ConfigInfoUtils.getByObject(BaseProjectInfoProperties.CONFIG_KEY, BaseProjectInfoProperties.class);
+            String fileDomain = baseProjectInfoProperties.apiBaseUrl();
             AssistantMessage message = AssistantMessage.builder()
                     .properties(m.getMetadata())
                     .content(m.getText())

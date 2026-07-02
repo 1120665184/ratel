@@ -18,7 +18,7 @@ const SettingsPanel: React.FC = () => {
   return (
     <div className={styles.settingsPanel}>
       <Tabs
-        defaultActiveKey="assistant"
+        defaultActiveKey="general"
         items={items}
         className={styles.settingsTabs}
       />

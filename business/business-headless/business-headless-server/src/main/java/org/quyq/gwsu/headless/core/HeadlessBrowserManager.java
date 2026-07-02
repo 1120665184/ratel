@@ -2,7 +2,7 @@ package org.quyq.gwsu.headless.core;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
-import org.quyq.gwsu.common.security.config.properties.universal.BaseUrlProperties;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.headless.config.HeadlessBrowserConfiguration;
@@ -311,8 +311,8 @@ public class HeadlessBrowserManager implements AutoCloseable {
         if(config.getLoginUrl().startsWith("http")){
             return config.getLoginUrl();
         }
-        BaseUrlProperties baseUrlProperties = ConfigInfoUtils.getByObject(BaseUrlProperties.CONFIG_KEY, BaseUrlProperties.class);
-        return baseUrlProperties.viewBaseUrl() + config.getLoginUrl();
+        BaseProjectInfoProperties baseProjectInfoProperties = ConfigInfoUtils.getByObject(BaseProjectInfoProperties.CONFIG_KEY, BaseProjectInfoProperties.class);
+        return baseProjectInfoProperties.viewBaseUrl() + config.getLoginUrl();
     }
 
 

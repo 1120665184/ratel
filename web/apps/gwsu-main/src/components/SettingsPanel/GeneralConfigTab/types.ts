@@ -1,5 +1,7 @@
 /** 基础地址配置 */
 export interface BaseUrlConfig {
+  /** 项目名称 */
+  projectName: string;
   /** 前端地址 */
   viewBaseUrl: string;
   /** 后端 API 地址 */
@@ -8,6 +10,7 @@ export interface BaseUrlConfig {
 
 /** 基础地址默认配置 */
 export const DEFAULT_BASE_URL_CONFIG: BaseUrlConfig = {
+  projectName: 'Ratel',
   viewBaseUrl: 'http://127.0.0.1:8000',
   apiBaseUrl: 'http://127.0.0.1:8888',
 };

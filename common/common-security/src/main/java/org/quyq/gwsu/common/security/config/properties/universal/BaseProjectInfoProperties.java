@@ -7,9 +7,12 @@ import org.springframework.util.StringUtils;
 /**
  * @author Quyq
  * @date 2026/6/24
- * @description 通用的基础配置 , 对应： 设置 -> 通用配置 -> 基础配置
+ * @description 通用的基础配置 , 对应： 设置 -> 通用配置 -> 项目信息
  */
-public record BaseUrlProperties(
+public record BaseProjectInfoProperties(
+        @Schema(description = "项目名称")
+        String projectName,
+
         @Schema(description = "前端地址")
         String viewBaseUrl,
 
