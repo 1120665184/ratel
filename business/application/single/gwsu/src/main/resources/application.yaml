@@ -44,8 +44,8 @@ org.quyq:
     platform:
       three-platform:
         dingtalk:
-          client-id:
-          client-secret:
+          client-id: ${DINGTALK_CLIENT_ID:}
+          client-secret: ${DINGTALK_CLIENT_SECRET:}
           # 生成token后以重定向的形式返回数据，重定向地址见redirect-url
           redirect: true
           # 和redirect配合使用

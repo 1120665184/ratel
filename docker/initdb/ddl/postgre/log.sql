@@ -22,7 +22,7 @@ CREATE TABLE log_operation (
     terminal        VARCHAR(20),
     terminal_detail VARCHAR(500),
     oper_name       VARCHAR(50),
-    token_id        VARCHAR(100),
+    token_id        VARCHAR(256),
     request_param   TEXT,
     response_data   TEXT,
     error_msg       TEXT,

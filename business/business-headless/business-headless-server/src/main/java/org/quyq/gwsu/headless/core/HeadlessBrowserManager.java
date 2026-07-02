@@ -2,7 +2,9 @@ package org.quyq.gwsu.headless.core;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseUrlProperties;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.headless.config.HeadlessBrowserConfiguration;
 import org.quyq.gwsu.headless.core.pool.BrowserContextPool;
 import org.quyq.gwsu.headless.core.pool.SessionWrapper;
@@ -292,7 +294,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
             return null;
         });
 
-        StringBuilder url = new StringBuilder(config.getLoginUrl());
+        StringBuilder url = new StringBuilder(buildLoginUrl());
         url.append("?certification=").append(certificationKey);
 
         if (accessSession != null && accessSession.token() != null) {
@@ -304,6 +306,15 @@ public class HeadlessBrowserManager implements AutoCloseable {
 
         return url.toString();
     }
+
+    private String buildLoginUrl(){
+        if(config.getLoginUrl().startsWith("http")){
+            return config.getLoginUrl();
+        }
+        BaseUrlProperties baseUrlProperties = ConfigInfoUtils.getByObject(BaseUrlProperties.CONFIG_KEY, BaseUrlProperties.class);
+        return baseUrlProperties.viewBaseUrl() + config.getLoginUrl();
+    }
+
 
     /**
      * 构造仅 certification 的登录 URL（用于 token 失效后的回退登录）
@@ -320,7 +331,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
             return null;
         });
 
-        return config.getLoginUrl() + "?certification=" + certificationKey;
+        return buildLoginUrl() + "?certification=" + certificationKey;
     }
 
     /**

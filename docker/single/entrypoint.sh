@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# 确认 Playwright 浏览器环境
+if [ -d "${PLAYWRIGHT_BROWSERS_PATH}" ]; then
+    echo "Playwright 浏览器目录: ${PLAYWRIGHT_BROWSERS_PATH}"
+    ls "${PLAYWRIGHT_BROWSERS_PATH}"
+else
+    echo "警告: PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH} 不存在，Playwright 将尝试运行时下载浏览器"
+fi
+
 # 启动 nginx（后台运行）
 nginx -g 'daemon off;' &
 NGINX_PID=$!
@@ -20,10 +28,12 @@ shutdown() {
     exit 0
 }
 
-trap shutdown SIGTERM SIGINT SIGQUIT
+trap shutdown TERM INT QUIT
 
-# 等待任一进程退出
-wait -n $NGINX_PID $JAVA_PID
+# 等待任一进程退出（循环轮询，兼容 dash）
+while kill -0 $NGINX_PID 2>/dev/null && kill -0 $JAVA_PID 2>/dev/null; do
+    sleep 1
+done
 
 # 如果有一个进程退出，停止另一个
 shutdown

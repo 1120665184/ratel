@@ -15,6 +15,14 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis}
+      - DINGTALK_CLIENT_ID=${DINGTALK_CLIENT_ID:-}
+      - DINGTALK_CLIENT_SECRET=${DINGTALK_CLIENT_SECRET:-}
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis}
+    dns:
+      - 8.8.8.8
+      - 114.114.114.114
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,13 +58,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    volumes:
-      - redis-data:/data
     networks:
       - ratel-net
 
-volumes:
-  redis-data:
 
 networks:
   ratel-net:

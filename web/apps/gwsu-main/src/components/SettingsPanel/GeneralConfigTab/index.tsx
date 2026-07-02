@@ -106,7 +106,7 @@ const GeneralConfigTab: React.FC = () => {
   }
 
   const tabs: { key: GeneralTabKey; label: string; icon: React.ReactNode }[] = [
-    { key: 'projectUrl', label: '项目地址', icon: <GlobalOutlined /> },
+    { key: 'projectUrl', label: '项目信息', icon: <GlobalOutlined /> },
   ];
 
   return (

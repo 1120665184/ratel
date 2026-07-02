@@ -22,7 +22,7 @@ CREATE TABLE log_operation (
     terminal        VARCHAR(20) COMMENT '请求终端',
     terminal_detail VARCHAR(500) COMMENT '请求终端详情',
     oper_name       VARCHAR(50) COMMENT '操作人',
-    token_id        VARCHAR(100) COMMENT 'token',
+    token_id        VARCHAR(256) COMMENT 'token',
     request_param   TEXT COMMENT '请求参数',
     response_data   TEXT COMMENT '响应数据',
     error_msg       TEXT COMMENT '错误消息',

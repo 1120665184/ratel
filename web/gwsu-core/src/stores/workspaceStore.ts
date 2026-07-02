@@ -63,7 +63,7 @@ function createOrGetStore(): StoreApi<WorkspaceState> {
 
         getCurrentWorkspace: () => {
             const { workspaces, currentWorkspaceId } = get();
-            return workspaces.find((w) => w.workspaceId === currentWorkspaceId);
+            return workspaces.find((w) => w.id === currentWorkspaceId);
         },
     }));
 

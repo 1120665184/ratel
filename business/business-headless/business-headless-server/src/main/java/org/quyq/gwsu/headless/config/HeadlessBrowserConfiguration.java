@@ -51,7 +51,7 @@ public class HeadlessBrowserConfiguration {
     /**
      * 无头登录页面 URL（含认证参数的登录地址）
      */
-    private String loginUrl = "http://localhost:8000/sub-system/login_headless";
+    private String loginUrl = "/sub-system/login_headless";
 
     /**
      * Redis 会话 TTL（小时），默认 24 小时
