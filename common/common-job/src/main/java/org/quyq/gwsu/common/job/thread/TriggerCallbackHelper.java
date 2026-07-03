@@ -159,9 +159,9 @@ public class TriggerCallbackHelper {
         for (CallbackData callbackParam : callbackParamList) {
             String logFileName = XxlJobFileAppender.makeLogFileName(new Date(callbackParam.getLogDateTime()), callbackParam.getLogId());
             XxlJobContext.setXxlJobContext(new XxlJobContext(
-                    -1,
+                    "",
                     null,
-                    -1,
+                    "",
                     -1,
                     logFileName,
                     -1,

@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class CallbackData implements Serializable {
     private static final long serialVersionUID = 42L;
 
-    private long logId;
+    private String logId;
     private long logDateTime;
 
     private int handleCode;
@@ -17,18 +17,18 @@ public class CallbackData implements Serializable {
     public CallbackData() {
     }
 
-    public CallbackData(long logId, long logDateTime, int handleCode, String handleMsg) {
+    public CallbackData(String logId, long logDateTime, int handleCode, String handleMsg) {
         this.logId = logId;
         this.logDateTime = logDateTime;
         this.handleCode = handleCode;
         this.handleMsg = handleMsg;
     }
 
-    public long getLogId() {
+    public String getLogId() {
         return logId;
     }
 
-    public void setLogId(long logId) {
+    public void setLogId(String logId) {
         this.logId = logId;
     }
 
@@ -59,7 +59,7 @@ public class CallbackData implements Serializable {
     @Override
     public String toString() {
         return "CallbackData{" +
-                "logId=" + logId +
+                "logId='" + logId + '\'' +
                 ", logDateTime=" + logDateTime +
                 ", handleCode=" + handleCode +
                 ", handleMsg='" + handleMsg + '\'' +

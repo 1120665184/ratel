@@ -9,7 +9,7 @@ public class TriggerRequest implements Serializable {
     private static final long serialVersionUID = 42L;
 
     // 任务基础信息
-    private int jobId;
+    private String jobId;
 
     // 执行信息
     private String executorHandler;
@@ -18,7 +18,7 @@ public class TriggerRequest implements Serializable {
     private int executorTimeout;
 
     // 日志信息
-    private long logId;
+    private String logId;
     private long logDateTime;
 
     // Glue信息
@@ -31,11 +31,11 @@ public class TriggerRequest implements Serializable {
     private int broadcastTotal;
 
 
-    public int getJobId() {
+    public String getJobId() {
         return jobId;
     }
 
-    public void setJobId(int jobId) {
+    public void setJobId(String jobId) {
         this.jobId = jobId;
     }
 
@@ -71,11 +71,11 @@ public class TriggerRequest implements Serializable {
         this.executorTimeout = executorTimeout;
     }
 
-    public long getLogId() {
+    public String getLogId() {
         return logId;
     }
 
-    public void setLogId(long logId) {
+    public void setLogId(String logId) {
         this.logId = logId;
     }
 
@@ -131,12 +131,12 @@ public class TriggerRequest implements Serializable {
     @Override
     public String toString() {
         return "TriggerRequest{" +
-                "jobId=" + jobId +
+                "jobId='" + jobId + '\'' +
                 ", executorHandler='" + executorHandler + '\'' +
                 ", executorParams='" + executorParams + '\'' +
                 ", executorBlockStrategy='" + executorBlockStrategy + '\'' +
                 ", executorTimeout=" + executorTimeout +
-                ", logId=" + logId +
+                ", logId='" + logId + '\'' +
                 ", logDateTime=" + logDateTime +
                 ", glueType='" + glueType + '\'' +
                 ", glueSource='" + glueSource + '\'' +

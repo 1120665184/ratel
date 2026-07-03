@@ -11,7 +11,7 @@ public class MisfireDoNothing extends MisfireHandler {
     private static final Logger logger = LoggerFactory.getLogger(MisfireDoNothing.class);
 
     @Override
-    public void handle(int jobId) {
+    public void handle(String jobId) {
         logger.warn(">>>>>>>>>>> 任务调度过期忽略：jobId = {}", jobId);
     }
 

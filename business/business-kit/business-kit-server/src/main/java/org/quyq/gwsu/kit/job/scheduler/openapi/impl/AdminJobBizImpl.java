@@ -19,7 +19,7 @@ public class AdminJobBizImpl {
      * @param addressList   地址列表
      * @return 响应
      */
-    public R<String> triggerJob(int jobId, String executorParam, String addressList) {
+    public R<String> triggerJob(String jobId, String executorParam, String addressList) {
         JobAdminBootstrap.getInstance().getJobTriggerPoolHelper().trigger(jobId, TriggerTypeEnum.API, -1, null, executorParam, addressList);
         return R.ok();
     }

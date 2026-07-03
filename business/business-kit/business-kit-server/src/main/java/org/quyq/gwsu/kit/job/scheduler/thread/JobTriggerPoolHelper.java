@@ -54,7 +54,7 @@ public class JobTriggerPoolHelper {
 
     // 任务超时计数
     private volatile long minTim = System.currentTimeMillis() / 60000;
-    private volatile ConcurrentMap<Integer, AtomicInteger> jobTimeoutCountMap = new ConcurrentHashMap<>();
+    private volatile ConcurrentMap<String, AtomicInteger> jobTimeoutCountMap = new ConcurrentHashMap<>();
 
     /**
      * 触发任务
@@ -66,7 +66,7 @@ public class JobTriggerPoolHelper {
      * @param executorParam        执行参数（null使用任务配置值）
      * @param addressList          执行器地址列表（null使用任务配置值）
      */
-    public void trigger(final int jobId,
+    public void trigger(final String jobId,
                         final TriggerTypeEnum triggerType,
                         final int failRetryCount,
                         final String executorShardingParam,

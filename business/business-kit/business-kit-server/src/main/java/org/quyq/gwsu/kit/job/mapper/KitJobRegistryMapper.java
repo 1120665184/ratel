@@ -17,7 +17,7 @@ public interface KitJobRegistryMapper extends BaseMapper<KitJobRegistry> {
     /**
      * 查询失效的注册ID（DATE_ADD 日期运算）
      */
-    List<Integer> findDead(@Param("timeout") int timeout, @Param("nowTime") Date nowTime);
+    List<String> findDead(@Param("timeout") int timeout, @Param("nowTime") Date nowTime);
 
     /**
      * 查询所有有效的注册信息（DATE_ADD 日期运算）

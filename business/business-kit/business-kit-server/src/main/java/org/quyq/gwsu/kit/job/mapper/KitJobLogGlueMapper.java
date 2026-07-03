@@ -14,6 +14,6 @@ public interface KitJobLogGlueMapper extends BaseMapper<KitJobLogGlue> {
     /**
      * 删除旧的Glue记录（保留最近limit条）
      */
-    int removeOld(@Param("jobId") int jobId, @Param("limit") int limit);
+    int removeOld(@Param("jobId") String jobId, @Param("limit") int limit);
 
 }

@@ -4,85 +4,116 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+import org.quyq.gwsu.common.core.domain.BaseDO;
 
 import java.util.Date;
 
 /**
  * 任务信息
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
+@Accessors(chain = true)
 @TableName("kit_job_info")
-public class KitJobInfo {
+@Schema(description = "任务信息")
+public class KitJobInfo extends BaseDO {
 
-    @TableId(type = IdType.AUTO)
-    private int id;                 // 主键ID
+    @TableId(type = IdType.ASSIGN_ID)
+    @Schema(description = "主键ID")
+    private String id;
 
     @TableField("job_group")
-    private int jobGroup;           // 执行器主键ID
+    @Schema(description = "执行器主键ID")
+    private String jobGroup;
 
+    @Schema(description = "任务名称")
     private String name;
 
-    private String author;          // 负责人
+    @Schema(description = "负责人")
+    private String author;
 
     @TableField("alarm_email")
-    private String alarmEmail;      // 报警邮件
+    @Schema(description = "报警邮件")
+    private String alarmEmail;
 
     @TableField("schedule_type")
-    private String scheduleType;            // 调度类型：ScheduleTypeEnum
+    @Schema(description = "调度类型")
+    private String scheduleType;
 
     @TableField("schedule_conf")
-    private String scheduleConf;            // 调度配置，值含义取决于调度类型
+    @Schema(description = "调度配置")
+    private String scheduleConf;
 
     @TableField("misfire_strategy")
-    private String misfireStrategy;         // 调度过期策略：MisfireStrategyEnum
+    @Schema(description = "调度过期策略")
+    private String misfireStrategy;
 
     @TableField("executor_route_strategy")
-    private String executorRouteStrategy;   // 执行器路由策略：ExecutorRouteStrategyEnum
+    @Schema(description = "执行器路由策略")
+    private String executorRouteStrategy;
 
     @TableField("executor_handler")
-    private String executorHandler;         // 执行器，任务Handler名称
+    @Schema(description = "任务handler")
+    private String executorHandler;
 
     @TableField("executor_param")
-    private String executorParam;           // 执行器，任务参数
+    @Schema(description = "任务参数")
+    private String executorParam;
 
     @TableField("executor_block_strategy")
-    private String executorBlockStrategy;   // 阻塞处理策略：ExecutorBlockStrategyEnum
+    @Schema(description = "阻塞处理策略")
+    private String executorBlockStrategy;
 
     @TableField("executor_timeout")
-    private int executorTimeout;            // 任务执行超时时间，单位秒
+    @Schema(description = "任务执行超时时间，单位秒")
+    private int executorTimeout;
 
     @TableField("executor_fail_retry_count")
-    private int executorFailRetryCount;     // 失败重试次数
+    @Schema(description = "失败重试次数")
+    private int executorFailRetryCount;
 
     @TableField("glue_type")
-    private String glueType;        // GLUE类型：GlueTypeEnum
+    @Schema(description = "GLUE类型")
+    private String glueType;
 
     @TableField("glue_source")
-    private String glueSource;      // GLUE源代码
+    @Schema(description = "GLUE源代码")
+    private String glueSource;
 
     @TableField("glue_remark")
-    private String glueRemark;      // GLUE备注
+    @Schema(description = "GLUE备注")
+    private String glueRemark;
 
     @TableField("glue_updatetime")
-    private Date glueUpdatetime;    // GLUE更新时间
+    @Schema(description = "GLUE更新时间")
+    private Date glueUpdatetime;
 
     @TableField("child_jobid")
-    private String childJobId;      // 子任务ID，多个逗号分隔
+    @Schema(description = "子任务ID，多个逗号分隔")
+    private String childJobId;
 
     @TableField("trigger_status")
-    private int triggerStatus;      // 调度状态：TriggerStatus
+    @Schema(description = "调度状态：0-停止，1-运行")
+    private int triggerStatus;
 
     @TableField("trigger_last_time")
-    private long triggerLastTime;   // 上次调度时间
+    @Schema(description = "上次调度时间")
+    private long triggerLastTime;
 
     @TableField("trigger_next_time")
-    private long triggerNextTime;   // 下次调度时间
+    @Schema(description = "下次调度时间")
+    private long triggerNextTime;
 
     @TableField("add_time")
+    @Schema(description = "创建时间（业务字段）")
     private Date addTime;
 
     @TableField("update_time")
+    @Schema(description = "更新时间（业务字段）")
     private Date updateTime;
 
 }

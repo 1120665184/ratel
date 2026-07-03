@@ -17,10 +17,10 @@ import java.util.Date;
 public class KitJobLogDTO extends BaseDTO {
 
     @Schema(description = "执行器ID")
-    private Integer jobGroup;
+    private String jobGroup;
 
     @Schema(description = "任务ID")
-    private Integer jobId;
+    private String jobId;
 
     @Schema(description = "日志状态：1-成功，2-失败，3-运行中")
     private Integer logStatus;

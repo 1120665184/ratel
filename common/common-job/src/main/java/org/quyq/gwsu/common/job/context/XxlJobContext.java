@@ -26,7 +26,7 @@ public class XxlJobContext {
     /**
      * 任务ID
      */
-    private final long jobId;
+    private final String jobId;
 
     /**
      * 任务参数
@@ -39,7 +39,7 @@ public class XxlJobContext {
     /**
      * 日志ID
      */
-    private final long logId;
+    private final String logId;
 
     /**
      * 日志时间戳
@@ -78,9 +78,9 @@ public class XxlJobContext {
     private String handleMsg;
 
 
-    public XxlJobContext(long jobId,
+    public XxlJobContext(String jobId,
                          String jobParam,
-                         long logId,
+                         String logId,
                          long logDateTime,
                          String logFileName,
                          int shardIndex,
@@ -96,7 +96,7 @@ public class XxlJobContext {
         this.handleCode = HANDLE_CODE_SUCCESS;  // 默认成功
     }
 
-    public long getJobId() {
+    public String getJobId() {
         return jobId;
     }
 
@@ -104,7 +104,7 @@ public class XxlJobContext {
         return jobParam;
     }
 
-    public long getLogId() {
+    public String getLogId() {
         return logId;
     }
 

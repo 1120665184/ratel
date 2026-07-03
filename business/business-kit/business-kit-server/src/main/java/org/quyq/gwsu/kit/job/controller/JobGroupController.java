@@ -41,13 +41,13 @@ public class JobGroupController {
 
     @PostMapping("remove")
     @Operation(summary = "删除执行器")
-    public R<String> remove(@RequestParam("id") int id) {
+    public R<String> remove(@RequestParam("id") String id) {
         return kitJobService.groupRemove(id);
     }
 
     @GetMapping("loadById")
     @Operation(summary = "根据ID查询执行器")
-    public R<KitJobGroup> loadById(@RequestParam("id") int id) {
+    public R<KitJobGroup> loadById(@RequestParam("id") String id) {
         return kitJobService.groupLoadById(id);
     }
 

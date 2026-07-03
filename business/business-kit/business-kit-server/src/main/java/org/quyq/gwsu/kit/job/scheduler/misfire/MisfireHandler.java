@@ -10,6 +10,6 @@ public abstract class MisfireHandler {
      *
      * @param jobId 任务ID
      */
-    public abstract void handle(final int jobId);
+    public abstract void handle(final String jobId);
 
 }

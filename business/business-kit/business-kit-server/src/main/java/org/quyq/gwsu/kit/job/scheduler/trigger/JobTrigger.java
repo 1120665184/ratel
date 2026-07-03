@@ -44,7 +44,7 @@ public class JobTrigger {
      * @param executorParam        执行参数（null使用任务配置值）
      * @param addressList          执行器地址列表（null使用任务配置值）
      */
-    public void trigger(int jobId,
+    public void trigger(String jobId,
                         TriggerTypeEnum triggerType,
                         int failRetryCount,
                         String executorShardingParam,

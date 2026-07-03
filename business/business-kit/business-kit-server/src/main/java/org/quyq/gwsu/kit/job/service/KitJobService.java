@@ -20,100 +20,46 @@ public interface KitJobService {
 
     // ==================== 任务管理 ====================
 
-    /**
-     * 分页查询任务列表
-     */
     R<IPage<KitJobInfo>> pageList(KitJobInfoDTO dto);
 
-    /**
-     * 添加任务
-     */
     R<String> add(KitJobInfo jobInfo);
 
-    /**
-     * 更新任务
-     */
     R<String> update(KitJobInfo jobInfo);
 
-    /**
-     * 删除任务
-     */
-    R<String> remove(int id);
+    R<String> remove(String id);
 
-    /**
-     * 启动任务
-     */
-    R<String> start(int id);
+    R<String> start(String id);
 
-    /**
-     * 停止任务
-     */
-    R<String> stop(int id);
+    R<String> stop(String id);
 
-    /**
-     * 手动触发一次任务
-     */
-    R<String> trigger(int jobId, String executorParam, String addressList);
+    R<String> trigger(String jobId, String executorParam, String addressList);
 
-    /**
-     * 预估下次触发时间（5次）
-     */
     R<List<String>> nextTriggerTime(String scheduleType, String scheduleConf);
 
     // ==================== 执行器管理 ====================
 
-    /**
-     * 分页查询执行器列表
-     */
     R<IPage<KitJobGroup>> groupPageList(KitJobGroupDTO dto);
 
-    /**
-     * 添加执行器
-     */
     R<String> groupAdd(KitJobGroup kitJobGroup);
 
-    /**
-     * 更新执行器
-     */
     R<String> groupUpdate(KitJobGroup kitJobGroup);
 
-    /**
-     * 删除执行器
-     */
-    R<String> groupRemove(int id);
+    R<String> groupRemove(String id);
 
-    /**
-     * 根据ID查询执行器
-     */
-    R<KitJobGroup> groupLoadById(int id);
+    R<KitJobGroup> groupLoadById(String id);
 
     // ==================== 日志管理 ====================
 
-    /**
-     * 分页查询日志列表
-     */
     R<IPage<KitJobLog>> logPageList(KitJobLogDTO dto);
 
-    /**
-     * 查询日志详情
-     */
-    R<KitJobLog> logLoad(long id);
+    R<KitJobLog> logLoad(String id);
 
-    /**
-     * 清理日志
-     */
-    R<String> logClear(int jobGroup, int jobId, int type);
+    R<String> logClear(String jobGroup, String jobId, int type);
 
     // ==================== 仪表盘 ====================
 
-    /**
-     * 仪表盘概览信息
-     */
     R<Map<String, Object>> dashboardInfo();
 
-    /**
-     * 仪表盘图表数据
-     */
     R<Map<String, Object>> chartInfo(Date startDate, Date endDate);
 
 }

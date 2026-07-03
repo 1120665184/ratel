@@ -26,10 +26,10 @@ import java.util.concurrent.TimeUnit;
 public class JobThread extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(JobThread.class);
 
-    private final int jobId;
+    private final String jobId;
     private final IJobHandler handler;
     private final LinkedBlockingQueue<TriggerRequest> triggerQueue;
-    private final Set<Long> triggerLogIdSet;                        // 避免同一TRIGGER_LOG_ID重复触发
+    private final Set<String> triggerLogIdSet;                        // 避免同一TRIGGER_LOG_ID重复触发
 
     private volatile boolean toStop = false;
     private String stopReason;
@@ -38,7 +38,7 @@ public class JobThread extends Thread {
     private int idleTimes = 0;
 
 
-    public JobThread(int jobId, IJobHandler handler) {
+    public JobThread(String jobId, IJobHandler handler) {
         this.jobId = jobId;
         this.handler = handler;
         this.triggerQueue = new LinkedBlockingQueue<>();

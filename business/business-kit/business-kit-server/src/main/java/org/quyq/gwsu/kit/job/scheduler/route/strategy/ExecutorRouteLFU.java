@@ -14,10 +14,10 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class ExecutorRouteLFU extends ExecutorRouter {
 
-    private static final ConcurrentMap<Integer, HashMap<String, Integer>> jobLfuMap = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, HashMap<String, Integer>> jobLfuMap = new ConcurrentHashMap<>();
     private static long CACHE_VALID_TIME = 0;
 
-    public String route(int jobId, List<String> addressList) {
+    public String route(String jobId, List<String> addressList) {
 
         // 缓存清除
         if (System.currentTimeMillis() > CACHE_VALID_TIME) {

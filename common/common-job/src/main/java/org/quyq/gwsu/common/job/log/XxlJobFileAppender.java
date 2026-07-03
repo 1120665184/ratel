@@ -83,7 +83,7 @@ public class XxlJobFileAppender {
      * @param logId       日志ID
      * @return 日志文件名
      */
-    public static String makeLogFileName(Date triggerDate, long logId) {
+    public static String makeLogFileName(Date triggerDate, String logId) {
         LocalDate localDate = triggerDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         String datePath = localDate.format(DATE_FORMATTER);
 

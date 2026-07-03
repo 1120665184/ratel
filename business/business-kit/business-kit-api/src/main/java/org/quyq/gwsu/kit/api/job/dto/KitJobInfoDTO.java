@@ -14,7 +14,7 @@ import org.quyq.gwsu.common.core.domain.BaseDTO;
 public class KitJobInfoDTO extends BaseDTO {
 
     @Schema(description = "执行器ID")
-    private Integer jobGroup;
+    private String jobGroup;
 
     @Schema(description = "调度状态：0-停止，1-运行，-1-全部")
     private Integer triggerStatus;

@@ -37,9 +37,9 @@ public class JobFailAlarmMonitorHelper {
      */
     private void monitorTask() {
         try {
-            List<Long> failLogIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findFailJobLogIds(1000);
+            List<String> failLogIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findFailJobLogIds(1000);
             if (failLogIds != null && !failLogIds.isEmpty()) {
-                for (long failLogId : failLogIds) {
+                for (String failLogId : failLogIds) {
 
                     // 锁定日志
                     int lockRet = JobAdminBootstrap.getInstance().getKitJobLogMapper().updateAlarmStatus(failLogId, 0, -1);

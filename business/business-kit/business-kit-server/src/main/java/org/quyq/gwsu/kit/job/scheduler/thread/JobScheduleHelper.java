@@ -32,7 +32,7 @@ public class JobScheduleHelper {
     private Thread ringThread;
     private volatile boolean scheduleThreadToStop = false;
     private volatile boolean ringThreadToStop = false;
-    private final Map<Integer, List<Integer>> ringData = new ConcurrentHashMap<>();
+    private final Map<Integer, List<String>> ringData = new ConcurrentHashMap<>();
 
     /**
      * 启动
@@ -173,13 +173,13 @@ public class JobScheduleHelper {
                 }
 
                 try {
-                    List<Integer> ringItemData = new ArrayList<>();
+                    List<String> ringItemData = new ArrayList<>();
 
                     int nowSecond = Calendar.getInstance().get(Calendar.SECOND);
                     for (int i = 0; i <= 2; i++) {
-                        List<Integer> ringItemList = ringData.remove((nowSecond + 60 - i) % 60);
+                        List<String> ringItemList = ringData.remove((nowSecond + 60 - i) % 60);
                         if (ringItemList != null && !ringItemList.isEmpty()) {
-                            List<Integer> ringItemListDistinct = ringItemList.stream().distinct().toList();
+                            List<String> ringItemListDistinct = ringItemList.stream().distinct().toList();
                             if (ringItemListDistinct.size() < ringItemList.size()) {
                                 logger.warn(">>>>>>>>>>> kit-job, 时间轮发现重复任务：{} = {}", nowSecond, ringItemData);
                             }
@@ -189,7 +189,7 @@ public class JobScheduleHelper {
 
                     logger.debug(">>>>>>>>>>> kit-job, 时间轮刻度：{} = {}", nowSecond, ringItemData);
                     if (!ringItemData.isEmpty()) {
-                        for (int jobId : ringItemData) {
+                        for (String jobId : ringItemData) {
                             JobAdminBootstrap.getInstance().getJobTriggerPoolHelper().trigger(jobId, TriggerTypeEnum.CRON, -1, null, null, null);
                         }
                         ringItemData.clear();
@@ -238,8 +238,8 @@ public class JobScheduleHelper {
     /**
      * 推入时间轮
      */
-    private void pushTimeRing(int ringSecond, int jobId) {
-        List<Integer> ringItemList = ringData.computeIfAbsent(ringSecond, k -> new ArrayList<>());
+    private void pushTimeRing(int ringSecond, String jobId) {
+        List<String> ringItemList = ringData.computeIfAbsent(ringSecond, k -> new ArrayList<>());
         ringItemList.add(jobId);
         logger.debug(">>>>>>>>>>> kit-job, 推入时间轮：{} = {}", ringSecond, ringItemList);
     }
@@ -269,7 +269,7 @@ public class JobScheduleHelper {
         boolean hasRingData = false;
         if (!ringData.isEmpty()) {
             for (int second : ringData.keySet()) {
-                List<Integer> ringItemList = ringData.get(second);
+                List<String> ringItemList = ringData.get(second);
                 if (ringItemList != null && !ringItemList.isEmpty()) {
                     hasRingData = true;
                     break;

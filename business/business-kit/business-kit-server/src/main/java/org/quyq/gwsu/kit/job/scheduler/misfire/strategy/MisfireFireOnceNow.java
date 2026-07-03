@@ -13,7 +13,7 @@ public class MisfireFireOnceNow extends MisfireHandler {
     protected static Logger logger = LoggerFactory.getLogger(MisfireFireOnceNow.class);
 
     @Override
-    public void handle(int jobId) {
+    public void handle(String jobId) {
         JobAdminBootstrap.getInstance().getJobTriggerPoolHelper().trigger(jobId, TriggerTypeEnum.MISFIRE, -1, null, null, null);
         logger.warn(">>>>>>>>>>> 任务调度过期立即执行：jobId = {}", jobId);
     }

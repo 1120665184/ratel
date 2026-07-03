@@ -58,13 +58,11 @@ public class JobCompleter {
                 String[] childJobIds = kitJobInfo.getChildJobId().split(",");
                 for (int i = 0; i < childJobIds.length; i++) {
 
-                    int childJobId = (childJobIds[i] != null && !childJobIds[i].trim().isEmpty()
-                            && isNumeric(childJobIds[i].trim()))
-                            ? Integer.parseInt(childJobIds[i].trim())
-                            : -1;
-                    if (childJobId > 0) {
+                    String childJobId = (childJobIds[i] != null && !childJobIds[i].trim().isEmpty())
+                            ? childJobIds[i].trim() : null;
+                    if (childJobId != null) {
                         // 校验：不能触发自身
-                        if (childJobId == kitJobLog.getJobId()) {
+                        if (childJobId.equals(kitJobLog.getJobId())) {
                             logger.debug(">>>>>>>>>>> 任务完成处理器忽略子任务，childJobId {} 是自身。", childJobId);
                             continue;
                         }
@@ -89,15 +87,6 @@ public class JobCompleter {
         // 2、追加子任务触发消息
         if (triggerChildMsg != null && !triggerChildMsg.isEmpty()) {
             kitJobLog.setHandleMsg(kitJobLog.getHandleMsg() + triggerChildMsg);
-        }
-    }
-
-    private static boolean isNumeric(String str) {
-        try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
         }
     }
 

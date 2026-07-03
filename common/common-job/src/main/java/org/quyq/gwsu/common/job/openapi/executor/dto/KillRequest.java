@@ -8,20 +8,20 @@ import java.io.Serializable;
 public class KillRequest implements Serializable {
     private static final long serialVersionUID = 42L;
 
-    private int jobId;
+    private String jobId;
 
     public KillRequest() {
     }
 
-    public KillRequest(int jobId) {
+    public KillRequest(String jobId) {
         this.jobId = jobId;
     }
 
-    public int getJobId() {
+    public String getJobId() {
         return jobId;
     }
 
-    public void setJobId(int jobId) {
+    public void setJobId(String jobId) {
         this.jobId = jobId;
     }
 

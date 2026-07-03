@@ -43,25 +43,25 @@ public class JobInfoController {
 
     @PostMapping("remove")
     @Operation(summary = "删除任务")
-    public R<String> remove(@RequestParam("id") int id) {
+    public R<String> remove(@RequestParam("id") String id) {
         return kitJobService.remove(id);
     }
 
     @PostMapping("start")
     @Operation(summary = "启动任务")
-    public R<String> start(@RequestParam("id") int id) {
+    public R<String> start(@RequestParam("id") String id) {
         return kitJobService.start(id);
     }
 
     @PostMapping("stop")
     @Operation(summary = "停止任务")
-    public R<String> stop(@RequestParam("id") int id) {
+    public R<String> stop(@RequestParam("id") String id) {
         return kitJobService.stop(id);
     }
 
     @PostMapping("trigger")
     @Operation(summary = "手动触发一次任务")
-    public R<String> trigger(@RequestParam("id") int id,
+    public R<String> trigger(@RequestParam("id") String id,
                               @RequestParam(value = "executorParam", required = false, defaultValue = "") String executorParam,
                               @RequestParam(value = "addressList", required = false, defaultValue = "") String addressList) {
         return kitJobService.trigger(id, executorParam, addressList);

@@ -45,7 +45,7 @@ public class ExecutorRouteConsistentHash extends ExecutorRouter {
     /**
      * 根据jobId获取地址
      */
-    public String hashJob(int jobId, List<String> addressList) {
+    public String hashJob(String jobId, List<String> addressList) {
         // 1、构建hash环
         TreeMap<Long, String> addressRing = new TreeMap<>();
         for (String address : addressList) {
@@ -56,7 +56,7 @@ public class ExecutorRouteConsistentHash extends ExecutorRouter {
         }
 
         // 2、生成job-hash
-        long jobHash = hash(String.valueOf(jobId));
+        long jobHash = hash(jobId);
 
         // 3、路由job节点
         Map.Entry<Long, String> ceilingEntry = addressRing.ceilingEntry(jobHash);

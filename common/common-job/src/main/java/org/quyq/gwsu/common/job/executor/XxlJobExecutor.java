@@ -146,7 +146,7 @@ public class XxlJobExecutor implements ApplicationContextAware, SmartInitializin
             }
 
             // 中断所有JobThread
-            for (Map.Entry<Integer, JobThread> item : jobThreadRepository.entrySet()) {
+            for (Map.Entry<String, JobThread> item : jobThreadRepository.entrySet()) {
                 JobThread oldJobThread = removeJobThread(item.getKey(), "web container destroy and kill the job.");
                 if (oldJobThread != null) {
                     try {
@@ -322,9 +322,9 @@ public class XxlJobExecutor implements ApplicationContextAware, SmartInitializin
 
     // ---------------------- JobThread仓库 ----------------------
 
-    private final ConcurrentMap<Integer, JobThread> jobThreadRepository = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, JobThread> jobThreadRepository = new ConcurrentHashMap<>();
 
-    public JobThread registJobThread(int jobId, IJobHandler handler, String removeOldReason) {
+    public JobThread registJobThread(String jobId, IJobHandler handler, String removeOldReason) {
         JobThread newJobThread = new JobThread(jobId, handler);
         newJobThread.start();
         logger.info(">>>>>>>>>>> xxl-job register JobThread success, jobId:{}, handler:{}", jobId, handler);
@@ -338,7 +338,7 @@ public class XxlJobExecutor implements ApplicationContextAware, SmartInitializin
         return newJobThread;
     }
 
-    public JobThread removeJobThread(int jobId, String removeOldReason) {
+    public JobThread removeJobThread(String jobId, String removeOldReason) {
         JobThread oldJobThread = jobThreadRepository.remove(jobId);
         if (oldJobThread != null) {
             oldJobThread.toStop(removeOldReason);
@@ -348,7 +348,7 @@ public class XxlJobExecutor implements ApplicationContextAware, SmartInitializin
         return null;
     }
 
-    public JobThread loadJobThread(int jobId) {
+    public JobThread loadJobThread(String jobId) {
         return jobThreadRepository.get(jobId);
     }
 

@@ -33,32 +33,32 @@ public interface KitJobLogMapper extends BaseMapper<KitJobLog> {
     /**
      * 查询待清理的日志ID
      */
-    List<Long> findClearLogIds(@Param("jobGroup") int jobGroup,
-                               @Param("jobId") int jobId,
-                               @Param("clearBeforeTime") Date clearBeforeTime,
-                               @Param("clearBeforeNum") int clearBeforeNum,
-                               @Param("pagesize") int pagesize);
+    List<String> findClearLogIds(@Param("jobGroup") String jobGroup,
+                                @Param("jobId") String jobId,
+                                @Param("clearBeforeTime") Date clearBeforeTime,
+                                @Param("clearBeforeNum") int clearBeforeNum,
+                                @Param("pagesize") int pagesize);
 
     /**
      * 批量清理日志
      */
-    int clearLog(@Param("logIds") List<Long> logIds);
+    int clearLog(@Param("logIds") List<String> logIds);
 
     /**
      * 查询失败告警的日志ID
      */
-    List<Long> findFailJobLogIds(@Param("pagesize") int pagesize);
+    List<String> findFailJobLogIds(@Param("pagesize") int pagesize);
 
     /**
      * 更新告警状态
      */
-    int updateAlarmStatus(@Param("logId") long logId,
+    int updateAlarmStatus(@Param("logId") String logId,
                           @Param("oldAlarmStatus") int oldAlarmStatus,
                           @Param("newAlarmStatus") int newAlarmStatus);
 
     /**
      * 查询丢失的任务日志ID（LEFT JOIN 子查询）
      */
-    List<Long> findLostJobIds(@Param("losedTime") Date losedTime);
+    List<String> findLostJobIds(@Param("losedTime") Date losedTime);
 
 }

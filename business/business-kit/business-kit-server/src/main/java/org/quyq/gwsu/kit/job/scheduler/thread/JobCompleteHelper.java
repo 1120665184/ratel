@@ -57,10 +57,10 @@ public class JobCompleteHelper {
         try {
             // 任务结果丢失处理：调度记录停留在 "运行中" 状态超过10min，且对应执行器心跳注册失败不在线，则将本地调度主动标记失败
             Date losedTime = new Date(System.currentTimeMillis() - 10 * 60 * 1000);
-            List<Long> losedJobIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findLostJobIds(losedTime);
+            List<String> losedJobIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findLostJobIds(losedTime);
 
             if (losedJobIds != null && !losedJobIds.isEmpty()) {
-                for (Long logId : losedJobIds) {
+                for (String logId : losedJobIds) {
                     KitJobLog jobLog = new KitJobLog();
                     jobLog.setId(logId);
                     jobLog.setHandleTime(new Date());

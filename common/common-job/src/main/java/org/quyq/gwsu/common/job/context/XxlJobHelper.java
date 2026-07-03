@@ -21,10 +21,10 @@ public class XxlJobHelper {
     /**
      * 获取当前任务ID
      */
-    public static long getJobId() {
+    public static String getJobId() {
         XxlJobContext xxlJobContext = XxlJobContext.getXxlJobContext();
         if (xxlJobContext == null) {
-            return -1;
+            return null;
         }
         return xxlJobContext.getJobId();
     }
@@ -45,10 +45,10 @@ public class XxlJobHelper {
     /**
      * 获取当前日志ID
      */
-    public static long getLogId() {
+    public static String getLogId() {
         XxlJobContext xxlJobContext = XxlJobContext.getXxlJobContext();
         if (xxlJobContext == null) {
-            return -1;
+            return null;
         }
         return xxlJobContext.getLogId();
     }

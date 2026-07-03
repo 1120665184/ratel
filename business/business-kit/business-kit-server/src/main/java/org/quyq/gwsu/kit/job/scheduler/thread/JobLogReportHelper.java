@@ -99,9 +99,9 @@ public class JobLogReportHelper {
                 Date clearBeforeTime = expiredDay.getTime();
 
                 // 清理过期日志
-                List<Long> logIds;
+                List<String> logIds;
                 do {
-                    logIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findClearLogIds(0, 0, clearBeforeTime, 0, 1000);
+                    logIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findClearLogIds(null, null, clearBeforeTime, 0, 1000);
                     if (logIds != null && !logIds.isEmpty()) {
                         JobAdminBootstrap.getInstance().getKitJobLogMapper().clearLog(logIds);
                     }

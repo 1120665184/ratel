@@ -16,10 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ExecutorRouteRound extends ExecutorRouter {
 
-    private static final ConcurrentMap<Integer, AtomicInteger> routeCountEachJob = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, AtomicInteger> routeCountEachJob = new ConcurrentHashMap<>();
     private static long CACHE_VALID_TIME = 0;
 
-    private static int count(int jobId) {
+    private static int count(String jobId) {
         // 缓存清除
         if (System.currentTimeMillis() > CACHE_VALID_TIME) {
             routeCountEachJob.clear();

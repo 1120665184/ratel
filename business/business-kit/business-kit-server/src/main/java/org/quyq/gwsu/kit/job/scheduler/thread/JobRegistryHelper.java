@@ -32,7 +32,7 @@ public class JobRegistryHelper {
 
     // 任务组缓存
     private volatile Map<String, KitJobGroup> appname2GroupCache = new ConcurrentHashMap<>();
-    private volatile Map<Integer, KitJobGroup> id2GroupCache = new ConcurrentHashMap<>();
+    private volatile Map<String, KitJobGroup> id2GroupCache = new ConcurrentHashMap<>();
 
     /**
      * 启动
@@ -72,7 +72,7 @@ public class JobRegistryHelper {
             if (groupList != null && !groupList.isEmpty()) {
 
                 // a、移除失效地址
-                List<Integer> ids = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, new Date());
+                List<String> ids = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, new Date());
                 if (ids != null && !ids.isEmpty()) {
                     JobAdminBootstrap.getInstance().getKitJobRegistryMapper().deleteBatchIds(ids);
                 }
@@ -111,7 +111,7 @@ public class JobRegistryHelper {
             // 2.2、刷新本地缓存
             List<KitJobGroup> jobGroupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper().selectList(null);
             Map<String, KitJobGroup> appname2GroupCacheNew = new ConcurrentHashMap<>();
-            Map<Integer, KitJobGroup> id2GroupCacheNew = new ConcurrentHashMap<>();
+            Map<String, KitJobGroup> id2GroupCacheNew = new ConcurrentHashMap<>();
             if (jobGroupList != null && !jobGroupList.isEmpty()) {
                 for (KitJobGroup group : jobGroupList) {
                     group.setUpdateTime(null);
@@ -202,7 +202,7 @@ public class JobRegistryHelper {
     /**
      * 根据ID加载执行器组
      */
-    public KitJobGroup load(int jobGroup) {
+    public KitJobGroup load(String jobGroup) {
         return id2GroupCache.get(jobGroup);
     }
 

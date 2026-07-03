@@ -33,14 +33,14 @@ public class JobLogController {
 
     @GetMapping("load")
     @Operation(summary = "查询日志详情")
-    public R<KitJobLog> load(@RequestParam("id") long id) {
+    public R<KitJobLog> load(@RequestParam("id") String id) {
         return kitJobService.logLoad(id);
     }
 
     @PostMapping("clearLog")
     @Operation(summary = "清理日志")
-    public R<String> clearLog(@RequestParam("jobGroup") int jobGroup,
-                               @RequestParam("jobId") int jobId,
+    public R<String> clearLog(@RequestParam("jobGroup") String jobGroup,
+                               @RequestParam("jobId") String jobId,
                                @RequestParam("type") int type) {
         return kitJobService.logClear(jobGroup, jobId, type);
     }
