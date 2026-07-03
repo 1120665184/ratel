@@ -1,5 +1,6 @@
 package org.quyq.gwsu.kit.job.scheduler.thread;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.google.gson.Gson;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.constant.JobConst;
@@ -66,13 +67,14 @@ public class JobRegistryHelper {
     private void registryMonitorTask() {
         try {
             // 2.1、刷新自动注册的执行器组
-            List<KitJobGroup> groupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper().findByAddressType(0);
+            List<KitJobGroup> groupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper()
+                    .selectList(new LambdaQueryWrapper<KitJobGroup>().eq(KitJobGroup::getAddressType, 0));
             if (groupList != null && !groupList.isEmpty()) {
 
                 // a、移除失效地址
                 List<Integer> ids = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, new Date());
                 if (ids != null && !ids.isEmpty()) {
-                    JobAdminBootstrap.getInstance().getKitJobRegistryMapper().removeDead(ids);
+                    JobAdminBootstrap.getInstance().getKitJobRegistryMapper().deleteBatchIds(ids);
                 }
 
                 // b、获取在线地址（appname : List<address>）
@@ -102,12 +104,12 @@ public class JobRegistryHelper {
                     group.setAddressList(addressListStr);
                     group.setUpdateTime(new Date());
 
-                    JobAdminBootstrap.getInstance().getKitJobGroupMapper().update(group);
+                    JobAdminBootstrap.getInstance().getKitJobGroupMapper().updateById(group);
                 }
             }
 
             // 2.2、刷新本地缓存
-            List<KitJobGroup> jobGroupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper().findAll();
+            List<KitJobGroup> jobGroupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper().selectList(null);
             Map<String, KitJobGroup> appname2GroupCacheNew = new ConcurrentHashMap<>();
             Map<Integer, KitJobGroup> id2GroupCacheNew = new ConcurrentHashMap<>();
             if (jobGroupList != null && !jobGroupList.isEmpty()) {
@@ -179,8 +181,10 @@ public class JobRegistryHelper {
         // 异步执行
         registryOrRemoveThreadPool.execute(() -> {
             int ret = JobAdminBootstrap.getInstance().getKitJobRegistryMapper()
-                    .registryDelete(registryParam.getRegistryGroup(), registryParam.getRegistryKey(),
-                            registryParam.getRegistryValue());
+                    .delete(new LambdaQueryWrapper<KitJobRegistry>()
+                            .eq(KitJobRegistry::getRegistryGroup, registryParam.getRegistryGroup())
+                            .eq(KitJobRegistry::getRegistryKey, registryParam.getRegistryKey())
+                            .eq(KitJobRegistry::getRegistryValue, registryParam.getRegistryValue()));
             if (ret > 0) {
                 freshGroupRegistryInfo(registryParam);
             }

@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 public interface KitJobLockMapper {
 
     /**
-     * 获取调度锁
+     * 获取调度锁（SELECT FOR UPDATE 行锁）
      */
     String scheduleLock();
 

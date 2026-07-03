@@ -20,6 +20,8 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.MethodIntrospector;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -231,13 +233,8 @@ public class XxlJobExecutor implements ApplicationContextAware, SmartInitializin
 
             Map<Method, XxlJob> annotatedMethods = null;
             try {
-                annotatedMethods = org.springframework.core.MethodIntrospector.selectMethods(beanClass,
-                        new org.springframework.core.MethodIntrospector.MetadataLookup<>() {
-                            @Override
-                            public XxlJob inspect(Method method) {
-                                return org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation(method, XxlJob.class);
-                            }
-                        });
+                annotatedMethods = MethodIntrospector.selectMethods(beanClass,
+                        (MethodIntrospector.MetadataLookup<XxlJob>) method -> AnnotatedElementUtils.findMergedAnnotation(method, XxlJob.class));
             } catch (Throwable ex) {
                 logger.error(">>>>>>>>>>> xxl-job method-jobhandler resolve error for bean[" + beanName + "].", ex);
             }

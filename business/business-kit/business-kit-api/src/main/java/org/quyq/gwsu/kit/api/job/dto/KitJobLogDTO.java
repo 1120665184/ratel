@@ -1,0 +1,36 @@
+package org.quyq.gwsu.kit.api.job.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.quyq.gwsu.common.core.domain.BaseDTO;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.util.Date;
+
+/**
+ * 任务日志查询对象
+ */
+@EqualsAndHashCode(callSuper = true)
+@Data
+@Schema(description = "任务日志查询对象")
+public class KitJobLogDTO extends BaseDTO {
+
+    @Schema(description = "执行器ID")
+    private Integer jobGroup;
+
+    @Schema(description = "任务ID")
+    private Integer jobId;
+
+    @Schema(description = "日志状态：1-成功，2-失败，3-运行中")
+    private Integer logStatus;
+
+    @Schema(description = "触发时间起始")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date triggerTimeStart;
+
+    @Schema(description = "触发时间截止")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date triggerTimeEnd;
+
+}

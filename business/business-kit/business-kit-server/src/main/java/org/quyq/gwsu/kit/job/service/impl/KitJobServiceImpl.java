@@ -1,11 +1,17 @@
 package org.quyq.gwsu.kit.job.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.job.constant.ExecutorBlockStrategyEnum;
 import org.quyq.gwsu.common.job.glue.GlueTypeEnum;
+import org.quyq.gwsu.kit.api.job.dto.KitJobGroupDTO;
+import org.quyq.gwsu.kit.api.job.dto.KitJobInfoDTO;
+import org.quyq.gwsu.kit.api.job.dto.KitJobLogDTO;
 import org.quyq.gwsu.kit.job.domain.*;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.job.mapper.*;
@@ -19,6 +25,7 @@ import org.quyq.gwsu.kit.job.scheduler.trigger.TriggerTypeEnum;
 import org.quyq.gwsu.kit.job.scheduler.type.ScheduleTypeEnum;
 import org.quyq.gwsu.kit.job.service.KitJobService;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.text.MessageFormat;
 import java.time.LocalDate;
@@ -47,28 +54,31 @@ public class KitJobServiceImpl implements KitJobService {
     // ==================== 任务管理 ====================
 
     @Override
-    public R<Map<String, Object>> pageList(int offset, int pagesize, int jobGroup, int triggerStatus, String name, String executorHandler, String author) {
-        List<KitJobInfo> list = kitJobInfoMapper.pageList(offset, pagesize, jobGroup, triggerStatus, name, executorHandler, author);
-        int totalCount = kitJobInfoMapper.pageListCount(offset, pagesize, jobGroup, triggerStatus, name, executorHandler, author);
+    public R<IPage<KitJobInfo>> pageList(KitJobInfoDTO dto) {
+        LambdaQueryWrapper<KitJobInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(dto.getJobGroup() != null && dto.getJobGroup() > 0, KitJobInfo::getJobGroup, dto.getJobGroup())
+                .eq(dto.getTriggerStatus() != null && dto.getTriggerStatus() >= 0, KitJobInfo::getTriggerStatus, dto.getTriggerStatus())
+                .like(StringUtils.hasText(dto.getName()), KitJobInfo::getName, dto.getName())
+                .like(StringUtils.hasText(dto.getExecutorHandler()), KitJobInfo::getExecutorHandler, dto.getExecutorHandler())
+                .like(StringUtils.hasText(dto.getAuthor()), KitJobInfo::getAuthor, dto.getAuthor())
+                .orderByDesc(KitJobInfo::getId);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("data", list);
-        result.put("total", totalCount);
-        return R.ok(result);
+        IPage<KitJobInfo> page = kitJobInfoMapper.selectPage(Page.of(dto.getPageNum(), dto.getPageSize()), wrapper);
+        return R.ok(page);
     }
 
     @Override
     public R<String> add(KitJobInfo jobInfo) {
         // 校验基本信息
-        if (isBlank(jobInfo.getName())) {
+        if (!StringUtils.hasText(jobInfo.getName())) {
             throw new BusinessException(KitErrorCode.E02013);
         }
-        if (isBlank(jobInfo.getAuthor())) {
+        if (!StringUtils.hasText(jobInfo.getAuthor())) {
             throw new BusinessException(KitErrorCode.E02014);
         }
 
         // 校验执行器
-        KitJobGroup group = kitJobGroupMapper.load(jobInfo.getJobGroup());
+        KitJobGroup group = kitJobGroupMapper.selectById(jobInfo.getJobGroup());
         if (group == null) {
             throw new BusinessException(KitErrorCode.E02015);
         }
@@ -80,7 +90,7 @@ public class KitJobServiceImpl implements KitJobService {
         if (GlueTypeEnum.match(jobInfo.getGlueType()) == null) {
             throw new BusinessException(KitErrorCode.E02012);
         }
-        if (GlueTypeEnum.BEAN == GlueTypeEnum.match(jobInfo.getGlueType()) && isBlank(jobInfo.getExecutorHandler())) {
+        if (GlueTypeEnum.BEAN == GlueTypeEnum.match(jobInfo.getGlueType()) && !StringUtils.hasText(jobInfo.getExecutorHandler())) {
             throw new BusinessException(KitErrorCode.E02003);
         }
 
@@ -96,7 +106,7 @@ public class KitJobServiceImpl implements KitJobService {
         jobInfo.setGlueUpdatetime(new Date());
         jobInfo.setExecutorHandler(jobInfo.getExecutorHandler() != null ? jobInfo.getExecutorHandler().trim() : null);
 
-        kitJobInfoMapper.save(jobInfo);
+        kitJobInfoMapper.insert(jobInfo);
         if (jobInfo.getId() < 1) {
             return R.fail("添加任务失败");
         }
@@ -108,16 +118,16 @@ public class KitJobServiceImpl implements KitJobService {
     @Override
     public R<String> update(KitJobInfo jobInfo) {
         // 校验基本信息
-        if (isBlank(jobInfo.getName())) {
+        if (!StringUtils.hasText(jobInfo.getName())) {
             throw new BusinessException(KitErrorCode.E02013);
         }
-        if (isBlank(jobInfo.getAuthor())) {
+        if (!StringUtils.hasText(jobInfo.getAuthor())) {
             throw new BusinessException(KitErrorCode.E02014);
         }
 
         // 校验执行器
         if (jobInfo.getJobGroup() > 0) {
-            KitJobGroup jobGroup = kitJobGroupMapper.load(jobInfo.getJobGroup());
+            KitJobGroup jobGroup = kitJobGroupMapper.selectById(jobInfo.getJobGroup());
             if (jobGroup == null) {
                 throw new BusinessException(KitErrorCode.E02002);
             }
@@ -133,7 +143,7 @@ public class KitJobServiceImpl implements KitJobService {
         validChildJobId(jobInfo, jobInfo.getId());
 
         // 获取已有任务
-        KitJobInfo existsJobInfo = kitJobInfoMapper.loadById(jobInfo.getId());
+        KitJobInfo existsJobInfo = kitJobInfoMapper.selectById(jobInfo.getId());
         if (existsJobInfo == null) {
             throw new BusinessException(KitErrorCode.E02001);
         }
@@ -181,7 +191,7 @@ public class KitJobServiceImpl implements KitJobService {
         existsJobInfo.setTriggerNextTime(nextTriggerTime);
         existsJobInfo.setUpdateTime(new Date());
 
-        kitJobInfoMapper.update(existsJobInfo);
+        kitJobInfoMapper.updateById(existsJobInfo);
 
         log.info(">>>>>>>>>>> kit-job 更新任务: id = {}", jobInfo.getId());
         return R.ok();
@@ -189,14 +199,14 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<String> remove(int id) {
-        KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(id);
+        KitJobInfo kitJobInfo = kitJobInfoMapper.selectById(id);
         if (kitJobInfo == null) {
             return R.ok();
         }
 
-        kitJobInfoMapper.delete(id);
-        kitJobLogMapper.delete(id);
-        kitJobLogGlueMapper.deleteByJobId(id);
+        kitJobInfoMapper.deleteById(id);
+        kitJobLogMapper.delete(new LambdaQueryWrapper<KitJobLog>().eq(KitJobLog::getJobId, id));
+        kitJobLogGlueMapper.delete(new LambdaQueryWrapper<KitJobLogGlue>().eq(KitJobLogGlue::getJobId, id));
 
         log.info(">>>>>>>>>>> kit-job 删除任务: id = {}", id);
         return R.ok();
@@ -204,7 +214,7 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<String> start(int id) {
-        KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(id);
+        KitJobInfo kitJobInfo = kitJobInfoMapper.selectById(id);
         if (kitJobInfo == null) {
             throw new BusinessException(KitErrorCode.E02001);
         }
@@ -234,7 +244,7 @@ public class KitJobServiceImpl implements KitJobService {
         kitJobInfo.setTriggerLastTime(0);
         kitJobInfo.setTriggerNextTime(nextTriggerTime);
         kitJobInfo.setUpdateTime(new Date());
-        kitJobInfoMapper.update(kitJobInfo);
+        kitJobInfoMapper.updateById(kitJobInfo);
 
         log.info(">>>>>>>>>>> kit-job 启动任务: id = {}", id);
         return R.ok();
@@ -242,7 +252,7 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<String> stop(int id) {
-        KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(id);
+        KitJobInfo kitJobInfo = kitJobInfoMapper.selectById(id);
         if (kitJobInfo == null) {
             throw new BusinessException(KitErrorCode.E02001);
         }
@@ -251,7 +261,7 @@ public class KitJobServiceImpl implements KitJobService {
         kitJobInfo.setTriggerLastTime(0);
         kitJobInfo.setTriggerNextTime(0);
         kitJobInfo.setUpdateTime(new Date());
-        kitJobInfoMapper.update(kitJobInfo);
+        kitJobInfoMapper.updateById(kitJobInfo);
 
         log.info(">>>>>>>>>>> kit-job 停止任务: id = {}", id);
         return R.ok();
@@ -259,7 +269,7 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<String> trigger(int jobId, String executorParam, String addressList) {
-        KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(jobId);
+        KitJobInfo kitJobInfo = kitJobInfoMapper.selectById(jobId);
         if (kitJobInfo == null) {
             throw new BusinessException(KitErrorCode.E02001);
         }
@@ -276,7 +286,7 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<List<String>> nextTriggerTime(String scheduleType, String scheduleConf) {
-        if (isBlank(scheduleType) || isBlank(scheduleConf)) {
+        if (!StringUtils.hasText(scheduleType) || !StringUtils.hasText(scheduleConf)) {
             return R.ok(List.of());
         }
 
@@ -307,20 +317,22 @@ public class KitJobServiceImpl implements KitJobService {
     // ==================== 执行器管理 ====================
 
     @Override
-    public R<Map<String, Object>> groupPageList(int offset, int pagesize, String appname, String name) {
-        List<KitJobGroup> list = kitJobGroupMapper.pageList(offset, pagesize, appname, name);
-        int totalCount = kitJobGroupMapper.pageListCount(offset, pagesize, appname, name);
+    public R<IPage<KitJobGroup>> groupPageList(KitJobGroupDTO dto) {
+        LambdaQueryWrapper<KitJobGroup> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StringUtils.hasText(dto.getAppname()), KitJobGroup::getAppname, dto.getAppname())
+                .like(StringUtils.hasText(dto.getName()), KitJobGroup::getName, dto.getName())
+                .orderByAsc(KitJobGroup::getAppname)
+                .orderByAsc(KitJobGroup::getName)
+                .orderByAsc(KitJobGroup::getId);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("data", list);
-        result.put("total", totalCount);
-        return R.ok(result);
+        IPage<KitJobGroup> page = kitJobGroupMapper.selectPage(Page.of(dto.getPageNum(), dto.getPageSize()), wrapper);
+        return R.ok(page);
     }
 
     @Override
     public R<String> groupAdd(KitJobGroup kitJobGroup) {
         // 校验AppName
-        if (isBlank(kitJobGroup.getAppname())) {
+        if (!StringUtils.hasText(kitJobGroup.getAppname())) {
             throw new BusinessException(KitErrorCode.E02022);
         }
         if (kitJobGroup.getAppname().length() < 4 || kitJobGroup.getAppname().length() > 64) {
@@ -328,97 +340,118 @@ public class KitJobServiceImpl implements KitJobService {
         }
 
         // 校验名称
-        if (isBlank(kitJobGroup.getName())) {
+        if (!StringUtils.hasText(kitJobGroup.getName())) {
             throw new BusinessException(KitErrorCode.E02023);
         }
 
         // 手动录入时校验地址
         if (kitJobGroup.getAddressType() != 0) {
-            if (isBlank(kitJobGroup.getAddressList())) {
+            if (!StringUtils.hasText(kitJobGroup.getAddressList())) {
                 throw new BusinessException(KitErrorCode.E02018);
             }
         }
 
         // 校验AppName唯一
-        if (kitJobGroupMapper.loadByAppname(kitJobGroup.getAppname()) != null) {
+        KitJobGroup exists = kitJobGroupMapper.selectOne(new LambdaQueryWrapper<KitJobGroup>()
+                .eq(KitJobGroup::getAppname, kitJobGroup.getAppname()));
+        if (exists != null) {
             throw new BusinessException(KitErrorCode.E02017);
         }
 
         kitJobGroup.setUpdateTime(new Date());
-        int ret = kitJobGroupMapper.save(kitJobGroup);
+        int ret = kitJobGroupMapper.insert(kitJobGroup);
         return ret > 0 ? R.ok() : R.fail("添加执行器失败");
     }
 
     @Override
     public R<String> groupUpdate(KitJobGroup kitJobGroup) {
         // 校验存在
-        KitJobGroup exists = kitJobGroupMapper.load(kitJobGroup.getId());
+        KitJobGroup exists = kitJobGroupMapper.selectById(kitJobGroup.getId());
         if (exists == null) {
             throw new BusinessException(KitErrorCode.E02002);
         }
 
         // 校验名称
-        if (isBlank(kitJobGroup.getName())) {
+        if (!StringUtils.hasText(kitJobGroup.getName())) {
             throw new BusinessException(KitErrorCode.E02023);
         }
 
         // 手动录入时校验地址
         if (kitJobGroup.getAddressType() != 0) {
-            if (isBlank(kitJobGroup.getAddressList())) {
+            if (!StringUtils.hasText(kitJobGroup.getAddressList())) {
                 throw new BusinessException(KitErrorCode.E02018);
             }
         }
 
         kitJobGroup.setUpdateTime(new Date());
-        int ret = kitJobGroupMapper.update(kitJobGroup);
+        int ret = kitJobGroupMapper.updateById(kitJobGroup);
         return ret > 0 ? R.ok() : R.fail("更新执行器失败");
     }
 
     @Override
     public R<String> groupRemove(int id) {
-        KitJobGroup kitJobGroup = kitJobGroupMapper.load(id);
+        KitJobGroup kitJobGroup = kitJobGroupMapper.selectById(id);
         if (kitJobGroup == null) {
             return R.ok();
         }
 
         // 执行器下是否存在任务
-        int count = kitJobInfoMapper.pageListCount(0, 10, id, -1, null, null, null);
+        Long count = kitJobInfoMapper.selectCount(new LambdaQueryWrapper<KitJobInfo>()
+                .eq(KitJobInfo::getJobGroup, id));
         if (count > 0) {
             throw new BusinessException(KitErrorCode.E02016);
         }
 
         // 至少保留一个执行器
-        List<KitJobGroup> allList = kitJobGroupMapper.findAll();
-        if (allList.size() == 1) {
+        Long allCount = kitJobGroupMapper.selectCount(null);
+        if (allCount <= 1) {
             throw new BusinessException(KitErrorCode.E02026);
         }
 
-        int ret = kitJobGroupMapper.remove(id);
+        int ret = kitJobGroupMapper.deleteById(id);
         return ret > 0 ? R.ok() : R.fail("删除执行器失败");
     }
 
     @Override
     public R<KitJobGroup> groupLoadById(int id) {
-        KitJobGroup jobGroup = kitJobGroupMapper.load(id);
+        KitJobGroup jobGroup = kitJobGroupMapper.selectById(id);
         return jobGroup != null ? R.ok(jobGroup) : R.fail("执行器不存在");
     }
 
     // ==================== 日志管理 ====================
 
     @Override
-    public R<Map<String, Object>> logPageList(int offset, int pagesize, int jobGroup, int jobId, int logStatus, Date triggerTimeStart, Date triggerTimeEnd) {
-        List<KitJobLog> list = kitJobLogMapper.pageList(offset, pagesize, jobGroup, jobId, triggerTimeStart, triggerTimeEnd, logStatus);
-        int totalCount = kitJobLogMapper.pageListCount(offset, pagesize, jobGroup, jobId, triggerTimeStart, triggerTimeEnd, logStatus);
+    public R<IPage<KitJobLog>> logPageList(KitJobLogDTO dto) {
+        LambdaQueryWrapper<KitJobLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(dto.getJobGroup() != null && dto.getJobGroup() > 0, KitJobLog::getJobGroup, dto.getJobGroup())
+                .eq(dto.getJobId() != null && dto.getJobId() > 0, KitJobLog::getJobId, dto.getJobId())
+                .ge(dto.getTriggerTimeStart() != null, KitJobLog::getTriggerTime, dto.getTriggerTimeStart())
+                .le(dto.getTriggerTimeEnd() != null, KitJobLog::getTriggerTime, dto.getTriggerTimeEnd());
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("data", list);
-        result.put("total", totalCount);
-        return R.ok(result);
+        // logStatus 条件
+        if (dto.getLogStatus() != null) {
+            if (dto.getLogStatus() == 1) {
+                wrapper.eq(KitJobLog::getHandleCode, 200);
+            } else if (dto.getLogStatus() == 2) {
+                wrapper.and(w -> w
+                        .notIn(KitJobLog::getTriggerCode, 0, 200)
+                        .or()
+                        .notIn(KitJobLog::getHandleCode, 0, 200));
+            } else if (dto.getLogStatus() == 3) {
+                wrapper.eq(KitJobLog::getTriggerCode, 200)
+                        .eq(KitJobLog::getHandleCode, 0);
+            }
+        }
+
+        wrapper.orderByDesc(KitJobLog::getId);
+
+        IPage<KitJobLog> page = kitJobLogMapper.selectPage(Page.of(dto.getPageNum(), dto.getPageSize()), wrapper);
+        return R.ok(page);
     }
 
     @Override
     public R<KitJobLog> logLoad(long id) {
-        KitJobLog kitJobLog = kitJobLogMapper.load(id);
+        KitJobLog kitJobLog = kitJobLogMapper.selectById(id);
         if (kitJobLog == null) {
             throw new BusinessException(KitErrorCode.E02024);
         }
@@ -458,7 +491,7 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<Map<String, Object>> dashboardInfo() {
-        int jobInfoCount = kitJobInfoMapper.findAllCount();
+        Long jobInfoCount = kitJobInfoMapper.selectCount(null);
         int jobLogCount = 0;
         int jobLogSuccessCount = 0;
 
@@ -470,7 +503,7 @@ public class KitJobServiceImpl implements KitJobService {
 
         // 执行器数量
         Set<String> executorAddressSet = new HashSet<>();
-        List<KitJobGroup> groupList = kitJobGroupMapper.findAll();
+        List<KitJobGroup> groupList = kitJobGroupMapper.selectList(null);
         if (groupList != null && !groupList.isEmpty()) {
             for (KitJobGroup group : groupList) {
                 List<String> registryList = group.getRegistryList();
@@ -498,7 +531,10 @@ public class KitJobServiceImpl implements KitJobService {
         int triggerCountSucTotal = 0;
         int triggerCountFailTotal = 0;
 
-        List<KitJobLogReport> logReportList = kitJobLogReportMapper.queryLogReport(startDate, endDate);
+        List<KitJobLogReport> logReportList = kitJobLogReportMapper.selectList(
+                new LambdaQueryWrapper<KitJobLogReport>()
+                        .between(KitJobLogReport::getTriggerDay, startDate, endDate)
+                        .orderByAsc(KitJobLogReport::getTriggerDay));
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         if (logReportList != null && !logReportList.isEmpty()) {
@@ -578,20 +614,17 @@ public class KitJobServiceImpl implements KitJobService {
 
     /**
      * 校验子任务ID
-     *
-     * @param jobInfo     任务信息
-     * @param excludeId   排除的任务ID（更新时排除自身）
      */
     private void validChildJobId(KitJobInfo jobInfo, int excludeId) {
-        if (isNotBlank(jobInfo.getChildJobId())) {
+        if (StringUtils.hasText(jobInfo.getChildJobId())) {
             String[] childJobIds = jobInfo.getChildJobId().split(",");
             for (String childJobIdItem : childJobIds) {
-                if (isNotBlank(childJobIdItem) && isNumeric(childJobIdItem)) {
+                if (StringUtils.hasText(childJobIdItem) && isNumeric(childJobIdItem)) {
                     int childJobId = Integer.parseInt(childJobIdItem);
                     if (childJobId == excludeId) {
                         throw new BusinessException(KitErrorCode.E02020);
                     }
-                    KitJobInfo childJobInfo = kitJobInfoMapper.loadById(childJobId);
+                    KitJobInfo childJobInfo = kitJobInfoMapper.selectById(childJobId);
                     if (childJobInfo == null) {
                         throw new BusinessException(KitErrorCode.E02019);
                     }
@@ -603,20 +636,12 @@ public class KitJobServiceImpl implements KitJobService {
             // 去掉多余逗号
             StringJoiner joiner = new StringJoiner(",");
             for (String item : childJobIds) {
-                if (isNotBlank(item)) {
+                if (StringUtils.hasText(item)) {
                     joiner.add(item);
                 }
             }
             jobInfo.setChildJobId(joiner.toString());
         }
-    }
-
-    private static boolean isBlank(String str) {
-        return str == null || str.trim().isEmpty();
-    }
-
-    private static boolean isNotBlank(String str) {
-        return !isBlank(str);
     }
 
     private static boolean isNumeric(String str) {

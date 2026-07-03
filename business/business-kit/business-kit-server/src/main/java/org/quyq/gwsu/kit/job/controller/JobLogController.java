@@ -1,9 +1,11 @@
 package org.quyq.gwsu.kit.job.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.kit.api.job.dto.KitJobLogDTO;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
 import org.quyq.gwsu.kit.job.service.KitJobService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,18 +25,10 @@ public class JobLogController {
 
     private final KitJobService kitJobService;
 
-    @PostMapping("pageList")
+    @PostMapping("page")
     @Operation(summary = "分页查询日志列表")
-    public R<Map<String, Object>> pageList(@RequestParam(defaultValue = "0") int offset,
-                                            @RequestParam(defaultValue = "10") int pagesize,
-                                            @RequestParam(defaultValue = "0") int jobGroup,
-                                            @RequestParam(defaultValue = "0") int jobId,
-                                            @RequestParam(defaultValue = "0") int logStatus,
-                                            @RequestParam(value = "triggerTimeStart", required = false)
-                                            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date triggerTimeStart,
-                                            @RequestParam(value = "triggerTimeEnd", required = false)
-                                            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date triggerTimeEnd) {
-        return kitJobService.logPageList(offset, pagesize, jobGroup, jobId, logStatus, triggerTimeStart, triggerTimeEnd);
+    public R<IPage<KitJobLog>> pageByCondition(@RequestBody KitJobLogDTO dto) {
+        return kitJobService.logPageList(dto);
     }
 
     @GetMapping("load")

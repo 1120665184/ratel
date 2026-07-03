@@ -1,14 +1,14 @@
 package org.quyq.gwsu.kit.job.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.kit.api.job.dto.KitJobGroupDTO;
 import org.quyq.gwsu.kit.job.domain.KitJobGroup;
 import org.quyq.gwsu.kit.job.service.KitJobService;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * 执行器管理控制器
@@ -21,13 +21,10 @@ public class JobGroupController {
 
     private final KitJobService kitJobService;
 
-    @PostMapping("pageList")
+    @PostMapping("page")
     @Operation(summary = "分页查询执行器列表")
-    public R<Map<String, Object>> pageList(@RequestParam(defaultValue = "0") int offset,
-                                            @RequestParam(defaultValue = "10") int pagesize,
-                                            @RequestParam(required = false) String appname,
-                                            @RequestParam(required = false) String name) {
-        return kitJobService.groupPageList(offset, pagesize, appname, name);
+    public R<IPage<KitJobGroup>> pageByCondition(@RequestBody KitJobGroupDTO dto) {
+        return kitJobService.groupPageList(dto);
     }
 
     @PostMapping("add")

@@ -51,7 +51,7 @@ public class JobCompleter {
         // 1、处理成功时，触发子任务
         String triggerChildMsg = null;
         if (JobConst.HANDLE_CODE_SUCCESS == kitJobLog.getHandleCode()) {
-            KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(kitJobLog.getJobId());
+            KitJobInfo kitJobInfo = kitJobInfoMapper.selectById(kitJobLog.getJobId());
 
             if (kitJobInfo != null && kitJobInfo.getChildJobId() != null && !kitJobInfo.getChildJobId().trim().isEmpty()) {
                 triggerChildMsg = "<br><br><span style=\"color:#00c0ef;\" > >>>>>>>>>>>触发子任务<<<<<<<<<<<<< </span><br>";

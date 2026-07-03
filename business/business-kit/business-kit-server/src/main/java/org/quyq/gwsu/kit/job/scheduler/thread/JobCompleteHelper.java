@@ -106,7 +106,7 @@ public class JobCompleteHelper {
 
     private R<String> doCallback(CallbackData handleCallbackParam) {
         // 校验日志
-        KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogMapper().load(handleCallbackParam.getLogId());
+        KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogMapper().selectById(handleCallbackParam.getLogId());
         if (log == null) {
             return R.fail("日志记录未找到");
         }

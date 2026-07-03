@@ -1,15 +1,16 @@
 package org.quyq.gwsu.kit.job.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.kit.api.job.dto.KitJobInfoDTO;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.service.KitJobService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 定时任务管理控制器
@@ -22,16 +23,10 @@ public class JobInfoController {
 
     private final KitJobService kitJobService;
 
-    @PostMapping("pageList")
+    @PostMapping("page")
     @Operation(summary = "分页查询任务列表")
-    public R<Map<String, Object>> pageList(@RequestParam(defaultValue = "0") int offset,
-                                            @RequestParam(defaultValue = "10") int pagesize,
-                                            @RequestParam(defaultValue = "0") int jobGroup,
-                                            @RequestParam(defaultValue = "-1") int triggerStatus,
-                                            @RequestParam(required = false) String name,
-                                            @RequestParam(required = false) String executorHandler,
-                                            @RequestParam(required = false) String author) {
-        return kitJobService.pageList(offset, pagesize, jobGroup, triggerStatus, name, executorHandler, author);
+    public R<IPage<KitJobInfo>> pageByCondition(@RequestBody KitJobInfoDTO dto) {
+        return kitJobService.pageList(dto);
     }
 
     @PostMapping("add")

@@ -1,23 +1,26 @@
 package org.quyq.gwsu.kit.job.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
 
 import java.util.Date;
-import java.util.List;
 
 /**
  * 任务日志报表Mapper
  */
 @Mapper
-public interface KitJobLogReportMapper {
+public interface KitJobLogReportMapper extends BaseMapper<KitJobLogReport> {
 
+    /**
+     * 保存或更新（ON DUPLICATE KEY / ON CONFLICT）
+     */
     int saveOrUpdate(KitJobLogReport kitJobLogReport);
 
-    List<KitJobLogReport> queryLogReport(@Param("triggerDayFrom") Date triggerDayFrom,
-                                          @Param("triggerDayTo") Date triggerDayTo);
-
+    /**
+     * 查询日志报表汇总（SUM 聚合）
+     */
     KitJobLogReport queryLogReportTotal();
 
 }

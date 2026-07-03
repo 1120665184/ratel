@@ -46,8 +46,8 @@ public class JobFailAlarmMonitorHelper {
                     if (lockRet < 1) {
                         continue;
                     }
-                    KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogMapper().load(failLogId);
-                    KitJobInfo info = JobAdminBootstrap.getInstance().getKitJobInfoMapper().loadById(log.getJobId());
+                    KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogMapper().selectById(failLogId);
+                    KitJobInfo info = JobAdminBootstrap.getInstance().getKitJobInfoMapper().selectById(log.getJobId());
 
                     // 1、失败重试监控
                     if (log.getExecutorFailRetryCount() > 0) {

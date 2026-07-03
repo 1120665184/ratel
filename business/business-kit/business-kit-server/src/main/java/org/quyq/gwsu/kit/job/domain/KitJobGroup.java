@@ -1,24 +1,43 @@
 package org.quyq.gwsu.kit.job.domain;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
 import java.util.Date;
 import java.util.List;
 
 /**
  * 任务组（执行器）
  */
+@Data
+@TableName("kit_job_group")
 public class KitJobGroup {
 
+    @TableId(type = IdType.AUTO)
     private int id;
+
+    @TableField("app_name")
     private String appname;
+
     private String name;
 
+    @TableField("address_type")
     private int addressType;        // 执行器地址类型：0=自动注册、1=手动录入
+
+    @TableField("address_list")
     private String addressList;     // 执行器地址列表，多地址逗号分隔(手动录入)
 
+    @TableField("access_token")
     private String accessToken;
+
+    @TableField("update_time")
     private Date updateTime;
 
     // registry list
+    @TableField(exist = false)
     private List<String> registryList;  // 执行器地址列表(系统注册)
 
     public List<String> getRegistryList() {
@@ -26,62 +45,6 @@ public class KitJobGroup {
             registryList = List.of(addressList.split(","));
         }
         return registryList;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getAppname() {
-        return appname;
-    }
-
-    public void setAppname(String appname) {
-        this.appname = appname;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public int getAddressType() {
-        return addressType;
-    }
-
-    public void setAddressType(int addressType) {
-        this.addressType = addressType;
-    }
-
-    public String getAddressList() {
-        return addressList;
-    }
-
-    public void setAddressList(String addressList) {
-        this.addressList = addressList;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public Date getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
     }
 
     @Override

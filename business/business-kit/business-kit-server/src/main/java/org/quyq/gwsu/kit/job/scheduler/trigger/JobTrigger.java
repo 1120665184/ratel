@@ -52,7 +52,7 @@ public class JobTrigger {
                         String addressList) {
 
         // 加载任务数据
-        KitJobInfo jobInfo = kitJobInfoMapper.loadById(jobId);
+        KitJobInfo jobInfo = kitJobInfoMapper.selectById(jobId);
         if (jobInfo == null) {
             logger.warn(">>>>>>>>>>>> 触发失败，任务ID无效，jobId={}", jobId);
             return;
@@ -61,7 +61,7 @@ public class JobTrigger {
             jobInfo.setExecutorParam(executorParam);
         }
         int finalFailRetryCount = failRetryCount >= 0 ? failRetryCount : jobInfo.getExecutorFailRetryCount();
-        KitJobGroup group = kitJobGroupMapper.load(jobInfo.getJobGroup());
+        KitJobGroup group = kitJobGroupMapper.selectById(jobInfo.getJobGroup());
 
         // 覆盖地址列表
         if (addressList != null && !addressList.trim().isEmpty()) {
@@ -116,7 +116,7 @@ public class JobTrigger {
         jobLog.setJobGroup(jobInfo.getJobGroup());
         jobLog.setJobId(jobInfo.getId());
         jobLog.setTriggerTime(triggerTime);
-        kitJobLogMapper.save(jobLog);
+        kitJobLogMapper.insert(jobLog);
         logger.debug(">>>>>>>>>>> kit-job 触发开始，jobId:{}", jobLog.getJobId());
 
         // 2、初始化触发参数
