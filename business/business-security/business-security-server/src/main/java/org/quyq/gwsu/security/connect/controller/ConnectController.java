@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
+import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.security.api.config.dto.ConfigSaveDTO;
 import org.quyq.gwsu.security.api.config.enums.ConfigValueType;
 import org.quyq.gwsu.common.security.api.vo.ConfigVO;
@@ -16,6 +17,12 @@ import org.quyq.gwsu.security.connect.domain.EntranceConfig;
 import org.quyq.gwsu.security.connect.entrance.DingTalkEntrance;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.DingTalkClient;
 import org.quyq.gwsu.security.connect.enums.EntranceType;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -74,6 +81,21 @@ public class ConnectController {
         }
 
         return R.ok(true);
+    }
+
+    @LoginAllowAccess
+    @Operation(summary = "下载钉钉 AI 输出卡片模板导入文件")
+    @GetMapping("dingtalk/ai-card-template/download")
+    public ResponseEntity<Resource> downloadAiCardTemplate() {
+        ClassPathResource resource = new ClassPathResource("dingtalk/aiCard.json");
+        if (!resource.exists()) {
+            throw new BusinessException("钉钉 AI 输出卡片模板文件不存在");
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"aiCard.json\"")
+                .body(resource);
     }
 
     private String toJson(EntranceConfig config) {

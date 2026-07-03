@@ -1,6 +1,8 @@
-import { Form, Input, Tooltip, Typography } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Form, Input, Tooltip, Typography, message } from 'antd';
+import { QuestionCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { DingTalkRemoteConfig } from '../types';
+import { getAiCardTemplateDownloadUrl } from '../../services/config';
+import styles from './DingTalkRemoteConfigForm.module.less';
 
 interface DingTalkRemoteConfigFormProps {
   value?: DingTalkRemoteConfig;
@@ -9,30 +11,48 @@ interface DingTalkRemoteConfigFormProps {
 
 const CARD_PLATFORM_URL = 'https://open-dev.dingtalk.com/fe/card';
 
-const aiCardLabel = (
-  <span>
-    AI 输出卡片模板 ID{' '}
-    <Tooltip
-      title={
-        <>
-          用于在钉钉展示智能体输出内容，需在&quot;钉钉开发者平台 → 卡片平台&quot;中配置。
-          <br />
-          地址：
-          <Typography.Link href={CARD_PLATFORM_URL} target="_blank">
-            {CARD_PLATFORM_URL}
-          </Typography.Link>
-        </>
-      }
-    >
-      <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }} />
-    </Tooltip>
-  </span>
-);
-
 const DingTalkRemoteConfigForm: React.FC<DingTalkRemoteConfigFormProps> = ({ value, onChange }) => {
   const handleFieldChange = (field: keyof DingTalkRemoteConfig, fieldValue: string) => {
     onChange?.({ ...value!, [field]: fieldValue });
   };
+
+  const handleDownloadTemplate = () => {
+    const url = getAiCardTemplateDownloadUrl();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'aiCard.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    message.success('模板文件下载已开始');
+  };
+
+  const aiCardLabel = (
+    <span>
+      AI 输出卡片模板 ID{' '}
+      <Tooltip
+        title={
+          <>
+            用于在钉钉展示智能体输出内容，需在&quot;钉钉开发者平台 → 卡片平台&quot;中配置。
+            <br />
+            地址：
+            <Typography.Link href={CARD_PLATFORM_URL} target="_blank">
+              {CARD_PLATFORM_URL}
+            </Typography.Link>
+          </>
+        }
+      >
+        <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }} />
+      </Tooltip>
+      <Tooltip title="下载模板导入 JSON">
+        <DownloadOutlined
+          className={styles.downloadIcon}
+          onClick={handleDownloadTemplate}
+          aria-label="下载模板导入 JSON"
+        />
+      </Tooltip>
+    </span>
+  );
 
   return (
     <>
