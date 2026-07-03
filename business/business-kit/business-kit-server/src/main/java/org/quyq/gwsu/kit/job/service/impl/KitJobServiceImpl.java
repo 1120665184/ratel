@@ -7,7 +7,7 @@ import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.job.constant.ExecutorBlockStrategyEnum;
 import org.quyq.gwsu.common.job.glue.GlueTypeEnum;
 import org.quyq.gwsu.kit.job.domain.*;
-import org.quyq.gwsu.kit.job.errcode.JobErrorCode;
+import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.job.mapper.*;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.quyq.gwsu.kit.job.scheduler.constant.TriggerStatus;
@@ -61,16 +61,16 @@ public class KitJobServiceImpl implements KitJobService {
     public R<String> add(KitJobInfo jobInfo) {
         // 校验基本信息
         if (isBlank(jobInfo.getName())) {
-            throw new BusinessException(JobErrorCode.E02013);
+            throw new BusinessException(KitErrorCode.E02013);
         }
         if (isBlank(jobInfo.getAuthor())) {
-            throw new BusinessException(JobErrorCode.E02014);
+            throw new BusinessException(KitErrorCode.E02014);
         }
 
         // 校验执行器
         KitJobGroup group = kitJobGroupMapper.load(jobInfo.getJobGroup());
         if (group == null) {
-            throw new BusinessException(JobErrorCode.E02015);
+            throw new BusinessException(KitErrorCode.E02015);
         }
 
         // 校验调度配置
@@ -78,10 +78,10 @@ public class KitJobServiceImpl implements KitJobService {
 
         // 校验Glue类型
         if (GlueTypeEnum.match(jobInfo.getGlueType()) == null) {
-            throw new BusinessException(JobErrorCode.E02012);
+            throw new BusinessException(KitErrorCode.E02012);
         }
         if (GlueTypeEnum.BEAN == GlueTypeEnum.match(jobInfo.getGlueType()) && isBlank(jobInfo.getExecutorHandler())) {
-            throw new BusinessException(JobErrorCode.E02003);
+            throw new BusinessException(KitErrorCode.E02003);
         }
 
         // 校验高级配置
@@ -109,17 +109,17 @@ public class KitJobServiceImpl implements KitJobService {
     public R<String> update(KitJobInfo jobInfo) {
         // 校验基本信息
         if (isBlank(jobInfo.getName())) {
-            throw new BusinessException(JobErrorCode.E02013);
+            throw new BusinessException(KitErrorCode.E02013);
         }
         if (isBlank(jobInfo.getAuthor())) {
-            throw new BusinessException(JobErrorCode.E02014);
+            throw new BusinessException(KitErrorCode.E02014);
         }
 
         // 校验执行器
         if (jobInfo.getJobGroup() > 0) {
             KitJobGroup jobGroup = kitJobGroupMapper.load(jobInfo.getJobGroup());
             if (jobGroup == null) {
-                throw new BusinessException(JobErrorCode.E02002);
+                throw new BusinessException(KitErrorCode.E02002);
             }
         }
 
@@ -135,7 +135,7 @@ public class KitJobServiceImpl implements KitJobService {
         // 获取已有任务
         KitJobInfo existsJobInfo = kitJobInfoMapper.loadById(jobInfo.getId());
         if (existsJobInfo == null) {
-            throw new BusinessException(JobErrorCode.E02001);
+            throw new BusinessException(KitErrorCode.E02001);
         }
 
         // 计算下次触发时间（5s后生效，避开预读周期）
@@ -150,14 +150,14 @@ public class KitJobServiceImpl implements KitJobService {
             try {
                 Date nextValidTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(jobInfo, new Date(System.currentTimeMillis() + JobScheduleHelper.PRE_READ_MS));
                 if (nextValidTime == null) {
-                    throw new BusinessException(JobErrorCode.E02008);
+                    throw new BusinessException(KitErrorCode.E02008);
                 }
                 nextTriggerTime = nextValidTime.getTime();
             } catch (BusinessException e) {
                 throw e;
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
-                throw new BusinessException(JobErrorCode.E02008);
+                throw new BusinessException(KitErrorCode.E02008);
             }
         }
 
@@ -206,13 +206,13 @@ public class KitJobServiceImpl implements KitJobService {
     public R<String> start(int id) {
         KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(id);
         if (kitJobInfo == null) {
-            throw new BusinessException(JobErrorCode.E02001);
+            throw new BusinessException(KitErrorCode.E02001);
         }
 
         // 调度类型不能为空
         ScheduleTypeEnum scheduleTypeEnum = ScheduleTypeEnum.match(kitJobInfo.getScheduleType(), ScheduleTypeEnum.NONE);
         if (ScheduleTypeEnum.NONE == scheduleTypeEnum) {
-            throw new BusinessException(JobErrorCode.E02021);
+            throw new BusinessException(KitErrorCode.E02021);
         }
 
         // 计算下次触发时间
@@ -220,14 +220,14 @@ public class KitJobServiceImpl implements KitJobService {
         try {
             Date nextValidTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(kitJobInfo, new Date(System.currentTimeMillis() + JobScheduleHelper.PRE_READ_MS));
             if (nextValidTime == null) {
-                throw new BusinessException(JobErrorCode.E02008);
+                throw new BusinessException(KitErrorCode.E02008);
             }
             nextTriggerTime = nextValidTime.getTime();
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            throw new BusinessException(JobErrorCode.E02008);
+            throw new BusinessException(KitErrorCode.E02008);
         }
 
         kitJobInfo.setTriggerStatus(TriggerStatus.RUNNING.getValue());
@@ -244,7 +244,7 @@ public class KitJobServiceImpl implements KitJobService {
     public R<String> stop(int id) {
         KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(id);
         if (kitJobInfo == null) {
-            throw new BusinessException(JobErrorCode.E02001);
+            throw new BusinessException(KitErrorCode.E02001);
         }
 
         kitJobInfo.setTriggerStatus(TriggerStatus.STOPPED.getValue());
@@ -261,7 +261,7 @@ public class KitJobServiceImpl implements KitJobService {
     public R<String> trigger(int jobId, String executorParam, String addressList) {
         KitJobInfo kitJobInfo = kitJobInfoMapper.loadById(jobId);
         if (kitJobInfo == null) {
-            throw new BusinessException(JobErrorCode.E02001);
+            throw new BusinessException(KitErrorCode.E02001);
         }
 
         if (executorParam == null) {
@@ -299,7 +299,7 @@ public class KitJobServiceImpl implements KitJobService {
             }
         } catch (Exception e) {
             log.error(">>>>>>>>>>> nextTriggerTime 计算失败. scheduleType={}, scheduleConf={}, error={}", scheduleType, scheduleConf, e.getMessage());
-            throw new BusinessException(JobErrorCode.E02008);
+            throw new BusinessException(KitErrorCode.E02008);
         }
         return R.ok(result);
     }
@@ -321,7 +321,7 @@ public class KitJobServiceImpl implements KitJobService {
     public R<String> groupAdd(KitJobGroup kitJobGroup) {
         // 校验AppName
         if (isBlank(kitJobGroup.getAppname())) {
-            throw new BusinessException(JobErrorCode.E02022);
+            throw new BusinessException(KitErrorCode.E02022);
         }
         if (kitJobGroup.getAppname().length() < 4 || kitJobGroup.getAppname().length() > 64) {
             return R.fail("AppName长度限制4~64");
@@ -329,19 +329,19 @@ public class KitJobServiceImpl implements KitJobService {
 
         // 校验名称
         if (isBlank(kitJobGroup.getName())) {
-            throw new BusinessException(JobErrorCode.E02023);
+            throw new BusinessException(KitErrorCode.E02023);
         }
 
         // 手动录入时校验地址
         if (kitJobGroup.getAddressType() != 0) {
             if (isBlank(kitJobGroup.getAddressList())) {
-                throw new BusinessException(JobErrorCode.E02018);
+                throw new BusinessException(KitErrorCode.E02018);
             }
         }
 
         // 校验AppName唯一
         if (kitJobGroupMapper.loadByAppname(kitJobGroup.getAppname()) != null) {
-            throw new BusinessException(JobErrorCode.E02017);
+            throw new BusinessException(KitErrorCode.E02017);
         }
 
         kitJobGroup.setUpdateTime(new Date());
@@ -354,18 +354,18 @@ public class KitJobServiceImpl implements KitJobService {
         // 校验存在
         KitJobGroup exists = kitJobGroupMapper.load(kitJobGroup.getId());
         if (exists == null) {
-            throw new BusinessException(JobErrorCode.E02002);
+            throw new BusinessException(KitErrorCode.E02002);
         }
 
         // 校验名称
         if (isBlank(kitJobGroup.getName())) {
-            throw new BusinessException(JobErrorCode.E02023);
+            throw new BusinessException(KitErrorCode.E02023);
         }
 
         // 手动录入时校验地址
         if (kitJobGroup.getAddressType() != 0) {
             if (isBlank(kitJobGroup.getAddressList())) {
-                throw new BusinessException(JobErrorCode.E02018);
+                throw new BusinessException(KitErrorCode.E02018);
             }
         }
 
@@ -384,13 +384,13 @@ public class KitJobServiceImpl implements KitJobService {
         // 执行器下是否存在任务
         int count = kitJobInfoMapper.pageListCount(0, 10, id, -1, null, null, null);
         if (count > 0) {
-            throw new BusinessException(JobErrorCode.E02016);
+            throw new BusinessException(KitErrorCode.E02016);
         }
 
         // 至少保留一个执行器
         List<KitJobGroup> allList = kitJobGroupMapper.findAll();
         if (allList.size() == 1) {
-            throw new BusinessException(JobErrorCode.E02026);
+            throw new BusinessException(KitErrorCode.E02026);
         }
 
         int ret = kitJobGroupMapper.remove(id);
@@ -420,7 +420,7 @@ public class KitJobServiceImpl implements KitJobService {
     public R<KitJobLog> logLoad(long id) {
         KitJobLog kitJobLog = kitJobLogMapper.load(id);
         if (kitJobLog == null) {
-            throw new BusinessException(JobErrorCode.E02024);
+            throw new BusinessException(KitErrorCode.E02024);
         }
         return R.ok(kitJobLog);
     }
@@ -440,7 +440,7 @@ public class KitJobServiceImpl implements KitJobService {
             case 7 -> clearBeforeNum = 30000;
             case 8 -> clearBeforeNum = 100000;
             case 9 -> clearBeforeNum = 0;
-            default -> throw new BusinessException(JobErrorCode.E02025);
+            default -> throw new BusinessException(KitErrorCode.E02025);
         }
 
         List<Long> logIds;
@@ -540,23 +540,23 @@ public class KitJobServiceImpl implements KitJobService {
     private void validSchedule(KitJobInfo jobInfo) {
         ScheduleTypeEnum scheduleTypeEnum = ScheduleTypeEnum.match(jobInfo.getScheduleType(), null);
         if (scheduleTypeEnum == null) {
-            throw new BusinessException(JobErrorCode.E02008);
+            throw new BusinessException(KitErrorCode.E02008);
         }
         if (scheduleTypeEnum == ScheduleTypeEnum.CRON) {
             if (jobInfo.getScheduleConf() == null || !CronExpression.isValidExpression(jobInfo.getScheduleConf())) {
-                throw new BusinessException(JobErrorCode.E02004);
+                throw new BusinessException(KitErrorCode.E02004);
             }
         } else if (scheduleTypeEnum == ScheduleTypeEnum.FIX_RATE) {
             if (jobInfo.getScheduleConf() == null) {
-                throw new BusinessException(JobErrorCode.E02008);
+                throw new BusinessException(KitErrorCode.E02008);
             }
             try {
                 int fixSecond = Integer.parseInt(jobInfo.getScheduleConf());
                 if (fixSecond < 1) {
-                    throw new BusinessException(JobErrorCode.E02008);
+                    throw new BusinessException(KitErrorCode.E02008);
                 }
             } catch (NumberFormatException e) {
-                throw new BusinessException(JobErrorCode.E02008);
+                throw new BusinessException(KitErrorCode.E02008);
             }
         }
     }
@@ -566,13 +566,13 @@ public class KitJobServiceImpl implements KitJobService {
      */
     private void validAdvanced(KitJobInfo jobInfo) {
         if (ExecutorRouteStrategyEnum.match(jobInfo.getExecutorRouteStrategy(), null) == null) {
-            throw new BusinessException(JobErrorCode.E02011);
+            throw new BusinessException(KitErrorCode.E02011);
         }
         if (MisfireStrategyEnum.match(jobInfo.getMisfireStrategy(), null) == null) {
-            throw new BusinessException(JobErrorCode.E02009);
+            throw new BusinessException(KitErrorCode.E02009);
         }
         if (ExecutorBlockStrategyEnum.match(jobInfo.getExecutorBlockStrategy(), null) == null) {
-            throw new BusinessException(JobErrorCode.E02010);
+            throw new BusinessException(KitErrorCode.E02010);
         }
     }
 
@@ -589,14 +589,14 @@ public class KitJobServiceImpl implements KitJobService {
                 if (isNotBlank(childJobIdItem) && isNumeric(childJobIdItem)) {
                     int childJobId = Integer.parseInt(childJobIdItem);
                     if (childJobId == excludeId) {
-                        throw new BusinessException(JobErrorCode.E02020);
+                        throw new BusinessException(KitErrorCode.E02020);
                     }
                     KitJobInfo childJobInfo = kitJobInfoMapper.loadById(childJobId);
                     if (childJobInfo == null) {
-                        throw new BusinessException(JobErrorCode.E02019);
+                        throw new BusinessException(KitErrorCode.E02019);
                     }
                 } else {
-                    throw new BusinessException(JobErrorCode.E02020);
+                    throw new BusinessException(KitErrorCode.E02020);
                 }
             }
 
