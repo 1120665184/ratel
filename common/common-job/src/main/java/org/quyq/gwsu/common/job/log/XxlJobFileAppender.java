@@ -12,9 +12,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -79,13 +78,12 @@ public class XxlJobFileAppender {
     /**
      * 构建日志文件名，格式：logPath/yyyy-MM-dd/9999.log
      *
-     * @param triggerDate 触发日期
-     * @param logId       日志ID
+     * @param triggerDateTime 触发日期时间
+     * @param logId           日志ID
      * @return 日志文件名
      */
-    public static String makeLogFileName(Date triggerDate, String logId) {
-        LocalDate localDate = triggerDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        String datePath = localDate.format(DATE_FORMATTER);
+    public static String makeLogFileName(LocalDateTime triggerDateTime, String logId) {
+        String datePath = triggerDateTime.toLocalDate().format(DATE_FORMATTER);
 
         File logFilePath = new File(getLogPath(), datePath);
         try {

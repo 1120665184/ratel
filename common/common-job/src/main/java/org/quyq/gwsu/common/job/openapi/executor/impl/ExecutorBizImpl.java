@@ -20,7 +20,9 @@ import org.quyq.gwsu.common.job.thread.JobThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Date;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * 执行器业务实现
@@ -157,7 +159,7 @@ public class ExecutorBizImpl implements ExecutorBiz {
 
     @Override
     public R<LogData> log(LogRequest logRequest) {
-        String logFileName = XxlJobFileAppender.makeLogFileName(new Date(logRequest.getLogDateTime()), logRequest.getLogId());
+        String logFileName = XxlJobFileAppender.makeLogFileName(LocalDateTime.ofInstant(Instant.ofEpochMilli(logRequest.getLogDateTime()), ZoneId.systemDefault()), logRequest.getLogId());
 
         LogData logResult = XxlJobFileAppender.readLog(logFileName, logRequest.getFromLineNum());
         return R.ok(logResult);

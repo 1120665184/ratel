@@ -1,5 +1,6 @@
 package org.quyq.gwsu.kit.job.scheduler.config;
 
+
 import jakarta.annotation.Resource;
 import org.quyq.gwsu.kit.job.mapper.*;
 import org.quyq.gwsu.kit.job.scheduler.alarm.JobAlarmer;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 任务调度管理端启动类
@@ -160,6 +162,8 @@ public class JobAdminBootstrap implements InitializingBean, DisposableBean {
     private JobCompleter jobCompleter;
     @Resource
     private TriggerStrategy triggerStrategy;
+    @Resource
+    private ObjectMapper objectMapper;
 
     // ---------------------- Getter ----------------------
 
@@ -237,6 +241,10 @@ public class JobAdminBootstrap implements InitializingBean, DisposableBean {
 
     public TriggerStrategy getTriggerStrategy() {
         return triggerStrategy;
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
 
 }

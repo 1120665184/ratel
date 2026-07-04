@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -84,7 +86,7 @@ public class JobScheduleHelper {
                                 MisfireStrategyEnum misfireStrategyEnum = MisfireStrategyEnum.match(jobInfo.getMisfireStrategy(), MisfireStrategyEnum.DO_NOTHING);
                                 misfireStrategyEnum.getMisfireHandler().handle(jobInfo.getId());
 
-                                refreshNextTriggerTime(jobInfo, new Date());
+                                refreshNextTriggerTime(jobInfo, LocalDateTime.now());
 
                             } else if (nowTime >= jobInfo.getTriggerNextTime()) {
                                 // 2.2、过期不超过5s：直接触发 && 生成下次触发时间
@@ -92,14 +94,14 @@ public class JobScheduleHelper {
                                 JobAdminBootstrap.getInstance().getJobTriggerPoolHelper().trigger(jobInfo.getId(), TriggerTypeEnum.CRON, -1, null, null, null);
                                 logger.debug(">>>>>>>>>>> kit-job, 调度过期直接触发：jobId = {}", jobInfo.getId());
 
-                                refreshNextTriggerTime(jobInfo, new Date());
+                                refreshNextTriggerTime(jobInfo, LocalDateTime.now());
 
                                 // 下次触发在5s内，再次预读
                                 if (jobInfo.getTriggerStatus() == TriggerStatus.RUNNING.getValue() && nowTime + PRE_READ_MS > jobInfo.getTriggerNextTime()) {
                                     int ringSecond = (int) ((jobInfo.getTriggerNextTime() / 1000) % 60);
                                     pushTimeRing(ringSecond, jobInfo.getId());
                                     logger.debug(">>>>>>>>>>> kit-job, 调度预读推入时间轮：jobId = {}", jobInfo.getId());
-                                    refreshNextTriggerTime(jobInfo, new Date(jobInfo.getTriggerNextTime()));
+                                    refreshNextTriggerTime(jobInfo, LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(jobInfo.getTriggerNextTime()), ZoneId.systemDefault()));
                                 }
 
                             } else {
@@ -108,7 +110,7 @@ public class JobScheduleHelper {
                                 int ringSecond = (int) ((jobInfo.getTriggerNextTime() / 1000) % 60);
                                 pushTimeRing(ringSecond, jobInfo.getId());
                                 logger.debug(">>>>>>>>>>> kit-job, 调度正常推入时间轮：jobId = {}", jobInfo.getId());
-                                refreshNextTriggerTime(jobInfo, new Date(jobInfo.getTriggerNextTime()));
+                                refreshNextTriggerTime(jobInfo, LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(jobInfo.getTriggerNextTime()), ZoneId.systemDefault()));
                             }
                         }
 
@@ -210,15 +212,15 @@ public class JobScheduleHelper {
     /**
      * 刷新下次触发时间
      */
-    private void refreshNextTriggerTime(KitJobInfo jobInfo, Date fromTime) {
+    private void refreshNextTriggerTime(KitJobInfo jobInfo, LocalDateTime fromTime) {
         try {
             ScheduleTypeEnum scheduleTypeEnum = ScheduleTypeEnum.match(jobInfo.getScheduleType(), ScheduleTypeEnum.NONE);
-            Date nextTriggerTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(jobInfo, fromTime);
+            LocalDateTime nextTriggerTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(jobInfo, fromTime);
 
             if (nextTriggerTime != null) {
                 jobInfo.setTriggerStatus(-1);
                 jobInfo.setTriggerLastTime(jobInfo.getTriggerNextTime());
-                jobInfo.setTriggerNextTime(nextTriggerTime.getTime());
+                jobInfo.setTriggerNextTime(nextTriggerTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             } else {
                 jobInfo.setTriggerStatus(TriggerStatus.STOPPED.getValue());
                 jobInfo.setTriggerLastTime(0);

@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * 任务信息
@@ -90,7 +90,7 @@ public class KitJobInfo extends BaseDO {
 
     @TableField("glue_updatetime")
     @Schema(description = "GLUE更新时间")
-    private Date glueUpdatetime;
+    private LocalDateTime glueUpdatetime;
 
     @TableField("child_jobid")
     @Schema(description = "子任务ID，多个逗号分隔")
@@ -107,13 +107,5 @@ public class KitJobInfo extends BaseDO {
     @TableField("trigger_next_time")
     @Schema(description = "下次调度时间")
     private long triggerNextTime;
-
-    @TableField("add_time")
-    @Schema(description = "创建时间（业务字段）")
-    private Date addTime;
-
-    @TableField("update_time")
-    @Schema(description = "更新时间（业务字段）")
-    private Date updateTime;
 
 }

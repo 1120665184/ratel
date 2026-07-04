@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -28,14 +28,14 @@ public interface KitJobLogMapper extends BaseMapper<KitJobLog> {
     /**
      * 查询日志报表统计（聚合查询，含 IFNULL/COALESCE）
      */
-    Map<String, Object> findLogReport(@Param("from") Date from, @Param("to") Date to);
+    Map<String, Object> findLogReport(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /**
      * 查询待清理的日志ID
      */
     List<String> findClearLogIds(@Param("jobGroup") String jobGroup,
                                 @Param("jobId") String jobId,
-                                @Param("clearBeforeTime") Date clearBeforeTime,
+                                @Param("clearBeforeTime") LocalDateTime clearBeforeTime,
                                 @Param("clearBeforeNum") int clearBeforeNum,
                                 @Param("pagesize") int pagesize);
 
@@ -59,6 +59,6 @@ public interface KitJobLogMapper extends BaseMapper<KitJobLog> {
     /**
      * 查询丢失的任务日志ID（LEFT JOIN 子查询）
      */
-    List<String> findLostJobIds(@Param("losedTime") Date losedTime);
+    List<String> findLostJobIds(@Param("losedTime") LocalDateTime losedTime);
 
 }

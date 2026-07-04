@@ -9,7 +9,7 @@ import org.quyq.gwsu.kit.job.domain.KitJobGroup;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -60,6 +60,6 @@ public interface KitJobService {
 
     R<Map<String, Object>> dashboardInfo();
 
-    R<Map<String, Object>> chartInfo(Date startDate, Date endDate);
+    R<Map<String, Object>> chartInfo(LocalDateTime startDate, LocalDateTime endDate);
 
 }

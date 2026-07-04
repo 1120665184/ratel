@@ -10,8 +10,6 @@
             t.id,
             t.job_group,
             t.name,
-            t.add_time,
-            t.update_time,
             t.author,
             t.alarm_email,
             t.schedule_type,

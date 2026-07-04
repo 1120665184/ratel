@@ -4,47 +4,51 @@
 <mapper namespace="org.quyq.gwsu.kit.job.mapper.KitJobLogReportMapper">
 
     <!-- saveOrUpdate：MySQL 用 ON DUPLICATE KEY UPDATE -->
-    <insert id="saveOrUpdate" parameterType="org.quyq.gwsu.kit.job.domain.KitJobLogReport" useGeneratedKeys="true" keyProperty="id" databaseId="mysql">
+    <insert id="saveOrUpdate" parameterType="org.quyq.gwsu.kit.job.domain.KitJobLogReport" databaseId="mysql">
         INSERT INTO kit_job_log_report (
+            id,
             trigger_day,
             running_count,
             suc_count,
             fail_count,
-            update_time
+            modify_time
         ) VALUES (
+            #{id},
             #{triggerDay},
             #{runningCount},
             #{sucCount},
             #{failCount},
-            #{updateTime}
+            #{modifyTime}
         )
         ON DUPLICATE KEY UPDATE
             running_count = #{runningCount},
             suc_count = #{sucCount},
             fail_count = #{failCount},
-            update_time = #{updateTime}
+            modify_time = #{modifyTime}
     </insert>
 
     <!-- saveOrUpdate：PostgreSQL 用 ON CONFLICT ... DO UPDATE SET -->
-    <insert id="saveOrUpdate" parameterType="org.quyq.gwsu.kit.job.domain.KitJobLogReport" useGeneratedKeys="true" keyProperty="id" databaseId="postgresql">
+    <insert id="saveOrUpdate" parameterType="org.quyq.gwsu.kit.job.domain.KitJobLogReport" databaseId="postgresql">
         INSERT INTO kit_job_log_report (
+            id,
             trigger_day,
             running_count,
             suc_count,
             fail_count,
-            update_time
+            modify_time
         ) VALUES (
+            #{id},
             #{triggerDay},
             #{runningCount},
             #{sucCount},
             #{failCount},
-            #{updateTime}
+            #{modifyTime}
         )
-        ON CONFLICT (i_trigger_day) DO UPDATE SET
+        ON CONFLICT (trigger_day) DO UPDATE SET
             running_count = #{runningCount},
             suc_count = #{sucCount},
             fail_count = #{failCount},
-            update_time = #{updateTime}
+            modify_time = #{modifyTime}
     </insert>
 
     <select id="queryLogReportTotal" resultType="org.quyq.gwsu.kit.job.domain.KitJobLogReport">

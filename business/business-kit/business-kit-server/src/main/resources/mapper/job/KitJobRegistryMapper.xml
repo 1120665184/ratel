@@ -7,14 +7,14 @@
     <select id="findDead" parameterType="java.util.HashMap" resultType="java.lang.Integer" databaseId="mysql">
         SELECT t.id
         FROM kit_job_registry AS t
-        WHERE t.update_time <![CDATA[ < ]]> DATE_ADD(#{nowTime}, INTERVAL -#{timeout} SECOND)
+        WHERE t.modify_time <![CDATA[ < ]]> DATE_ADD(#{nowTime}, INTERVAL -#{timeout} SECOND)
     </select>
 
     <!-- findDead：PostgreSQL 日期减法 -->
     <select id="findDead" parameterType="java.util.HashMap" resultType="java.lang.Integer" databaseId="postgresql">
         SELECT t.id
         FROM kit_job_registry AS t
-        WHERE t.update_time <![CDATA[ < ]]> (#{nowTime} - INTERVAL '1 second' * #{timeout})
+        WHERE t.modify_time <![CDATA[ < ]]> (#{nowTime} - INTERVAL '1 second' * #{timeout})
     </select>
 
     <!-- findAll：MySQL DATE_ADD -->
@@ -24,9 +24,9 @@
             t.registry_group,
             t.registry_key,
             t.registry_value,
-            t.update_time
+            t.modify_time
         FROM kit_job_registry AS t
-        WHERE t.update_time <![CDATA[ > ]]> DATE_ADD(#{nowTime}, INTERVAL -#{timeout} SECOND)
+        WHERE t.modify_time <![CDATA[ > ]]> DATE_ADD(#{nowTime}, INTERVAL -#{timeout} SECOND)
     </select>
 
     <!-- findAll：PostgreSQL 日期减法 -->
@@ -36,25 +36,25 @@
             t.registry_group,
             t.registry_key,
             t.registry_value,
-            t.update_time
+            t.modify_time
         FROM kit_job_registry AS t
-        WHERE t.update_time <![CDATA[ > ]]> (#{nowTime} - INTERVAL '1 second' * #{timeout})
+        WHERE t.modify_time <![CDATA[ > ]]> (#{nowTime} - INTERVAL '1 second' * #{timeout})
     </select>
 
     <!-- registrySaveOrUpdate：MySQL ON DUPLICATE KEY UPDATE -->
     <insert id="registrySaveOrUpdate" databaseId="mysql">
-        INSERT INTO kit_job_registry (registry_group, registry_key, registry_value, update_time)
-        VALUES (#{registryGroup}, #{registryKey}, #{registryValue}, #{updateTime})
+        INSERT INTO kit_job_registry (id, registry_group, registry_key, registry_value, modify_time)
+        VALUES (#{id}, #{registryGroup}, #{registryKey}, #{registryValue}, #{modifyTime})
         ON DUPLICATE KEY UPDATE
-            update_time = #{updateTime}
+            modify_time = #{modifyTime}
     </insert>
 
     <!-- registrySaveOrUpdate：PostgreSQL ON CONFLICT -->
     <insert id="registrySaveOrUpdate" databaseId="postgresql">
-        INSERT INTO kit_job_registry (registry_group, registry_key, registry_value, update_time)
-        VALUES (#{registryGroup}, #{registryKey}, #{registryValue}, #{updateTime})
-        ON CONFLICT (i_g_k_v) DO UPDATE SET
-            update_time = #{updateTime}
+        INSERT INTO kit_job_registry (id, registry_group, registry_key, registry_value, modify_time)
+        VALUES (#{id}, #{registryGroup}, #{registryKey}, #{registryValue}, #{modifyTime})
+        ON CONFLICT (registry_group, registry_key, registry_value) DO UPDATE SET
+            modify_time = #{modifyTime}
     </insert>
 
 </mapper>

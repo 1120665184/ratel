@@ -10,8 +10,6 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 
-import java.util.Date;
-
 /**
  * 任务日志Glue代码记录
  */
@@ -41,13 +39,5 @@ public class KitJobLogGlue extends BaseDO {
     @TableField("glue_remark")
     @Schema(description = "GLUE备注")
     private String glueRemark;
-
-    @TableField("add_time")
-    @Schema(description = "创建时间（业务字段）")
-    private Date addTime;
-
-    @TableField("update_time")
-    @Schema(description = "更新时间（业务字段）")
-    private Date updateTime;
 
 }

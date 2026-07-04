@@ -172,7 +172,6 @@ CREATE TABLE kit_job_group
     address_type    INT2         NOT NULL DEFAULT 0,
     address_list    TEXT                  DEFAULT NULL,
     access_token    VARCHAR(255)          DEFAULT NULL,
-    update_time     TIMESTAMP             DEFAULT NULL,
     tenant_id       VARCHAR(50)           DEFAULT NULL,
     create_op       VARCHAR(50)           DEFAULT NULL,
     create_time     TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -190,7 +189,6 @@ COMMENT ON COLUMN kit_job_group.name IS '执行器名称';
 COMMENT ON COLUMN kit_job_group.address_type IS '执行器地址类型：0=自动注册、1=手动录入';
 COMMENT ON COLUMN kit_job_group.address_list IS '执行器地址列表，多地址逗号分隔';
 COMMENT ON COLUMN kit_job_group.access_token IS '执行器AccessToken（保留字段，兼容数据结构）';
-COMMENT ON COLUMN kit_job_group.update_time IS '更新时间';
 COMMENT ON COLUMN kit_job_group.tenant_id IS '租户ID';
 COMMENT ON COLUMN kit_job_group.create_op IS '创建人';
 COMMENT ON COLUMN kit_job_group.create_time IS '创建时间';
@@ -212,7 +210,6 @@ CREATE TABLE kit_job_registry
     registry_group  VARCHAR(50)  NOT NULL,
     registry_key    VARCHAR(255) NOT NULL,
     registry_value  VARCHAR(255) NOT NULL,
-    update_time     TIMESTAMP             DEFAULT NULL,
     tenant_id       VARCHAR(50)           DEFAULT NULL,
     create_op       VARCHAR(50)           DEFAULT NULL,
     create_time     TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -228,7 +225,6 @@ COMMENT ON COLUMN kit_job_registry.id IS '主键ID';
 COMMENT ON COLUMN kit_job_registry.registry_group IS '注册分组';
 COMMENT ON COLUMN kit_job_registry.registry_key IS '注册标识';
 COMMENT ON COLUMN kit_job_registry.registry_value IS '注册值（地址）';
-COMMENT ON COLUMN kit_job_registry.update_time IS '更新时间';
 COMMENT ON COLUMN kit_job_registry.tenant_id IS '租户ID';
 COMMENT ON COLUMN kit_job_registry.create_op IS '创建人';
 COMMENT ON COLUMN kit_job_registry.create_time IS '创建时间';
@@ -238,6 +234,7 @@ COMMENT ON COLUMN kit_job_registry.deleted IS '删除标识：0-未删除 1-已�
 COMMENT ON COLUMN kit_job_registry.delete_op IS '删除人';
 COMMENT ON COLUMN kit_job_registry.delete_time IS '删除时间';
 
+ALTER TABLE kit_job_registry ADD CONSTRAINT uk_g_k_v UNIQUE (registry_group, registry_key, registry_value);
 CREATE UNIQUE INDEX i_g_k_v ON kit_job_registry (registry_group, registry_key, registry_value) WHERE deleted = 0;
 
 -- =============================================
@@ -268,8 +265,6 @@ CREATE TABLE kit_job_info
     trigger_status            INT2         NOT NULL DEFAULT 0,
     trigger_last_time         BIGINT       NOT NULL DEFAULT 0,
     trigger_next_time         BIGINT       NOT NULL DEFAULT 0,
-    add_time                  TIMESTAMP             DEFAULT NULL,
-    update_time               TIMESTAMP             DEFAULT NULL,
     tenant_id                 VARCHAR(50)           DEFAULT NULL,
     create_op                 VARCHAR(50)           DEFAULT NULL,
     create_time               TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -303,8 +298,6 @@ COMMENT ON COLUMN kit_job_info.child_jobid IS '子任务ID，多个逗号分隔'
 COMMENT ON COLUMN kit_job_info.trigger_status IS '调度状态：0-停止，1-运行';
 COMMENT ON COLUMN kit_job_info.trigger_last_time IS '上次调度时间';
 COMMENT ON COLUMN kit_job_info.trigger_next_time IS '下次调度时间';
-COMMENT ON COLUMN kit_job_info.add_time IS '业务创建时间';
-COMMENT ON COLUMN kit_job_info.update_time IS '业务更新时间';
 COMMENT ON COLUMN kit_job_info.tenant_id IS '租户ID';
 COMMENT ON COLUMN kit_job_info.create_op IS '创建人';
 COMMENT ON COLUMN kit_job_info.create_time IS '创建时间';
@@ -325,8 +318,6 @@ CREATE TABLE kit_job_log_glue
     glue_type     VARCHAR(50)           DEFAULT NULL,
     glue_source   TEXT                  DEFAULT NULL,
     glue_remark   VARCHAR(128) NOT NULL,
-    add_time      TIMESTAMP             DEFAULT NULL,
-    update_time   TIMESTAMP             DEFAULT NULL,
     tenant_id     VARCHAR(50)           DEFAULT NULL,
     create_op     VARCHAR(50)           DEFAULT NULL,
     create_time   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -343,8 +334,6 @@ COMMENT ON COLUMN kit_job_log_glue.job_id IS '任务主键ID';
 COMMENT ON COLUMN kit_job_log_glue.glue_type IS 'GLUE类型';
 COMMENT ON COLUMN kit_job_log_glue.glue_source IS 'GLUE源代码';
 COMMENT ON COLUMN kit_job_log_glue.glue_remark IS 'GLUE备注';
-COMMENT ON COLUMN kit_job_log_glue.add_time IS '业务创建时间';
-COMMENT ON COLUMN kit_job_log_glue.update_time IS '业务更新时间';
 COMMENT ON COLUMN kit_job_log_glue.tenant_id IS '租户ID';
 COMMENT ON COLUMN kit_job_log_glue.create_op IS '创建人';
 COMMENT ON COLUMN kit_job_log_glue.create_time IS '创建时间';
@@ -426,7 +415,6 @@ CREATE TABLE kit_job_log_report
     running_count   INT          NOT NULL DEFAULT 0,
     suc_count       INT          NOT NULL DEFAULT 0,
     fail_count      INT          NOT NULL DEFAULT 0,
-    update_time     TIMESTAMP             DEFAULT NULL,
     tenant_id       VARCHAR(50)           DEFAULT NULL,
     create_op       VARCHAR(50)           DEFAULT NULL,
     create_time     TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -443,7 +431,6 @@ COMMENT ON COLUMN kit_job_log_report.trigger_day IS '调度-时间';
 COMMENT ON COLUMN kit_job_log_report.running_count IS '运行中-日志数量';
 COMMENT ON COLUMN kit_job_log_report.suc_count IS '执行成功-日志数量';
 COMMENT ON COLUMN kit_job_log_report.fail_count IS '执行失败-日志数量';
-COMMENT ON COLUMN kit_job_log_report.update_time IS '业务更新时间';
 COMMENT ON COLUMN kit_job_log_report.tenant_id IS '租户ID';
 COMMENT ON COLUMN kit_job_log_report.create_op IS '创建人';
 COMMENT ON COLUMN kit_job_log_report.create_time IS '创建时间';
@@ -453,6 +440,7 @@ COMMENT ON COLUMN kit_job_log_report.deleted IS '删除标识：0-未删除 1-�
 COMMENT ON COLUMN kit_job_log_report.delete_op IS '删除人';
 COMMENT ON COLUMN kit_job_log_report.delete_time IS '删除时间';
 
+ALTER TABLE kit_job_log_report ADD CONSTRAINT uk_trigger_day UNIQUE (trigger_day);
 CREATE UNIQUE INDEX i_trigger_day ON kit_job_log_report (trigger_day) WHERE deleted = 0;
 
 -- =============================================

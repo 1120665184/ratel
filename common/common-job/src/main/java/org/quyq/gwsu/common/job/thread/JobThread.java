@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Date;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -104,7 +106,7 @@ public class JobThread extends Thread {
                     triggerLogIdSet.remove(triggerParam.getLogId());
 
                     // 日志文件名，格式 "logPath/yyyy-MM-dd/9999.log"
-                    String logFileName = XxlJobFileAppender.makeLogFileName(new Date(triggerParam.getLogDateTime()), triggerParam.getLogId());
+                    String logFileName = XxlJobFileAppender.makeLogFileName(LocalDateTime.ofInstant(Instant.ofEpochMilli(triggerParam.getLogDateTime()), ZoneId.systemDefault()), triggerParam.getLogId());
                     XxlJobContext xxlJobContext = new XxlJobContext(
                             triggerParam.getJobId(),
                             triggerParam.getExecutorParams(),

@@ -9,7 +9,7 @@ import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -56,14 +56,14 @@ public class JobCompleteHelper {
     private void jobMonitorTask() {
         try {
             // 任务结果丢失处理：调度记录停留在 "运行中" 状态超过10min，且对应执行器心跳注册失败不在线，则将本地调度主动标记失败
-            Date losedTime = new Date(System.currentTimeMillis() - 10 * 60 * 1000);
+            LocalDateTime losedTime = LocalDateTime.now().minusMinutes(10);
             List<String> losedJobIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findLostJobIds(losedTime);
 
             if (losedJobIds != null && !losedJobIds.isEmpty()) {
                 for (String logId : losedJobIds) {
                     KitJobLog jobLog = new KitJobLog();
                     jobLog.setId(logId);
-                    jobLog.setHandleTime(new Date());
+                    jobLog.setHandleTime(LocalDateTime.now());
                     jobLog.setHandleCode(JobConst.HANDLE_CODE_FAIL);
                     jobLog.setHandleMsg("任务结果丢失，标记失败");
 
@@ -124,7 +124,7 @@ public class JobCompleteHelper {
         }
 
         // 保存日志
-        log.setHandleTime(new Date());
+        log.setHandleTime(LocalDateTime.now());
         log.setHandleCode(handleCallbackParam.getHandleCode());
         log.setHandleMsg(handleMsg.toString());
         JobAdminBootstrap.getInstance().getJobCompleter().complete(log);

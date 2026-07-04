@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * 任务日志报表
@@ -28,7 +28,7 @@ public class KitJobLogReport extends BaseDO {
 
     @TableField("trigger_day")
     @Schema(description = "调度时间")
-    private Date triggerDay;
+    private LocalDateTime triggerDay;
 
     @TableField("running_count")
     @Schema(description = "运行中-日志数量")
@@ -41,9 +41,5 @@ public class KitJobLogReport extends BaseDO {
     @TableField("fail_count")
     @Schema(description = "执行失败-日志数量")
     private int failCount;
-
-    @TableField("update_time")
-    @Schema(description = "更新时间（业务字段）")
-    private Date updateTime;
 
 }

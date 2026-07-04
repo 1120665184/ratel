@@ -1,5 +1,6 @@
 package org.quyq.gwsu.kit.job.scheduler.thread;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
 import org.quyq.gwsu.kit.job.mapper.KitJobLogMapper;
 import org.quyq.gwsu.kit.job.mapper.KitJobLogReportMapper;
@@ -7,8 +8,9 @@ import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Calendar;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -45,21 +47,9 @@ public class JobLogReportHelper {
             // 1、日志报表刷新：刷新3天内的日志报表
             for (int i = 0; i < 3; i++) {
 
-                Calendar itemDay = Calendar.getInstance();
-                itemDay.add(Calendar.DAY_OF_MONTH, -i);
-                itemDay.set(Calendar.HOUR_OF_DAY, 0);
-                itemDay.set(Calendar.MINUTE, 0);
-                itemDay.set(Calendar.SECOND, 0);
-                itemDay.set(Calendar.MILLISECOND, 0);
-
-                Date todayFrom = itemDay.getTime();
-
-                itemDay.set(Calendar.HOUR_OF_DAY, 23);
-                itemDay.set(Calendar.MINUTE, 59);
-                itemDay.set(Calendar.SECOND, 59);
-                itemDay.set(Calendar.MILLISECOND, 999);
-
-                Date todayTo = itemDay.getTime();
+                LocalDate day = LocalDate.now().minusDays(i);
+                LocalDateTime todayFrom = LocalDateTime.of(day, LocalTime.MIN);
+                LocalDateTime todayTo = LocalDateTime.of(day, LocalTime.MAX);
 
                 // 刷新日志报表
                 KitJobLogReport kitJobLogReport = new KitJobLogReport();
@@ -67,7 +57,6 @@ public class JobLogReportHelper {
                 kitJobLogReport.setRunningCount(0);
                 kitJobLogReport.setSucCount(0);
                 kitJobLogReport.setFailCount(0);
-                kitJobLogReport.setUpdateTime(new Date());
 
                 // 填充统计数据
                 Map<String, Object> triggerCountMap = JobAdminBootstrap.getInstance().getKitJobLogMapper().findLogReport(todayFrom, todayTo);
@@ -83,6 +72,7 @@ public class JobLogReportHelper {
                 }
 
                 // 执行刷新
+                kitJobLogReport.setId(IdWorker.getIdStr());
                 JobAdminBootstrap.getInstance().getKitJobLogReportMapper().saveOrUpdate(kitJobLogReport);
             }
 
@@ -90,13 +80,9 @@ public class JobLogReportHelper {
             if (JobAdminBootstrap.getInstance().getLogretentiondays() > 0
                     && System.currentTimeMillis() - lastCleanLogTime.longValue() > 24 * 60 * 60 * 1000) {
 
-                Calendar expiredDay = Calendar.getInstance();
-                expiredDay.add(Calendar.DAY_OF_MONTH, -1 * JobAdminBootstrap.getInstance().getLogretentiondays());
-                expiredDay.set(Calendar.HOUR_OF_DAY, 0);
-                expiredDay.set(Calendar.MINUTE, 0);
-                expiredDay.set(Calendar.SECOND, 0);
-                expiredDay.set(Calendar.MILLISECOND, 0);
-                Date clearBeforeTime = expiredDay.getTime();
+                LocalDateTime clearBeforeTime = LocalDate.now()
+                        .minusDays(JobAdminBootstrap.getInstance().getLogretentiondays())
+                        .atStartOfDay();
 
                 // 清理过期日志
                 List<String> logIds;

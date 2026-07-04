@@ -5,8 +5,6 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
 
-import java.util.Date;
-
 /**
  * 任务日志报表Mapper
  */

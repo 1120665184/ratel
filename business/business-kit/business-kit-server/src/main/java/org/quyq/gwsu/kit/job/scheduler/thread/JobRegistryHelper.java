@@ -1,7 +1,7 @@
 package org.quyq.gwsu.kit.job.scheduler.thread;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.google.gson.Gson;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.constant.JobConst;
 import org.quyq.gwsu.common.job.constant.RegistTypeEnum;
@@ -14,6 +14,7 @@ import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -22,7 +23,6 @@ import java.util.concurrent.*;
  */
 public class JobRegistryHelper {
     private static final Logger logger = LoggerFactory.getLogger(JobRegistryHelper.class);
-    private static final Gson GSON = new Gson();
 
     // 注册/注销线程池
     private ThreadPoolExecutor registryOrRemoveThreadPool = null;
@@ -66,34 +66,52 @@ public class JobRegistryHelper {
      */
     private void registryMonitorTask() {
         try {
-            // 2.1、刷新自动注册的执行器组
-            List<KitJobGroup> groupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper()
-                    .selectList(new LambdaQueryWrapper<KitJobGroup>().eq(KitJobGroup::getAddressType, 0));
-            if (groupList != null && !groupList.isEmpty()) {
+            // a、移除失效地址
+            List<String> ids = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, LocalDateTime.now());
+            if (ids != null && !ids.isEmpty()) {
+                JobAdminBootstrap.getInstance().getKitJobRegistryMapper().deleteBatchIds(ids);
+            }
 
-                // a、移除失效地址
-                List<String> ids = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, new Date());
-                if (ids != null && !ids.isEmpty()) {
-                    JobAdminBootstrap.getInstance().getKitJobRegistryMapper().deleteBatchIds(ids);
-                }
+            // b、获取在线地址（appname : List<address>）
+            HashMap<String, List<String>> appnameAddressMap = new HashMap<>();
+            List<KitJobRegistry> list = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findAll(JobConst.REGISTRY_BEAT_INTERVAL * 3, LocalDateTime.now());
+            if (list != null) {
+                for (KitJobRegistry item : list) {
+                    if (RegistTypeEnum.EXECUTOR.name().equals(item.getRegistryGroup())) {
+                        String appname = item.getRegistryKey();
+                        List<String> registryList = appnameAddressMap.computeIfAbsent(appname, k -> new ArrayList<>());
 
-                // b、获取在线地址（appname : List<address>）
-                HashMap<String, List<String>> appnameAddressMap = new HashMap<>();
-                List<KitJobRegistry> list = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findAll(JobConst.REGISTRY_BEAT_INTERVAL * 3, new Date());
-                if (list != null) {
-                    for (KitJobRegistry item : list) {
-                        if (RegistTypeEnum.EXECUTOR.name().equals(item.getRegistryGroup())) {
-                            String appname = item.getRegistryKey();
-                            List<String> registryList = appnameAddressMap.computeIfAbsent(appname, k -> new ArrayList<>());
-
-                            if (!registryList.contains(item.getRegistryValue())) {
-                                registryList.add(item.getRegistryValue());
-                            }
+                        if (!registryList.contains(item.getRegistryValue())) {
+                            registryList.add(item.getRegistryValue());
                         }
                     }
                 }
+            }
 
-                // c、写入执行器组地址
+            // c、自动注册：为没有对应执行器组的appname自动创建组
+            if (!appnameAddressMap.isEmpty()) {
+                List<KitJobGroup> existingGroups = JobAdminBootstrap.getInstance().getKitJobGroupMapper()
+                        .selectList(new LambdaQueryWrapper<KitJobGroup>().eq(KitJobGroup::getAddressType, 0));
+                Set<String> existingAppnames = existingGroups != null
+                        ? existingGroups.stream().map(KitJobGroup::getAppname).collect(java.util.stream.Collectors.toSet())
+                        : Collections.emptySet();
+
+                for (String appname : appnameAddressMap.keySet()) {
+                    if (!existingAppnames.contains(appname)) {
+                        KitJobGroup newGroup = new KitJobGroup();
+                        newGroup.setAppname(appname);
+                        newGroup.setName(appname);
+                        newGroup.setAddressType(0);
+                        JobAdminBootstrap.getInstance().getKitJobGroupMapper().insert(newGroup);
+                        logger.info(">>>>>>>>>>> kit-job, 自动注册执行器组, appname:{}", appname);
+                    }
+                }
+            }
+
+            // d、刷新自动注册的执行器组地址
+            List<KitJobGroup> groupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper()
+                    .selectList(new LambdaQueryWrapper<KitJobGroup>().eq(KitJobGroup::getAddressType, 0));
+            if (groupList != null && !groupList.isEmpty()) {
                 for (KitJobGroup group : groupList) {
                     List<String> registryList = appnameAddressMap.get(group.getAppname());
                     String addressListStr = null;
@@ -102,7 +120,6 @@ public class JobRegistryHelper {
                         addressListStr = String.join(",", registryList);
                     }
                     group.setAddressList(addressListStr);
-                    group.setUpdateTime(new Date());
 
                     JobAdminBootstrap.getInstance().getKitJobGroupMapper().updateById(group);
                 }
@@ -114,12 +131,11 @@ public class JobRegistryHelper {
             Map<String, KitJobGroup> id2GroupCacheNew = new ConcurrentHashMap<>();
             if (jobGroupList != null && !jobGroupList.isEmpty()) {
                 for (KitJobGroup group : jobGroupList) {
-                    group.setUpdateTime(null);
                     appname2GroupCacheNew.put(group.getAppname(), group);
                     id2GroupCacheNew.put(group.getId(), group);
                 }
             }
-            if (!GSON.toJson(appname2GroupCacheNew).equals(GSON.toJson(appname2GroupCache))) {
+            if (!toJson(appname2GroupCacheNew).equals(toJson(appname2GroupCache))) {
                 appname2GroupCache = appname2GroupCacheNew;
                 id2GroupCache = id2GroupCacheNew;
                 logger.info(">>>>>>>>>>> kit-job, JobRegistryHelper, 检测到变化并刷新JobGroupCache成功");
@@ -156,8 +172,8 @@ public class JobRegistryHelper {
         // 异步执行
         registryOrRemoveThreadPool.execute(() -> {
             int ret = JobAdminBootstrap.getInstance().getKitJobRegistryMapper()
-                    .registrySaveOrUpdate(registryParam.getRegistryGroup(), registryParam.getRegistryKey(),
-                            registryParam.getRegistryValue(), new Date());
+                    .registrySaveOrUpdate(IdWorker.getIdStr(), registryParam.getRegistryGroup(), registryParam.getRegistryKey(),
+                            registryParam.getRegistryValue(), LocalDateTime.now());
             if (ret == 1) {
                 freshGroupRegistryInfo(registryParam);
             }
@@ -211,6 +227,14 @@ public class JobRegistryHelper {
      */
     public KitJobGroup loadByAppName(String appname) {
         return appname2GroupCache.get(appname);
+    }
+
+    private String toJson(Object obj) {
+        try {
+            return JobAdminBootstrap.getInstance().getObjectMapper().writeValueAsString(obj);
+        } catch (Exception e) {
+            return String.valueOf(obj);
+        }
     }
 
 }

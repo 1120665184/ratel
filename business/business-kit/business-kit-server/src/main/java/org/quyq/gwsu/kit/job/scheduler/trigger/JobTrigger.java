@@ -18,7 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * 任务触发器
@@ -71,7 +72,7 @@ public class JobTrigger {
 
         // 分片参数
         int[] shardingParam = null;
-        Date triggerTime = new Date();
+        LocalDateTime triggerTime = LocalDateTime.now();
         if (executorShardingParam != null) {
             String[] shardingArr = executorShardingParam.split("/");
             if (shardingArr.length == 2 && isNumeric(shardingArr[0]) && isNumeric(shardingArr[1])) {
@@ -102,7 +103,7 @@ public class JobTrigger {
                                 KitJobInfo jobInfo,
                                 int finalFailRetryCount,
                                 TriggerTypeEnum triggerType,
-                                Date triggerTime,
+                                LocalDateTime triggerTime,
                                 int index,
                                 int total) {
 
@@ -127,10 +128,10 @@ public class JobTrigger {
         triggerParam.setExecutorBlockStrategy(jobInfo.getExecutorBlockStrategy());
         triggerParam.setExecutorTimeout(jobInfo.getExecutorTimeout());
         triggerParam.setLogId(jobLog.getId());
-        triggerParam.setLogDateTime(jobLog.getTriggerTime().getTime());
+        triggerParam.setLogDateTime(jobLog.getTriggerTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         triggerParam.setGlueType(jobInfo.getGlueType());
         triggerParam.setGlueSource(jobInfo.getGlueSource());
-        triggerParam.setGlueUpdatetime(jobInfo.getGlueUpdatetime().getTime());
+        triggerParam.setGlueUpdatetime(jobInfo.getGlueUpdatetime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         triggerParam.setBroadcastIndex(index);
         triggerParam.setBroadcastTotal(total);
 

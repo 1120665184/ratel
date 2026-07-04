@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import org.quyq.gwsu.common.core.domain.BaseDTO;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * 任务日志查询对象
@@ -27,10 +27,10 @@ public class KitJobLogDTO extends BaseDTO {
 
     @Schema(description = "触发时间起始")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date triggerTimeStart;
+    private LocalDateTime triggerTimeStart;
 
     @Schema(description = "触发时间截止")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date triggerTimeEnd;
+    private LocalDateTime triggerTimeEnd;
 
 }

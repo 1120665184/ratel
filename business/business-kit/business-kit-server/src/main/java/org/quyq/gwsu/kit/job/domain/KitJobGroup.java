@@ -45,10 +45,6 @@ public class KitJobGroup extends BaseDO {
     @Schema(description = "执行器AccessToken")
     private String accessToken;
 
-    @TableField("update_time")
-    @Schema(description = "更新时间（业务字段）")
-    private java.util.Date updateTime;
-
     @TableField(exist = false)
     private List<String> registryList;
 

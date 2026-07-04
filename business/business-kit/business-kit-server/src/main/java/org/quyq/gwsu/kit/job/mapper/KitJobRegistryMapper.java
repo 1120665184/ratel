@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.job.domain.KitJobRegistry;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -17,19 +17,20 @@ public interface KitJobRegistryMapper extends BaseMapper<KitJobRegistry> {
     /**
      * 查询失效的注册ID（DATE_ADD 日期运算）
      */
-    List<String> findDead(@Param("timeout") int timeout, @Param("nowTime") Date nowTime);
+    List<String> findDead(@Param("timeout") int timeout, @Param("nowTime") LocalDateTime nowTime);
 
     /**
      * 查询所有有效的注册信息（DATE_ADD 日期运算）
      */
-    List<KitJobRegistry> findAll(@Param("timeout") int timeout, @Param("nowTime") Date nowTime);
+    List<KitJobRegistry> findAll(@Param("timeout") int timeout, @Param("nowTime") LocalDateTime nowTime);
 
     /**
      * 注册保存或更新（ON DUPLICATE KEY / ON CONFLICT）
      */
-    int registrySaveOrUpdate(@Param("registryGroup") String registryGroup,
+    int registrySaveOrUpdate(@Param("id") String id,
+                             @Param("registryGroup") String registryGroup,
                              @Param("registryKey") String registryKey,
                              @Param("registryValue") String registryValue,
-                             @Param("updateTime") Date updateTime);
+                             @Param("modifyTime") LocalDateTime modifyTime);
 
 }

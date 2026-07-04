@@ -11,7 +11,7 @@ import org.quyq.gwsu.kit.job.service.KitJobService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -54,9 +54,9 @@ public class JobLogController {
     @GetMapping("chartInfo")
     @Operation(summary = "仪表盘图表数据")
     public R<Map<String, Object>> chartInfo(@RequestParam(value = "startDate", required = false)
-                                             @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date startDate,
+                                             @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startDate,
                                              @RequestParam(value = "endDate", required = false)
-                                             @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date endDate) {
+                                             @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endDate) {
         return kitJobService.chartInfo(startDate, endDate);
     }
 

@@ -29,9 +29,13 @@ import org.springframework.util.StringUtils;
 
 import java.text.MessageFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+
+
+
 
 /**
  * 定时任务管理服务实现
@@ -94,9 +98,7 @@ public class KitJobServiceImpl implements KitJobService {
 
         validChildJobId(jobInfo, null);
 
-        jobInfo.setAddTime(new Date());
-        jobInfo.setUpdateTime(new Date());
-        jobInfo.setGlueUpdatetime(new Date());
+        jobInfo.setGlueUpdatetime(LocalDateTime.now());
         jobInfo.setExecutorHandler(jobInfo.getExecutorHandler() != null ? jobInfo.getExecutorHandler().trim() : null);
 
         kitJobInfoMapper.insert(jobInfo);
@@ -142,11 +144,11 @@ public class KitJobServiceImpl implements KitJobService {
         if (existsJobInfo.getTriggerStatus() == TriggerStatus.RUNNING.getValue() && !scheduleDataNotChanged) {
             ScheduleTypeEnum scheduleTypeEnum = ScheduleTypeEnum.match(jobInfo.getScheduleType(), ScheduleTypeEnum.NONE);
             try {
-                Date nextValidTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(jobInfo, new Date(System.currentTimeMillis() + JobScheduleHelper.PRE_READ_MS));
+                LocalDateTime nextValidTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(jobInfo, LocalDateTime.now().plusSeconds(JobScheduleHelper.PRE_READ_MS / 1000));
                 if (nextValidTime == null) {
                     throw new BusinessException(KitErrorCode.E02008);
                 }
-                nextTriggerTime = nextValidTime.getTime();
+                nextTriggerTime = nextValidTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
             } catch (BusinessException e) {
                 throw e;
             } catch (Exception e) {
@@ -172,7 +174,6 @@ public class KitJobServiceImpl implements KitJobService {
         existsJobInfo.setExecutorFailRetryCount(jobInfo.getExecutorFailRetryCount());
         existsJobInfo.setChildJobId(jobInfo.getChildJobId());
         existsJobInfo.setTriggerNextTime(nextTriggerTime);
-        existsJobInfo.setUpdateTime(new Date());
 
         kitJobInfoMapper.updateById(existsJobInfo);
 
@@ -209,11 +210,11 @@ public class KitJobServiceImpl implements KitJobService {
 
         long nextTriggerTime;
         try {
-            Date nextValidTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(kitJobInfo, new Date(System.currentTimeMillis() + JobScheduleHelper.PRE_READ_MS));
+            LocalDateTime nextValidTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(kitJobInfo, LocalDateTime.now().plusSeconds(JobScheduleHelper.PRE_READ_MS / 1000));
             if (nextValidTime == null) {
                 throw new BusinessException(KitErrorCode.E02008);
             }
-            nextTriggerTime = nextValidTime.getTime();
+            nextTriggerTime = nextValidTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -224,7 +225,6 @@ public class KitJobServiceImpl implements KitJobService {
         kitJobInfo.setTriggerStatus(TriggerStatus.RUNNING.getValue());
         kitJobInfo.setTriggerLastTime(0);
         kitJobInfo.setTriggerNextTime(nextTriggerTime);
-        kitJobInfo.setUpdateTime(new Date());
         kitJobInfoMapper.updateById(kitJobInfo);
 
         log.info(">>>>>>>>>>> kit-job 启动任务: id = {}", id);
@@ -241,7 +241,6 @@ public class KitJobServiceImpl implements KitJobService {
         kitJobInfo.setTriggerStatus(TriggerStatus.STOPPED.getValue());
         kitJobInfo.setTriggerLastTime(0);
         kitJobInfo.setTriggerNextTime(0);
-        kitJobInfo.setUpdateTime(new Date());
         kitJobInfoMapper.updateById(kitJobInfo);
 
         log.info(">>>>>>>>>>> kit-job 停止任务: id = {}", id);
@@ -277,13 +276,13 @@ public class KitJobServiceImpl implements KitJobService {
 
         List<String> result = new ArrayList<>();
         try {
-            Date lastTime = new Date();
+            LocalDateTime lastTime = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             for (int i = 0; i < 5; i++) {
                 ScheduleTypeEnum scheduleTypeEnum = ScheduleTypeEnum.match(paramJobInfo.getScheduleType(), ScheduleTypeEnum.NONE);
                 lastTime = scheduleTypeEnum.getScheduleType().generateNextTriggerTime(paramJobInfo, lastTime);
                 if (lastTime != null) {
-                    result.add(lastTime.toInstant().atZone(ZoneId.systemDefault()).format(formatter));
+                    result.add(lastTime.format(formatter));
                 } else {
                     break;
                 }
@@ -335,7 +334,6 @@ public class KitJobServiceImpl implements KitJobService {
             throw new BusinessException(KitErrorCode.E02017);
         }
 
-        kitJobGroup.setUpdateTime(new Date());
         int ret = kitJobGroupMapper.insert(kitJobGroup);
         return ret > 0 ? R.ok() : R.fail("添加执行器失败");
     }
@@ -357,7 +355,6 @@ public class KitJobServiceImpl implements KitJobService {
             }
         }
 
-        kitJobGroup.setUpdateTime(new Date());
         int ret = kitJobGroupMapper.updateById(kitJobGroup);
         return ret > 0 ? R.ok() : R.fail("更新执行器失败");
     }
@@ -431,14 +428,14 @@ public class KitJobServiceImpl implements KitJobService {
 
     @Override
     public R<String> logClear(String jobGroup, String jobId, int type) {
-        Date clearBeforeTime = null;
+        LocalDateTime clearBeforeTime = null;
         int clearBeforeNum = 0;
 
         switch (type) {
-            case 1 -> clearBeforeTime = addMonths(new Date(), -1);
-            case 2 -> clearBeforeTime = addMonths(new Date(), -3);
-            case 3 -> clearBeforeTime = addMonths(new Date(), -6);
-            case 4 -> clearBeforeTime = addYears(new Date(), -1);
+            case 1 -> clearBeforeTime = LocalDateTime.now().minusMonths(1);
+            case 2 -> clearBeforeTime = LocalDateTime.now().minusMonths(3);
+            case 3 -> clearBeforeTime = LocalDateTime.now().minusMonths(6);
+            case 4 -> clearBeforeTime = LocalDateTime.now().minusYears(1);
             case 5 -> clearBeforeNum = 1000;
             case 6 -> clearBeforeNum = 10000;
             case 7 -> clearBeforeNum = 30000;
@@ -492,7 +489,7 @@ public class KitJobServiceImpl implements KitJobService {
     }
 
     @Override
-    public R<Map<String, Object>> chartInfo(Date startDate, Date endDate) {
+    public R<Map<String, Object>> chartInfo(LocalDateTime startDate, LocalDateTime endDate) {
         List<String> triggerDayList = new ArrayList<>();
         List<Integer> triggerDayCountRunningList = new ArrayList<>();
         List<Integer> triggerDayCountSucList = new ArrayList<>();
@@ -509,7 +506,7 @@ public class KitJobServiceImpl implements KitJobService {
 
         if (logReportList != null && !logReportList.isEmpty()) {
             for (KitJobLogReport item : logReportList) {
-                String day = item.getTriggerDay().toInstant().atZone(ZoneId.systemDefault()).format(formatter);
+                String day = item.getTriggerDay().format(formatter);
                 triggerDayList.add(day);
                 triggerDayCountRunningList.add(item.getRunningCount());
                 triggerDayCountSucList.add(item.getSucCount());
@@ -605,20 +602,6 @@ public class KitJobServiceImpl implements KitJobService {
             }
             jobInfo.setChildJobId(joiner.toString());
         }
-    }
-
-    private static Date addMonths(Date date, int months) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.MONTH, months);
-        return calendar.getTime();
-    }
-
-    private static Date addYears(Date date, int years) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.YEAR, years);
-        return calendar.getTime();
     }
 
 }

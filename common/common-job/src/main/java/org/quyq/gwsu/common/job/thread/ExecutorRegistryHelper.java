@@ -39,27 +39,27 @@ public class ExecutorRegistryHelper {
      */
     public void start(final XxlJobExecutor xxlJobExecutor) {
 
-        // 单体模式不注册
+        // 构建注册地址
         if (DeployUtils.isSingle()) {
-            logger.info(">>>>>>>>>>> xxl-job executor skip registry in single mode.");
-            return;
-        }
+            // 单体模式：Admin和Executor在同一JVM，使用本地标识
+            registryAddress = "local";
+        } else {
+            // 分布式模式：从Nacos获取IP和端口
+            try {
+                Environment environment = SpringUtils.getBean(Environment.class);
+                String ip = environment.getProperty("spring.cloud.client.ip-address");
+                String port = environment.getProperty("server.port", "8080");
 
-        // 构建注册地址：从Nacos获取IP和端口
-        try {
-            Environment environment = SpringUtils.getBean(Environment.class);
-            String ip = environment.getProperty("spring.cloud.client.ip-address");
-            String port = environment.getProperty("server.port", "8080");
+                if (ip == null || ip.isEmpty()) {
+                    logger.warn(">>>>>>>>>>> xxl-job executor registry config fail, ip-address is null.");
+                    return;
+                }
 
-            if (ip == null || ip.isEmpty()) {
-                logger.warn(">>>>>>>>>>> xxl-job executor registry config fail, ip-address is null.");
+                registryAddress = "http://" + ip + ":" + port + "/";
+            } catch (Exception e) {
+                logger.warn(">>>>>>>>>>> xxl-job executor registry config fail, cannot get ip-address.", e);
                 return;
             }
-
-            registryAddress = "http://" + ip + ":" + port + "/";
-        } catch (Exception e) {
-            logger.warn(">>>>>>>>>>> xxl-job executor registry config fail, cannot get ip-address.", e);
-            return;
         }
 
         // 注册线程
@@ -105,10 +105,6 @@ public class ExecutorRegistryHelper {
     }
 
     private void registryRemove(final XxlJobExecutor xxlJobExecutor) {
-        if (DeployUtils.isSingle()) {
-            return;
-        }
-
         if (registryAddress == null) {
             return;
         }

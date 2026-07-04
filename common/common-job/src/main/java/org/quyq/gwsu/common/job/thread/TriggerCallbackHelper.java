@@ -19,9 +19,11 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -157,7 +159,7 @@ public class TriggerCallbackHelper {
      */
     private void appendCallbackResult(List<CallbackData> callbackParamList, String logContent) {
         for (CallbackData callbackParam : callbackParamList) {
-            String logFileName = XxlJobFileAppender.makeLogFileName(new Date(callbackParam.getLogDateTime()), callbackParam.getLogId());
+            String logFileName = XxlJobFileAppender.makeLogFileName(LocalDateTime.ofInstant(Instant.ofEpochMilli(callbackParam.getLogDateTime()), ZoneId.systemDefault()), callbackParam.getLogId());
             XxlJobContext.setXxlJobContext(new XxlJobContext(
                     "",
                     null,

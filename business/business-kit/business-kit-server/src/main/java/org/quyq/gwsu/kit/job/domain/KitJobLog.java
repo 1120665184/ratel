@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * 任务日志
@@ -56,7 +56,7 @@ public class KitJobLog extends BaseDO {
 
     @TableField("trigger_time")
     @Schema(description = "调度时间")
-    private Date triggerTime;
+    private LocalDateTime triggerTime;
 
     @TableField("trigger_code")
     @Schema(description = "调度结果")
@@ -68,7 +68,7 @@ public class KitJobLog extends BaseDO {
 
     @TableField("handle_time")
     @Schema(description = "执行时间")
-    private Date handleTime;
+    private LocalDateTime handleTime;
 
     @TableField("handle_code")
     @Schema(description = "执行状态")

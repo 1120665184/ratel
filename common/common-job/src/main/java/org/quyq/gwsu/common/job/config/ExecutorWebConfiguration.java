@@ -26,8 +26,6 @@ import org.springframework.web.servlet.function.ServerResponse;
  */
 @AutoConfiguration
 @ConditionalOnClass({RouterFunction.class})
-@ConditionalOnBean(XxlJobExecutor.class)
-@ConditionalOnProperty(name = "deploy.single", havingValue = "false")
 public class ExecutorWebConfiguration {
 
     private static final String BASE_PATH = "/job-executor";
