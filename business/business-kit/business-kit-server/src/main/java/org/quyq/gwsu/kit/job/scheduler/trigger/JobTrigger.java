@@ -5,14 +5,13 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.constant.ExecutorBlockStrategyEnum;
 import org.quyq.gwsu.common.job.constant.JobConst;
 import org.quyq.gwsu.common.job.openapi.executor.dto.TriggerRequest;
-import org.quyq.gwsu.kit.job.domain.KitJobGroup;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
-import org.quyq.gwsu.kit.job.mapper.KitJobGroupMapper;
-import org.quyq.gwsu.kit.job.mapper.KitJobInfoMapper;
-import org.quyq.gwsu.kit.job.mapper.KitJobLogMapper;
+import org.quyq.gwsu.kit.job.service.IKitJobInfoService;
+import org.quyq.gwsu.kit.job.service.IKitJobLogService;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.quyq.gwsu.kit.job.scheduler.route.ExecutorRouteStrategyEnum;
+import org.quyq.gwsu.kit.job.scheduler.thread.JobRegistryHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,6 +19,8 @@ import org.springframework.stereotype.Component;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 任务触发器
@@ -29,11 +30,9 @@ public class JobTrigger {
     private static final Logger logger = LoggerFactory.getLogger(JobTrigger.class);
 
     @Resource
-    private KitJobInfoMapper kitJobInfoMapper;
+    private IKitJobInfoService kitJobInfoService;
     @Resource
-    private KitJobGroupMapper kitJobGroupMapper;
-    @Resource
-    private KitJobLogMapper kitJobLogMapper;
+    private IKitJobLogService kitJobLogService;
 
     /**
      * 触发任务
@@ -53,7 +52,7 @@ public class JobTrigger {
                         String addressList) {
 
         // 加载任务数据
-        KitJobInfo jobInfo = kitJobInfoMapper.selectById(jobId);
+        KitJobInfo jobInfo = kitJobInfoService.getById(jobId);
         if (jobInfo == null) {
             logger.warn(">>>>>>>>>>>> 触发失败，任务ID无效，jobId={}", jobId);
             return;
@@ -62,12 +61,16 @@ public class JobTrigger {
             jobInfo.setExecutorParam(executorParam);
         }
         int finalFailRetryCount = failRetryCount >= 0 ? failRetryCount : jobInfo.getExecutorFailRetryCount();
-        KitJobGroup group = kitJobGroupMapper.selectById(jobInfo.getJobGroup());
 
-        // 覆盖地址列表
+        // 获取handler在线地址列表
+        String handlerName = jobInfo.getExecutorHandler();
+        List<String> registryList;
         if (addressList != null && !addressList.trim().isEmpty()) {
-            group.setAddressType(1);
-            group.setAddressList(addressList.trim());
+            // 手动指定地址列表
+            registryList = List.of(addressList.trim().split(","));
+        } else {
+            // 从注册缓存获取
+            registryList = JobAdminBootstrap.getInstance().getJobRegistryHelper().getAddressList(handlerName);
         }
 
         // 分片参数
@@ -82,16 +85,16 @@ public class JobTrigger {
             }
         }
         if (ExecutorRouteStrategyEnum.SHARDING_BROADCAST == ExecutorRouteStrategyEnum.match(jobInfo.getExecutorRouteStrategy(), null)
-                && group.getRegistryList() != null && !group.getRegistryList().isEmpty()
+                && registryList != null && !registryList.isEmpty()
                 && shardingParam == null) {
-            for (int i = 0; i < group.getRegistryList().size(); i++) {
-                processTrigger(group, jobInfo, finalFailRetryCount, triggerType, triggerTime, i, group.getRegistryList().size());
+            for (int i = 0; i < registryList.size(); i++) {
+                processTrigger(registryList, jobInfo, finalFailRetryCount, triggerType, triggerTime, i, registryList.size());
             }
         } else {
             if (shardingParam == null) {
                 shardingParam = new int[]{0, 1};
             }
-            processTrigger(group, jobInfo, finalFailRetryCount, triggerType, triggerTime, shardingParam[0], shardingParam[1]);
+            processTrigger(registryList, jobInfo, finalFailRetryCount, triggerType, triggerTime, shardingParam[0], shardingParam[1]);
         }
 
     }
@@ -99,7 +102,7 @@ public class JobTrigger {
     /**
      * 处理触发
      */
-    private void processTrigger(KitJobGroup group,
+    private void processTrigger(List<String> registryList,
                                 KitJobInfo jobInfo,
                                 int finalFailRetryCount,
                                 TriggerTypeEnum triggerType,
@@ -114,10 +117,9 @@ public class JobTrigger {
 
         // 1、保存日志ID
         KitJobLog jobLog = new KitJobLog();
-        jobLog.setJobGroup(jobInfo.getJobGroup());
         jobLog.setJobId(jobInfo.getId());
         jobLog.setTriggerTime(triggerTime);
-        kitJobLogMapper.insert(jobLog);
+        kitJobLogService.save(jobLog);
         logger.debug(">>>>>>>>>>> kit-job 触发开始，jobId:{}", jobLog.getJobId());
 
         // 2、初始化触发参数
@@ -138,15 +140,15 @@ public class JobTrigger {
         // 3、初始化地址
         String address = null;
         R<String> routeAddressResult = null;
-        if (group.getRegistryList() != null && !group.getRegistryList().isEmpty()) {
+        if (registryList != null && !registryList.isEmpty()) {
             if (ExecutorRouteStrategyEnum.SHARDING_BROADCAST == executorRouteStrategyEnum) {
-                if (index < group.getRegistryList().size()) {
-                    address = group.getRegistryList().get(index);
+                if (index < registryList.size()) {
+                    address = registryList.get(index);
                 } else {
-                    address = group.getRegistryList().get(0);
+                    address = registryList.get(0);
                 }
             } else {
-                routeAddressResult = executorRouteStrategyEnum.getRouter().route(triggerParam, group);
+                routeAddressResult = executorRouteStrategyEnum.getRouter().route(triggerParam, registryList);
                 if (routeAddressResult.isSuccess()) {
                     address = routeAddressResult.data();
                 }
@@ -171,8 +173,8 @@ public class JobTrigger {
         } catch (Exception e) {
             triggerMsgSb.append("<br>调度机器：获取失败");
         }
-        triggerMsgSb.append("<br>执行器注册类型：").append(group.getAddressType() == 0 ? "自动注册" : "手动录入");
-        triggerMsgSb.append("<br>执行器地址列表：").append(group.getRegistryList());
+        triggerMsgSb.append("<br>执行Handler：").append(jobInfo.getExecutorHandler());
+        triggerMsgSb.append("<br>执行器地址列表：").append(registryList);
         triggerMsgSb.append("<br>路由策略：").append(executorRouteStrategyEnum.getTitle());
         if (shardingParam != null) {
             triggerMsgSb.append("(").append(shardingParam).append(")");
@@ -212,7 +214,7 @@ public class JobTrigger {
         jobLog.setExecutorFailRetryCount(finalFailRetryCount);
         jobLog.setTriggerCode(triggerResult.isSuccess() ? JobConst.HANDLE_CODE_SUCCESS : JobConst.HANDLE_CODE_FAIL);
         jobLog.setTriggerMsg(triggerMsgSb.toString());
-        kitJobLogMapper.updateTriggerInfo(jobLog);
+        kitJobLogService.updateTriggerInfo(jobLog);
 
         logger.debug(">>>>>>>>>>> kit-job 触发结束，jobId:{}", jobLog.getJobId());
     }

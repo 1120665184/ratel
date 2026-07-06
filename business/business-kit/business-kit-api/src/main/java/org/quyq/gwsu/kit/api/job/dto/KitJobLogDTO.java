@@ -16,9 +16,6 @@ import java.time.LocalDateTime;
 @Schema(description = "任务日志查询对象")
 public class KitJobLogDTO extends BaseDTO {
 
-    @Schema(description = "执行器ID")
-    private String jobGroup;
-
     @Schema(description = "任务ID")
     private String jobId;
 

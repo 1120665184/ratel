@@ -14,11 +14,6 @@ import java.util.List;
 public interface KitJobInfoMapper extends BaseMapper<KitJobInfo> {
 
     /**
-     * 查询待调度的任务（trigger_status = 1 且 trigger_next_time <= maxNextTime）
-     */
-    List<KitJobInfo> scheduleJobQuery(@Param("maxNextTime") long maxNextTime, @Param("pagesize") int pagesize);
-
-    /**
      * 更新调度信息（仅 trigger_status = 1 的记录）
      */
     int scheduleUpdate(KitJobInfo kitJobInfo);

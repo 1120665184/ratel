@@ -26,10 +26,6 @@ public class KitJobLog extends BaseDO {
     @Schema(description = "主键ID")
     private String id;
 
-    @TableField("job_group")
-    @Schema(description = "执行器主键ID")
-    private String jobGroup;
-
     @TableField("job_id")
     @Schema(description = "任务主键ID")
     private String jobId;

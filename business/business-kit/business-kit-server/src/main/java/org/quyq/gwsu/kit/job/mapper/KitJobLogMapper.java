@@ -7,7 +7,6 @@ import org.quyq.gwsu.kit.job.domain.KitJobLog;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 任务日志Mapper
@@ -26,28 +25,9 @@ public interface KitJobLogMapper extends BaseMapper<KitJobLog> {
     int updateHandleInfo(KitJobLog kitJobLog);
 
     /**
-     * 查询日志报表统计（聚合查询，含 IFNULL/COALESCE）
-     */
-    Map<String, Object> findLogReport(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
-
-    /**
-     * 查询待清理的日志ID
-     */
-    List<String> findClearLogIds(@Param("jobGroup") String jobGroup,
-                                @Param("jobId") String jobId,
-                                @Param("clearBeforeTime") LocalDateTime clearBeforeTime,
-                                @Param("clearBeforeNum") int clearBeforeNum,
-                                @Param("pagesize") int pagesize);
-
-    /**
      * 批量清理日志
      */
     int clearLog(@Param("logIds") List<String> logIds);
-
-    /**
-     * 查询失败告警的日志ID
-     */
-    List<String> findFailJobLogIds(@Param("pagesize") int pagesize);
 
     /**
      * 更新告警状态

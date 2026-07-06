@@ -26,10 +26,6 @@ public class KitJobInfo extends BaseDO {
     @Schema(description = "主键ID")
     private String id;
 
-    @TableField("job_group")
-    @Schema(description = "执行器主键ID")
-    private String jobGroup;
-
     @Schema(description = "任务名称")
     private String name;
 

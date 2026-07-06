@@ -2,7 +2,6 @@ package org.quyq.gwsu.kit.job.scheduler.route.strategy;
 
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.openapi.executor.dto.TriggerRequest;
-import org.quyq.gwsu.kit.job.domain.KitJobGroup;
 import org.quyq.gwsu.kit.job.scheduler.route.ExecutorRouter;
 
 import java.util.List;
@@ -38,8 +37,7 @@ public class ExecutorRouteRound extends ExecutorRouter {
     }
 
     @Override
-    public R<String> route(TriggerRequest triggerParam, KitJobGroup jobGroup) {
-        List<String> addressList = jobGroup.getRegistryList();
+    public R<String> route(TriggerRequest triggerParam, List<String> addressList) {
         String address = addressList.get(count(triggerParam.getJobId()) % addressList.size());
         return R.ok(address);
     }

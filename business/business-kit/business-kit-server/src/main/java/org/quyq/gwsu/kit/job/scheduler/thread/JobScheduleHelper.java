@@ -74,7 +74,7 @@ public class JobScheduleHelper {
                     long nowTime = System.currentTimeMillis();
 
                     // 查询待调度任务
-                    List<KitJobInfo> scheduleList = JobAdminBootstrap.getInstance().getKitJobInfoMapper().scheduleJobQuery(nowTime + PRE_READ_MS, preReadCount);
+                    List<KitJobInfo> scheduleList = JobAdminBootstrap.getInstance().getKitJobInfoService().scheduleJobQuery(nowTime + PRE_READ_MS, preReadCount);
                     if (scheduleList != null && !scheduleList.isEmpty()) {
 
                         // 2、推入时间轮
@@ -118,7 +118,7 @@ public class JobScheduleHelper {
                         int batchSize = JobAdminBootstrap.getInstance().getScheduleBatchSize();
                         List<List<KitJobInfo>> scheduleListBatches = splitList(scheduleList, batchSize);
                         for (List<KitJobInfo> scheduleListBatch : scheduleListBatches) {
-                            int totalAffected = JobAdminBootstrap.getInstance().getKitJobInfoMapper().scheduleBatchUpdate(scheduleListBatch);
+                            int totalAffected = JobAdminBootstrap.getInstance().getKitJobInfoService().scheduleBatchUpdate(scheduleListBatch);
                             logger.debug(">>>>>>>>>>> kit-job, JobScheduleHelper scheduleBatchUpdate records:{}", totalAffected);
                         }
 

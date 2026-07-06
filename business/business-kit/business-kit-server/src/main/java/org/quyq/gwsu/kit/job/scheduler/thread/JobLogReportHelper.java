@@ -2,8 +2,6 @@ package org.quyq.gwsu.kit.job.scheduler.thread;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
-import org.quyq.gwsu.kit.job.mapper.KitJobLogMapper;
-import org.quyq.gwsu.kit.job.mapper.KitJobLogReportMapper;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +57,7 @@ public class JobLogReportHelper {
                 kitJobLogReport.setFailCount(0);
 
                 // 填充统计数据
-                Map<String, Object> triggerCountMap = JobAdminBootstrap.getInstance().getKitJobLogMapper().findLogReport(todayFrom, todayTo);
+                Map<String, Object> triggerCountMap = JobAdminBootstrap.getInstance().getKitJobLogService().findLogReport(todayFrom, todayTo);
                 if (triggerCountMap != null && !triggerCountMap.isEmpty()) {
                     int triggerDayCount = triggerCountMap.containsKey("triggerDayCount") ? Integer.parseInt(String.valueOf(triggerCountMap.get("triggerDayCount"))) : 0;
                     int triggerDayCountRunning = triggerCountMap.containsKey("triggerDayCountRunning") ? Integer.parseInt(String.valueOf(triggerCountMap.get("triggerDayCountRunning"))) : 0;
@@ -73,7 +71,7 @@ public class JobLogReportHelper {
 
                 // 执行刷新
                 kitJobLogReport.setId(IdWorker.getIdStr());
-                JobAdminBootstrap.getInstance().getKitJobLogReportMapper().saveOrUpdate(kitJobLogReport);
+                JobAdminBootstrap.getInstance().getKitJobLogReportService().saveOrUpdateReport(kitJobLogReport);
             }
 
             // 2、日志清理：每天执行一次
@@ -87,9 +85,9 @@ public class JobLogReportHelper {
                 // 清理过期日志
                 List<String> logIds;
                 do {
-                    logIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findClearLogIds(null, null, clearBeforeTime, 0, 1000);
+                    logIds = JobAdminBootstrap.getInstance().getKitJobLogService().findClearLogIds(null, clearBeforeTime, 0, 1000);
                     if (logIds != null && !logIds.isEmpty()) {
-                        JobAdminBootstrap.getInstance().getKitJobLogMapper().clearLog(logIds);
+                        JobAdminBootstrap.getInstance().getKitJobLogService().clearLog(logIds);
                     }
                 } while (logIds != null && !logIds.isEmpty());
 

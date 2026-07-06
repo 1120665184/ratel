@@ -5,42 +5,6 @@
 
     <!-- ==================== 调度核心查询 ==================== -->
 
-    <select id="scheduleJobQuery" parameterType="java.util.HashMap" resultType="org.quyq.gwsu.kit.job.domain.KitJobInfo">
-        SELECT
-            t.id,
-            t.job_group,
-            t.name,
-            t.author,
-            t.alarm_email,
-            t.schedule_type,
-            t.schedule_conf,
-            t.misfire_strategy,
-            t.executor_route_strategy,
-            t.executor_handler,
-            t.executor_param,
-            t.executor_block_strategy,
-            t.executor_timeout,
-            t.executor_fail_retry_count,
-            t.glue_type,
-            t.glue_source,
-            t.glue_remark,
-            t.glue_updatetime,
-            t.child_jobid,
-            t.trigger_status,
-            t.trigger_last_time,
-            t.trigger_next_time
-        FROM kit_job_info AS t
-        WHERE t.trigger_status = 1
-            AND t.trigger_next_time <![CDATA[ <= ]]> #{maxNextTime}
-        ORDER BY id ASC
-        <if test="_databaseId == 'mysql'">
-            LIMIT #{pagesize}
-        </if>
-        <if test="_databaseId == 'postgresql'">
-            LIMIT #{pagesize}
-        </if>
-    </select>
-
     <update id="scheduleUpdate" parameterType="org.quyq.gwsu.kit.job.domain.KitJobInfo">
         UPDATE kit_job_info
         SET

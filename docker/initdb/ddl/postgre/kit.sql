@@ -161,53 +161,13 @@ CREATE INDEX idx_kit_file_chunk_info_chunk_group ON kit_file_chunk_info (chunk_g
 -- =============================================
 
 -- =============================================
--- 表名：kit_job_group
--- 说明：执行器信息表
--- =============================================
-CREATE TABLE kit_job_group
-(
-    id              VARCHAR(24)  PRIMARY KEY,
-    app_name        VARCHAR(64)  NOT NULL,
-    name            VARCHAR(64)  NOT NULL,
-    address_type    INT2         NOT NULL DEFAULT 0,
-    address_list    TEXT                  DEFAULT NULL,
-    access_token    VARCHAR(255)          DEFAULT NULL,
-    tenant_id       VARCHAR(50)           DEFAULT NULL,
-    create_op       VARCHAR(50)           DEFAULT NULL,
-    create_time     TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    modify_op       VARCHAR(50)           DEFAULT NULL,
-    modify_time     TIMESTAMP             DEFAULT NULL,
-    deleted         INT2         NOT NULL DEFAULT 0,
-    delete_op       VARCHAR(50)           DEFAULT NULL,
-    delete_time     TIMESTAMP             DEFAULT NULL
-);
-
-COMMENT ON TABLE kit_job_group IS '执行器信息表';
-COMMENT ON COLUMN kit_job_group.id IS '主键ID';
-COMMENT ON COLUMN kit_job_group.app_name IS '执行器AppName';
-COMMENT ON COLUMN kit_job_group.name IS '执行器名称';
-COMMENT ON COLUMN kit_job_group.address_type IS '执行器地址类型：0=自动注册、1=手动录入';
-COMMENT ON COLUMN kit_job_group.address_list IS '执行器地址列表，多地址逗号分隔';
-COMMENT ON COLUMN kit_job_group.access_token IS '执行器AccessToken（保留字段，兼容数据结构）';
-COMMENT ON COLUMN kit_job_group.tenant_id IS '租户ID';
-COMMENT ON COLUMN kit_job_group.create_op IS '创建人';
-COMMENT ON COLUMN kit_job_group.create_time IS '创建时间';
-COMMENT ON COLUMN kit_job_group.modify_op IS '修改人';
-COMMENT ON COLUMN kit_job_group.modify_time IS '修改时间';
-COMMENT ON COLUMN kit_job_group.deleted IS '删除标识：0-未删除 1-已删除';
-COMMENT ON COLUMN kit_job_group.delete_op IS '删除人';
-COMMENT ON COLUMN kit_job_group.delete_time IS '删除时间';
-
-CREATE UNIQUE INDEX i_app_name ON kit_job_group (app_name) WHERE deleted = 0;
-
--- =============================================
 -- 表名：kit_job_registry
 -- 说明：执行器注册表
 -- =============================================
 CREATE TABLE kit_job_registry
 (
     id              VARCHAR(24)  PRIMARY KEY,
-    registry_group  VARCHAR(50)  NOT NULL,
+    registry_group  VARCHAR(64)  NOT NULL,
     registry_key    VARCHAR(255) NOT NULL,
     registry_value  VARCHAR(255) NOT NULL,
     tenant_id       VARCHAR(50)           DEFAULT NULL,
@@ -222,8 +182,8 @@ CREATE TABLE kit_job_registry
 
 COMMENT ON TABLE kit_job_registry IS '执行器注册表';
 COMMENT ON COLUMN kit_job_registry.id IS '主键ID';
-COMMENT ON COLUMN kit_job_registry.registry_group IS '注册分组';
-COMMENT ON COLUMN kit_job_registry.registry_key IS '注册标识';
+COMMENT ON COLUMN kit_job_registry.registry_group IS '执行器AppName（命名空间）';
+COMMENT ON COLUMN kit_job_registry.registry_key IS 'Handler名称';
 COMMENT ON COLUMN kit_job_registry.registry_value IS '注册值（地址）';
 COMMENT ON COLUMN kit_job_registry.tenant_id IS '租户ID';
 COMMENT ON COLUMN kit_job_registry.create_op IS '创建人';
@@ -244,7 +204,6 @@ CREATE UNIQUE INDEX i_g_k_v ON kit_job_registry (registry_group, registry_key, r
 CREATE TABLE kit_job_info
 (
     id                        VARCHAR(24)  PRIMARY KEY,
-    job_group                 VARCHAR(24)  NOT NULL,
     name                      VARCHAR(255) NOT NULL,
     author                    VARCHAR(64)           DEFAULT NULL,
     alarm_email               VARCHAR(255)          DEFAULT NULL,
@@ -277,7 +236,6 @@ CREATE TABLE kit_job_info
 
 COMMENT ON TABLE kit_job_info IS '任务信息表';
 COMMENT ON COLUMN kit_job_info.id IS '主键ID';
-COMMENT ON COLUMN kit_job_info.job_group IS '执行器主键ID';
 COMMENT ON COLUMN kit_job_info.name IS '任务名称';
 COMMENT ON COLUMN kit_job_info.author IS '作者';
 COMMENT ON COLUMN kit_job_info.alarm_email IS '报警邮件';
@@ -350,7 +308,6 @@ COMMENT ON COLUMN kit_job_log_glue.delete_time IS '删除时间';
 CREATE TABLE kit_job_log
 (
     id                        VARCHAR(24)  PRIMARY KEY,
-    job_group                 VARCHAR(24)  NOT NULL,
     job_id                    VARCHAR(24)  NOT NULL,
     executor_address          VARCHAR(255)          DEFAULT NULL,
     executor_handler          VARCHAR(255)          DEFAULT NULL,
@@ -376,7 +333,6 @@ CREATE TABLE kit_job_log
 
 COMMENT ON TABLE kit_job_log IS '任务执行日志表';
 COMMENT ON COLUMN kit_job_log.id IS '主键ID';
-COMMENT ON COLUMN kit_job_log.job_group IS '执行器主键ID';
 COMMENT ON COLUMN kit_job_log.job_id IS '任务主键ID';
 COMMENT ON COLUMN kit_job_log.executor_address IS '执行器地址，本次执行的地址';
 COMMENT ON COLUMN kit_job_log.executor_handler IS '任务handler';
@@ -401,7 +357,6 @@ COMMENT ON COLUMN kit_job_log.delete_time IS '删除时间';
 
 CREATE INDEX i_trigger_time ON kit_job_log (trigger_time);
 CREATE INDEX i_handle_code ON kit_job_log (handle_code);
-CREATE INDEX i_job_group ON kit_job_log (job_group);
 CREATE INDEX i_job_id ON kit_job_log (job_id);
 
 -- =============================================

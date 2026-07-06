@@ -26,95 +26,7 @@
         WHERE id = #{id}
     </update>
 
-    <!-- ==================== 聚合查询（IFNULL/COALESCE 需分写） ==================== -->
-
-    <select id="findLogReport" resultType="java.util.Map" databaseId="mysql">
-        SELECT
-            IFNULL(COUNT(handle_code), 0) triggerDayCount,
-            IFNULL(SUM(CASE WHEN (trigger_code IN (0, 200) AND handle_code = 0) THEN 1 ELSE 0 END), 0) AS triggerDayCountRunning,
-            IFNULL(SUM(CASE WHEN handle_code = 200 THEN 1 ELSE 0 END), 0) AS triggerDayCountSuc
-        FROM kit_job_log
-        WHERE trigger_time BETWEEN #{from} AND #{to}
-    </select>
-
-    <select id="findLogReport" resultType="java.util.Map" databaseId="postgresql">
-        SELECT
-            COALESCE(COUNT(handle_code), 0) triggerDayCount,
-            COALESCE(SUM(CASE WHEN (trigger_code IN (0, 200) AND handle_code = 0) THEN 1 ELSE 0 END), 0) AS triggerDayCountRunning,
-            COALESCE(SUM(CASE WHEN handle_code = 200 THEN 1 ELSE 0 END), 0) AS triggerDayCountSuc
-        FROM kit_job_log
-        WHERE trigger_time BETWEEN #{from} AND #{to}
-    </select>
-
     <!-- ==================== 清理日志 ==================== -->
-
-    <select id="findClearLogIds" resultType="long" databaseId="mysql">
-        SELECT id FROM kit_job_log
-        <trim prefix="WHERE" prefixOverrides="AND | OR">
-            <if test="jobGroup gt 0">
-                AND job_group = #{jobGroup}
-            </if>
-            <if test="jobId gt 0">
-                AND job_id = #{jobId}
-            </if>
-            <if test="clearBeforeTime != null">
-                AND trigger_time <![CDATA[ <= ]]> #{clearBeforeTime}
-            </if>
-            <if test="clearBeforeNum gt 0">
-                AND id NOT IN (
-                    SELECT id FROM (
-                        SELECT id FROM kit_job_log AS t
-                        <trim prefix="WHERE" prefixOverrides="AND | OR">
-                            <if test="jobGroup gt 0">
-                                AND t.job_group = #{jobGroup}
-                            </if>
-                            <if test="jobId gt 0">
-                                AND t.job_id = #{jobId}
-                            </if>
-                        </trim>
-                        ORDER BY t.trigger_time DESC
-                        LIMIT 0, #{clearBeforeNum}
-                    ) t1
-                )
-            </if>
-        </trim>
-        ORDER BY id ASC
-        LIMIT #{pagesize}
-    </select>
-
-    <select id="findClearLogIds" resultType="long" databaseId="postgresql">
-        SELECT id FROM kit_job_log
-        <trim prefix="WHERE" prefixOverrides="AND | OR">
-            <if test="jobGroup gt 0">
-                AND job_group = #{jobGroup}
-            </if>
-            <if test="jobId gt 0">
-                AND job_id = #{jobId}
-            </if>
-            <if test="clearBeforeTime != null">
-                AND trigger_time <![CDATA[ <= ]]> #{clearBeforeTime}
-            </if>
-            <if test="clearBeforeNum gt 0">
-                AND id NOT IN (
-                    SELECT id FROM (
-                        SELECT id FROM kit_job_log AS t
-                        <trim prefix="WHERE" prefixOverrides="AND | OR">
-                            <if test="jobGroup gt 0">
-                                AND t.job_group = #{jobGroup}
-                            </if>
-                            <if test="jobId gt 0">
-                                AND t.job_id = #{jobId}
-                            </if>
-                        </trim>
-                        ORDER BY t.trigger_time DESC
-                        LIMIT #{clearBeforeNum} OFFSET 0
-                    ) t1
-                )
-            </if>
-        </trim>
-        ORDER BY id ASC
-        LIMIT #{pagesize}
-    </select>
 
     <delete id="clearLog">
         DELETE FROM kit_job_log
@@ -125,30 +37,6 @@
     </delete>
 
     <!-- ==================== 失败告警 ==================== -->
-
-    <select id="findFailJobLogIds" resultType="long" databaseId="mysql">
-        SELECT id FROM kit_job_log
-        WHERE NOT (
-            (trigger_code IN (0, 200) AND handle_code = 0)
-            OR
-            (handle_code = 200)
-        )
-        AND alarm_status = 0
-        ORDER BY id ASC
-        LIMIT #{pagesize}
-    </select>
-
-    <select id="findFailJobLogIds" resultType="long" databaseId="postgresql">
-        SELECT id FROM kit_job_log
-        WHERE NOT (
-            (trigger_code IN (0, 200) AND handle_code = 0)
-            OR
-            (handle_code = 200)
-        )
-        AND alarm_status = 0
-        ORDER BY id ASC
-        LIMIT #{pagesize}
-    </select>
 
     <update id="updateAlarmStatus">
         UPDATE kit_job_log

@@ -4,8 +4,8 @@ import jakarta.annotation.Resource;
 import org.quyq.gwsu.common.job.constant.JobConst;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
-import org.quyq.gwsu.kit.job.mapper.KitJobInfoMapper;
-import org.quyq.gwsu.kit.job.mapper.KitJobLogMapper;
+import org.quyq.gwsu.kit.job.service.IKitJobInfoService;
+import org.quyq.gwsu.kit.job.service.IKitJobLogService;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.quyq.gwsu.kit.job.scheduler.trigger.TriggerTypeEnum;
 import org.slf4j.Logger;
@@ -22,9 +22,9 @@ public class JobCompleter {
     private static final Logger logger = LoggerFactory.getLogger(JobCompleter.class);
 
     @Resource
-    private KitJobInfoMapper kitJobInfoMapper;
+    private IKitJobInfoService kitJobInfoService;
     @Resource
-    private KitJobLogMapper kitJobLogMapper;
+    private IKitJobLogService kitJobLogService;
 
     /**
      * 完成任务（仅处理一次）
@@ -40,7 +40,7 @@ public class JobCompleter {
         }
 
         // 2、更新任务处理信息
-        return kitJobLogMapper.updateHandleInfo(kitJobLog);
+        return kitJobLogService.updateHandleInfo(kitJobLog);
     }
 
     /**
@@ -51,7 +51,7 @@ public class JobCompleter {
         // 1、处理成功时，触发子任务
         String triggerChildMsg = null;
         if (JobConst.HANDLE_CODE_SUCCESS == kitJobLog.getHandleCode()) {
-            KitJobInfo kitJobInfo = kitJobInfoMapper.selectById(kitJobLog.getJobId());
+            KitJobInfo kitJobInfo = kitJobInfoService.getById(kitJobLog.getJobId());
 
             if (kitJobInfo != null && kitJobInfo.getChildJobId() != null && !kitJobInfo.getChildJobId().trim().isEmpty()) {
                 triggerChildMsg = "<br><br><span style=\"color:#00c0ef;\" > >>>>>>>>>>>触发子任务<<<<<<<<<<<<< </span><br>";

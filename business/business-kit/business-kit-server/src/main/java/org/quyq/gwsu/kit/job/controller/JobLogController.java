@@ -39,10 +39,9 @@ public class JobLogController {
 
     @PostMapping("clearLog")
     @Operation(summary = "清理日志")
-    public R<String> clearLog(@RequestParam("jobGroup") String jobGroup,
-                               @RequestParam("jobId") String jobId,
+    public R<String> clearLog(@RequestParam("jobId") String jobId,
                                @RequestParam("type") int type) {
-        return kitJobService.logClear(jobGroup, jobId, type);
+        return kitJobService.logClear(jobId, type);
     }
 
     @GetMapping("dashboardInfo")

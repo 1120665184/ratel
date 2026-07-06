@@ -27,6 +27,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -273,6 +274,13 @@ public class XxlJobExecutor implements ApplicationContextAware, SmartInitializin
 
     public IJobHandler loadJobHandler(String name) {
         return jobHandlerRepository.get(name);
+    }
+
+    /**
+     * 获取所有已注册的JobHandler名称
+     */
+    public Set<String> getJobHandlerNames() {
+        return jobHandlerRepository.keySet();
     }
 
     public IJobHandler registryJobHandler(String name, IJobHandler jobHandler) {

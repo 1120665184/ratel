@@ -2,7 +2,11 @@ package org.quyq.gwsu.kit.job.scheduler.config;
 
 
 import jakarta.annotation.Resource;
-import org.quyq.gwsu.kit.job.mapper.*;
+import org.quyq.gwsu.kit.job.mapper.KitJobLockMapper;
+import org.quyq.gwsu.kit.job.service.IKitJobInfoService;
+import org.quyq.gwsu.kit.job.service.IKitJobLogReportService;
+import org.quyq.gwsu.kit.job.service.IKitJobLogService;
+import org.quyq.gwsu.kit.job.service.IKitJobRegistryService;
 import org.quyq.gwsu.kit.job.scheduler.alarm.JobAlarmer;
 import org.quyq.gwsu.kit.job.scheduler.complete.JobCompleter;
 import org.quyq.gwsu.kit.job.scheduler.thread.*;
@@ -141,15 +145,13 @@ public class JobAdminBootstrap implements InitializingBean, DisposableBean {
     // ---------------------- 依赖注入 ----------------------
 
     @Resource
-    private KitJobLogMapper kitJobLogMapper;
+    private IKitJobLogService kitJobLogService;
     @Resource
-    private KitJobInfoMapper kitJobInfoMapper;
+    private IKitJobInfoService kitJobInfoService;
     @Resource
-    private KitJobRegistryMapper kitJobRegistryMapper;
+    private IKitJobRegistryService kitJobRegistryService;
     @Resource
-    private KitJobGroupMapper kitJobGroupMapper;
-    @Resource
-    private KitJobLogReportMapper kitJobLogReportMapper;
+    private IKitJobLogReportService kitJobLogReportService;
     @Resource
     private KitJobLockMapper kitJobLockMapper;
     @Resource
@@ -199,24 +201,20 @@ public class JobAdminBootstrap implements InitializingBean, DisposableBean {
         return timeout;
     }
 
-    public KitJobLogMapper getKitJobLogMapper() {
-        return kitJobLogMapper;
+    public IKitJobLogService getKitJobLogService() {
+        return kitJobLogService;
     }
 
-    public KitJobInfoMapper getKitJobInfoMapper() {
-        return kitJobInfoMapper;
+    public IKitJobInfoService getKitJobInfoService() {
+        return kitJobInfoService;
     }
 
-    public KitJobRegistryMapper getKitJobRegistryMapper() {
-        return kitJobRegistryMapper;
+    public IKitJobRegistryService getKitJobRegistryService() {
+        return kitJobRegistryService;
     }
 
-    public KitJobGroupMapper getKitJobGroupMapper() {
-        return kitJobGroupMapper;
-    }
-
-    public KitJobLogReportMapper getKitJobLogReportMapper() {
-        return kitJobLogReportMapper;
+    public IKitJobLogReportService getKitJobLogReportService() {
+        return kitJobLogReportService;
     }
 
     public KitJobLockMapper getKitJobLockMapper() {

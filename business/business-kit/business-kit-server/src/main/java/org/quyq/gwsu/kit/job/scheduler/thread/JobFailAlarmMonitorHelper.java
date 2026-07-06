@@ -2,8 +2,6 @@ package org.quyq.gwsu.kit.job.scheduler.thread;
 
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
-import org.quyq.gwsu.kit.job.mapper.KitJobInfoMapper;
-import org.quyq.gwsu.kit.job.mapper.KitJobLogMapper;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.quyq.gwsu.kit.job.scheduler.trigger.TriggerTypeEnum;
 import org.slf4j.Logger;
@@ -37,24 +35,24 @@ public class JobFailAlarmMonitorHelper {
      */
     private void monitorTask() {
         try {
-            List<String> failLogIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findFailJobLogIds(1000);
+            List<String> failLogIds = JobAdminBootstrap.getInstance().getKitJobLogService().findFailJobLogIds(1000);
             if (failLogIds != null && !failLogIds.isEmpty()) {
                 for (String failLogId : failLogIds) {
 
                     // 锁定日志
-                    int lockRet = JobAdminBootstrap.getInstance().getKitJobLogMapper().updateAlarmStatus(failLogId, 0, -1);
+                    int lockRet = JobAdminBootstrap.getInstance().getKitJobLogService().updateAlarmStatus(failLogId, 0, -1);
                     if (lockRet < 1) {
                         continue;
                     }
-                    KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogMapper().selectById(failLogId);
-                    KitJobInfo info = JobAdminBootstrap.getInstance().getKitJobInfoMapper().selectById(log.getJobId());
+                    KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogService().getById(failLogId);
+                    KitJobInfo info = JobAdminBootstrap.getInstance().getKitJobInfoService().getById(log.getJobId());
 
                     // 1、失败重试监控
                     if (log.getExecutorFailRetryCount() > 0) {
                         JobAdminBootstrap.getInstance().getJobTriggerPoolHelper().trigger(log.getJobId(), TriggerTypeEnum.RETRY, (log.getExecutorFailRetryCount() - 1), log.getExecutorShardingParam(), log.getExecutorParam(), null);
                         String retryMsg = "<br><br><span style=\"color:#00c0ef;\" > >>>>>>>>>>>失败重试<<<<<<<<<<<<< </span><br>";
                         log.setTriggerMsg(log.getTriggerMsg() + retryMsg);
-                        JobAdminBootstrap.getInstance().getKitJobLogMapper().updateTriggerInfo(log);
+                        JobAdminBootstrap.getInstance().getKitJobLogService().updateTriggerInfo(log);
                     }
 
                     // 2、失败告警监控
@@ -66,7 +64,7 @@ public class JobFailAlarmMonitorHelper {
                         newAlarmStatus = 1;
                     }
 
-                    JobAdminBootstrap.getInstance().getKitJobLogMapper().updateAlarmStatus(failLogId, -1, newAlarmStatus);
+                    JobAdminBootstrap.getInstance().getKitJobLogService().updateAlarmStatus(failLogId, -1, newAlarmStatus);
                 }
             }
         } catch (Exception e) {

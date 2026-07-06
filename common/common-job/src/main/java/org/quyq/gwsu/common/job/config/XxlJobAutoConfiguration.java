@@ -23,7 +23,7 @@ import org.springframework.util.StringUtils;
 public class XxlJobAutoConfiguration {
 
     @Bean
-    public XxlJobExecutor xxlJobExecutor(Environment environment, JobAdminClientApi jobAdminClientApi , ProjectUtils projectUtils) {
+    public XxlJobExecutor xxlJobExecutor(JobAdminClientApi jobAdminClientApi , ProjectUtils projectUtils) {
 
         // 从Spring属性自动推导
         String applicationName = projectUtils.getApplicationName();

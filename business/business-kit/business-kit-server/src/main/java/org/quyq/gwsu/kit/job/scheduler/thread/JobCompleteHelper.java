@@ -4,7 +4,6 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.constant.JobConst;
 import org.quyq.gwsu.common.job.openapi.admin.dto.CallbackData;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
-import org.quyq.gwsu.kit.job.mapper.KitJobLogMapper;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ public class JobCompleteHelper {
         try {
             // 任务结果丢失处理：调度记录停留在 "运行中" 状态超过10min，且对应执行器心跳注册失败不在线，则将本地调度主动标记失败
             LocalDateTime losedTime = LocalDateTime.now().minusMinutes(10);
-            List<String> losedJobIds = JobAdminBootstrap.getInstance().getKitJobLogMapper().findLostJobIds(losedTime);
+            List<String> losedJobIds = JobAdminBootstrap.getInstance().getKitJobLogService().findLostJobIds(losedTime);
 
             if (losedJobIds != null && !losedJobIds.isEmpty()) {
                 for (String logId : losedJobIds) {
@@ -106,7 +105,7 @@ public class JobCompleteHelper {
 
     private R<String> doCallback(CallbackData handleCallbackParam) {
         // 校验日志
-        KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogMapper().selectById(handleCallbackParam.getLogId());
+        KitJobLog log = JobAdminBootstrap.getInstance().getKitJobLogService().getById(handleCallbackParam.getLogId());
         if (log == null) {
             return R.fail("日志记录未找到");
         }

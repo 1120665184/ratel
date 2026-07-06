@@ -2,7 +2,6 @@ package org.quyq.gwsu.kit.job.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
 
 /**
@@ -10,11 +9,6 @@ import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
  */
 @Mapper
 public interface KitJobLogReportMapper extends BaseMapper<KitJobLogReport> {
-
-    /**
-     * 保存或更新（ON DUPLICATE KEY / ON CONFLICT）
-     */
-    int saveOrUpdate(KitJobLogReport kitJobLogReport);
 
     /**
      * 查询日志报表汇总（SUM 聚合）

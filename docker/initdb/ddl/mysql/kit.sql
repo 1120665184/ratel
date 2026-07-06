@@ -102,38 +102,14 @@ CREATE INDEX idx_kit_file_chunk_info_chunk_group ON kit_file_chunk_info (chunk_g
 -- =============================================
 
 -- =============================================
--- 表名：kit_job_group
--- 说明：执行器信息表
--- =============================================
-CREATE TABLE kit_job_group
-(
-    id            VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
-    app_name      VARCHAR(64)  NOT NULL                COMMENT '执行器AppName',
-    name          VARCHAR(64)  NOT NULL                COMMENT '执行器名称',
-    address_type  TINYINT      NOT NULL DEFAULT 0      COMMENT '执行器地址类型：0=自动注册、1=手动录入',
-    address_list  TEXT         DEFAULT NULL             COMMENT '执行器地址列表，多地址逗号分隔',
-    access_token  VARCHAR(255) DEFAULT NULL             COMMENT '执行器AccessToken',
-    tenant_id     VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
-    create_op     VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
-    create_time   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    modify_op     VARCHAR(50)  DEFAULT NULL             COMMENT '修改人',
-    modify_time   DATETIME     DEFAULT NULL             COMMENT '修改时间',
-    deleted       SMALLINT     NOT NULL DEFAULT 0       COMMENT '删除标识：0-未删除 1-已删除',
-    delete_op     VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
-    delete_time   DATETIME     DEFAULT NULL             COMMENT '删除时间'
-) COMMENT '执行器信息表';
-
-CREATE UNIQUE INDEX i_app_name ON kit_job_group (app_name);
-
--- =============================================
 -- 表名：kit_job_registry
 -- 说明：执行器注册表
 -- =============================================
 CREATE TABLE kit_job_registry
 (
     id              VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
-    registry_group  VARCHAR(50)  NOT NULL                COMMENT '注册分组',
-    registry_key    VARCHAR(255) NOT NULL                COMMENT '注册标识',
+    registry_group  VARCHAR(64)  NOT NULL                COMMENT '执行器AppName（命名空间）',
+    registry_key    VARCHAR(255) NOT NULL                COMMENT 'Handler名称',
     registry_value  VARCHAR(255) NOT NULL                COMMENT '注册值（地址）',
     tenant_id       VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
     create_op       VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
@@ -154,7 +130,6 @@ CREATE UNIQUE INDEX i_g_k_v ON kit_job_registry (registry_group, registry_key, r
 CREATE TABLE kit_job_info
 (
     id                        VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
-    job_group                 VARCHAR(24)  NOT NULL                COMMENT '执行器主键ID',
     name                      VARCHAR(255) NOT NULL                COMMENT '任务名称',
     author                    VARCHAR(64)  DEFAULT NULL             COMMENT '作者',
     alarm_email               VARCHAR(255) DEFAULT NULL             COMMENT '报警邮件',
@@ -184,8 +159,6 @@ CREATE TABLE kit_job_info
     delete_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
     delete_time               DATETIME     DEFAULT NULL             COMMENT '删除时间'
 ) COMMENT '任务信息表';
-
-CREATE INDEX idx_kit_job_info_job_group ON kit_job_info (job_group);
 
 -- =============================================
 -- 表名：kit_job_log_glue
@@ -217,7 +190,6 @@ CREATE INDEX idx_kit_job_log_glue_job_id ON kit_job_log_glue (job_id);
 CREATE TABLE kit_job_log
 (
     id                        VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
-    job_group                 VARCHAR(24)  NOT NULL                COMMENT '执行器主键ID',
     job_id                    VARCHAR(24)  NOT NULL                COMMENT '任务主键ID',
     executor_address          VARCHAR(255) DEFAULT NULL             COMMENT '执行器地址',
     executor_handler          VARCHAR(255) DEFAULT NULL             COMMENT '任务handler',
@@ -243,7 +215,6 @@ CREATE TABLE kit_job_log
 
 CREATE INDEX i_trigger_time ON kit_job_log (trigger_time);
 CREATE INDEX i_handle_code ON kit_job_log (handle_code);
-CREATE INDEX i_job_group ON kit_job_log (job_group);
 CREATE INDEX i_job_id ON kit_job_log (job_id);
 
 -- =============================================

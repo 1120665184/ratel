@@ -4,12 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.constant.JobConst;
-import org.quyq.gwsu.common.job.constant.RegistTypeEnum;
 import org.quyq.gwsu.common.job.openapi.admin.dto.RegistryRequest;
-import org.quyq.gwsu.kit.job.domain.KitJobGroup;
 import org.quyq.gwsu.kit.job.domain.KitJobRegistry;
-import org.quyq.gwsu.kit.job.mapper.KitJobGroupMapper;
-import org.quyq.gwsu.kit.job.mapper.KitJobRegistryMapper;
+import org.quyq.gwsu.kit.job.service.IKitJobRegistryService;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +17,9 @@ import java.util.concurrent.*;
 
 /**
  * 执行器注册助手
+ * <p>
+ * 按 handler 聚合地址列表，维护 handler2RegistryCache 内存缓存。
+ * 冲突检测：同一个 handler 如果有多个 appname 注册，只取第一个，其余标记冲突并暂停调度。
  */
 public class JobRegistryHelper {
     private static final Logger logger = LoggerFactory.getLogger(JobRegistryHelper.class);
@@ -30,9 +30,11 @@ public class JobRegistryHelper {
     // 注册监控调度器
     private ScheduledExecutorService registryMonitorScheduler;
 
-    // 任务组缓存
-    private volatile Map<String, KitJobGroup> appname2GroupCache = new ConcurrentHashMap<>();
-    private volatile Map<String, KitJobGroup> id2GroupCache = new ConcurrentHashMap<>();
+    // handler注册缓存：handlerName -> HandlerRegistryInfo
+    private volatile Map<String, HandlerRegistryInfo> handler2RegistryCache = new ConcurrentHashMap<>();
+
+    // 冲突handler集合：同一handler被不同appname注册
+    private volatile Set<String> conflictHandlers = Collections.emptySet();
 
     /**
      * 启动
@@ -52,7 +54,7 @@ public class JobRegistryHelper {
                     logger.warn(">>>>>>>>>>> kit-job, 注册或注销操作过快，触发拒绝策略（直接执行）。");
                 });
 
-        // 2、注册监控线程（使用ScheduledExecutorService替代CyclicThread）
+        // 2、注册监控线程
         registryMonitorScheduler = Executors.newSingleThreadScheduledExecutor(
                 r -> new Thread(r, "kit-job, admin JobRegistryHelper-registryMonitorThread"));
         registryMonitorScheduler.scheduleAtFixedRate(this::registryMonitorTask,
@@ -67,80 +69,63 @@ public class JobRegistryHelper {
     private void registryMonitorTask() {
         try {
             // a、移除失效地址
-            List<String> ids = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, LocalDateTime.now());
+            List<String> ids = JobAdminBootstrap.getInstance().getKitJobRegistryService()
+                    .findDead(JobConst.REGISTRY_BEAT_INTERVAL * 3, LocalDateTime.now());
             if (ids != null && !ids.isEmpty()) {
-                JobAdminBootstrap.getInstance().getKitJobRegistryMapper().deleteBatchIds(ids);
+                JobAdminBootstrap.getInstance().getKitJobRegistryService().removeBatchByIds(ids);
             }
 
-            // b、获取在线地址（appname : List<address>）
-            HashMap<String, List<String>> appnameAddressMap = new HashMap<>();
-            List<KitJobRegistry> list = JobAdminBootstrap.getInstance().getKitJobRegistryMapper().findAll(JobConst.REGISTRY_BEAT_INTERVAL * 3, LocalDateTime.now());
+            // b、获取有效注册列表，按 handler 聚合地址
+            List<KitJobRegistry> list = JobAdminBootstrap.getInstance().getKitJobRegistryService()
+                    .findAll(JobConst.REGISTRY_BEAT_INTERVAL * 3, LocalDateTime.now());
+
+            // handler -> { appname -> addresses }
+            Map<String, Map<String, List<String>>> handlerAppnameAddressMap = new HashMap<>();
             if (list != null) {
                 for (KitJobRegistry item : list) {
-                    if (RegistTypeEnum.EXECUTOR.name().equals(item.getRegistryGroup())) {
-                        String appname = item.getRegistryKey();
-                        List<String> registryList = appnameAddressMap.computeIfAbsent(appname, k -> new ArrayList<>());
+                    String appname = item.getRegistryGroup();
+                    String handlerName = item.getRegistryKey();
+                    String address = item.getRegistryValue();
 
-                        if (!registryList.contains(item.getRegistryValue())) {
-                            registryList.add(item.getRegistryValue());
-                        }
-                    }
+                    handlerAppnameAddressMap
+                            .computeIfAbsent(handlerName, k -> new HashMap<>())
+                            .computeIfAbsent(appname, k -> new ArrayList<>())
+                            .add(address);
                 }
             }
 
-            // c、自动注册：为没有对应执行器组的appname自动创建组
-            if (!appnameAddressMap.isEmpty()) {
-                List<KitJobGroup> existingGroups = JobAdminBootstrap.getInstance().getKitJobGroupMapper()
-                        .selectList(new LambdaQueryWrapper<KitJobGroup>().eq(KitJobGroup::getAddressType, 0));
-                Set<String> existingAppnames = existingGroups != null
-                        ? existingGroups.stream().map(KitJobGroup::getAppname).collect(java.util.stream.Collectors.toSet())
-                        : Collections.emptySet();
+            // c、构建缓存，检测冲突
+            Map<String, HandlerRegistryInfo> newCache = new ConcurrentHashMap<>();
+            Set<String> newConflictHandlers = new HashSet<>();
 
-                for (String appname : appnameAddressMap.keySet()) {
-                    if (!existingAppnames.contains(appname)) {
-                        KitJobGroup newGroup = new KitJobGroup();
-                        newGroup.setAppname(appname);
-                        newGroup.setName(appname);
-                        newGroup.setAddressType(0);
-                        JobAdminBootstrap.getInstance().getKitJobGroupMapper().insert(newGroup);
-                        logger.info(">>>>>>>>>>> kit-job, 自动注册执行器组, appname:{}", appname);
-                    }
+            for (Map.Entry<String, Map<String, List<String>>> entry : handlerAppnameAddressMap.entrySet()) {
+                String handlerName = entry.getKey();
+                Map<String, List<String>> appnameMap = entry.getValue();
+
+                if (appnameMap.size() > 1) {
+                    // 冲突：同一 handler 被多个 appname 注册
+                    newConflictHandlers.add(handlerName);
+                    // 取第一个 appname 的地址列表（按字母序保证稳定性）
+                    String firstAppname = appnameMap.keySet().stream().sorted().findFirst().orElse(null);
+                    List<String> addresses = appnameMap.get(firstAppname);
+                    // 去重
+                    List<String> uniqueAddresses = addresses.stream().distinct().sorted().toList();
+                    newCache.put(handlerName, new HandlerRegistryInfo(handlerName, firstAppname, uniqueAddresses));
+                    logger.warn(">>>>>>>>>>> kit-job, handler冲突! handler:{}, 多个appname:{}, 使用第一个:{}", handlerName, appnameMap.keySet(), firstAppname);
+                } else {
+                    Map.Entry<String, List<String>> single = appnameMap.entrySet().iterator().next();
+                    String appname = single.getKey();
+                    List<String> addresses = single.getValue();
+                    List<String> uniqueAddresses = addresses.stream().distinct().sorted().toList();
+                    newCache.put(handlerName, new HandlerRegistryInfo(handlerName, appname, uniqueAddresses));
                 }
             }
 
-            // d、刷新自动注册的执行器组地址
-            List<KitJobGroup> groupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper()
-                    .selectList(new LambdaQueryWrapper<KitJobGroup>().eq(KitJobGroup::getAddressType, 0));
-            if (groupList != null && !groupList.isEmpty()) {
-                for (KitJobGroup group : groupList) {
-                    List<String> registryList = appnameAddressMap.get(group.getAppname());
-                    String addressListStr = null;
-                    if (registryList != null && !registryList.isEmpty()) {
-                        Collections.sort(registryList);
-                        addressListStr = String.join(",", registryList);
-                    }
-                    group.setAddressList(addressListStr);
+            // d、刷新缓存
+            handler2RegistryCache = newCache;
+            conflictHandlers = newConflictHandlers;
 
-                    JobAdminBootstrap.getInstance().getKitJobGroupMapper().updateById(group);
-                }
-            }
-
-            // 2.2、刷新本地缓存
-            List<KitJobGroup> jobGroupList = JobAdminBootstrap.getInstance().getKitJobGroupMapper().selectList(null);
-            Map<String, KitJobGroup> appname2GroupCacheNew = new ConcurrentHashMap<>();
-            Map<String, KitJobGroup> id2GroupCacheNew = new ConcurrentHashMap<>();
-            if (jobGroupList != null && !jobGroupList.isEmpty()) {
-                for (KitJobGroup group : jobGroupList) {
-                    appname2GroupCacheNew.put(group.getAppname(), group);
-                    id2GroupCacheNew.put(group.getId(), group);
-                }
-            }
-            if (!toJson(appname2GroupCacheNew).equals(toJson(appname2GroupCache))) {
-                appname2GroupCache = appname2GroupCacheNew;
-                id2GroupCache = id2GroupCacheNew;
-                logger.info(">>>>>>>>>>> kit-job, JobRegistryHelper, 检测到变化并刷新JobGroupCache成功");
-            }
-            logger.debug(">>>>>>>>>>> kit-job, JobRegistryHelper, 刷新JobGroupCache成功");
+            logger.debug(">>>>>>>>>>> kit-job, JobRegistryHelper, 刷新HandlerRegistryCache成功, handlerCount:{}, conflictCount:{}", newCache.size(), newConflictHandlers.size());
 
         } catch (Exception e) {
             logger.error(">>>>>>>>>>> kit-job, JobRegistryHelper#registryMonitorTask error:{}", e.getMessage(), e);
@@ -155,7 +140,7 @@ public class JobRegistryHelper {
         registryMonitorScheduler.shutdownNow();
     }
 
-    // ---------------------- 工具方法 ----------------------
+    // ---------------------- 注册/注销 ----------------------
 
     /**
      * 注册
@@ -171,12 +156,9 @@ public class JobRegistryHelper {
 
         // 异步执行
         registryOrRemoveThreadPool.execute(() -> {
-            int ret = JobAdminBootstrap.getInstance().getKitJobRegistryMapper()
+            JobAdminBootstrap.getInstance().getKitJobRegistryService()
                     .registrySaveOrUpdate(IdWorker.getIdStr(), registryParam.getRegistryGroup(), registryParam.getRegistryKey(),
                             registryParam.getRegistryValue(), LocalDateTime.now());
-            if (ret == 1) {
-                freshGroupRegistryInfo(registryParam);
-            }
         });
 
         return R.ok();
@@ -196,45 +178,52 @@ public class JobRegistryHelper {
 
         // 异步执行
         registryOrRemoveThreadPool.execute(() -> {
-            int ret = JobAdminBootstrap.getInstance().getKitJobRegistryMapper()
-                    .delete(new LambdaQueryWrapper<KitJobRegistry>()
+            JobAdminBootstrap.getInstance().getKitJobRegistryService()
+                    .remove(new LambdaQueryWrapper<KitJobRegistry>()
                             .eq(KitJobRegistry::getRegistryGroup, registryParam.getRegistryGroup())
                             .eq(KitJobRegistry::getRegistryKey, registryParam.getRegistryKey())
                             .eq(KitJobRegistry::getRegistryValue, registryParam.getRegistryValue()));
-            if (ret > 0) {
-                freshGroupRegistryInfo(registryParam);
-            }
         });
 
         return R.ok();
     }
 
-    private void freshGroupRegistryInfo(RegistryRequest registryParam) {
-        // 预留，防止影响核心表
-    }
-
-    // ---------------------- 缓存 ----------------------
+    // ---------------------- 缓存查询 ----------------------
 
     /**
-     * 根据ID加载执行器组
+     * 根据handler名称获取注册信息
      */
-    public KitJobGroup load(String jobGroup) {
-        return id2GroupCache.get(jobGroup);
+    public HandlerRegistryInfo loadByHandlerName(String handlerName) {
+        return handler2RegistryCache.get(handlerName);
     }
 
     /**
-     * 根据appname加载执行器组
+     * 根据handler名称获取在线地址列表
      */
-    public KitJobGroup loadByAppName(String appname) {
-        return appname2GroupCache.get(appname);
+    public List<String> getAddressList(String handlerName) {
+        HandlerRegistryInfo info = handler2RegistryCache.get(handlerName);
+        return info != null ? info.addresses() : Collections.emptyList();
     }
 
-    private String toJson(Object obj) {
-        try {
-            return JobAdminBootstrap.getInstance().getObjectMapper().writeValueAsString(obj);
-        } catch (Exception e) {
-            return String.valueOf(obj);
-        }
+    /**
+     * 判断handler是否冲突
+     */
+    public boolean isConflict(String handlerName) {
+        return conflictHandlers.contains(handlerName);
+    }
+
+    /**
+     * 获取所有handler注册信息
+     */
+    public Map<String, HandlerRegistryInfo> getAllHandlerRegistry() {
+        return handler2RegistryCache;
+    }
+
+    /**
+     * 获取冲突handler集合
+     */
+    public Set<String> getConflictHandlers() {
+        return conflictHandlers;
     }
 
 }
