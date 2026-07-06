@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.BaseDTO;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
@@ -15,6 +16,7 @@ import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.job.context.XxlJobHelper;
 import org.quyq.gwsu.common.job.handler.annotation.XxlJob;
 import org.quyq.gwsu.kit.api.job.vo.UrlHandlerParam;
+import org.springframework.beans.SimpleTypeConverter;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.cloud.client.ServiceInstance;
@@ -22,6 +24,7 @@ import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.PathContainer;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +34,7 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.pattern.PathPattern;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.*;
@@ -47,24 +51,29 @@ import java.util.concurrent.TimeUnit;
  * @author Quyq
  */
 @Slf4j
-@org.springframework.stereotype.Component
+@Component
 public class UrlJobHandler implements ApplicationRunner {
 
     private static final String HANDLER_NAME = "urlJobHandler";
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration READ_TIMEOUT = Duration.ofHours(12);
 
     private final RequestMappingHandlerMapping handlerMapping;
     private final ProjectUtils projectUtils;
+    private final CacheUtils cacheUtils;
     private final WebClient webClient;
     private final Gson gson;
+
+    /**
+     * 通用类型转换器（路径变量值 String → 目标类型）
+     */
+    private static final SimpleTypeConverter TYPE_CONVERTER = new SimpleTypeConverter();
 
     /**
      * 单应用模式下的URL映射表
      * key: 完整请求路径（如 "/kit/job/api/callback"）
      * value: HandlerMethodWrapper
      */
-    private final Map<String, HandlerMethodWrapper> localMethodRegistry = new HashMap<>();
+    private volatile Map<String, HandlerMethodWrapper> localMethodRegistry = Map.of();
 
     /**
      * url调用路由选择标记前缀
@@ -73,10 +82,12 @@ public class UrlJobHandler implements ApplicationRunner {
 
     public UrlJobHandler(RequestMappingHandlerMapping handlerMapping,
                          ProjectUtils projectUtils,
+                         CacheUtils cacheUtils,
                          WebClient.Builder webClientBuilder,
                          Gson gson) {
         this.handlerMapping = handlerMapping;
         this.projectUtils = projectUtils;
+        this.cacheUtils = cacheUtils;
         this.webClient = webClientBuilder
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
                 .build();
@@ -93,6 +104,7 @@ public class UrlJobHandler implements ApplicationRunner {
         }
 
         // 构建映射表
+        Map<String, HandlerMethodWrapper> built = new HashMap<>();
         Map<RequestMappingInfo, HandlerMethod> handlerMethods = handlerMapping.getHandlerMethods();
         for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : handlerMethods.entrySet()) {
             RequestMappingInfo mappingInfo = entry.getKey();
@@ -100,7 +112,7 @@ public class UrlJobHandler implements ApplicationRunner {
 
             // 跳过非项目内的接口
             String packageName = handlerMethod.getBeanType().getPackageName();
-            if (!packageName.startsWith("org.quyq.gwsu")) {
+            if (!packageName.startsWith(CoreConstants.Project.COMMON_PACKAGE)) {
                 continue;
             }
 
@@ -122,10 +134,11 @@ public class UrlJobHandler implements ApplicationRunner {
             // 注册到映射表，key 就是完整路径
             HandlerMethod resolved = handlerMethod.createWithResolvedBean();
             for (PathPattern pattern : patterns) {
-                localMethodRegistry.put(pattern.getPatternString(), new HandlerMethodWrapper(resolved, pattern));
+                built.put(pattern.getPatternString(), new HandlerMethodWrapper(resolved, pattern));
             }
         }
 
+        this.localMethodRegistry = Collections.unmodifiableMap(built);
         log.info("URL Job Handler: 单应用模式，本地方法映射表构建完成，共 {} 条记录", localMethodRegistry.size());
     }
 
@@ -189,9 +202,13 @@ public class UrlJobHandler implements ApplicationRunner {
     private JsonObject buildRequestBody(UrlHandlerParam paramObj) {
         JsonObject body = new JsonObject();
         if (StringUtils.hasText(paramObj.bodyJson())) {
-            JsonObject parsed = JsonParser.parseString(paramObj.bodyJson()).getAsJsonObject();
-            for (Map.Entry<String, JsonElement> entry : parsed.entrySet()) {
-                body.add(entry.getKey(), entry.getValue());
+            try {
+                JsonObject parsed = JsonParser.parseString(paramObj.bodyJson()).getAsJsonObject();
+                for (Map.Entry<String, JsonElement> entry : parsed.entrySet()) {
+                    body.add(entry.getKey(), entry.getValue());
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("bodyJson 格式错误，请检查参数配置: " + e.getMessage(), e);
             }
         }
         // 注入任务上下文到 jobParams 字段
@@ -209,7 +226,7 @@ public class UrlJobHandler implements ApplicationRunner {
             throw new IllegalStateException("找不到模块前缀对应的服务: " + paramObj.prefix());
         }
 
-        // 2. 获取服务实例
+        // 2. 获取服务实例（延迟获取：单应用模式下无 DiscoveryClient Bean，不可构造器注入）
         DiscoveryClient discoveryClient = SpringUtils.getBean(DiscoveryClient.class);
         List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
         if (CollUtil.isEmpty(instances)) {
@@ -217,11 +234,14 @@ public class UrlJobHandler implements ApplicationRunner {
         }
 
         // 3. Redis 轮询选择实例
-        CacheUtils cacheUtils = SpringUtils.getBean(CacheUtils.class);
         String redisKey = projectUtils.getServerPrefix() + ROUTER_KEY_PREFIX + serviceName;
         Long incr = cacheUtils.increment(redisKey);
-        cacheUtils.expire(redisKey, 12, TimeUnit.HOURS);
-        String domain = instances.get(incr.intValue() % instances.size()).getUri().toString();
+        // 仅首次创建时设置过期时间
+        if (incr != null && incr == 1) {
+            cacheUtils.expire(redisKey, 12, TimeUnit.HOURS);
+        }
+        int index = Math.floorMod(incr, instances.size());
+        String domain = instances.get(index).getUri().toString();
 
         // 4. 构造请求体
         JsonObject body = buildRequestBody(paramObj);
@@ -237,11 +257,12 @@ public class UrlJobHandler implements ApplicationRunner {
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, response ->
                         response.bodyToMono(String.class)
-                                .map(respStr -> new IllegalStateException("响应状态异常：" + response.statusCode()))
+                                .map(respStr -> new IllegalStateException(
+                                        "响应状态异常：" + response.statusCode() + "，响应体：" + respStr))
                 )
                 .bodyToMono(String.class)
                 .timeout(READ_TIMEOUT)
-                .block(CONNECT_TIMEOUT.plus(READ_TIMEOUT));
+                .block(READ_TIMEOUT.plus(Duration.ofSeconds(30)));
 
         XxlJobHelper.log("执行结果：\n {}", result);
         checkBusinessResult(result);
@@ -288,8 +309,13 @@ public class UrlJobHandler implements ApplicationRunner {
 
         log.info("URL调用模式 单应用调用, 目标:{}.{}", bean.getClass().getSimpleName(), method.getName());
 
-        // 反射调用
-        Object result = method.invoke(bean, args);
+        // 反射调用，解包 InvocationTargetException 以获取真实异常信息
+        Object result;
+        try {
+            result = method.invoke(bean, args);
+        } catch (InvocationTargetException e) {
+            throw (Exception) (e.getCause() != null ? e.getCause() : e);
+        }
 
         // 处理返回值
         handleLocalResult(result);
@@ -340,17 +366,11 @@ public class UrlJobHandler implements ApplicationRunner {
     }
 
     /**
-     * 简单类型转换（路径变量值 String → 目标类型）
+     * 类型转换（路径变量值 String → 目标类型），使用 Spring 的通用类型转换器
      */
     private Object convertType(String value, Class<?> targetType) {
         if (value == null) return null;
-        if (targetType == String.class) return value;
-        if (targetType == Integer.class || targetType == int.class) return Integer.parseInt(value);
-        if (targetType == Long.class || targetType == long.class) return Long.parseLong(value);
-        if (targetType == Boolean.class || targetType == boolean.class) return Boolean.parseBoolean(value);
-        if (targetType == Double.class || targetType == double.class) return Double.parseDouble(value);
-        if (targetType == Float.class || targetType == float.class) return Float.parseFloat(value);
-        return value;
+        return TYPE_CONVERTER.convertIfNecessary(value, targetType);
     }
 
     // ==================== 返回值处理 ====================
