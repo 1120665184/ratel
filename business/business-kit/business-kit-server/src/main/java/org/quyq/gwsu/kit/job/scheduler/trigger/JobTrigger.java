@@ -133,7 +133,9 @@ public class JobTrigger {
         triggerParam.setLogDateTime(jobLog.getTriggerTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         triggerParam.setGlueType(jobInfo.getGlueType());
         triggerParam.setGlueSource(jobInfo.getGlueSource());
-        triggerParam.setGlueUpdatetime(jobInfo.getGlueUpdatetime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        triggerParam.setGlueUpdatetime(jobInfo.getGlueUpdatetime() != null
+                ? jobInfo.getGlueUpdatetime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : 0L);
         triggerParam.setBroadcastIndex(index);
         triggerParam.setBroadcastTotal(total);
 
