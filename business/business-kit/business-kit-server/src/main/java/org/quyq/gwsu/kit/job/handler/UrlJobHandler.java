@@ -1,6 +1,7 @@
 package org.quyq.gwsu.kit.job.handler;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.func.LambdaUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.pattern.PathPattern;
@@ -55,6 +57,10 @@ import java.util.concurrent.TimeUnit;
 public class UrlJobHandler implements ApplicationRunner {
 
     private static final String HANDLER_NAME = "urlJobHandler";
+
+    /** 连接超时：5秒内必须建立TCP连接 */
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    /** 读取超时：连接建立后12小时内必须收到完整响应 */
     private static final Duration READ_TIMEOUT = Duration.ofHours(12);
 
     private final RequestMappingHandlerMapping handlerMapping;
@@ -80,12 +86,12 @@ public class UrlJobHandler implements ApplicationRunner {
      */
     private static final String ROUTER_KEY_PREFIX = "job:router-select-index:";
 
-    public UrlJobHandler(RequestMappingHandlerMapping handlerMapping,
+    public UrlJobHandler(RequestMappingHandlerMapping requestMappingHandlerMapping,
                          ProjectUtils projectUtils,
                          CacheUtils cacheUtils,
                          WebClient.Builder webClientBuilder,
                          Gson gson) {
-        this.handlerMapping = handlerMapping;
+        this.handlerMapping = requestMappingHandlerMapping;
         this.projectUtils = projectUtils;
         this.cacheUtils = cacheUtils;
         this.webClient = webClientBuilder
@@ -212,7 +218,7 @@ public class UrlJobHandler implements ApplicationRunner {
             }
         }
         // 注入任务上下文到 jobParams 字段
-        body.add("jobParams", gson.toJsonTree(buildJobParams()));
+        body.add(LambdaUtil.getFieldName(BaseDTO::getJobParams), gson.toJsonTree(buildJobParams()));
         return body;
     }
 
@@ -261,6 +267,10 @@ public class UrlJobHandler implements ApplicationRunner {
                                         "响应状态异常：" + response.statusCode() + "，响应体：" + respStr))
                 )
                 .bodyToMono(String.class)
+                // 分层超时：
+                //   CONNECT_TIMEOUT: 从订阅到首个信号（TCP连接建立+收到响应头）的最大等待
+                //   READ_TIMEOUT: 从订阅到完整响应体的最大等待
+                .timeout(CONNECT_TIMEOUT, Mono.error(new IllegalStateException("连接超时，" + CONNECT_TIMEOUT.toSeconds() + "秒内未建立连接: " + fullUrl)))
                 .timeout(READ_TIMEOUT)
                 .block(READ_TIMEOUT.plus(Duration.ofSeconds(30)));
 
