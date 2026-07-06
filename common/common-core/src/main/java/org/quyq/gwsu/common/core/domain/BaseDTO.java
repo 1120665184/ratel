@@ -51,6 +51,32 @@ public abstract class BaseDTO {
     @Schema(title = "排序方向 asc,desc")
     private String asc = "asc";
 
+    /**
+     * 定时任务执行参数
+     */
+    @TableField(exist = false)
+    @Schema(title = "定时任务执行参数", hidden = true)
+    private JobParams jobParams;
+
+    /**
+     * 定时任务执行参数
+     *
+     * @param jobShardTotal    分片总数
+     * @param jobShardIndex    当前分片
+     * @param xxlJobId         执行的任务ID
+     * @param xxlJobInstanceId 本次执行实例ID
+     */
+    @Schema(title = "定时任务执行参数")
+    public record JobParams(
+            @Schema(title = "分片总数")
+            int jobShardTotal,
+            @Schema(title = "当前分片")
+            int jobShardIndex,
+            @Schema(title = "执行的任务ID")
+            String xxlJobId,
+            @Schema(title = "本次执行实例ID")
+            String xxlJobInstanceId
+    ) {}
 
     @JsonIgnore
     public String getOrderBy() {
