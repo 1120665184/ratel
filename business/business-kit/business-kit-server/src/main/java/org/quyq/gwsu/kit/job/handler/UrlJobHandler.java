@@ -57,7 +57,7 @@ public class UrlJobHandler implements ApplicationRunner {
 
     private static final String HANDLER_NAME = "urlJobHandler";
 
-    private static final Duration READ_TIMEOUT = Duration.ofHours(12);
+    private static final Duration READ_TIMEOUT = Duration.ofHours(6);
 
     private final RequestMappingHandlerMapping handlerMapping;
     private final ProjectUtils projectUtils;

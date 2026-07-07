@@ -61,14 +61,14 @@ org.quyq:
     auth-allow-urls:
       - /modules/list
       - /system/workspace/**
+  job.admin:
+    trigger-poolfast-max: 200
+    trigger-pool-slow-max: 100
+    schedule-batch-size: 100
+    logretentiondays: 30
 
 
 logging:
   level:
     org.springframework.context.support: ERROR
     org.quyq: DEBUG
-
-xxl:
-  job:
-    executor:
-      enabled: true

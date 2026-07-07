@@ -111,7 +111,19 @@ public class JobRegistryHelper {
                     // 去重
                     List<String> uniqueAddresses = addresses.stream().distinct().sorted().toList();
                     newCache.put(handlerName, new HandlerRegistryInfo(handlerName, firstAppname, uniqueAddresses));
-                    logger.warn(">>>>>>>>>>> kit-job, handler冲突! handler:{}, 多个appname:{}, 使用第一个:{}", handlerName, appnameMap.keySet(), firstAppname);
+
+                    // 输出被丢弃的handler详细信息
+                    List<String> discardedAppnames = appnameMap.keySet().stream()
+                            .sorted()
+                            .filter(a -> !a.equals(firstAppname))
+                            .toList();
+                    for (String discardedAppname : discardedAppnames) {
+                        List<String> discardedAddresses = appnameMap.get(discardedAppname).stream().distinct().sorted().toList();
+                        logger.warn(">>>>>>>>>>> kit-job, handler冲突丢弃! handler:{}, 丢弃appname:{}, 丢弃地址:{}, 保留appname:{}",
+                                handlerName, discardedAppname, discardedAddresses, firstAppname);
+                    }
+                    logger.warn(">>>>>>>>>>> kit-job, handler冲突! handler:{}, 多个appname:{}, 保留第一个:{}",
+                            handlerName, appnameMap.keySet(), firstAppname);
                 } else {
                     Map.Entry<String, List<String>> single = appnameMap.entrySet().iterator().next();
                     String appname = single.getKey();
@@ -144,6 +156,8 @@ public class JobRegistryHelper {
 
     /**
      * 注册
+     * <p>
+     * 注册前检测冲突：如果已存在不同appname且handler同名的注册，则拒绝注册。
      */
     public R<String> registry(RegistryRequest registryParam) {
 
@@ -152,6 +166,16 @@ public class JobRegistryHelper {
                 || registryParam.getRegistryKey() == null || registryParam.getRegistryKey().trim().isEmpty()
                 || registryParam.getRegistryValue() == null || registryParam.getRegistryValue().trim().isEmpty()) {
             return R.fail("参数不合法");
+        }
+
+        // 冲突检测：同一handler是否已被不同appname注册
+        String conflictAppname = JobAdminBootstrap.getInstance().getKitJobRegistryService()
+                .findConflictAppname(registryParam.getRegistryGroup(), registryParam.getRegistryKey());
+        if (conflictAppname != null) {
+            logger.warn(">>>>>>>>>>> kit-job, handler注册拒绝! handler:{}, 当前appname:{}, 冲突appname:{}, 同名handler不允许跨appname注册",
+                    registryParam.getRegistryKey(), registryParam.getRegistryGroup(), conflictAppname);
+            return R.fail("handler冲突: handler[" + registryParam.getRegistryKey()
+                    + "]已被appname[" + conflictAppname + "]注册，不允许不同appname注册同名handler");
         }
 
         // 异步执行

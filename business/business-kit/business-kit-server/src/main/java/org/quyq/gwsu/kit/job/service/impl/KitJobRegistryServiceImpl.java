@@ -68,4 +68,16 @@ public class KitJobRegistryServiceImpl extends ServiceImpl<KitJobRegistryMapper,
         }
     }
 
+    @Override
+    public String findConflictAppname(String registryGroup, String registryKey) {
+        LambdaQueryWrapper<KitJobRegistry> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KitJobRegistry::getRegistryKey, registryKey)
+                .ne(KitJobRegistry::getRegistryGroup, registryGroup)
+                .select(KitJobRegistry::getRegistryGroup)
+                .last("LIMIT 1");
+
+        KitJobRegistry conflict = this.getOne(wrapper);
+        return conflict != null ? conflict.getRegistryGroup() : null;
+    }
+
 }

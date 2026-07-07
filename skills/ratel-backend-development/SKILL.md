@@ -34,6 +34,7 @@ type: skill
 | [03-06-common-security.md](reference/03-06-common-security.md) | ABAC 权限与安全 | 安全校验、会话、数据权限 |
 | [03-07-common-authentication.md](reference/03-07-common-authentication.md) | 认证体系 | 登录处理器、拦截器、数据资源范围 |
 | [03-08-common-log.md](reference/03-08-common-log.md) | 操作日志 | 日志记录、忽略日志 |
+| [03-09-common-job.md](reference/03-09-common-job.md) | 任务调度（common-job） | @XxlJob Handler、XxlJobHelper、分片广播、注册冲突检测 |
 
 ### 速查与专题
 

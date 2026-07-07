@@ -91,7 +91,7 @@ public class ExecutorRegistryHelper {
                     if (registryResult != null && registryResult.isSuccess()) {
                         logger.debug(">>>>>>>>>>> xxl-job registry success, handler:{}, appname:{}, address:{}", handlerName, appname, registryAddress);
                     } else {
-                        logger.info(">>>>>>>>>>> xxl-job registry fail, handler:{}, appname:{}, result:{}", handlerName, appname, registryResult);
+                        logger.warn(">>>>>>>>>>> xxl-job registry fail, handler:{}, appname:{}, address:{}, result:{}", handlerName, appname, registryAddress, registryResult);
                     }
                 }
             } catch (Throwable e) {

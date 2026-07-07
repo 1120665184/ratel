@@ -70,7 +70,7 @@ public abstract class BaseDTO {
     public record JobParams(
             @Schema(title = "分片总数")
             int jobShardTotal,
-            @Schema(title = "当前分片")
+            @Schema(title = "当前分片,0开始")
             int jobShardIndex,
             @Schema(title = "执行的任务ID")
             String xxlJobId,

@@ -1,5 +1,6 @@
 package org.quyq.gwsu.common.job.config;
 
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.utils.ProjectUtils;
 import org.quyq.gwsu.common.job.executor.XxlJobExecutor;
 import org.quyq.gwsu.common.job.openapi.admin.JobAdminClientApi;
@@ -19,7 +20,7 @@ import org.springframework.util.StringUtils;
  * - glueEnabled = true
  */
 @AutoConfiguration
-@ConditionalOnProperty(name = "xxl.job.executor.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = CoreConstants.Yaml.PROJECT_CONFIG_PREFIX + ".executor.enabled", havingValue = "true", matchIfMissing = true)
 public class XxlJobAutoConfiguration {
 
     @Bean

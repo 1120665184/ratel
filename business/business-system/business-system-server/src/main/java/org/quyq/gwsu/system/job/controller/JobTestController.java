@@ -1,5 +1,6 @@
 package org.quyq.gwsu.system.job.controller;
 
+import com.google.gson.Gson;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -25,21 +26,27 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JobTestController {
 
+    private final Gson gson ;
+
     @PostMapping("callback")
     @Operation(summary = "URL调用模式-回调测试")
     public R<Map<String, Object>> callback(@RequestBody JobTestDTO dto) {
         log.info("收到URL调用模式定时任务回调: {}", dto);
         BaseDTO.JobParams jobParams = dto.getJobParams();
 
-        Map<String, Object> result = Map.of(
-                "message", "回调测试成功",
-                "receiveName", dto.getName(),
-                "receiveTime", LocalDateTime.now().toString(),
-                "jobShardIndex", jobParams != null ? jobParams.jobShardIndex() : -1,
-                "jobShardTotal", jobParams != null ? jobParams.jobShardTotal() : -1,
-                "xxlJobId", jobParams != null ? jobParams.xxlJobId() : "unknown"
-        );
-
+        Map<String, Object> result = Map.of();
+        if (jobParams != null) {
+            result = Map.of(
+                    "message", "回调测试成功",
+                    "receiveName", dto.getName(),
+                    "receiveTime", LocalDateTime.now().toString(),
+                    "jobShardIndex", jobParams.jobShardIndex(),
+                    "jobShardTotal", jobParams.jobShardTotal(),
+                    "xxlJobId", jobParams.xxlJobId(),
+                    "instanceId" , jobParams.xxlJobInstanceId()
+            );
+        }
+        log.info("result: {}", gson.toJson(result));
         return R.ok(result);
     }
 

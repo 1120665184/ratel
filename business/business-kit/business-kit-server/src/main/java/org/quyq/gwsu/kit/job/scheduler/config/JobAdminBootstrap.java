@@ -2,21 +2,21 @@ package org.quyq.gwsu.kit.job.scheduler.config;
 
 
 import jakarta.annotation.Resource;
+import org.quyq.gwsu.kit.config.properties.JobAdminProperties;
 import org.quyq.gwsu.kit.job.mapper.KitJobLockMapper;
-import org.quyq.gwsu.kit.job.service.IKitJobInfoService;
-import org.quyq.gwsu.kit.job.service.IKitJobLogReportService;
-import org.quyq.gwsu.kit.job.service.IKitJobLogService;
-import org.quyq.gwsu.kit.job.service.IKitJobRegistryService;
 import org.quyq.gwsu.kit.job.scheduler.alarm.JobAlarmer;
 import org.quyq.gwsu.kit.job.scheduler.complete.JobCompleter;
 import org.quyq.gwsu.kit.job.scheduler.thread.*;
 import org.quyq.gwsu.kit.job.scheduler.trigger.JobTrigger;
 import org.quyq.gwsu.kit.job.scheduler.trigger.TriggerStrategy;
+import org.quyq.gwsu.kit.job.service.IKitJobInfoService;
+import org.quyq.gwsu.kit.job.service.IKitJobLogReportService;
+import org.quyq.gwsu.kit.job.service.IKitJobLogService;
+import org.quyq.gwsu.kit.job.service.IKitJobRegistryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import tools.jackson.databind.ObjectMapper;
@@ -125,24 +125,11 @@ public class JobAdminBootstrap implements InitializingBean, DisposableBean {
         logger.info(">>>>>>>>> kit-job admin 已停止。");
     }
 
-    // ---------------------- 配置字段 ----------------------
-
-    @Value("${xxl.job.triggerpool.fast.max:200}")
-    private int triggerPoolFastMax;
-
-    @Value("${xxl.job.triggerpool.slow.max:100}")
-    private int triggerPoolSlowMax;
-
-    @Value("${xxl.job.schedule.batchsize:100}")
-    private int scheduleBatchSize;
-
-    @Value("${xxl.job.logretentiondays:30}")
-    private int logretentiondays;
-
-    @Value("${xxl.job.timeout:3}")
-    private int timeout;
 
     // ---------------------- 依赖注入 ----------------------
+
+    @Resource
+    private JobAdminProperties jobAdminProperties;
 
     @Resource
     private IKitJobLogService kitJobLogService;
@@ -167,38 +154,39 @@ public class JobAdminBootstrap implements InitializingBean, DisposableBean {
     @Resource
     private ObjectMapper objectMapper;
 
+
     // ---------------------- Getter ----------------------
 
     public int getTriggerPoolFastMax() {
-        if (triggerPoolFastMax < 200) {
+        if (jobAdminProperties.getTriggerPoolFastMax() < 200) {
             return 200;
         }
-        return triggerPoolFastMax;
+        return jobAdminProperties.getTriggerPoolFastMax();
     }
 
     public int getTriggerPoolSlowMax() {
-        if (triggerPoolSlowMax < 100) {
+        if (jobAdminProperties.getTriggerPoolSlowMax() < 100) {
             return 100;
         }
-        return triggerPoolSlowMax;
+        return jobAdminProperties.getTriggerPoolSlowMax();
     }
 
     public int getScheduleBatchSize() {
-        if (!(scheduleBatchSize >= 50 && scheduleBatchSize <= 500)) {
+        if (!(jobAdminProperties.getScheduleBatchSize() >= 50 && jobAdminProperties.getScheduleBatchSize() <= 500)) {
             return 100;
         }
-        return scheduleBatchSize;
+        return jobAdminProperties.getScheduleBatchSize();
     }
 
     public int getLogretentiondays() {
-        if (logretentiondays < 3) {
+        if (jobAdminProperties.getLogretentiondays() < 3) {
             return -1;  // 限制大于等于3，否则关闭
         }
-        return logretentiondays;
+        return jobAdminProperties.getLogretentiondays();
     }
 
     public int getTimeout() {
-        return timeout;
+        return jobAdminProperties.getTimeout();
     }
 
     public IKitJobLogService getKitJobLogService() {

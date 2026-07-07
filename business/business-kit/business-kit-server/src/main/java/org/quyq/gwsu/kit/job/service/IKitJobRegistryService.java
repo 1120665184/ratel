@@ -40,4 +40,13 @@ public interface IKitJobRegistryService extends IService<KitJobRegistry> {
      */
     void registrySaveOrUpdate(String id, String registryGroup, String registryKey, String registryValue, LocalDateTime modifyTime);
 
+    /**
+     * 检查是否存在不同appname且handler同名的注册（冲突检测）
+     *
+     * @param registryGroup 当前注册的appname
+     * @param registryKey   当前注册的handler名称
+     * @return 已注册的冲突appname，无冲突返回null
+     */
+    String findConflictAppname(String registryGroup, String registryKey);
+
 }
