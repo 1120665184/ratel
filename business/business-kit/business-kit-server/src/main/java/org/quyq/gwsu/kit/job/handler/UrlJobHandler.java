@@ -260,18 +260,21 @@ public class UrlJobHandler implements ApplicationRunner {
                 .uri(fullUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(gson.toJson(body))
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response ->
-                        response.bodyToMono(String.class)
+                .exchangeToMono(response -> {
+                    // 收到响应头 = 连接阶段完成
+                    if (response.statusCode().isError()) {
+                        return response.bodyToMono(String.class)
                                 .map(respStr -> new IllegalStateException(
                                         "响应状态异常：" + response.statusCode() + "，响应体：" + respStr))
-                )
-                .bodyToMono(String.class)
-                // 分层超时：
-                //   CONNECT_TIMEOUT: 从订阅到首个信号（TCP连接建立+收到响应头）的最大等待
-                //   READ_TIMEOUT: 从订阅到完整响应体的最大等待
-                .timeout(CONNECT_TIMEOUT, Mono.error(new IllegalStateException("连接超时，" + CONNECT_TIMEOUT.toSeconds() + "秒内未建立连接: " + fullUrl)))
-                .timeout(READ_TIMEOUT)
+                                .flatMap(Mono::error);
+                    }
+                    // 读取响应体，使用读取超时
+                    return response.bodyToMono(String.class)
+                            .timeout(READ_TIMEOUT);
+                })
+                // 连接超时：从发送请求到收到响应头的最大等待
+                .timeout(CONNECT_TIMEOUT, Mono.error(new IllegalStateException(
+                        "连接超时，" + CONNECT_TIMEOUT.toSeconds() + "秒内未收到响应: " + fullUrl)))
                 .block(READ_TIMEOUT.plus(Duration.ofSeconds(30)));
 
         XxlJobHelper.log("执行结果：\n {}", result);
