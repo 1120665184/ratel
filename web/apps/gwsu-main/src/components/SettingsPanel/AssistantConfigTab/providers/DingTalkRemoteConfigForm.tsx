@@ -1,7 +1,8 @@
 import { Form, Input, Tooltip, Typography, message } from 'antd';
 import { QuestionCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { DingTalkRemoteConfig } from '../types';
-import { getAiCardTemplateDownloadUrl } from '../../services/config';
+import { AI_CARD_TEMPLATE_DOWNLOAD_URL } from '../../services/config';
+import { downloadRequest } from '@gwsu/core';
 import styles from './DingTalkRemoteConfigForm.module.less';
 
 interface DingTalkRemoteConfigFormProps {
@@ -16,15 +17,22 @@ const DingTalkRemoteConfigForm: React.FC<DingTalkRemoteConfigFormProps> = ({ val
     onChange?.({ ...value!, [field]: fieldValue });
   };
 
-  const handleDownloadTemplate = () => {
-    const url = getAiCardTemplateDownloadUrl();
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'aiCard.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    message.success('模板文件下载已开始');
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await downloadRequest({ url: AI_CARD_TEMPLATE_DOWNLOAD_URL });
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'aiCard.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      message.success('模板文件下载成功');
+    } catch {
+      message.error('模板文件下载失败');
+    }
   };
 
   const aiCardLabel = (
@@ -44,11 +52,11 @@ const DingTalkRemoteConfigForm: React.FC<DingTalkRemoteConfigFormProps> = ({ val
       >
         <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }} />
       </Tooltip>
-      <Tooltip title="下载模板导入 JSON">
+      <Tooltip title="下载模板JSON">
         <DownloadOutlined
           className={styles.downloadIcon}
           onClick={handleDownloadTemplate}
-          aria-label="下载模板导入 JSON"
+          aria-label="下载模板JSON"
         />
       </Tooltip>
     </span>

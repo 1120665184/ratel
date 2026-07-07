@@ -50,7 +50,5 @@ export async function saveRemoteControlConfig(config: RemoteControlConfig) {
   return res.data;
 }
 
-/** 下载钉钉 AI 输出卡片模板导入文件 */
-export function getAiCardTemplateDownloadUrl(): string {
-  return '/security/connect/dingtalk/ai-card-template/download';
-}
+/** 下载钉钉 AI 输出卡片模板导入文件接口路径 */
+export const AI_CARD_TEMPLATE_DOWNLOAD_URL = '/security/connect/dingtalk/ai-card-template/download';
