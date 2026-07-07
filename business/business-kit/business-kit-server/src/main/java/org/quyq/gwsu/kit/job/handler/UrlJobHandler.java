@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.pattern.PathPattern;
@@ -58,9 +57,6 @@ public class UrlJobHandler implements ApplicationRunner {
 
     private static final String HANDLER_NAME = "urlJobHandler";
 
-    /** 连接超时：5秒内必须建立TCP连接 */
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
-    /** 读取超时：连接建立后12小时内必须收到完整响应 */
     private static final Duration READ_TIMEOUT = Duration.ofHours(12);
 
     private final RequestMappingHandlerMapping handlerMapping;
@@ -260,21 +256,14 @@ public class UrlJobHandler implements ApplicationRunner {
                 .uri(fullUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(gson.toJson(body))
-                .exchangeToMono(response -> {
-                    // 收到响应头 = 连接阶段完成
-                    if (response.statusCode().isError()) {
-                        return response.bodyToMono(String.class)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, response ->
+                        response.bodyToMono(String.class)
                                 .map(respStr -> new IllegalStateException(
                                         "响应状态异常：" + response.statusCode() + "，响应体：" + respStr))
-                                .flatMap(Mono::error);
-                    }
-                    // 读取响应体，使用读取超时
-                    return response.bodyToMono(String.class)
-                            .timeout(READ_TIMEOUT);
-                })
-                // 连接超时：从发送请求到收到响应头的最大等待
-                .timeout(CONNECT_TIMEOUT, Mono.error(new IllegalStateException(
-                        "连接超时，" + CONNECT_TIMEOUT.toSeconds() + "秒内未收到响应: " + fullUrl)))
+                )
+                .bodyToMono(String.class)
+                .timeout(READ_TIMEOUT)
                 .block(READ_TIMEOUT.plus(Duration.ofSeconds(30)));
 
         XxlJobHelper.log("执行结果：\n {}", result);
