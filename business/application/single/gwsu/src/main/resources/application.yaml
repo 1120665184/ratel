@@ -61,11 +61,15 @@ org.quyq:
     auth-allow-urls:
       - /modules/list
       - /system/workspace/**
-  job.admin:
-    trigger-poolfast-max: 200
-    trigger-pool-slow-max: 100
-    schedule-batch-size: 100
-    logretentiondays: 30
+  job:
+    executor:
+      # job 执行器是否支持glue模式
+      glue-enabled: true
+    admin:
+      trigger-poolfast-max: 200
+      trigger-pool-slow-max: 100
+      schedule-batch-size: 100
+      logretentiondays: 30
 
 
 logging:

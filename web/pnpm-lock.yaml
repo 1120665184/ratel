@@ -136,6 +136,9 @@ importers:
       react:
         specifier: ^19.2.0
         version: 19.2.6
+      react-cron-generator:
+        specifier: ^2.4.1
+        version: 2.4.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react-dom:
         specifier: ^19.2.0
         version: 19.2.6(react@19.2.6)
@@ -3688,6 +3691,10 @@ packages:
   crelt@1.0.7:
     resolution: {integrity: sha512-aK6BbWfhf4U/wCcLHKPJl/xa6VkVstRaPywWtMKGwuOLc/wZTyQYuoxgvZnNsBvv7Kg3YTBQYYBCggcviQczuA==}
 
+  cronstrue@3.24.0:
+    resolution: {integrity: sha512-t/Ji3Ur2c/pzhIAWNwC0ftl3JAE4dLfCjAdZoTZXmPDZwcispnS1PaMcMS4OmIIXyIVouAz+yw+mfQiE3hz5OQ==}
+    hasBin: true
+
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -6901,6 +6908,12 @@ packages:
 
   react-aria@3.48.0:
     resolution: {integrity: sha512-jQjd4rBEIMqecBaAKYJbVGK6EqIHLa5znVQ7jwFyK5vCyljoj6KhgtiahmcIPsG5vG5vEDLw+ba+bEWn6A2P4w==}
+    peerDependencies:
+      react: ^19.2.0
+      react-dom: ^19.2.0
+
+  react-cron-generator@2.4.1:
+    resolution: {integrity: sha512-6DIRyX36oGAnSFqBYKrp3ajubVCh4XzBW1IEMUhCNyOp/dQXrb107m9njx4DL/lo4C16Y6wuGSLCo8u9v6lQTQ==}
     peerDependencies:
       react: ^19.2.0
       react-dom: ^19.2.0
@@ -13133,6 +13146,8 @@ snapshots:
 
   crelt@1.0.7: {}
 
+  cronstrue@3.24.0: {}
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -17140,6 +17155,12 @@ snapshots:
       react-dom: 19.2.6(react@19.2.6)
       react-stately: 3.46.0(react@19.2.6)
       use-sync-external-store: 1.6.0(react@19.2.6)
+
+  react-cron-generator@2.4.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      cronstrue: 3.24.0
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
 
   react-dom@19.2.6(react@19.2.6):
     dependencies:

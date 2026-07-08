@@ -68,9 +68,8 @@ const TableModelPermissionModal: React.FC<TableModelPermissionModalProps> = ({
   const onAddSuccess = useCallback(
     (newTables: RolePermissionTableModelVO[]) => {
       addTablesToList(newTables);
-      if (roleId) loadData(roleId);
     },
-    [addTablesToList, roleId, loadData],
+    [addTablesToList],
   );
 
   const existingTableIds = new Set(tables.map((t) => t.tableModelId));

@@ -4,6 +4,8 @@ import jakarta.annotation.Resource;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.constant.ExecutorBlockStrategyEnum;
 import org.quyq.gwsu.common.job.constant.JobConst;
+import org.quyq.gwsu.common.job.context.XxlJobHelper;
+import org.quyq.gwsu.common.job.glue.GlueTypeEnum;
 import org.quyq.gwsu.common.job.openapi.executor.dto.TriggerRequest;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
@@ -37,12 +39,12 @@ public class JobTrigger {
     /**
      * 触发任务
      *
-     * @param jobId                任务ID
-     * @param triggerType          触发类型
-     * @param failRetryCount       失败重试次数（>=0使用该值，<0使用任务配置值）
+     * @param jobId                 任务ID
+     * @param triggerType           触发类型
+     * @param failRetryCount        失败重试次数（>=0使用该值，<0使用任务配置值）
      * @param executorShardingParam 分片参数
-     * @param executorParam        执行参数（null使用任务配置值）
-     * @param addressList          执行器地址列表（null使用任务配置值）
+     * @param executorParam         执行参数（null使用任务配置值）
+     * @param addressList           执行器地址列表（null使用任务配置值）
      */
     public void trigger(String jobId,
                         TriggerTypeEnum triggerType,
@@ -63,7 +65,7 @@ public class JobTrigger {
         int finalFailRetryCount = failRetryCount >= 0 ? failRetryCount : jobInfo.getExecutorFailRetryCount();
 
         // 获取handler在线地址列表
-        String handlerName = jobInfo.getExecutorHandler();
+        String handlerName = resolveRegistryKey(jobInfo.getGlueType(), jobInfo.getExecutorHandler());
         List<String> registryList;
         if (addressList != null && !addressList.trim().isEmpty()) {
             // 手动指定地址列表
@@ -249,6 +251,14 @@ public class JobTrigger {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    static String resolveRegistryKey(String glueType, String executorHandler) {
+        GlueTypeEnum glueTypeEnum = GlueTypeEnum.match(glueType);
+        if (glueTypeEnum != null && GlueTypeEnum.BEAN != glueTypeEnum) {
+            return JobConst.GLUE_REGISTRY_KEY;
+        }
+        return executorHandler;
     }
 
 }

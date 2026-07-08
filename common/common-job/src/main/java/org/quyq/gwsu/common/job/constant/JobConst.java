@@ -34,4 +34,9 @@ public class JobConst {
      */
     public static final int REGISTRY_BEAT_INTERVAL = 30;
 
+    /**
+     * GLUE任务公共执行器注册键
+     */
+    public static final String GLUE_REGISTRY_KEY = "__glue__";
+
 }

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
 import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +82,7 @@ public class ExecutorRegistryHelper {
                 }
 
                 String appname = xxlJobExecutor.getAppname();
-                for (String handlerName : handlerNames) {
+                for (String handlerName : buildRegistryKeys(handlerNames, xxlJobExecutor.getGlueEnabled())) {
                     RegistryRequest registryParam = new RegistryRequest(
                             appname,
                             handlerName,
@@ -127,7 +128,7 @@ public class ExecutorRegistryHelper {
         }
 
         String appname = xxlJobExecutor.getAppname();
-        for (String handlerName : handlerNames) {
+        for (String handlerName : buildRegistryKeys(handlerNames, xxlJobExecutor.getGlueEnabled())) {
             RegistryRequest registryParam = new RegistryRequest(
                     appname,
                     handlerName,
@@ -144,6 +145,14 @@ public class ExecutorRegistryHelper {
                 logger.warn(">>>>>>>>>>> xxl-job registry-remove error, handler:{}, appname:{}, error:{}", handlerName, appname, e.getMessage());
             }
         }
+    }
+
+    static Set<String> buildRegistryKeys(Set<String> handlerNames, boolean glueEnabled) {
+        Set<String> registryKeys = new LinkedHashSet<>(handlerNames);
+        if (glueEnabled) {
+            registryKeys.add(JobConst.GLUE_REGISTRY_KEY);
+        }
+        return registryKeys;
     }
 
 }

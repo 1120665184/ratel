@@ -166,8 +166,17 @@ export function useTableModelPermission() {
   /** 添加新表到列表 */
   const addTablesToList = useCallback(
     (newTables: RolePermissionTableModelVO[]) => {
-      setTables((prev) => [...prev, ...newTables]);
-      if (!selectedTableId && newTables.length > 0) {
+      if (newTables.length === 0) return;
+
+      setTables((prev) => {
+        const tableMap = new Map(prev.map((table) => [table.tableModelId, table]));
+        newTables.forEach((table) => {
+          tableMap.set(table.tableModelId, table);
+        });
+        return Array.from(tableMap.values());
+      });
+
+      if (!selectedTableId) {
         setSelectedTableId(newTables[0].tableModelId);
         const rows = newTables[0].columns.map(columnToEditRow);
         setFieldRows(rows);

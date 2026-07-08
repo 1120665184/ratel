@@ -34,6 +34,7 @@
     "antd": "^6.3.4",
     "dayjs": "^1.11.20",
     "react": "^19.2.0",
+    "react-cron-generator": "^2.4.1",
     "react-dom": "^19.2.0",
     "umi": "^4.0.0"
   },

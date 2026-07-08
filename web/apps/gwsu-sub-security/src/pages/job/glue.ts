@@ -10,10 +10,10 @@ export const DEFAULT_GLUE_INIT_REMARK = 'GLUE代码初始化';
 export const DEFAULT_GLUE_UPDATE_REMARK = 'GLUE代码更新';
 
 const GLUE_SOURCE_TEMPLATES: Record<string, string> = {
-  GLUE_GROOVY: `package com.xxl.job.service.handler;
+  GLUE_GROOVY: `package org.quyq.gwsu.job.service.handler;
 
-import com.xxl.job.core.context.XxlJobHelper;
-import com.xxl.job.core.handler.IJobHandler;
+import org.quyq.gwsu.common.job.context.XxlJobHelper;
+import org.quyq.gwsu.common.job.handler.IJobHandler;
 
 public class DemoGlueJobHandler extends IJobHandler {
 

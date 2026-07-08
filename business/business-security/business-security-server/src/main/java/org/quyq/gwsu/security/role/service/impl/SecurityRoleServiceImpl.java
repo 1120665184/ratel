@@ -31,6 +31,7 @@ import org.quyq.gwsu.security.role.service.ISecurityRoleService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -280,7 +281,7 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
         // 验证时效配置
         validateValidConfig(dto);
 
-        if (dto.getRoleMenuId() != null && !dto.getRoleMenuId().isEmpty()) {
+        if (StringUtils.hasText(dto.getRoleMenuId())) {
             // 更新现有时效组
             return updateValidGroup(dto, role);
         } else {

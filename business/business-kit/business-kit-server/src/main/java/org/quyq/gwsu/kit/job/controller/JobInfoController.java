@@ -110,7 +110,7 @@ public class JobInfoController implements JobClientApi {
     }
 
     @GetMapping("handlerList")
-    @Operation(summary = "查询所有在线Handler名称(过滤urlJobHandler)")
+    @Operation(summary = "查询所有在线Handler名称(过滤内部Handler)")
     public R<List<String>> handlerList() {
         return kitJobService.handlerList();
     }

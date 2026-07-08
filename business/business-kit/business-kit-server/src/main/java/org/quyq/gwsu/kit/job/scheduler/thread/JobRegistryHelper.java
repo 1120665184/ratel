@@ -225,6 +225,9 @@ public class JobRegistryHelper {
      * 根据handler名称获取在线地址列表
      */
     public List<String> getAddressList(String handlerName) {
+        if (handlerName == null || handlerName.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
         HandlerRegistryInfo info = handler2RegistryCache.get(handlerName);
         return info != null ? info.addresses() : Collections.emptyList();
     }

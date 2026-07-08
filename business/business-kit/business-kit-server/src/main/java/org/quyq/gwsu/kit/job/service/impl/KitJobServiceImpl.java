@@ -10,6 +10,7 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.job.constant.ExecutorBlockStrategyEnum;
+import org.quyq.gwsu.common.job.constant.JobConst;
 import org.quyq.gwsu.common.job.glue.GlueTypeEnum;
 import org.quyq.gwsu.common.job.openapi.executor.dto.KillRequest;
 import org.quyq.gwsu.common.job.openapi.executor.dto.LogData;
@@ -452,7 +453,8 @@ public class KitJobServiceImpl implements KitJobService {
         List<String> result = new ArrayList<>();
         if (allHandlerRegistry != null) {
             for (HandlerRegistryInfo info : allHandlerRegistry.values()) {
-                if (!"urlJobHandler".equals(info.handlerName())) {
+                if (!"urlJobHandler".equals(info.handlerName())
+                        && !JobConst.GLUE_REGISTRY_KEY.equals(info.handlerName())) {
                     result.add(info.handlerName());
                 }
             }
