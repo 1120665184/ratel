@@ -1,0 +1,91 @@
+.editor {
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-color, #ffffff);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  background: color-mix(in srgb, var(--surface-color, #ffffff) 88%, var(--background-color, #f8fafc) 12%);
+}
+
+.language {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.45));
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.45));
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fullscreenBody {
+  min-height: 70vh;
+}
+
+.instance {
+  :global(.cm-editor) {
+    font-size: 13px;
+    color: var(--text-color, #111827);
+    background: var(--surface-color, #ffffff);
+  }
+
+  :global(.cm-scroller) {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  :global(.cm-content),
+  :global(.cm-gutters) {
+    background: var(--surface-color, #ffffff);
+  }
+
+  :global(.cm-gutters) {
+    color: var(--text-secondary-color, #6b7280);
+    border-right: 1px solid var(--border-color, #e5e7eb);
+  }
+
+  :global(.cm-activeLine),
+  :global(.cm-activeLineGutter) {
+    background: color-mix(in srgb, var(--primary-color, #1677ff) 12%, transparent);
+  }
+
+  :global(.cm-cursor) {
+    border-left-color: var(--primary-color, #1677ff);
+  }
+
+  :global(.cm-selectionBackground),
+  :global(.cm-content ::selection) {
+    background: color-mix(in srgb, var(--primary-color, #1677ff) 28%, transparent) !important;
+  }
+
+  :global(.cm-foldPlaceholder) {
+    color: var(--text-secondary-color, #6b7280);
+    background: color-mix(in srgb, var(--surface-color, #ffffff) 76%, var(--background-color, #f8fafc) 24%);
+    border: 1px solid var(--border-color, #e5e7eb);
+  }
+
+  :global(.cm-tooltip) {
+    color: var(--text-color, #111827);
+    background: var(--surface-color, #ffffff);
+    border: 1px solid var(--border-color, #e5e7eb);
+  }
+
+  :global(.cm-panels) {
+    background: var(--surface-color, #ffffff);
+    color: var(--text-color, #111827);
+  }
+}

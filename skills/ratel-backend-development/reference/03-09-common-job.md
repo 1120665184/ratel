@@ -179,16 +179,6 @@ public void shardingJobHandler() throws Exception {
 | `logRetentionDays` | 固定值 | `30` |
 | `glueEnabled` | 固定值 | `true` |
 
-### 关闭 Executor
-
-如果某个微服务不需要执行定时任务，可以禁用：
-
-```yaml
-xxl:
-  job:
-    executor:
-      enabled: false
-```
 
 ## 注册与调度机制
 

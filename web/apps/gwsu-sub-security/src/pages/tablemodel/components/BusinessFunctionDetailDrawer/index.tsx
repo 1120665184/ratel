@@ -53,7 +53,7 @@ const BusinessFunctionDetailDrawer: React.FC<BusinessFunctionDetailDrawerProps> 
   return (
     <Drawer
       title="业务功能详情"
-      width={640}
+      size={640}
       open={visible}
       onClose={onClose}
       className={styles.detailDrawer}

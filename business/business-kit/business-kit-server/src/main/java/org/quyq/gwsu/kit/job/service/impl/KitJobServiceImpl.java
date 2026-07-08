@@ -3,32 +3,37 @@ package org.quyq.gwsu.kit.job.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.google.gson.Gson;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.job.constant.ExecutorBlockStrategyEnum;
 import org.quyq.gwsu.common.job.glue.GlueTypeEnum;
+import org.quyq.gwsu.common.job.openapi.executor.dto.KillRequest;
+import org.quyq.gwsu.common.job.openapi.executor.dto.LogData;
+import org.quyq.gwsu.common.job.openapi.executor.dto.LogRequest;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
+import org.quyq.gwsu.kit.api.job.dto.JobInfoCreateDTO;
 import org.quyq.gwsu.kit.api.job.dto.KitJobInfoDTO;
 import org.quyq.gwsu.kit.api.job.dto.KitJobLogDTO;
+import org.quyq.gwsu.kit.api.job.vo.UrlHandlerParam;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
 import org.quyq.gwsu.kit.job.domain.KitJobLog;
 import org.quyq.gwsu.kit.job.domain.KitJobLogGlue;
 import org.quyq.gwsu.kit.job.domain.KitJobLogReport;
-import org.quyq.gwsu.kit.job.service.IKitJobInfoService;
-import org.quyq.gwsu.kit.job.service.IKitJobLogGlueService;
-import org.quyq.gwsu.kit.job.service.IKitJobLogReportService;
-import org.quyq.gwsu.kit.job.service.IKitJobLogService;
 import org.quyq.gwsu.kit.job.scheduler.config.JobAdminBootstrap;
 import org.quyq.gwsu.kit.job.scheduler.constant.TriggerStatus;
 import org.quyq.gwsu.kit.job.scheduler.cron.CronExpression;
 import org.quyq.gwsu.kit.job.scheduler.misfire.MisfireStrategyEnum;
 import org.quyq.gwsu.kit.job.scheduler.route.ExecutorRouteStrategyEnum;
+import org.quyq.gwsu.kit.job.scheduler.thread.HandlerRegistryInfo;
 import org.quyq.gwsu.kit.job.scheduler.thread.JobScheduleHelper;
 import org.quyq.gwsu.kit.job.scheduler.trigger.TriggerTypeEnum;
 import org.quyq.gwsu.kit.job.scheduler.type.ScheduleTypeEnum;
-import org.quyq.gwsu.kit.job.service.KitJobService;
+import org.quyq.gwsu.kit.job.service.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -46,6 +51,9 @@ import java.util.*;
 @Slf4j
 public class KitJobServiceImpl implements KitJobService {
 
+    private static final String GLUE_REMARK_INIT = "GLUE代码初始化";
+    private static final String GLUE_REMARK_UPDATE = "GLUE代码更新";
+
     @Resource
     private IKitJobInfoService kitJobInfoService;
     @Resource
@@ -54,6 +62,8 @@ public class KitJobServiceImpl implements KitJobService {
     private IKitJobLogGlueService kitJobLogGlueService;
     @Resource
     private IKitJobLogReportService kitJobLogReportService;
+    @Resource
+    private SecurityUtils securityUtils;
 
     // ==================== 任务管理 ====================
 
@@ -158,6 +168,15 @@ public class KitJobServiceImpl implements KitJobService {
         existsJobInfo.setExecutorFailRetryCount(jobInfo.getExecutorFailRetryCount());
         existsJobInfo.setChildJobId(jobInfo.getChildJobId());
         existsJobInfo.setTriggerNextTime(nextTriggerTime);
+        boolean glueChanged = !Objects.equals(existsJobInfo.getGlueType(), jobInfo.getGlueType())
+                || !Objects.equals(existsJobInfo.getGlueSource(), jobInfo.getGlueSource())
+                || !Objects.equals(existsJobInfo.getGlueRemark(), jobInfo.getGlueRemark());
+        existsJobInfo.setGlueType(jobInfo.getGlueType());
+        existsJobInfo.setGlueSource(jobInfo.getGlueSource());
+        existsJobInfo.setGlueRemark(jobInfo.getGlueRemark());
+        if (glueChanged) {
+            existsJobInfo.setGlueUpdatetime(LocalDateTime.now());
+        }
 
         kitJobInfoService.updateById(existsJobInfo);
 
@@ -276,6 +295,187 @@ public class KitJobServiceImpl implements KitJobService {
             throw new BusinessException(KitErrorCode.E02008);
         }
         return R.ok(result);
+    }
+
+    // ==================== 调度界面适配 ====================
+
+    @Override
+    public R<String> addByDTO(JobInfoCreateDTO dto) {
+        KitJobInfo jobInfo = new KitJobInfo();
+
+        // 公共字段
+        jobInfo.setName(dto.getName());
+        jobInfo.setAuthor(currentUserName(dto.getAuthor()));
+        jobInfo.setAlarmEmail(dto.getAlarmEmail());
+        jobInfo.setMisfireStrategy(dto.getMisfireStrategy());
+        jobInfo.setExecutorRouteStrategy(dto.getExecutorRouteStrategy());
+        jobInfo.setExecutorBlockStrategy(dto.getExecutorBlockStrategy());
+        jobInfo.setExecutorTimeout(dto.getExecutorTimeout());
+        jobInfo.setExecutorFailRetryCount(dto.getExecutorFailRetryCount());
+        jobInfo.setScheduleType(dto.getScheduleType());
+        jobInfo.setScheduleConf(dto.getScheduleConf());
+        jobInfo.setChildJobId(dto.getChildJobId());
+
+        // 按模式映射
+        String jobMode = dto.getJobMode();
+        if ("URL".equals(jobMode)) {
+            jobInfo.setGlueType(GlueTypeEnum.BEAN.name());
+            jobInfo.setExecutorHandler("urlJobHandler");
+            UrlHandlerParam param = new UrlHandlerParam(dto.getPrefix(), dto.getUrl(), dto.getBodyJson());
+            jobInfo.setExecutorParam(new Gson().toJson(param));
+        } else if ("BEAN".equals(jobMode)) {
+            jobInfo.setGlueType(GlueTypeEnum.BEAN.name());
+            jobInfo.setExecutorHandler(dto.getExecutorHandler());
+            jobInfo.setExecutorParam(dto.getExecutorParam());
+        } else if ("GLUE".equals(jobMode)) {
+            jobInfo.setGlueType(dto.getGlueType());
+            jobInfo.setGlueSource(dto.getGlueSource());
+            jobInfo.setGlueRemark(normalizeGlueRemark(dto.getGlueRemark(), GLUE_REMARK_INIT));
+        } else {
+            throw new BusinessException(KitErrorCode.E02012);
+        }
+
+        return add(jobInfo);
+    }
+
+    @Override
+    public R<String> updateByDTO(JobInfoCreateDTO dto) {
+        KitJobInfo jobInfo = new KitJobInfo();
+        jobInfo.setId(dto.getId());
+
+        // 公共字段
+        jobInfo.setName(dto.getName());
+        jobInfo.setAuthor(currentUserName(dto.getAuthor()));
+        jobInfo.setAlarmEmail(dto.getAlarmEmail());
+        jobInfo.setMisfireStrategy(dto.getMisfireStrategy());
+        jobInfo.setExecutorRouteStrategy(dto.getExecutorRouteStrategy());
+        jobInfo.setExecutorBlockStrategy(dto.getExecutorBlockStrategy());
+        jobInfo.setExecutorTimeout(dto.getExecutorTimeout());
+        jobInfo.setExecutorFailRetryCount(dto.getExecutorFailRetryCount());
+        jobInfo.setScheduleType(dto.getScheduleType());
+        jobInfo.setScheduleConf(dto.getScheduleConf());
+        jobInfo.setChildJobId(dto.getChildJobId());
+
+        // 按模式映射
+        String jobMode = dto.getJobMode();
+        if ("URL".equals(jobMode)) {
+            jobInfo.setGlueType(GlueTypeEnum.BEAN.name());
+            jobInfo.setExecutorHandler("urlJobHandler");
+            UrlHandlerParam param = new UrlHandlerParam(dto.getPrefix(), dto.getUrl(), dto.getBodyJson());
+            jobInfo.setExecutorParam(new Gson().toJson(param));
+        } else if ("BEAN".equals(jobMode)) {
+            jobInfo.setGlueType(GlueTypeEnum.BEAN.name());
+            jobInfo.setExecutorHandler(dto.getExecutorHandler());
+            jobInfo.setExecutorParam(dto.getExecutorParam());
+        } else if ("GLUE".equals(jobMode)) {
+            jobInfo.setGlueType(dto.getGlueType());
+            jobInfo.setGlueSource(dto.getGlueSource());
+            jobInfo.setGlueRemark(normalizeGlueRemark(dto.getGlueRemark(), GLUE_REMARK_UPDATE));
+
+            // GLUE更新时保存历史版本
+            KitJobInfo existsJobInfo = kitJobInfoService.getById(dto.getId());
+            if (existsJobInfo != null && StringUtils.hasText(existsJobInfo.getGlueSource())) {
+                KitJobLogGlue glueLog = new KitJobLogGlue();
+                glueLog.setJobId(dto.getId());
+                glueLog.setGlueType(existsJobInfo.getGlueType());
+                glueLog.setGlueSource(existsJobInfo.getGlueSource());
+                glueLog.setGlueRemark(normalizeGlueRemark(existsJobInfo.getGlueRemark(), GLUE_REMARK_UPDATE));
+                kitJobLogGlueService.save(glueLog);
+                kitJobLogGlueService.removeOld(dto.getId(), 30);
+            }
+        } else {
+            throw new BusinessException(KitErrorCode.E02012);
+        }
+
+        return update(jobInfo);
+    }
+
+    @Override
+    public R<String> kill(String logId) {
+        KitJobLog kitJobLog = kitJobLogService.getById(logId);
+        if (kitJobLog == null) {
+            throw new BusinessException(KitErrorCode.E02024);
+        }
+
+        String address = kitJobLog.getExecutorAddress();
+        if (!StringUtils.hasText(address)) {
+            return R.fail("执行器地址为空，无法终止");
+        }
+
+        KillRequest killRequest = new KillRequest(kitJobLog.getJobId());
+        R<String> killResult = JobAdminBootstrap.getInstance().getTriggerStrategy().kill(address, killRequest);
+
+        if (killResult != null && killResult.isSuccess()) {
+            log.info(">>>>>>>>>>> kit-job 终止任务成功: logId={}", logId);
+            return R.ok();
+        } else {
+            return R.fail("终止任务失败：" + (killResult != null ? killResult.msg() : "未知错误"));
+        }
+    }
+
+    @Override
+    public R<LogData> logContent(String logId, int fromLineNum) {
+        KitJobLog kitJobLog = kitJobLogService.getById(logId);
+        if (kitJobLog == null) {
+            throw new BusinessException(KitErrorCode.E02024);
+        }
+
+        String address = kitJobLog.getExecutorAddress();
+        if (!StringUtils.hasText(address)) {
+            return R.fail("执行器地址为空");
+        }
+
+        long logDateTime = kitJobLog.getTriggerTime() != null
+                ? kitJobLog.getTriggerTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : System.currentTimeMillis();
+
+        LogRequest logRequest = new LogRequest(logId, logDateTime, fromLineNum);
+        R<LogData> logResult = JobAdminBootstrap.getInstance().getTriggerStrategy().log(address, logRequest);
+        if (logResult != null && logResult.isSuccess()) {
+            LogData data = logResult.data();
+            if (data != null
+                    && kitJobLog.getHandleCode() != 0
+                    && !data.isEnd()
+                    && (!StringUtils.hasText(data.getLogContent()) || data.getToLineNum() < fromLineNum)) {
+                data.setEnd(true);
+            }
+            return R.ok(logResult.data());
+        } else {
+            return R.fail("读取执行日志失败：" + (logResult != null ? logResult.msg() : "未知错误"));
+        }
+    }
+
+    @Override
+    public R<List<String>> handlerList() {
+        Map<String, HandlerRegistryInfo> allHandlerRegistry = JobAdminBootstrap.getInstance()
+                .getJobRegistryHelper().getAllHandlerRegistry();
+        List<String> result = new ArrayList<>();
+        if (allHandlerRegistry != null) {
+            for (HandlerRegistryInfo info : allHandlerRegistry.values()) {
+                if (!"urlJobHandler".equals(info.handlerName())) {
+                    result.add(info.handlerName());
+                }
+            }
+        }
+        return R.ok(result);
+    }
+
+    @Override
+    public R<List<KitJobLogGlue>> glueVersionList(String jobId) {
+        List<KitJobLogGlue> list = kitJobLogGlueService.list(
+                new LambdaQueryWrapper<KitJobLogGlue>()
+                        .eq(KitJobLogGlue::getJobId, jobId)
+                        .orderByDesc(KitJobLogGlue::getId));
+        return R.ok(list);
+    }
+
+    @Override
+    public R<KitJobLogGlue> glueVersionDetail(String id) {
+        KitJobLogGlue glueLog = kitJobLogGlueService.getById(id);
+        if (glueLog == null) {
+            return R.fail("GLUE版本记录不存在");
+        }
+        return R.ok(glueLog);
     }
 
     // ==================== 日志管理 ====================
@@ -449,6 +649,19 @@ public class KitJobServiceImpl implements KitJobService {
                 throw new BusinessException(KitErrorCode.E02008);
             }
         }
+    }
+
+    private String currentUserName(String author) {
+        if (StringUtils.hasText(author)) {
+            return author;
+        }
+        return securityUtils.userInfo()
+                .map(UserInfo::getUserName)
+                .orElse("");
+    }
+
+    private String normalizeGlueRemark(String glueRemark, String defaultRemark) {
+        return StringUtils.hasText(glueRemark) ? glueRemark.trim() : defaultRemark;
     }
 
     private void validAdvanced(KitJobInfo jobInfo) {

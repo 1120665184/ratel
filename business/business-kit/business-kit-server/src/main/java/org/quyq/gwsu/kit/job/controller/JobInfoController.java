@@ -5,12 +5,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.common.job.openapi.executor.dto.LogData;
+import org.quyq.gwsu.kit.api.job.dto.JobInfoCreateDTO;
 import org.quyq.gwsu.kit.api.job.dto.KitJobInfoDTO;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
+import org.quyq.gwsu.kit.job.domain.KitJobLogGlue;
 import org.quyq.gwsu.kit.job.service.KitJobService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 
 /**
  * 定时任务管理控制器
@@ -72,6 +76,49 @@ public class JobInfoController {
     public R<List<String>> nextTriggerTime(@RequestParam("scheduleType") String scheduleType,
                                             @RequestParam("scheduleConf") String scheduleConf) {
         return kitJobService.nextTriggerTime(scheduleType, scheduleConf);
+    }
+
+    @PostMapping("addByDTO")
+    @Operation(summary = "DTO适配添加任务")
+    public R<String> addByDTO(@RequestBody JobInfoCreateDTO dto) {
+        return kitJobService.addByDTO(dto);
+    }
+
+    @PostMapping("updateByDTO")
+    @Operation(summary = "DTO适配更新任务")
+    public R<String> updateByDTO(@RequestBody JobInfoCreateDTO dto) {
+        return kitJobService.updateByDTO(dto);
+    }
+
+    @PostMapping("kill")
+    @Operation(summary = "终止运行中的任务")
+    public R<String> kill(@RequestParam("logId") String logId) {
+        return kitJobService.kill(logId);
+    }
+
+    @GetMapping("logContent")
+    @Operation(summary = "读取执行器端完整日志")
+    public R<LogData> logContent(@RequestParam("logId") String logId,
+                              @RequestParam(value = "fromLineNum", defaultValue = "1") int fromLineNum) {
+        return kitJobService.logContent(logId, fromLineNum);
+    }
+
+    @GetMapping("handlerList")
+    @Operation(summary = "查询所有在线Handler名称(过滤urlJobHandler)")
+    public R<List<String>> handlerList() {
+        return kitJobService.handlerList();
+    }
+
+    @GetMapping("glueVersionList")
+    @Operation(summary = "查询GLUE版本历史")
+    public R<List<KitJobLogGlue>> glueVersionList(@RequestParam("jobId") String jobId) {
+        return kitJobService.glueVersionList(jobId);
+    }
+
+    @GetMapping("glueVersionDetail")
+    @Operation(summary = "查询GLUE版本详情")
+    public R<KitJobLogGlue> glueVersionDetail(@RequestParam("id") String id) {
+        return kitJobService.glueVersionDetail(id);
     }
 
 }
