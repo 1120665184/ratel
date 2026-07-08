@@ -66,6 +66,7 @@ yarn-error.log*
 .claude/
 .trae/
 .superpowers/
+.worktrees/
 docs/superpowers
 .agentscope
 
