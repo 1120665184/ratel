@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.job.openapi.executor.dto.LogData;
+import org.quyq.gwsu.kit.api.job.JobClientApi;
 import org.quyq.gwsu.kit.api.job.dto.JobInfoCreateDTO;
 import org.quyq.gwsu.kit.api.job.dto.KitJobInfoDTO;
 import org.quyq.gwsu.kit.job.domain.KitJobInfo;
@@ -23,7 +24,7 @@ import java.util.List;
 @RequestMapping("/job/info")
 @Tag(name = "定时任务管理")
 @RequiredArgsConstructor
-public class JobInfoController {
+public class JobInfoController implements JobClientApi {
 
     private final KitJobService kitJobService;
 
@@ -47,18 +48,21 @@ public class JobInfoController {
 
     @PostMapping("remove")
     @Operation(summary = "删除任务")
+    @Override
     public R<String> remove(@RequestParam("id") String id) {
         return kitJobService.remove(id);
     }
 
     @PostMapping("start")
     @Operation(summary = "启动任务")
+    @Override
     public R<String> start(@RequestParam("id") String id) {
         return kitJobService.start(id);
     }
 
     @PostMapping("stop")
     @Operation(summary = "停止任务")
+    @Override
     public R<String> stop(@RequestParam("id") String id) {
         return kitJobService.stop(id);
     }
@@ -80,13 +84,15 @@ public class JobInfoController {
 
     @PostMapping("addByDTO")
     @Operation(summary = "DTO适配添加任务")
-    public R<String> addByDTO(@RequestBody JobInfoCreateDTO dto) {
+    @Override
+    public R<String> create(@RequestBody JobInfoCreateDTO dto) {
         return kitJobService.addByDTO(dto);
     }
 
     @PostMapping("updateByDTO")
     @Operation(summary = "DTO适配更新任务")
-    public R<String> updateByDTO(@RequestBody JobInfoCreateDTO dto) {
+    @Override
+    public R<String> update(@RequestBody JobInfoCreateDTO dto) {
         return kitJobService.updateByDTO(dto);
     }
 
