@@ -17,6 +17,7 @@ import org.quyq.gwsu.system.api.manager.dto.ChangePasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.ResetPasswordDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
+import org.quyq.gwsu.system.api.manager.dto.UpdateCurrentUserProfileDTO;
 import org.quyq.gwsu.system.api.manager.vo.DingTalkAccountOptionVO;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
@@ -142,6 +143,22 @@ public class UserController {
                 .map(UserInfo::getUserId)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.E03001));
         userService.changePassword(userId, dto.getOldPassword(), dto.getNewPassword());
+        return R.ok();
+    }
+
+    @PutMapping("/profile")
+    @LoginAllowAccess
+    @TableModelPermission
+    @Operation(summary = "修改当前登录用户资料")
+    public R<Void> updateCurrentUserProfile(@RequestBody UpdateCurrentUserProfileDTO dto) {
+        AssertUtils.hasText(dto.getNickname(), SystemErrorCode.E02012);
+        AssertUtils.notNull(dto.getGender(), SystemErrorCode.E02013);
+        AssertUtils.checkBetween(dto.getGender(), 0, 2, SystemErrorCode.E02013);
+
+        String userId = securityUtils.userInfo()
+                .map(UserInfo::getUserId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.E03001));
+        userService.updateCurrentUserProfile(userId, dto);
         return R.ok();
     }
 }

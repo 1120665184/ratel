@@ -12,6 +12,7 @@ import org.quyq.gwsu.system.api.dept.dto.UserDeptSaveDTO;
 import org.quyq.gwsu.system.api.dept.vo.UserDeptDetailVO;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
+import org.quyq.gwsu.system.api.manager.dto.UpdateCurrentUserProfileDTO;
 import org.quyq.gwsu.system.api.manager.vo.AccountVO;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDeptVO;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
@@ -28,6 +29,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -266,5 +268,57 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
         account.setCredential(BCrypt.hashpw(newPassword, BCrypt.gensalt()));
         accountMapper.updateById(account);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateCurrentUserProfile(String userId, UpdateCurrentUserProfileDTO dto) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(SystemErrorCode.E02005);
+        }
+
+        String email = StringUtils.hasText(dto.getEmail()) ? dto.getEmail().trim() : null;
+        String phone = StringUtils.hasText(dto.getPhone()) ? dto.getPhone().trim() : null;
+//
+//        if (StringUtils.hasText(phone)) {
+//            Long phoneCount = accountMapper.selectCount(new LambdaQueryWrapper<SysAccount>()
+//                    .eq(SysAccount::getIdentityType, "phone")
+//                    .eq(SysAccount::getIdentifier, phone)
+//                    .ne(SysAccount::getUserId, userId));
+//            if (phoneCount > 0) {
+//                throw new BusinessException(SystemErrorCode.E02002);
+//            }
+//        }
+//
+//        if (StringUtils.hasText(email)) {
+//            Long emailCount = accountMapper.selectCount(new LambdaQueryWrapper<SysAccount>()
+//                    .eq(SysAccount::getIdentityType, "email")
+//                    .eq(SysAccount::getIdentifier, email)
+//                    .ne(SysAccount::getUserId, userId));
+//            if (emailCount > 0) {
+//                throw new BusinessException(SystemErrorCode.E02003);
+//            }
+//        }
+
+        user.setNickname(dto.getNickname().trim());
+        user.setGender(dto.getGender());
+        user.setEmail(email);
+        user.setPhone(phone);
+        updateById(user);
+
+//        syncAccountIdentifier(userId, "phone", phone);
+//        syncAccountIdentifier(userId, "email", email);
+    }
+
+    private void syncAccountIdentifier(String userId, String identityType, String identifier) {
+        if (!StringUtils.hasText(identifier)) {
+            return;
+        }
+
+        accountMapper.update(null, new LambdaUpdateWrapper<SysAccount>()
+                .eq(SysAccount::getUserId, userId)
+                .eq(SysAccount::getIdentityType, identityType)
+                .set(SysAccount::getIdentifier, identifier));
     }
 }

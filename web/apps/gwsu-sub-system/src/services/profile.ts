@@ -28,6 +28,18 @@ export interface ChangePasswordParams {
   newPassword: string;
 }
 
+/** 编辑个人资料请求参数 */
+export interface UpdateCurrentUserProfileParams {
+  /** 昵称 */
+  nickname: string;
+  /** 性别 */
+  gender: number;
+  /** 邮箱 */
+  email?: string;
+  /** 手机号 */
+  phone?: string;
+}
+
 /** 获取当前用户角色列表 */
 export async function getCurrentUserRoles(): Promise<RoleVO[]> {
   const res = await get<RoleVO[]>('/security/role/rolesByCurrUser');
@@ -37,4 +49,9 @@ export async function getCurrentUserRoles(): Promise<RoleVO[]> {
 /** 修改当前用户密码 */
 export async function changePassword(params: ChangePasswordParams): Promise<void> {
   await put<void>('/system/manager/password', params);
+}
+
+/** 修改当前用户资料 */
+export async function updateCurrentUserProfile(params: UpdateCurrentUserProfileParams): Promise<void> {
+  await put<void>('/system/manager/profile', params);
 }
