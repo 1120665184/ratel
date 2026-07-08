@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.quyq.gwsu.system.api.manager.dto.SysAccountBindDTO;
 import org.quyq.gwsu.system.api.manager.dto.SysUserQueryDTO;
+import org.quyq.gwsu.system.api.manager.dto.UpdateCurrentUserProfileDTO;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
 import org.quyq.gwsu.system.api.manager.vo.UserVO;
 import org.quyq.gwsu.system.manager.domain.SysUser;
@@ -33,4 +34,6 @@ public interface ISysUserService extends IService<SysUser> {
     void resetPassword(String userId, String newPassword);
 
     void changePassword(String userId, String oldPassword, String newPassword);
+
+    void updateCurrentUserProfile(String userId, UpdateCurrentUserProfileDTO dto);
 }

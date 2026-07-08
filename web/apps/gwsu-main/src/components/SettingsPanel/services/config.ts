@@ -1,4 +1,4 @@
-import {  post, del } from '@gwsu/core';
+import {  post, del} from '@gwsu/core';
 import type { ConfigVO} from '@gwsu/core';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
 import type { RemoteControlConfig } from '../AssistantConfigTab/types';
@@ -49,3 +49,6 @@ export async function saveRemoteControlConfig(config: RemoteControlConfig) {
   const res = await post<boolean>('/security/connect/config/remote-control', config);
   return res.data;
 }
+
+/** 下载钉钉 AI 输出卡片模板导入文件接口路径 */
+export const AI_CARD_TEMPLATE_DOWNLOAD_URL = '/security/connect/dingtalk/ai-card-template/download';

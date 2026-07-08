@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Input, Table, App } from 'antd';
 import type { TableProps } from 'antd';
-import { getTableModelPage } from '../../../tablemodel/services/tableModel';
+import {
+  getTableModelDetail,
+  getTableModelPage,
+} from '../../../tablemodel/services/tableModel';
 import type { TableModelInfo } from '../../../tablemodel/types';
 import type { RolePermissionTableModelVO } from '../../types';
 import { saveOrUpdateRoleTableModel } from '../../services/role';
@@ -86,6 +89,12 @@ const AddTableModelModal: React.FC<AddTableModelModalProps> = ({
           fields: [],
         });
 
+        const detail = await getTableModelDetail(
+          record.modulePrefix,
+          record.dataSource,
+          record.tableName,
+        );
+
         newTables.push({
           type: 1,
           tableModelId: record.id,
@@ -93,7 +102,10 @@ const AddTableModelModal: React.FC<AddTableModelModalProps> = ({
           datasource: record.dataSource,
           tableName: record.tableName,
           tableComment: record.tableComment,
-          columns: [],
+          columns: detail.columns.map((column) => ({
+            columnName: column.columnName,
+            columnComment: column.columnComment ?? '',
+          })),
         });
       }
       message.success(`成功添加 ${newTables.length} 个表模型权限`);

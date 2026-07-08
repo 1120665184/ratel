@@ -1,6 +1,9 @@
-import { Form, Input, Tooltip, Typography } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Form, Input, Tooltip, Typography, message } from 'antd';
+import { QuestionCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { DingTalkRemoteConfig } from '../types';
+import { AI_CARD_TEMPLATE_DOWNLOAD_URL } from '../../services/config';
+import { downloadRequest } from '@gwsu/core';
+import styles from './DingTalkRemoteConfigForm.module.less';
 
 interface DingTalkRemoteConfigFormProps {
   value?: DingTalkRemoteConfig;
@@ -9,30 +12,55 @@ interface DingTalkRemoteConfigFormProps {
 
 const CARD_PLATFORM_URL = 'https://open-dev.dingtalk.com/fe/card';
 
-const aiCardLabel = (
-  <span>
-    AI 输出卡片模板 ID{' '}
-    <Tooltip
-      title={
-        <>
-          用于在钉钉展示智能体输出内容，需在&quot;钉钉开发者平台 → 卡片平台&quot;中配置。
-          <br />
-          地址：
-          <Typography.Link href={CARD_PLATFORM_URL} target="_blank">
-            {CARD_PLATFORM_URL}
-          </Typography.Link>
-        </>
-      }
-    >
-      <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }} />
-    </Tooltip>
-  </span>
-);
-
 const DingTalkRemoteConfigForm: React.FC<DingTalkRemoteConfigFormProps> = ({ value, onChange }) => {
   const handleFieldChange = (field: keyof DingTalkRemoteConfig, fieldValue: string) => {
     onChange?.({ ...value!, [field]: fieldValue });
   };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await downloadRequest({ url: AI_CARD_TEMPLATE_DOWNLOAD_URL });
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'aiCard.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      message.success('模板文件下载成功');
+    } catch {
+      message.error('模板文件下载失败');
+    }
+  };
+
+  const aiCardLabel = (
+    <span>
+      AI 输出卡片模板 ID{' '}
+      <Tooltip
+        title={
+          <>
+            用于在钉钉展示智能体输出内容，需在&quot;钉钉开发者平台 → 卡片平台&quot;中配置。
+            <br />
+            地址：
+            <Typography.Link href={CARD_PLATFORM_URL} target="_blank">
+              {CARD_PLATFORM_URL}
+            </Typography.Link>
+          </>
+        }
+      >
+        <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }} />
+      </Tooltip>
+      <Tooltip title="下载模板JSON">
+        <DownloadOutlined
+          className={styles.downloadIcon}
+          onClick={handleDownloadTemplate}
+          aria-label="下载模板JSON"
+        />
+      </Tooltip>
+    </span>
+  );
 
   return (
     <>

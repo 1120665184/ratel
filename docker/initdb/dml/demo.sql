@@ -1138,6 +1138,507 @@ INSERT INTO security_tablemodel_foreign_keys (id, constraint_name, table_id, col
 INSERT INTO security_tablemodel_foreign_keys (id, constraint_name, table_id, column_name, referenced_table_name, referenced_column_name, update_rule, delete_rule, data_type, remark, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064641448963457024', 'fk_product_tag_product', '137dd09a98fda183c9e0679c17772602', 'product_id', 'ecom_product', 'id', '3', '3', 0, NULL, NULL, 'admin', '2026-06-10 17:30:55.273569', 'admin', '2026-06-10 17:30:55.273569', 0, NULL, NULL);
 
 
+INSERT INTO security_business_function (id, name, summary, detail, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064643311549005824', '商品库存管理', '基于库存表、商品表、供应商表和分类表，监控商品库存水平、预警低库存商品、分析供应商供货能力和库存周转情况，确保供应链高效运转。', '## 业务描述
+商品库存管理是电商供应链的核心环节，通过关联库存表、商品表、供应商表和分类表，实时监控各仓库的商品库存水平，识别低库存风险，分析供应商供货效率，为采购决策和库存优化提供数据支持。
+
+## 核心指标
+- **可用库存（available_qty）**：当前可售库存数量
+- **锁定库存（locked_qty）**：已下单但未发货的库存
+- **总库存（total_qty）**：available_qty + locked_qty
+- **安全库存（safety_qty）**：库存预警阈值
+- **库存预警**：available_qty <= safety_qty 时触发
+
+
+## 业务规则
+- 库存预警条件：`available_qty <= safety_qty`，表示需要补货
+- 一个商品可能在多个仓库有库存（warehouse_code 区分）
+- 锁定库存 = 已下单未发货的数量，不可用于新订单
+- 商品下架（`status = 0`）后库存仍保留，但不再参与可售库存计算
+- 供应商停用（`status = 0`）后不可新增采购单
+- 库存周转率 = 出库量 / 平均库存量
+
+## 状态说明
+| 状态值 | 字段 | 含义 |
+|--------|------|------|
+| 0 | ecom_product.status | 下架 |
+| 1 | ecom_product.status | 上架 |
+| 2 | ecom_product.status | 预售 |
+| 0 | ecom_supplier.status | 停用 |
+| 1 | ecom_supplier.status | 合作中 |
+
+## 典型示例
+### Q: 查询需要补货的低库存商品列表
+A:
+```sql
+SELECT
+    p.name AS product_name,
+    p.sku,
+    i.warehouse_code,
+    i.available_qty,
+    i.locked_qty,
+    i.total_qty,
+    i.safety_qty,
+    s.name AS supplier_name,
+    s.contact_phone
+FROM ecom_inventory i
+JOIN ecom_product p ON i.product_id = p.id
+LEFT JOIN ecom_supplier s ON p.supplier_id = s.id
+WHERE i.available_qty <= i.safety_qty
+  AND p.status = 1
+ORDER BY i.available_qty ASC;
+```
+
+### Q: 按仓库统计各分类的库存金额
+A:
+```sql
+SELECT
+    i.warehouse_code,
+    c.name AS category_name,
+    SUM(i.total_qty) AS total_stock,
+    SUM(i.total_qty * p.cost_price) AS stock_value
+FROM ecom_inventory i
+JOIN ecom_product p ON i.product_id = p.id
+JOIN ecom_category c ON p.category_id = c.id
+GROUP BY i.warehouse_code, c.name
+ORDER BY i.warehouse_code, stock_value DESC;
+```
+
+### Q: 查询各供应商的供货商品数和总库存
+A:
+```sql
+SELECT
+    s.name AS supplier_name,
+    s.province,
+    COUNT(DISTINCT p.id) AS product_count,
+    SUM(i.total_qty) AS total_stock,
+    SUM(i.total_qty * p.cost_price) AS total_stock_value
+FROM ecom_supplier s
+JOIN ecom_product p ON p.supplier_id = s.id
+JOIN ecom_inventory i ON i.product_id = p.id
+WHERE s.status = 1
+GROUP BY s.name, s.province
+ORDER BY total_stock_value DESC;
+```', 1, NULL, 'admin', '2026-06-10 17:38:19.348072', 'admin', '2026-06-10 17:39:52.595548', 0, NULL, NULL);
+INSERT INTO security_business_function (id, name, summary, detail, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064640623016919040', '销售额分析', '基于订单、订单明细、商品、分类和品牌等多表关联，分析各维度（时间、品类、品牌、地区）的销售额、实付金额、优惠金额等核心指标，支持同比环比对比和趋势分析。', '## 业务描述
+销售额分析是电商运营的核心功能，通过关联订单表、订单明细表、商品表、分类表和品牌表，从多维度分析销售数据，帮助运营人员了解销售趋势、识别高价值品类和品牌，优化商品策略和促销方案。
+
+## 核心指标
+- **商品总金额（total_amount）**：订单中所有商品的原价总和
+- **实付金额（pay_amount）**：用户实际支付的金额 = total_amount - discount_amount + freight_amount
+- **优惠金额（discount_amount）**：促销活动减免的金额
+- **运费（freight_amount）**：物流配送费用
+- **销量（quantity）**：订单明细中的购买数量
+
+
+## 业务规则
+- 只有 `pay_status = 1`（已支付）的订单才计入销售额统计
+- 退货订单（`order_status = 6`）应从销售额中扣除
+- 取消订单（`order_status = 4`）不计入销售额
+- 实付金额 = pay_amount，而非 total_amount
+- 分类支持三级结构，统计时需注意层级聚合（通过 parent_id 向上汇总）
+- 同一订单可能包含多个商品（ecom_order_item 一对多）
+
+## 状态说明
+| 状态值 | 字段 | 含义 | 是否计入销售额 |
+|--------|------|------|--------------|
+| 0 | order_status | 待付款 | 否 |
+| 1 | order_status | 待发货 | 是 |
+| 2 | order_status | 已发货 | 是 |
+| 3 | order_status | 已完成 | 是 |
+| 4 | order_status | 已取消 | 否 |
+| 5 | order_status | 退货中 | 暂扣 |
+| 6 | order_status | 已退货 | 扣除 |
+
+| 状态值 | 字段 | 含义 |
+|--------|------|------|
+| 0 | pay_status | 未支付 |
+| 1 | pay_status | 已支付 |
+| 2 | pay_status | 已退款 |
+
+## 典型示例
+### Q: 查询2024年各月份的销售额趋势
+A:
+```sql
+SELECT
+    TO_CHAR(o.create_time, ''YYYY-MM'') AS month,
+    SUM(o.pay_amount) AS total_sales,
+    COUNT(DISTINCT o.id) AS order_count,
+    SUM(o.discount_amount) AS total_discount
+FROM ecom_order o
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+  AND o.create_time >= ''2024-01-01''
+  AND o.create_time < ''2025-01-01''
+GROUP BY TO_CHAR(o.create_time, ''YYYY-MM'')
+ORDER BY month;
+```
+
+### Q: 查询各品类（一级分类）的销售额排名
+A:
+```sql
+SELECT
+    c1.name AS category_name,
+    SUM(oi.subtotal) AS total_sales,
+    SUM(oi.quantity) AS total_quantity
+FROM ecom_order_item oi
+JOIN ecom_product p ON oi.product_id = p.id
+JOIN ecom_category c3 ON p.category_id = c3.id
+JOIN ecom_category c2 ON c3.parent_id = c2.id
+JOIN ecom_category c1 ON c2.parent_id = c1.id
+JOIN ecom_order o ON oi.order_id = o.id
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+GROUP BY c1.name
+ORDER BY total_sales DESC;
+```
+
+### Q: 查询各品牌的销售额及占比
+A:
+```sql
+SELECT
+    b.name AS brand_name,
+    SUM(oi.subtotal) AS total_sales,
+    ROUND(SUM(oi.subtotal) * 100.0 / SUM(SUM(oi.subtotal)) OVER (), 2) AS sales_ratio
+FROM ecom_order_item oi
+JOIN ecom_product p ON oi.product_id = p.id
+JOIN ecom_brand b ON p.brand_id = b.id
+JOIN ecom_order o ON oi.order_id = o.id
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+GROUP BY b.name
+ORDER BY total_sales DESC;
+```', 0, NULL, 'admin', '2026-06-10 17:27:38.352408', 'admin', '2026-06-10 17:35:40.63573', 0, NULL, NULL);
+INSERT INTO security_business_function (id, name, summary, detail, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064643623978516480', '客户消费分析', '基于客户表、订单表、支付记录表和订单明细表，分析客户消费行为、会员等级分布、复购率、客单价和支付偏好，支持精准营销和客户分层运营。', '## 业务描述
+客户消费分析通过关联客户表、订单表、支付记录表和订单明细表，深入洞察客户消费行为特征，包括消费金额、频次、偏好品类、支付方式等，为客户分层运营、精准营销和会员体系优化提供数据依据。
+
+## 核心指标
+- **客单价**：平均每笔订单的实付金额 = SUM(pay_amount) / COUNT(订单数)
+- **复购率**：购买2次及以上的客户占比
+- **ARPU**：每用户平均收入 = SUM(pay_amount) / COUNT(客户数)
+- **会员等级分布**：各等级会员的人数和消费占比
+- **支付渠道偏好**：各支付渠道的使用占比
+
+
+## 业务规则
+- 客户消费统计仅计入 `pay_status = 1` 且 `order_status NOT IN (4, 6)` 的订单
+- 会员等级：0-普通、1-银卡、2-金卡、3-钻石
+- 复购客户定义：历史下单次数 >= 2 的客户
+- 客单价计算基于实付金额（pay_amount），不包含运费
+- 支付渠道：0-微信、1-支付宝、2-银行卡、3-余额
+- 订单来源：0-PC、1-H5、2-小程序、3-APP
+
+## 状态说明
+| 会员等级 | 含义 | 权益 |
+|---------|------|------|
+| 0 | 普通会员 | 基础服务 |
+| 1 | 银卡会员 | 95折优惠 |
+| 2 | 金卡会员 | 9折优惠 + 专属客服 |
+| 3 | 钻石会员 | 85折优惠 + 专属客服 + 优先发货 |
+
+| 支付渠道 | 含义 |
+|---------|------|
+| 0 | 微信支付 |
+| 1 | 支付宝 |
+| 2 | 银行卡 |
+| 3 | 余额支付 |
+
+## 典型示例
+### Q: 查询各会员等级的客户数和消费金额
+A:
+```sql
+SELECT
+    c.member_level,
+    COUNT(DISTINCT c.id) AS customer_count,
+    COALESCE(SUM(o.pay_amount), 0) AS total_consumption,
+    COALESCE(SUM(o.pay_amount) / COUNT(DISTINCT c.id), 0) AS avg_consumption
+FROM ecom_customer c
+LEFT JOIN ecom_order o ON c.id = o.customer_id
+    AND o.pay_status = 1
+    AND o.order_status NOT IN (4, 6)
+GROUP BY c.member_level
+ORDER BY c.member_level;
+```
+
+### Q: 查询复购率及各客户消费排名
+A:
+```sql
+SELECT
+    c.id AS customer_id,
+    c.name,
+    c.member_level,
+    COUNT(o.id) AS order_count,
+    SUM(o.pay_amount) AS total_amount,
+    CASE WHEN COUNT(o.id) >= 2 THEN ''复购客户'' ELSE ''新客户'' END AS customer_type
+FROM ecom_customer c
+JOIN ecom_order o ON c.id = o.customer_id
+    AND o.pay_status = 1
+    AND o.order_status NOT IN (4, 6)
+GROUP BY c.id, c.name, c.member_level
+ORDER BY total_amount DESC;
+```
+
+### Q: 查询各支付渠道的使用占比
+A:
+```sql
+SELECT
+    p.pay_channel,
+    COUNT(*) AS payment_count,
+    SUM(p.pay_amount) AS total_amount,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS count_ratio,
+    ROUND(SUM(p.pay_amount) * 100.0 / SUM(SUM(p.pay_amount)) OVER (), 2) AS amount_ratio
+FROM ecom_payment p
+WHERE p.pay_status = 1
+GROUP BY p.pay_channel
+ORDER BY payment_count DESC;
+```', 3, NULL, 'admin', '2026-06-10 17:39:33.837944', 'admin', '2026-06-10 17:39:33.837944', 0, NULL, NULL);
+INSERT INTO security_business_function (id, name, summary, detail, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064644050455347200', '订单物流追踪', '基于订单表、物流表和客户表，追踪订单从发货到签收的全流程状态，分析各承运商的配送效率、异常物流订单和区域配送时效，提升物流服务质量。', '## 业务描述
+订单物流追踪通过关联订单表、物流表和客户表，实时监控订单的物流状态，分析各承运商的配送时效和服务质量，识别异常物流订单，为物流商选择和配送优化提供数据支持。
+
+## 核心指标
+- **配送时效**：从发货到签收的时间差 = receive_time - ship_time
+- **签收率**：已签收订单 / 已发货订单
+- **异常率**：异常订单 / 总发货订单
+- **承运商分布**：各承运商的订单量占比
+
+## 业务规则
+- 物流状态流转：待发货(0) → 已发货(1) → 运输中(2) → 派送中(3) → 已签收(4)
+- 异常状态(5)可能出现在任何环节，需特别关注
+- 配送时效计算仅针对已签收（logistics_status = 4）的订单
+- 订单状态为"待发货"(order_status=1)时，物流表可能无记录
+- 承运商包括：顺丰、中通、圆通、韵达、申通
+
+## 状态说明
+| 状态值 | 字段 | 含义 |
+|--------|------|------|
+| 0 | logistics_status | 待发货 |
+| 1 | logistics_status | 已发货 |
+| 2 | logistics_status | 运输中 |
+| 3 | logistics_status | 派送中 |
+| 4 | logistics_status | 已签收 |
+| 5 | logistics_status | 异常 |
+
+| 承运商 | 特点 |
+|-------|------|
+| 顺丰 | 时效快，成本高 |
+| 中通 | 性价比高，覆盖广 |
+| 圆通 | 价格适中 |
+| 韵达 | 经济型 |
+| 申通 | 性价比高 |
+
+## 典型示例
+### Q: 查询各承运商的平均配送时效
+A:
+```sql
+SELECT
+    l.carrier,
+    COUNT(*) AS delivered_count,
+    ROUND(AVG(EXTRACT(EPOCH FROM (l.receive_time - l.ship_time)) / 3600), 2) AS avg_delivery_hours
+FROM ecom_logistics l
+WHERE l.logistics_status = 4
+  AND l.receive_time IS NOT NULL
+  AND l.ship_time IS NOT NULL
+GROUP BY l.carrier
+ORDER BY avg_delivery_hours;
+```
+
+### Q: 查询异常物流订单详情
+A:
+```sql
+SELECT
+    o.order_no,
+    l.logistics_no,
+    l.carrier,
+    o.receiver_name,
+    o.city,
+    l.ship_time,
+    o.pay_amount
+FROM ecom_logistics l
+JOIN ecom_order o ON l.order_id = o.id
+WHERE l.logistics_status = 5
+ORDER BY l.ship_time DESC;
+```
+
+### Q: 查询各城市的签收率和平均配送时效
+A:
+```sql
+SELECT
+    o.city,
+    COUNT(*) AS total_shipped,
+    SUM(CASE WHEN l.logistics_status = 4 THEN 1 ELSE 0 END) AS delivered_count,
+    ROUND(SUM(CASE WHEN l.logistics_status = 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS delivery_rate,
+    ROUND(AVG(CASE WHEN l.logistics_status = 4
+        THEN EXTRACT(EPOCH FROM (l.receive_time - l.ship_time)) / 3600
+        ELSE NULL END), 2) AS avg_delivery_hours
+FROM ecom_order o
+JOIN ecom_logistics l ON o.id = l.order_id
+WHERE l.ship_time IS NOT NULL
+GROUP BY o.city
+ORDER BY delivery_rate DESC;
+```', 4, NULL, 'admin', '2026-06-10 17:41:15.517699', 'admin', '2026-06-10 17:41:15.517699', 0, NULL, NULL);
+INSERT INTO security_business_function (id, name, summary, detail, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064644309227126784', '品类销售对比', '基于分类表、商品表、订单明细表和订单表，对比不同品类之间的销售额、销量、客单价和毛利率，识别高价值品类和增长机会，为品类运营策略提供数据支撑。', '## 业务描述
+品类销售对比通过关联分类表、商品表、订单明细表和订单表，从品类维度对比分析销售表现，包括销售额、销量、客单价、毛利率等指标，帮助品类经理识别优势品类和待优化品类，制定品类调整策略。
+
+## 核心指标
+- **品类销售额**：该品类下所有商品的订单金额总和
+- **品类销量**：该品类下所有商品的售出数量总和
+- **品类客单价**：品类销售额 / 品类订单数
+- **毛利率**：(销售额 - 成本) / 销售额 = (oi.subtotal - p.cost_price * oi.quantity) / oi.subtotal
+- **品类占比**：该品类销售额 / 总销售额
+
+## 业务规则
+- 分类表为三级树形结构：一级分类(parent_id=NULL) → 二级分类 → 三级分类
+- 商品直接关联三级分类（category_id 指向最底层分类）
+- 统计二级分类时需聚合其下所有三级分类的数据
+- 统计一级分类时需聚合其下所有二级和三级分类的数据
+- 毛利率计算：使用商品的 cost_price 和订单明细的 subtotal
+- 仅统计已支付且非取消/退货的订单
+
+## 分类结构
+| 一级分类 | 二级分类 | 三级分类 |
+|---------|---------|---------|
+| 电子产品 | 手机通讯 | 智能手机、功能手机 |
+| 电子产品 | 电脑办公 | 笔记本电脑、台式机 |
+| 电子产品 | 智能穿戴 | 智能手表、智能手环 |
+| 服装鞋帽 | 男装、女装、运动鞋 | - |
+| 家居生活 | 家具、厨具、家纺 | - |
+| 食品饮料 | 零食、酒水 | - |
+| 美妆个护 | 护肤、彩妆 | - |
+
+## 典型示例
+### Q: 查询一级分类的销售对比
+A:
+```sql
+SELECT
+    c1.name AS l1_category,
+    SUM(oi.subtotal) AS total_sales,
+    SUM(oi.quantity) AS total_quantity,
+    COUNT(DISTINCT o.id) AS order_count,
+    ROUND(SUM(oi.subtotal) / COUNT(DISTINCT o.id), 2) AS avg_order_amount,
+    ROUND((SUM(oi.subtotal) - SUM(p.cost_price * oi.quantity)) * 100.0 / SUM(oi.subtotal), 2) AS gross_margin_pct
+FROM ecom_order_item oi
+JOIN ecom_product p ON oi.product_id = p.id
+JOIN ecom_category c3 ON p.category_id = c3.id
+JOIN ecom_category c2 ON c3.parent_id = c2.id
+JOIN ecom_category c1 ON c2.parent_id = c1.id
+JOIN ecom_order o ON oi.order_id = o.id
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+GROUP BY c1.name
+ORDER BY total_sales DESC;
+```
+
+### Q: 查询"电子产品"下各二级分类的销售明细
+A:
+```sql
+SELECT
+    c2.name AS l2_category,
+    SUM(oi.subtotal) AS total_sales,
+    SUM(oi.quantity) AS total_quantity,
+    COUNT(DISTINCT p.id) AS product_count,
+    ROUND((SUM(oi.subtotal) - SUM(p.cost_price * oi.quantity)) * 100.0 / NULLIF(SUM(oi.subtotal), 0), 2) AS gross_margin_pct
+FROM ecom_order_item oi
+JOIN ecom_product p ON oi.product_id = p.id
+JOIN ecom_category c3 ON p.category_id = c3.id
+JOIN ecom_category c2 ON c3.parent_id = c2.id
+JOIN ecom_category c1 ON c2.parent_id = c1.id
+JOIN ecom_order o ON oi.order_id = o.id
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+  AND c1.name = ''电子产品''
+GROUP BY c2.name
+ORDER BY total_sales DESC;
+```
+
+### Q: 查询各品类的月度销售趋势
+A:
+```sql
+SELECT
+    c1.name AS category_name,
+    TO_CHAR(o.create_time, ''YYYY-MM'') AS month,
+    SUM(oi.subtotal) AS monthly_sales,
+    SUM(oi.quantity) AS monthly_quantity
+FROM ecom_order_item oi
+JOIN ecom_product p ON oi.product_id = p.id
+JOIN ecom_category c3 ON p.category_id = c3.id
+JOIN ecom_category c2 ON c3.parent_id = c2.id
+JOIN ecom_category c1 ON c2.parent_id = c1.id
+JOIN ecom_order o ON oi.order_id = o.id
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+GROUP BY c1.name, TO_CHAR(o.create_time, ''YYYY-MM'')
+ORDER BY c1.name, month;
+```', 5, NULL, 'admin', '2026-06-10 17:42:17.213204', 'admin', '2026-06-10 17:42:17.213204', 0, NULL, NULL);
+INSERT INTO security_business_function (id, name, summary, detail, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064644676937564160', '区域销售分析', '基于订单表、客户表和订单明细表，按省份和城市维度分析销售额、订单量和客单价，识别高价值区域和增长潜力区域，为区域化运营策略提供数据支撑。', '## 业务描述
+区域销售分析通过关联订单表、客户表和订单明细表，从地理维度（省份、城市）分析销售数据，识别不同区域的消费特征和差异，为区域化营销策略、仓储布局和物流优化提供决策依据。
+
+## 核心指标
+- **区域销售额**：按省份/城市汇总的实付金额
+- **区域订单量**：按省份/城市汇总的订单数量
+- **区域客单价**：区域销售额 / 区域订单量
+- **区域客户数**：按省份/城市汇总的去重客户数
+- **区域渗透率**：有消费的客户数 / 区域总客户数
+
+## 业务规则
+- 区域维度使用订单的收货地址（ecom_order.province/city），而非客户注册地址
+- 如需分析客户注册地分布，使用 ecom_customer.province/city
+- 仅统计已支付且非取消/退货的订单
+- 同一客户可能在多个城市下单（如送礼场景），按收货地址统计
+- 省份和城市字段可能为NULL，需注意过滤
+
+## 典型示例
+### Q: 查询各省份的销售额排名
+A:
+```sql
+SELECT
+    o.province,
+    SUM(o.pay_amount) AS total_sales,
+    COUNT(DISTINCT o.id) AS order_count,
+    COUNT(DISTINCT o.customer_id) AS customer_count,
+    ROUND(SUM(o.pay_amount) / COUNT(DISTINCT o.id), 2) AS avg_order_amount
+FROM ecom_order o
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+  AND o.province IS NOT NULL
+GROUP BY o.province
+ORDER BY total_sales DESC;
+```
+
+### Q: 查询广东省内各城市的销售明细
+A:
+```sql
+SELECT
+    o.city,
+    SUM(o.pay_amount) AS total_sales,
+    COUNT(DISTINCT o.id) AS order_count,
+    COUNT(DISTINCT o.customer_id) AS customer_count,
+    ROUND(SUM(o.pay_amount) / COUNT(DISTINCT o.id), 2) AS avg_order_amount
+FROM ecom_order o
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+  AND o.province = ''广东''
+GROUP BY o.city
+ORDER BY total_sales DESC;
+```
+
+### Q: 查询客户注册地与收货地的交叉分析
+A:
+```sql
+SELECT
+    c.province AS register_province,
+    o.province AS delivery_province,
+    COUNT(*) AS order_count,
+    SUM(o.pay_amount) AS total_sales
+FROM ecom_order o
+JOIN ecom_customer c ON o.customer_id = c.id
+WHERE o.pay_status = 1
+  AND o.order_status NOT IN (4, 6)
+GROUP BY c.province, o.province
+HAVING COUNT(*) >= 2
+ORDER BY total_sales DESC;
+```', 6, NULL, 'admin', '2026-06-10 17:43:44.882316', 'admin', '2026-06-10 17:43:44.882316', 0, NULL, NULL);
+
+
+
 INSERT INTO security_business_function_table (id, business_id, table_model_id, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064642645891989504', '2064640623016919040', '5a4f29ab823bccc98be4e7a6778f33c1', 0, NULL, 'admin', '2026-06-10 17:35:40.643043', 'admin', '2026-06-10 17:35:40.643043', 0, NULL, NULL);
 INSERT INTO security_business_function_table (id, business_id, table_model_id, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064642645908766720', '2064640623016919040', '92aace30cdf314bb84a9c8eb94729cf9', 0, NULL, 'admin', '2026-06-10 17:35:40.647282', 'admin', '2026-06-10 17:35:40.647282', 0, NULL, NULL);
 INSERT INTO security_business_function_table (id, business_id, table_model_id, sort_order, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2064642645912961024', '2064640623016919040', '1dc6bba94be02ce87ef7062c2b754a51', 0, NULL, 'admin', '2026-06-10 17:35:40.648686', 'admin', '2026-06-10 17:35:40.648686', 0, NULL, NULL);

@@ -47,6 +47,8 @@ public enum SystemErrorCode implements ReturnCode {
     E02009("新密码不能为空"),
     E02010("旧密码不能为空"),
     E02011("旧密码错误"),
+    E02012("昵称不能为空"),
+    E02013("性别参数不合法"),
 
     ;
 

@@ -1,0 +1,2 @@
+org.quyq.gwsu.common.job.config.XxlJobAutoConfiguration
+org.quyq.gwsu.common.job.config.ExecutorWebConfiguration

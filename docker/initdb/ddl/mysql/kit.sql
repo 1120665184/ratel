@@ -93,3 +93,163 @@ CREATE TABLE kit_file_chunk_info
 CREATE INDEX idx_kit_file_chunk_info_unique_id ON kit_file_chunk_info (unique_id);
 CREATE INDEX idx_kit_file_chunk_info_upload_id ON kit_file_chunk_info (upload_id);
 CREATE INDEX idx_kit_file_chunk_info_chunk_group ON kit_file_chunk_info (chunk_group);
+
+-- =============================================
+-- 定时任务相关表结构（基于 xxl-job 改造）
+-- 表名前缀：kit_job_
+-- 主键：VARCHAR(24) 雪花ID
+-- 审计字段：BaseDO（tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time）
+-- =============================================
+
+-- =============================================
+-- 表名：kit_job_registry
+-- 说明：执行器注册表
+-- =============================================
+CREATE TABLE kit_job_registry
+(
+    id              VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    registry_group  VARCHAR(64)  NOT NULL                COMMENT '执行器AppName（命名空间）',
+    registry_key    VARCHAR(255) NOT NULL                COMMENT 'Handler名称',
+    registry_value  VARCHAR(255) NOT NULL                COMMENT '注册值（地址）',
+    tenant_id       VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
+    create_op       VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
+    create_time     DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op       VARCHAR(50)  DEFAULT NULL             COMMENT '修改人',
+    modify_time     DATETIME     DEFAULT NULL             COMMENT '修改时间',
+    deleted         SMALLINT     NOT NULL DEFAULT 0       COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op       VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
+    delete_time     DATETIME     DEFAULT NULL             COMMENT '删除时间'
+) COMMENT '执行器注册表';
+
+CREATE UNIQUE INDEX i_g_k_v ON kit_job_registry (registry_group, registry_key, registry_value);
+
+-- =============================================
+-- 表名：kit_job_info
+-- 说明：任务信息表
+-- =============================================
+CREATE TABLE kit_job_info
+(
+    id                        VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    name                      VARCHAR(255) NOT NULL                COMMENT '任务名称',
+    author                    VARCHAR(64)  DEFAULT NULL             COMMENT '作者',
+    alarm_email               VARCHAR(255) DEFAULT NULL             COMMENT '报警邮件',
+    schedule_type             VARCHAR(50)  NOT NULL DEFAULT 'NONE'  COMMENT '调度类型',
+    schedule_conf             VARCHAR(128) DEFAULT NULL             COMMENT '调度配置',
+    misfire_strategy          VARCHAR(50)  NOT NULL DEFAULT 'DO_NOTHING' COMMENT '调度过期策略',
+    executor_route_strategy   VARCHAR(50)  DEFAULT NULL             COMMENT '执行器路由策略',
+    executor_handler          VARCHAR(255) DEFAULT NULL             COMMENT '任务handler',
+    executor_param            TEXT         DEFAULT NULL             COMMENT '任务参数',
+    executor_block_strategy   VARCHAR(50)  DEFAULT NULL             COMMENT '阻塞处理策略',
+    executor_timeout          INT          NOT NULL DEFAULT 0       COMMENT '任务执行超时时间，单位秒',
+    executor_fail_retry_count INT          NOT NULL DEFAULT 0       COMMENT '失败重试次数',
+    glue_type                 VARCHAR(50)  NOT NULL                COMMENT 'GLUE类型',
+    glue_source               MEDIUMTEXT   DEFAULT NULL             COMMENT 'GLUE源代码',
+    glue_remark               VARCHAR(128) DEFAULT NULL             COMMENT 'GLUE备注',
+    glue_updatetime           DATETIME     DEFAULT NULL             COMMENT 'GLUE更新时间',
+    child_jobid               VARCHAR(255) DEFAULT NULL             COMMENT '子任务ID，多个逗号分隔',
+    trigger_status            TINYINT      NOT NULL DEFAULT 0       COMMENT '调度状态：0-停止，1-运行',
+    trigger_last_time         BIGINT       NOT NULL DEFAULT 0       COMMENT '上次调度时间',
+    trigger_next_time         BIGINT       NOT NULL DEFAULT 0       COMMENT '下次调度时间',
+    tenant_id                 VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
+    create_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
+    create_time               DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '修改人',
+    modify_time               DATETIME     DEFAULT NULL             COMMENT '修改时间',
+    deleted                   SMALLINT     NOT NULL DEFAULT 0       COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
+    delete_time               DATETIME     DEFAULT NULL             COMMENT '删除时间'
+) COMMENT '任务信息表';
+
+-- =============================================
+-- 表名：kit_job_log_glue
+-- 说明：任务GLUE日志表
+-- =============================================
+CREATE TABLE kit_job_log_glue
+(
+    id            VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    job_id        VARCHAR(24)  NOT NULL                COMMENT '任务主键ID',
+    glue_type     VARCHAR(50)  DEFAULT NULL             COMMENT 'GLUE类型',
+    glue_source   MEDIUMTEXT   DEFAULT NULL             COMMENT 'GLUE源代码',
+    glue_remark   VARCHAR(128) NOT NULL                 COMMENT 'GLUE备注',
+    tenant_id     VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
+    create_op     VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
+    create_time   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)  DEFAULT NULL             COMMENT '修改人',
+    modify_time   DATETIME     DEFAULT NULL             COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0       COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
+    delete_time   DATETIME     DEFAULT NULL             COMMENT '删除时间'
+) COMMENT '任务GLUE日志表';
+
+CREATE INDEX idx_kit_job_log_glue_job_id ON kit_job_log_glue (job_id);
+
+-- =============================================
+-- 表名：kit_job_log
+-- 说明：任务执行日志表
+-- =============================================
+CREATE TABLE kit_job_log
+(
+    id                        VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    job_id                    VARCHAR(24)  NOT NULL                COMMENT '任务主键ID',
+    executor_address          VARCHAR(255) DEFAULT NULL             COMMENT '执行器地址',
+    executor_handler          VARCHAR(255) DEFAULT NULL             COMMENT '任务handler',
+    executor_param            TEXT         DEFAULT NULL             COMMENT '任务参数',
+    executor_sharding_param   VARCHAR(20)  DEFAULT NULL             COMMENT '任务分片参数',
+    executor_fail_retry_count INT          NOT NULL DEFAULT 0       COMMENT '失败重试次数',
+    trigger_time              DATETIME     DEFAULT NULL             COMMENT '调度时间',
+    trigger_code              INT          NOT NULL                 COMMENT '调度结果',
+    trigger_msg               TEXT         DEFAULT NULL             COMMENT '调度日志',
+    handle_time               DATETIME     DEFAULT NULL             COMMENT '执行时间',
+    handle_code               INT          NOT NULL                 COMMENT '执行状态',
+    handle_msg                TEXT         DEFAULT NULL             COMMENT '执行日志',
+    alarm_status              TINYINT      NOT NULL DEFAULT 0       COMMENT '告警状态：0-默认、1-无需告警、2-告警成功、3-告警失败',
+    tenant_id                 VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
+    create_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
+    create_time               DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '修改人',
+    modify_time               DATETIME     DEFAULT NULL             COMMENT '修改时间',
+    deleted                   SMALLINT     NOT NULL DEFAULT 0       COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op                 VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
+    delete_time               DATETIME     DEFAULT NULL             COMMENT '删除时间'
+) COMMENT '任务执行日志表';
+
+CREATE INDEX i_trigger_time ON kit_job_log (trigger_time);
+CREATE INDEX i_handle_code ON kit_job_log (handle_code);
+CREATE INDEX i_job_id ON kit_job_log (job_id);
+
+-- =============================================
+-- 表名：kit_job_log_report
+-- 说明：任务日志报表
+-- =============================================
+CREATE TABLE kit_job_log_report
+(
+    id            VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    trigger_day   DATETIME     DEFAULT NULL             COMMENT '调度时间',
+    running_count INT          NOT NULL DEFAULT 0       COMMENT '运行中-日志数量',
+    suc_count     INT          NOT NULL DEFAULT 0       COMMENT '执行成功-日志数量',
+    fail_count    INT          NOT NULL DEFAULT 0       COMMENT '执行失败-日志数量',
+    tenant_id     VARCHAR(50)  DEFAULT NULL             COMMENT '租户ID',
+    create_op     VARCHAR(50)  DEFAULT NULL             COMMENT '创建人',
+    create_time   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op     VARCHAR(50)  DEFAULT NULL             COMMENT '修改人',
+    modify_time   DATETIME     DEFAULT NULL             COMMENT '修改时间',
+    deleted       SMALLINT     NOT NULL DEFAULT 0       COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op     VARCHAR(50)  DEFAULT NULL             COMMENT '删除人',
+    delete_time   DATETIME     DEFAULT NULL             COMMENT '删除时间'
+) COMMENT '任务日志报表';
+
+CREATE UNIQUE INDEX i_trigger_day ON kit_job_log_report (trigger_day);
+
+-- =============================================
+-- 表名：kit_job_lock
+-- 说明：调度锁表
+-- =============================================
+CREATE TABLE kit_job_lock
+(
+    lock_name VARCHAR(50) NOT NULL COMMENT '锁名称',
+    PRIMARY KEY (lock_name)
+) COMMENT '调度锁表';
+
+-- ================== 初始数据 ==================
+
+INSERT INTO kit_job_lock (lock_name) VALUES ('schedule_lock');

@@ -137,7 +137,7 @@ const BusinessFunctionDrawer: React.FC<BusinessFunctionDrawerProps> = ({
   return (
     <Drawer
       title={isEdit ? '编辑业务功能' : '新增业务功能'}
-      width={720}
+      size={720}
       open={visible}
       onClose={onClose}
       extra={

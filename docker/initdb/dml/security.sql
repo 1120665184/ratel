@@ -11,8 +11,9 @@ INSERT INTO security_abac (id, tenant_id, expression, description, status, creat
 INSERT INTO security_abac (id, tenant_id, expression, description, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('2059099745615486976', 'default', 'contains(r.sub.roles , ''common'')', NULL, 1, 'admin', '2026-05-26 10:30:10.235452', 'admin', '2026-05-26 10:30:10.235452', NULL, NULL, 0);
 
 INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, action, url_pattern, effect, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('1', 'default', '1', '*', '*', '*', 'allow', 1, NULL, '2026-05-02 11:17:56.593787', NULL, '2026-05-02 11:17:56.593787', NULL, NULL, 0);
-INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, action, url_pattern, effect, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('2059280380317581313', 'default', '2059099745615486976', 'security', 'GET', '/role/rolesByCurrUser', 'allow', 1, 'admin', '2026-05-26 22:27:56.943043', 'admin', '2026-05-26 22:27:56.943043', NULL, NULL, 0);
-INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, action, url_pattern, effect, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('2059280380397273089', 'default', '2059099745615486976', 'system', 'PUT', '/manager/password', 'allow', 1, 'admin', '2026-05-26 22:27:56.945633', 'admin', '2026-05-26 22:27:56.945633', NULL, NULL, 0);
+INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, action, url_pattern, effect, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('2074860014971060225', 'default', '2059099745615486976', 'system', 'PUT', '/manager/password', 'allow', 1, 'admin', '2026-07-08 22:15:51.269159', 'admin', '2026-07-08 22:15:51.269159', NULL, NULL, 0);
+INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, action, url_pattern, effect, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('2074860014979448833', 'default', '2059099745615486976', 'system', 'PUT', '/manager/profile', 'allow', 1, 'admin', '2026-07-08 22:15:51.26977', 'admin', '2026-07-08 22:15:51.26977', NULL, NULL, 0);
+INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, action, url_pattern, effect, status, create_op, create_time, modify_op, modify_time, delete_op, delete_time, deleted) VALUES ('2074860014992031745', 'default', '2059099745615486976', 'security', 'GET', '/role/rolesByCurrUser', 'allow', 1, 'admin', '2026-07-08 22:15:51.270041', 'admin', '2026-07-08 22:15:51.270041', NULL, NULL, 0);
 
 -- 角色用户关联初始化
 INSERT INTO security_role_subject (id, subject_id, role_id, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('1', '1', '1', NULL, NULL, '2026-05-01 01:16:11.414947', NULL, NULL, 0, NULL, NULL);
@@ -117,6 +118,10 @@ INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('90851377', '5', '字段权限', 3, 0, NULL, NULL, 1, 1, NULL, NULL, 'admin', '2026-05-12 18:33:42.415463', 'admin', '2026-05-12 18:33:42.415463', 0, NULL, NULL, 1, 1, '5_field_permission', '给角色配置字段权限');
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('82462529', '6', '新增菜单', 3, 0, NULL, NULL, 1, 1, '(main)POST:security:/menu', NULL, 'admin', '2026-04-30 15:16:56.228805', 'admin', '2026-05-19 19:27:51.628078', 0, NULL, NULL, 1, 1, '6_add', '新增目录或新增菜单');
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('83954329', '5', '编辑角色', 3, 0, NULL, NULL, 1, 1, '(main)POST:security:/role;PUT:security:/role/status', NULL, 'admin', '2026-05-02 19:04:51.87522', 'admin', '2026-05-12 18:42:17.384576', 0, NULL, NULL, 1, 1, '5_edit', '编辑已存在的角色信息');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('100292272', '99868209', '编辑资料', 3, 0, NULL, NULL, 1, 1, '(main)PUT:system:/manager/profile', NULL, 'admin', '2026-07-08 22:10:00', 'admin', '2026-07-08 22:10:00', 0, NULL, NULL, 2, 1, '99868209_edit_profile', '# 功能介绍
+修改当前登录用户的昵称、性别、邮箱和手机号
+# 界面布局
+弹框表单，编辑个人资料并保存');
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('100292273', '99868209', '修改密码', 3, 0, NULL, NULL, 1, 1, '(main)PUT:system:/manager/password', NULL, 'admin', '2026-05-26 10:22:14.205881', 'admin', '2026-05-26 10:22:14.205881', 0, NULL, NULL, 2, 1, '99868209_change_password', '# 功能介绍
 修改当前登录用户的密码
 # 界面布局
@@ -196,3 +201,52 @@ INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('82463377', '6', '编辑菜单', 3, 0, NULL, NULL, 1, 1, '(main)POST:security:/menu;POST:security:/apiResource/page', NULL, 'admin', '2026-04-30 15:18:42.55019', 'admin', '2026-04-30 15:23:49.969804', 0, NULL, NULL, 1, 1, '6_edit', '编辑已有的目录或菜单');
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('82466385', '6', '新增按钮', 3, 0, NULL, NULL, 1, 1, '(main)POST:security:/menu;POST:security:/apiResource/page', NULL, 'admin', '2026-04-30 15:24:58.750576', 'admin', '2026-04-30 15:25:39.662048', 0, NULL, NULL, 1, 1, '6_add_button', '新增界面的按钮权限');
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('1', NULL, '用户中心', 1, 1, 'UserOutlined', '/sub-system', 1, 1, NULL, NULL, NULL, '2026-04-15 09:26:55.893534', 'admin', '2026-04-30 15:28:24.006434', 0, NULL, NULL, 1, 1, NULL, '包含用户相关内容');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('130300497', '129590745', '清理日志', 3, 0, NULL, NULL, 1, 1, '(main)POST:kit:/job/log/clearLog', NULL, 'admin', '2026-07-08 20:19:22.42503', 'admin', '2026-07-08 20:32:07.748707', 0, NULL, NULL, 1, 1, '129590745_job_clear_log', '# 功能介绍
+通过选择指定清理范围来清理定时调度日志');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129590745', '2', '定时调度', 2, 2, NULL, '/sub-security/job', 1, 1, '(main)POST:kit:/job/info/page;GET:kit:/job/info/nextTriggerTime', NULL, 'admin', '2026-07-07 19:40:43.372513', 'admin', '2026-07-08 21:11:26.57838', 0, NULL, NULL, 1, 1, NULL, '配置定时任务');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129591489', '129590745', '编辑', 3, 0, NULL, NULL, 1, 1, 'GET:kit:/job/info/handlerList;POST:security:/apiResource/page;(main)POST:kit:/job/info/updateByDTO', NULL, 'admin', '2026-07-07 19:42:16.859549', 'admin', '2026-07-08 20:55:37.365827', 0, NULL, NULL, 1, 1, '129590745_job_edit', '# 功能介绍
+编辑定时调度任务
+# 界面布局
+弹框形式弹出，通过三个步骤来配置任务信息：
+- 公共配置：任务名称、报警邮件、过期策略、路由策略、阻塞策略、超时时间、重试时间
+- 任务类型：配置任务模式以及对应模式下的特定信息，下面介绍支持的任务模式：
+  （1）平台URL:直接调用平台的相关任务接口，需要配置：所属服务、接口url、请求体数据。
+  （2）GLUE: 执行特定脚本，需要配置：GLUE类型（Java,shell,python3,Nodejs,php,powerShell）、任务参数、脚本代码
+  （3）BEAN: 调用代码中注册的置顶handler ,需要配置：Handler ,任务参数
+- 调度配置：配置任务触发的执行周期和关联触发的子任务。
+执行周期支持：固定速率 和 CRON');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129592857', '129590745', '立即执行', 3, 0, NULL, NULL, 1, 1, '(main)POST:kit:/job/info/trigger', NULL, 'admin', '2026-07-07 19:45:07.704116', 'admin', '2026-07-08 21:02:26.680862', 0, NULL, NULL, 1, 1, '129590745_job_trigger', '# 功能介绍
+立即执行一次指定任务
+# 界面布局
+弹款弹出，可自定义配置扩展参数');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129591321', '129590745', '新增', 3, 0, NULL, NULL, 1, 1, 'GET:kit:/job/info/handlerList;POST:security:/apiResource/page;(main)POST:kit:/job/info/addByDTO', NULL, 'admin', '2026-07-07 19:41:55.325592', 'admin', '2026-07-08 20:55:51.449145', 0, NULL, NULL, 1, 1, '129590745_job_add', '# 功能介绍
+新增定时调度任务
+# 界面布局
+弹框形式弹出，通过三个步骤来配置任务信息：
+- 公共配置：任务名称、报警邮件、过期策略、路由策略、阻塞策略、超时时间、重试时间
+- 任务类型：配置任务模式以及对应模式下的特定信息，下面介绍支持的任务模式：
+  （1）平台URL:直接调用平台的相关任务接口，需要配置：所属服务、接口url、请求体数据。
+  （2）GLUE: 执行特定脚本，需要配置：GLUE类型（Java,shell,python3,Nodejs,php,powerShell）、任务参数、脚本代码
+  （3）BEAN: 调用代码中注册的置顶handler ,需要配置：Handler ,任务参数
+- 调度配置：配置任务触发的执行周期和关联触发的子任务。
+执行周期支持：固定速率 和 CRON');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129593138', '129590745', '调度日志', 3, 0, NULL, NULL, 1, 1, '(main)POST:kit:/job/log/page;GET:kit:/job/info/logContent;GET:kit:/job/log/load', NULL, 'admin', '2026-07-07 19:45:42.147505', 'admin', '2026-07-08 20:39:04.260717', 0, NULL, NULL, 1, 1, '129590745_job_log', '# 功能介绍
+查看指定任务的调度日志，展示调度时间、调度结果、执行结果、执行器地址，查看执行日志详情和终止运行中任务
+# 界面布局
+抽屉弹框形式弹出，分页展示调度日志');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129591642', '129590745', '删除', 3, 0, NULL, NULL, 1, 1, '(main)POST:kit:/job/info/remove', NULL, 'admin', '2026-07-07 19:42:35.077819', 'admin', '2026-07-08 20:57:11.270665', 0, NULL, NULL, 1, 1, '129590745_job_remove', '# 功能介绍
+删除指定定时调度任务');
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('129592089', '129590745', '启动/停止', 3, 0, NULL, NULL, 1, 1, '(main)POST:kit:/job/info/start;POST:kit:/job/info/stop', NULL, 'admin', '2026-07-07 19:43:31.615094', 'admin', '2026-07-08 21:00:25.377924', 0, NULL, NULL, 1, 1, '129590745_job_start', '# 功能介绍
+启用和停用指定任务');
+
+
+
+-- 公共角色"个人中心绑定"
+INSERT INTO security_role_menu (id, role_id, menu_id, valid_type, valid_start, valid_end, cycle_type, cycle_value, cycle_start_time, cycle_end_time, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2074860014971060224', '2', '100292273', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', '2026-07-08 22:15:51.261576', 'admin', '2026-07-08 22:15:51.261576', 0, NULL, NULL);
+INSERT INTO security_role_menu (id, role_id, menu_id, valid_type, valid_start, valid_end, cycle_type, cycle_value, cycle_start_time, cycle_end_time, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2074860014979448832', '2', '100292272', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', '2026-07-08 22:15:51.264192', 'admin', '2026-07-08 22:15:51.264192', 0, NULL, NULL);
+INSERT INTO security_role_menu (id, role_id, menu_id, valid_type, valid_start, valid_end, cycle_type, cycle_value, cycle_start_time, cycle_end_time, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2074860014992031744', '2', '99868209', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'admin', '2026-07-08 22:15:51.266312', 'admin', '2026-07-08 22:15:51.266312', 0, NULL, NULL);
+
+
+INSERT INTO security_role_menu_permission (id, role_menu_id, abac_permission_id, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, api_id) VALUES ('2074860015017197568', '2074860014971060224', '2074860014971060225', NULL, 'admin', '2026-07-08 22:15:51.272835', 'admin', '2026-07-08 22:15:51.272835', 0, NULL, NULL, 'ccc85e9422ba9c46ae1ef7199922e6c5');
+INSERT INTO security_role_menu_permission (id, role_menu_id, abac_permission_id, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, api_id) VALUES ('2074860015021391872', '2074860014979448832', '2074860014979448833', NULL, 'admin', '2026-07-08 22:15:51.273461', 'admin', '2026-07-08 22:15:51.273461', 0, NULL, NULL, 'ad359b600ca96121355b9a64df8750f1');
+INSERT INTO security_role_menu_permission (id, role_menu_id, abac_permission_id, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, api_id) VALUES ('2074860015021391873', '2074860014992031744', '2074860014992031745', NULL, 'admin', '2026-07-08 22:15:51.273691', 'admin', '2026-07-08 22:15:51.273691', 0, NULL, NULL, '8faec24b53244693328279c72c808e2e');

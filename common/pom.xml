@@ -21,6 +21,7 @@
         <module>common-authentication</module>
         <module>common-ai</module>
         <module>common-log</module>
+        <module>common-job</module>
     </modules>
 
 

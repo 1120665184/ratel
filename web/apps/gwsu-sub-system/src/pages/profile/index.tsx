@@ -9,13 +9,15 @@ import {
   WomanOutlined,
   StarOutlined,
   LockOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
-import { useUserStore, AuthGate } from '@gwsu/core';
-import { getCurrentUserRoles } from '@/services/profile';
+import { useUserStore, AuthGate, fetchCurrentUserInfo } from '@gwsu/core';
+import { getCurrentUserRoles, updateCurrentUserProfile } from '@/services/profile';
 import type { RoleVO } from '@/services/profile';
 import { GENDER_MAP, USER_STATUS_MAP } from '@/pages/user/types';
-import { PERM_CHANGE_PASSWORD } from './permissionConstants';
+import { PERM_CHANGE_PASSWORD, PERM_EDIT_PROFILE } from './permissionConstants';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import EditProfileModal from './components/EditProfileModal';
 import styles from './index.module.less';
 
 /** 获取用户名首字母 */
@@ -31,6 +33,7 @@ const ProfilePage: React.FC = () => {
   const [roles, setRoles] = useState<RoleVO[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const displayName = userInfo?.nickname || userInfo?.username || '用户';
   const avatarUrl = userInfo?.avatar;
@@ -54,6 +57,22 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     void loadRoles();
   }, [loadRoles]);
+
+  const refreshCurrentUser = useCallback(async () => {
+    const latestUserInfo = await fetchCurrentUserInfo();
+    useUserStore.getState().setUserInfo(latestUserInfo);
+  }, []);
+
+  const handleProfileSubmit = useCallback(async (values: {
+    nickname: string;
+    gender: number;
+    email?: string;
+    phone?: string;
+  }) => {
+    await updateCurrentUserProfile(values);
+    await refreshCurrentUser();
+    setEditModalVisible(false);
+  }, [refreshCurrentUser]);
 
   return (
     <div className={styles.profilePage}>
@@ -100,15 +119,26 @@ const ProfilePage: React.FC = () => {
         className={styles.sectionCard}
         variant="borderless"
         extra={
-          <AuthGate buttonKey={PERM_CHANGE_PASSWORD}>
-            <Button
-              type="link"
-              icon={<LockOutlined />}
-              onClick={() => setPasswordModalVisible(true)}
-            >
-              修改密码
-            </Button>
-          </AuthGate>
+          <div className={styles.actionGroup}>
+            <AuthGate buttonKey={PERM_EDIT_PROFILE}>
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                onClick={() => setEditModalVisible(true)}
+              >
+                编辑资料
+              </Button>
+            </AuthGate>
+            <AuthGate buttonKey={PERM_CHANGE_PASSWORD}>
+              <Button
+                type="link"
+                icon={<LockOutlined />}
+                onClick={() => setPasswordModalVisible(true)}
+              >
+                修改密码
+              </Button>
+            </AuthGate>
+          </div>
         }
       >
         <Descriptions column={{ xs: 1, sm: 2 }} colon={false} styles={{ label: { color: 'var(--text-secondary-color)' } }}>
@@ -237,6 +267,12 @@ const ProfilePage: React.FC = () => {
         visible={passwordModalVisible}
         onClose={() => setPasswordModalVisible(false)}
         onSuccess={() => setPasswordModalVisible(false)}
+      />
+      <EditProfileModal
+        visible={editModalVisible}
+        userInfo={userInfo}
+        onClose={() => setEditModalVisible(false)}
+        onSubmit={handleProfileSubmit}
       />
     </div>
   );

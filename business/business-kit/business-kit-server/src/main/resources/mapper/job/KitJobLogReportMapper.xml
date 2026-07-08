@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.kit.job.mapper.KitJobLogReportMapper">
+
+    <select id="queryLogReportTotal" resultType="org.quyq.gwsu.kit.job.domain.KitJobLogReport">
+        SELECT
+            SUM(running_count) AS running_count,
+            SUM(suc_count) AS suc_count,
+            SUM(fail_count) AS fail_count
+        FROM kit_job_log_report AS t
+    </select>
+
+</mapper>

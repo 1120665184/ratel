@@ -19,4 +19,8 @@ export default [
     path: '/tablemodel',
     component: '@/pages/tablemodel',
   },
+  {
+    path: '/job',
+    component: '@/pages/job',
+  },
 ];

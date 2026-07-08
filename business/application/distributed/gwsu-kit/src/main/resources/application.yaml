@@ -27,3 +27,8 @@ spring:
       - nacos:common-redis.yaml
       - nacos:common-database.yaml
       - nacos:${spring.application.name}.yaml
+
+xxl:
+  job:
+    executor:
+      enabled: true

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.kit.job.mapper.KitJobLogMapper">
+
+    <update id="updateTriggerInfo">
+        UPDATE kit_job_log
+        SET
+            trigger_time = #{triggerTime},
+            trigger_code = #{triggerCode},
+            trigger_msg = #{triggerMsg},
+            executor_address = #{executorAddress},
+            executor_handler = #{executorHandler},
+            executor_param = #{executorParam},
+            executor_sharding_param = #{executorShardingParam},
+            executor_fail_retry_count = #{executorFailRetryCount}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateHandleInfo">
+        UPDATE kit_job_log
+        SET
+            handle_time = #{handleTime},
+            handle_code = #{handleCode},
+            handle_msg = #{handleMsg}
+        WHERE id = #{id}
+    </update>
+
+    <!-- ==================== 清理日志 ==================== -->
+
+    <delete id="clearLog">
+        DELETE FROM kit_job_log
+        WHERE id IN
+        <foreach collection="logIds" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- ==================== 失败告警 ==================== -->
+
+    <update id="updateAlarmStatus">
+        UPDATE kit_job_log
+        SET alarm_status = #{newAlarmStatus}
+        WHERE id = #{logId} AND alarm_status = #{oldAlarmStatus}
+    </update>
+
+    <!-- ==================== 丢失任务检测 ==================== -->
+
+    <select id="findLostJobIds" resultType="long">
+        SELECT t.id
+        FROM kit_job_log t
+            LEFT JOIN kit_job_registry t2 ON t.executor_address = t2.registry_value
+        WHERE t.trigger_code = 200
+            AND t.handle_code = 0
+            AND t.trigger_time <![CDATA[ <= ]]> #{losedTime}
+            AND t2.id IS NULL
+    </select>
+
+</mapper>
