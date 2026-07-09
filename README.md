@@ -324,9 +324,6 @@ mvn spring-boot:run -pl business/application/distributed/gwsu-log
 mvn -Pnative package -pl business/application/single/gwsu
 ```
 
-## 许可证
-
-本项目基于 [Apache License 2.0](LICENSE) 许可证开源。
 
 ## 联系方式
 
