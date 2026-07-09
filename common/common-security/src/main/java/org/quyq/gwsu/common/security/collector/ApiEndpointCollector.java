@@ -124,7 +124,7 @@ public class ApiEndpointCollector implements ApplicationRunner {
      */
     private boolean isInternalEndpoint(HandlerMethod handlerMethod) {
         String packageName = handlerMethod.getBeanType().getPackageName();
-        return !packageName.startsWith(CoreConstants.Yaml.PROJECT_CONFIG_PREFIX);
+        return !packageName.startsWith(CoreConstants.Project.COMMON_PACKAGE);
     }
 
     /**

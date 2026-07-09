@@ -186,6 +186,7 @@ public void shardingJobHandler() throws Exception {
 
 1. Executor 启动时，`XxlJobExecutor` 扫描所有 `@XxlJob` 注解方法，注册到本地 `jobHandlerRepository`
 2. `ExecutorRegistryHelper` 每 30 秒通过 `JobAdminClientApi.registry()` 向 Admin 发起心跳注册
+   普通 Handler 使用 `registry_group=appname`；`GLUE` 能力使用固定的 `registry_group=__glue__`、`registry_key=__glue__`
 3. Admin 端 `JobRegistryHelper` 将注册信息持久化到 `kit_job_registry` 表
 4. Admin 端 `registryMonitorTask` 每 30 秒从 DB 加载注册信息，构建 `handler2RegistryCache` 内存缓存
 

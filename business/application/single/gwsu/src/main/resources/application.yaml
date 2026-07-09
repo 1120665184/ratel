@@ -36,7 +36,7 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   type-handlers-package: org.quyq.gwsu.common.database.typehandler
 
-org.quyq:
+ratel:
   auth:
     # 登录超时
     timeout: 18000

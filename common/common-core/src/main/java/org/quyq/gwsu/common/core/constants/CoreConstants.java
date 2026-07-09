@@ -20,7 +20,7 @@ public interface CoreConstants {
 
     interface Yaml {
 
-        String PROJECT_CONFIG_PREFIX = "org.quyq";
+        String PROJECT_CONFIG_PREFIX = "ratel";
 
         String APPLICATION_NAME = "spring.application.name";
 

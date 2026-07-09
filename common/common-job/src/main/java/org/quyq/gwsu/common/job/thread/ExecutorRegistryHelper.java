@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
-import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
  * 执行器注册辅助类
  * <p>
  * 按 handler 名称逐个注册到 Admin：
- * - registry_group = appname（命名空间，防止不同服务同名 handler 冲突）
+ * - registry_group = appname（普通 handler）/ __glue__（Glue 能力）
  * - registry_key = handler 名称
  * - registry_value = 执行器地址
  * <p>
@@ -82,17 +82,19 @@ public class ExecutorRegistryHelper {
                 }
 
                 String appname = xxlJobExecutor.getAppname();
-                for (String handlerName : buildRegistryKeys(handlerNames, xxlJobExecutor.getGlueEnabled())) {
+                for (RegistryIdentity registryIdentity : buildRegistryIdentities(handlerNames, appname, xxlJobExecutor.getGlueEnabled())) {
                     RegistryRequest registryParam = new RegistryRequest(
-                            appname,
-                            handlerName,
+                            registryIdentity.registryGroup(),
+                            registryIdentity.registryKey(),
                             registryAddress
                     );
                     R<String> registryResult = xxlJobExecutor.getJobAdminClientApi().registry(registryParam);
                     if (registryResult != null && registryResult.isSuccess()) {
-                        logger.debug(">>>>>>>>>>> xxl-job registry success, handler:{}, appname:{}, address:{}", handlerName, appname, registryAddress);
+                        logger.debug(">>>>>>>>>>> xxl-job registry success, handler:{}, appname:{}, address:{}",
+                                registryIdentity.registryKey(), registryIdentity.registryGroup(), registryAddress);
                     } else {
-                        logger.warn(">>>>>>>>>>> xxl-job registry fail, handler:{}, appname:{}, address:{}, result:{}", handlerName, appname, registryAddress, registryResult);
+                        logger.warn(">>>>>>>>>>> xxl-job registry fail, handler:{}, appname:{}, address:{}, result:{}",
+                                registryIdentity.registryKey(), registryIdentity.registryGroup(), registryAddress, registryResult);
                     }
                 }
             } catch (Throwable e) {
@@ -128,31 +130,40 @@ public class ExecutorRegistryHelper {
         }
 
         String appname = xxlJobExecutor.getAppname();
-        for (String handlerName : buildRegistryKeys(handlerNames, xxlJobExecutor.getGlueEnabled())) {
+        for (RegistryIdentity registryIdentity : buildRegistryIdentities(handlerNames, appname, xxlJobExecutor.getGlueEnabled())) {
             RegistryRequest registryParam = new RegistryRequest(
-                    appname,
-                    handlerName,
+                    registryIdentity.registryGroup(),
+                    registryIdentity.registryKey(),
                     registryAddress
             );
             try {
                 R<String> registryResult = xxlJobExecutor.getJobAdminClientApi().registryRemove(registryParam);
                 if (registryResult != null && registryResult.isSuccess()) {
-                    logger.info(">>>>>>>>>>> xxl-job registry-remove success, handler:{}, appname:{}", handlerName, appname);
+                    logger.info(">>>>>>>>>>> xxl-job registry-remove success, handler:{}, appname:{}",
+                            registryIdentity.registryKey(), registryIdentity.registryGroup());
                 } else {
-                    logger.info(">>>>>>>>>>> xxl-job registry-remove fail, handler:{}, appname:{}, result:{}", handlerName, appname, registryResult);
+                    logger.info(">>>>>>>>>>> xxl-job registry-remove fail, handler:{}, appname:{}, result:{}",
+                            registryIdentity.registryKey(), registryIdentity.registryGroup(), registryResult);
                 }
             } catch (Throwable e) {
-                logger.warn(">>>>>>>>>>> xxl-job registry-remove error, handler:{}, appname:{}, error:{}", handlerName, appname, e.getMessage());
+                logger.warn(">>>>>>>>>>> xxl-job registry-remove error, handler:{}, appname:{}, error:{}",
+                        registryIdentity.registryKey(), registryIdentity.registryGroup(), e.getMessage());
             }
         }
     }
 
-    static Set<String> buildRegistryKeys(Set<String> handlerNames, boolean glueEnabled) {
-        Set<String> registryKeys = new LinkedHashSet<>(handlerNames);
+    static Set<RegistryIdentity> buildRegistryIdentities(Set<String> handlerNames, String appname, boolean glueEnabled) {
+        Set<RegistryIdentity> registryKeys = new LinkedHashSet<>();
+        for (String handlerName : handlerNames) {
+            registryKeys.add(new RegistryIdentity(appname, handlerName));
+        }
         if (glueEnabled) {
-            registryKeys.add(JobConst.GLUE_REGISTRY_KEY);
+            registryKeys.add(new RegistryIdentity(JobConst.GLUE_REGISTRY_KEY, JobConst.GLUE_REGISTRY_KEY));
         }
         return registryKeys;
+    }
+
+    record RegistryIdentity(String registryGroup, String registryKey) {
     }
 
 }
