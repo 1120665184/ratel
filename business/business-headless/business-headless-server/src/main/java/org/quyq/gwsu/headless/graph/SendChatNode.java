@@ -3,7 +3,7 @@ package org.quyq.gwsu.headless.graph;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutorService;
 @RequiredArgsConstructor
 public class SendChatNode implements NodeAction {
 
-    private final Session session;
+    private final AgentStateStore agentStateStore;
 
     private final HeadlessBrowserManager headlessBrowserManager;
 
@@ -39,7 +39,7 @@ public class SendChatNode implements NodeAction {
         String query = state.value(HeadlessConstants.Headless.GRAPH_PARAM_QUERY, "");
         SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
 
-        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId.userId(), session);
+        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId.userId(), agentStateStore);
 
         executorService.submit(() -> {
             try {

@@ -1,6 +1,7 @@
 import { CheckCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import { useAgent } from '@copilotkit/react-core/v2';
+import { useCopilotKit } from '@copilotkit/react-core/v2';
 import {
   clearHumanApproval,
 } from '@/services/human-approval';
@@ -19,6 +20,7 @@ import styles from './index.module.less';
  */
 export function HeadlessSubmitBar() {
   const { agent } = useAgent({ agentId: 'brain' });
+  const { copilotkit } = useCopilotKit();
 
   return (
     <div className={styles.submitBar} data-testid="headless-forms">
@@ -57,7 +59,7 @@ export function HeadlessSubmitBar() {
             clearHumanApproval();
 
             try {
-              await agent.runAgent();
+              await copilotkit.runAgent({ agent });
             } catch (e) {
               console.error('[HeadlessApproval] runAgent失败:', e);
             }
@@ -110,7 +112,7 @@ export function HeadlessSubmitBar() {
 
               try {
                 console.log('[Headless] runAgent before');
-                await agent.runAgent();
+                await copilotkit.runAgent({ agent });
                 console.log('[Headless] runAgent after');
               } catch (e) {
                 console.error('[HeadlessQuestion] runAgent失败:', e);

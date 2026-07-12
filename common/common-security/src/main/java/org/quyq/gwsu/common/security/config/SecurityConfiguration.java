@@ -1,18 +1,12 @@
 package org.quyq.gwsu.common.security.config;
 
 
-import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
-import org.quyq.gwsu.common.database.metadata.DdlFactory;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
-import org.quyq.gwsu.common.security.db.DefaultMetaObjectHandler;
-import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportRuntimeHints;
@@ -58,12 +52,6 @@ public class SecurityConfiguration {
                 .build();
 
         return new SessionUtils(cacheUtils, securityUtils, mapper);
-    }
-
-
-    @Bean
-    public ConfigInfoUtils configInfoUtils(ObjectMapper objectMapper) {
-        return new ConfigInfoUtils(objectMapper);
     }
 
 

@@ -1,7 +1,6 @@
 package org.quyq.gwsu.headless.service.impl;
 
 
-import com.alibaba.cloud.ai.agent.agentscope.AgentScopeMessageUtils;
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.action.AsyncEdgeAction;
 import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
@@ -9,15 +8,17 @@ import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.state.strategy.ReplaceStrategy;
 import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.utils.AgentScopeMessageUtils;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
-import org.quyq.gwsu.headless.api.dto.*;
+import org.quyq.gwsu.headless.api.dto.ContentBlock;
+import org.quyq.gwsu.headless.api.dto.UserMsg;
 import org.quyq.gwsu.headless.api.dto.block.*;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.api.vo.AssistantMsg;
@@ -56,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
-    private final Session session;
+    private final AgentStateStore agentStateStore;
 
     private final HeadlessBrowserManager headlessBrowserManager;
 
@@ -90,7 +91,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
         return headlessGraph.stream(Map.of(
                         HeadlessConstants.Headless.GRAPH_PARAM_QUERY, query,
-                        HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, new SubjectInfo(config.getSign()  , userId),
+                        HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, new SubjectInfo(config.getSign(), userId),
                         HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, Optional.ofNullable(config.getThreadId()).orElse("")
                 ))
                 .filter(nodeOutput -> nodeOutput instanceof StreamingOutput<?>)
@@ -132,10 +133,10 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
     public CompiledGraph buildGraph() throws GraphStateException {
 
-        IntentRecognitionNode intentRecognitionNode = new IntentRecognitionNode(session, headlessBrowserManager);
-        SendChatNode sendChatNode = new SendChatNode(session, headlessBrowserManager);
-        SendAnswerNode sendAnswerNode = new SendAnswerNode(session, headlessBrowserManager);
-        SendApprovalNode sendApprovalNode = new SendApprovalNode(session, headlessBrowserManager);
+        IntentRecognitionNode intentRecognitionNode = new IntentRecognitionNode(agentStateStore, headlessBrowserManager);
+        SendChatNode sendChatNode = new SendChatNode(agentStateStore, headlessBrowserManager);
+        SendAnswerNode sendAnswerNode = new SendAnswerNode(agentStateStore, headlessBrowserManager);
+        SendApprovalNode sendApprovalNode = new SendApprovalNode(agentStateStore, headlessBrowserManager);
 
         KeyStrategyFactory keyStrategyFactory = () -> {
             Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();

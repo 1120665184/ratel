@@ -30,6 +30,10 @@ public interface AIConstants {
     interface Param {
         String THREAD_ID = "threadId";
         String EMITTER_WRAPPER = "servletHeaders";
+        String FORWARDED_PROPS_KEY =  "forwardedProps";
+
+        String FORWARDED_PROPS_OPERATION_MODE_KEY = "operationMode";
+        String FORWARDED_PROPS_CURRENT_PATH_KEY = "currentPath";
 
     }
 

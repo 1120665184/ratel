@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.agentscope.core.agui.processor;
+package org.quyq.gwsu.common.ai.agui.processor;
 
 import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.adapter.AguiAdapterConfig;
-import io.agentscope.core.agui.adapter.AguiAgentAdapter;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.AguiMessage;
 import io.agentscope.core.agui.model.RunAgentInput;
+import io.agentscope.core.agui.processor.AgentResolver;
+import org.quyq.gwsu.common.ai.agui.adapter.AguiAgentAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -86,7 +88,11 @@ public class AguiRequestProcessor {
      * @param pathAgentId   The agent ID from URL path variable (may be null)
      * @return A ProcessResult containing the agent and event stream
      */
-    public ProcessResult process(RunAgentInput input, String headerAgentId, String pathAgentId , String userId) {
+    public ProcessResult process(
+            RunAgentInput input,
+            String headerAgentId,
+            String pathAgentId,
+            RuntimeContext runtimeContext) {
         String threadId = input.getThreadId();
 
         // Resolve agent ID
@@ -96,17 +102,11 @@ public class AguiRequestProcessor {
         Agent agent = agentResolver.resolveAgent(agentId, threadId);
 
         // Determine effective input based on server-side memory
-        RunAgentInput effectiveInput = input;
-        if (agentResolver.hasMemory(threadId)) {
-            logger.debug(
-                    "Using server-side memory for thread {}, extracting latest user message",
-                    threadId);
-            effectiveInput = extractLatestUserMessage(input);
-        }
+        RunAgentInput effectiveInput = extractLatestUserMessage(input);
 
         // Create adapter and run
         AguiAgentAdapter adapter = new AguiAgentAdapter(agent, config);
-        Flux<AguiEvent> events = adapter.run(effectiveInput , userId);
+        Flux<AguiEvent> events = adapter.run(effectiveInput, runtimeContext);
 
         return new ProcessResult(agent, events);
     }
@@ -120,6 +120,10 @@ public class AguiRequestProcessor {
     public void interrupt(String agentId, String threadId) {
         Agent agent = agentResolver.resolveAgent(agentId, threadId);
         agent.interrupt();
+    }
+
+    public Agent resolveAgent(String agentId, String threadId) {
+        return agentResolver.resolveAgent(agentId, threadId);
     }
 
     /**

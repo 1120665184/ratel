@@ -8,6 +8,8 @@ import org.quyq.gwsu.common.ai.loop.ApprovalStage;
  * @description 人工审批提示信息
  */
 public record ApprovalTips(
+
+        String callId,
         /**
          * 工具名
          */

@@ -1,17 +1,14 @@
 package org.quyq.gwsu.common.ai.agui;
 
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.AguiException;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.agui.model.RunAgentInput;
-import io.agentscope.core.agui.processor.AguiRequestProcessor;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.message.MsgRole;
-import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import lombok.*;
@@ -19,14 +16,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
-import org.quyq.gwsu.common.ai.loop.ApprovalStage;
-import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
+import org.quyq.gwsu.common.ai.loop.AgentApprovalResolver;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
-import org.quyq.gwsu.common.ai.session.CommonSessionKey;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.accessor.HeadersContextThreadLocalAccessor;
 import org.quyq.gwsu.common.core.domain.R;
@@ -75,15 +71,13 @@ public abstract class AguiController implements DisposableBean {
 
     private final static EmitterWrapperManager CURR_EMITTER = new EmitterWrapperManager();
 
-    private final Gson gson = new Gson();
-
     private RedisMessageListenerContainer listenerContainer = null;
 
     private final List<AguiEventPusher> pushers = new ArrayList<>();
 
 
     @Setter
-    private Session agentSession;
+    private AgentStateStore agentStateStore;
 
 
     public static AIRunnerInstanceWrapper getCurrEmitter(String threadId) {
@@ -153,62 +147,28 @@ public abstract class AguiController implements DisposableBean {
      * @return 审批状态信息
      */
     public R<HumanApprovalInfo> handleApprovalStatus(String threadId) {
-        if (agentSession == null) {
+        if (agentStateStore == null) {
             return R.ok(new HumanApprovalInfo(null, null, null));
         }
 
-        try {
+        try (ReActAgent agent = ReActAgent.builder()
+                .stateStore(agentStateStore)
+                .build()) {
             String userId = getCurrUserId();
-            CommonSessionKey sessionKey = CommonSessionKey.of(threadId, userId);
 
-            // 从 Session 中直接加载 Memory 消息，判断暂停阶段
-            List<Msg> messages = agentSession.getList(sessionKey, "memory_messages", Msg.class);
-            Msg lastResult = findLastAssistantMsg(messages);
-            if (lastResult == null) {
+
+            List<Msg> context = agent.getAgentState(userId, threadId)
+                    .getContext();
+            if (CollectionUtils.isEmpty(context)) {
                 return R.ok(new HumanApprovalInfo(null, null, null));
             }
-
-
-            if (MsgRole.ASSISTANT.equals(lastResult.getRole())
-                    && lastResult.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)) {
-                List<ToolUseBlock> contentBlocks = lastResult.getContentBlocks(ToolUseBlock.class);
-
-                List<ApprovalTips> approvalToolNames = Optional.ofNullable(
-                                lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
-                        ).map(v -> gson.fromJson(gson.toJson(v), new TypeToken<List<ApprovalTips>>() {
-                        }))
-                        .orElse(Collections.emptyList());
-
-                List<HumanApprovalInfo.ReasoningStateInfo> reasoningInfo = approvalToolNames.stream()
-                        .map(t -> {
-                            Optional<ToolUseBlock> toolUseBlock = contentBlocks.stream()
-                                    .filter(c -> c.getName().equals(t.toolName()))
-                                    .findFirst();
-                            return new HumanApprovalInfo.ReasoningStateInfo(t.tip(), toolUseBlock.orElse(null));
-                        })
-                        .toList();
-
-                return R.ok(new HumanApprovalInfo(ApprovalStage.POST_REASONING, reasoningInfo, null));
-            } else if (MsgRole.TOOL.equals(lastResult.getRole())
-                    && lastResult.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)) {
-                List<ToolResultBlock> contentBlocks = lastResult.getContentBlocks(ToolResultBlock.class);
-
-                List<ApprovalTips> approvalToolNames = Optional.ofNullable(
-                                lastResult.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY)
-                        ).map(v -> gson.fromJson(gson.toJson(v), new TypeToken<List<ApprovalTips>>() {
-                        }))
-                        .orElse(Collections.emptyList());
-
-                return approvalToolNames.stream()
-                        .map(t -> {
-                            Optional<ToolResultBlock> resultBlock = contentBlocks.stream()
-                                    .filter(c -> c.getName().equals(t.toolName()))
-                                    .findFirst();
-                            return new HumanApprovalInfo.ActingStageInfo(t.tip(), resultBlock.orElse(null));
-                        })
-                        .findFirst()
-                        .map(stageInfo -> R.ok(new HumanApprovalInfo(ApprovalStage.POST_ACTING, null, stageInfo)))
-                        .orElse(R.ok(new HumanApprovalInfo(null, null, null)));
+            Msg lastMsg = findLastAssistantMsg(context);
+            if (lastMsg != null) {
+                HumanApprovalInfo approvalInfo = AgentApprovalResolver.buildReasoningApprovalInfo(
+                        lastMsg.getContentBlocks(ToolUseBlock.class));
+                if (approvalInfo != null) {
+                    return R.ok(approvalInfo);
+                }
             }
 
             return R.ok(new HumanApprovalInfo(null, null, null));
@@ -225,7 +185,13 @@ public abstract class AguiController implements DisposableBean {
         if (messages == null || messages.isEmpty()) {
             return null;
         }
-        return messages.getLast();
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            Msg msg = messages.get(i);
+            if (msg.getRole() == io.agentscope.core.message.MsgRole.ASSISTANT) {
+                return msg;
+            }
+        }
+        return null;
     }
 
     /**
@@ -333,6 +299,7 @@ public abstract class AguiController implements DisposableBean {
         String runId = input.getRunId();
         String userId = getCurrUserId();
 
+
         // 在Servlet线程上提前捕获headers，避免进入虚拟线程后
         // processor.process()内部的enableAutomaticContextPropagation清除ThreadLocal
         Map<String, String> capturedHeaders = ServletUtils.LOCAL_HEADERS.get();
@@ -340,6 +307,8 @@ public abstract class AguiController implements DisposableBean {
         Observation observation = ObservationThreadLocalAccessor.getInstance().getValue();
 
         AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter, isHeadless(), pushers);
+        RuntimeContext runtimeContext =
+                buildRuntimeContext(threadId, userId, input.getForwardedProps() ,wrapper);
         executorService.submit(
                 () -> {
                     Disposable subscription;
@@ -347,7 +316,7 @@ public abstract class AguiController implements DisposableBean {
 
                         // Process request - returns both agent and event stream
                         AguiRequestProcessor.ProcessResult result =
-                                processor.process(input, headerAgentId, pathAgentId, userId);
+                                processor.process(input, headerAgentId, pathAgentId, runtimeContext);
                         CURR_EMITTER.put(threadId, wrapper);
                         // Set up callbacks for client disconnect handling
                         emitter.onCompletion(
@@ -407,12 +376,24 @@ public abstract class AguiController implements DisposableBean {
                         log.error("Agent not found: {}", e.getMessage());
                         sendErrorAndComplete(wrapper, e.getMessage());
                     } catch (Exception e) {
-                        log.error("Error processing AG-UI request: {}", e.getMessage());
+                        log.error("Error processing AG-UI request: {}", e);
                         sendErrorAndComplete(wrapper, e.getMessage());
                     }
                 });
 
         return emitter;
+    }
+
+    static RuntimeContext buildRuntimeContext(
+            String threadId, String userId, Map<String, Object> forwardedProps , AIRunnerInstanceWrapper wrapper) {
+        RuntimeContext.Builder builder = RuntimeContext.builder()
+                .sessionId(threadId)
+                .userId(userId);
+        if (!CollectionUtils.isEmpty(forwardedProps)) {
+            builder.put(AIConstants.Param.FORWARDED_PROPS_KEY, forwardedProps);
+        }
+        builder.put(AIRunnerInstanceWrapper.class , wrapper);
+        return builder.build();
     }
 
     /**

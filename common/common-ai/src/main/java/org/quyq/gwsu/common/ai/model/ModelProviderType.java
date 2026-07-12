@@ -15,7 +15,12 @@
  */
 package org.quyq.gwsu.common.ai.model;
 
-import io.agentscope.core.model.*;
+import io.agentscope.core.model.GenerateOptions;
+import io.agentscope.core.model.Model;
+import io.agentscope.extensions.model.anthropic.AnthropicChatModel;
+import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
+import io.agentscope.extensions.model.gemini.GeminiChatModel;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import org.quyq.gwsu.common.ai.AgentException;
 import org.quyq.gwsu.common.ai.config.properties.AssistantConfigDTO;
 import org.springframework.util.StringUtils;

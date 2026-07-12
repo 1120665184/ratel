@@ -139,6 +139,12 @@ public interface CoreConstants {
 
     }
 
+    interface Agent {
+
+        String BRAIN_AGENT_NAME = "CentralBrain";
+
+    }
+
 
     @Getter
     enum Code {

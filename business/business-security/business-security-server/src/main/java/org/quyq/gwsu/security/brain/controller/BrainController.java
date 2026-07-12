@@ -3,7 +3,7 @@ package org.quyq.gwsu.security.brain.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.agentscope.core.agui.model.AguiMessage;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -51,8 +51,8 @@ public class BrainController implements DisposableBean {
     private final SecurityUtils securityUtils;
 
 
-    public BrainController(IBrainService brainService , CacheUtils cacheUtils , ObjectMapper mapper, Session agentSession, SecurityUtils securityUtils,
-            SessionUtils sessionUtils,
+    public BrainController(IBrainService brainService , CacheUtils cacheUtils , ObjectMapper mapper, AgentStateStore agentStateStore, SecurityUtils securityUtils,
+                           SessionUtils sessionUtils,
                            IBrainHistoryService brainHistoryService, WebToolUtils webToolUtils) {
         this.brainHistoryService = brainHistoryService;
         this.securityUtils = securityUtils;
@@ -64,7 +64,7 @@ public class BrainController implements DisposableBean {
             }
         };
 
-        this.aguiController.setAgentSession(agentSession);
+        this.aguiController.setAgentStateStore(agentStateStore);
         this.aguiController.addPusher(new AguiEventRedisPusher(cacheUtils , mapper));
 
     }

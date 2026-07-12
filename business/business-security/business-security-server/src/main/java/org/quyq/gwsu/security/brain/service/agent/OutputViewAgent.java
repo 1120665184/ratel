@@ -2,21 +2,23 @@ package org.quyq.gwsu.security.brain.service.agent;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
-import io.agentscope.core.memory.Memory;
-import io.agentscope.core.session.Session;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.SkillBox;
 import io.agentscope.core.skill.repository.ClasspathSkillRepository;
+import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.subagent.SubAgentConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.AgentException;
 import org.quyq.gwsu.common.ai.model.ModelProvider;
+import org.quyq.gwsu.common.ai.skill.InMemoryAgentSkillRepository;
+import org.quyq.gwsu.security.brain.service.middleware.OutputViewEventHandlerMiddleware;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * 视图输出智能体
@@ -32,17 +34,15 @@ public class OutputViewAgent {
 
     private static final String SKILL_RESOURCE_PATH = "skills";
 
-    private final ObjectProvider<Memory> memoryProvider;
 
     private final ObjectProvider<Toolkit> toolkitProvider;
 
-    private final Session agentSession;
+    private final AgentStateStore agentStateStore;
 
     /**
      * 构建视图输出智能体
      */
     public Agent build() {
-        Memory memory = memoryProvider.getIfAvailable();
         Toolkit toolkit = toolkitProvider.getIfAvailable(Toolkit::new);
 
         // 构建技能盒子
@@ -51,10 +51,14 @@ public class OutputViewAgent {
         return ReActAgent.builder()
                 .name(AGENT_NAME)
                 .sysPrompt(buildSystemPrompt())
-                .memory(memory)
+                .stateStore(agentStateStore)
+                .middlewares(List.of(new OutputViewEventHandlerMiddleware()))
                 .model(ModelProvider.generateModel())
                 .toolkit(toolkit)
-                .skillBox(skillBox)
+                .skillRepository(new InMemoryAgentSkillRepository(
+                        AGENT_NAME,
+                        skillBox.getAllSkillIds().stream().map(skillBox::getSkill).toList(),
+                        false))
                 .build();
     }
 
@@ -183,7 +187,6 @@ public class OutputViewAgent {
                         注意：调用此工具后，内容已直接在可视化面板中展示给用户，你不需要再以文字形式重复输出相同信息。
                         ⚠️ 覆盖机制：每次调用本工具会整体替换前一次的展示内容，而非追加。因此在同一轮对话中，禁止对本工具发起多次调用；正确的做法是将所有需要展示的数据汇集后，一次性调用本工具完整输出，包括想要展示多项内容。
                         """)
-                .session(agentSession)
                 .forwardEvents(true)
                 .build();
     }

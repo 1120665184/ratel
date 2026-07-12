@@ -1,20 +1,19 @@
 package org.quyq.gwsu.headless.graph;
 
 
-import com.alibaba.cloud.ai.agent.agentscope.AgentScopeMessageUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ThinkingBlock;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
-import org.quyq.gwsu.common.ai.session.CommonSessionKey;
+import org.quyq.gwsu.common.ai.utils.AgentScopeMessageUtils;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
@@ -49,7 +48,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
     private final String userId;
 
-    private final Session session;
+    private final AgentStateStore agentStateStore;
 
     private HeadlessAgentStatus status = HeadlessAgentStatus.INITING;
 
@@ -124,7 +123,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
         sink.tryEmitNext(getContent(sp, upload));
 
         //记录图记忆
-        session.save(CommonSessionKey.of(threadId, userId), IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
+        agentStateStore.save(userId, threadId, IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
 
 
     }
@@ -154,7 +153,7 @@ public class HeadlessMessageHandler implements HeadlessAgentListener {
 
         sink.tryEmitNext(getContent(msg, null));
         //记录图记忆
-        session.save(CommonSessionKey.of(threadId, userId), IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
+        agentStateStore.save(userId, threadId, IntentRecognitionNode.HEADLESS_RECOGNITION_NODE_KEY, List.of(msg));
 
     }
 

@@ -2,6 +2,7 @@ import { Button, Input } from 'antd';
 import { SafetyCertificateOutlined, CheckOutlined, CloseOutlined, SendOutlined } from '@ant-design/icons';
 import { useState, useEffect, useCallback } from 'react';
 import { useAgent } from '@copilotkit/react-core/v2';
+import { useCopilotKit } from '@copilotkit/react-core/v2';
 import { onHumanApproval, clearHumanApproval } from '@/services/human-approval';
 import type { HumanApprovalPayload, ApprovalResultType } from '@/services/human-approval';
 import styles from './HumanApprovalBar.module.less';
@@ -20,6 +21,7 @@ export function HumanApprovalBar() {
   const [rejectReason, setRejectReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { agent } = useAgent({ agentId: 'brain' });
+  const { copilotkit } = useCopilotKit();
 
   // 监听审批事件（payload 为 null 时清除审批状态）
   useEffect(() => {
@@ -62,7 +64,7 @@ export function HumanApprovalBar() {
       setRejectReason('');
 
       // 触发 agent 继续运行
-      await agent.runAgent();
+      await copilotkit.runAgent({ agent });
 
       // 从 agent 消息列表中移除 approval 消息，避免下次请求时带上
       const currentMessages = agent.messages || [];
@@ -77,7 +79,7 @@ export function HumanApprovalBar() {
     } finally {
       setSubmitting(false);
     }
-  }, [approvalPayload, agent]);
+  }, [approvalPayload, agent, copilotkit]);
 
   // 点击批准
   const handleApprove = useCallback(() => {

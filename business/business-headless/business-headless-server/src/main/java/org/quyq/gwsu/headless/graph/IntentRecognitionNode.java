@@ -1,21 +1,24 @@
 package org.quyq.gwsu.headless.graph;
 
 
-import com.alibaba.cloud.ai.agent.agentscope.AgentScopeMessageUtils;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.google.gson.Gson;
 import io.agentscope.core.ReActAgent;
-import io.agentscope.core.memory.InMemoryMemory;
-import io.agentscope.core.memory.Memory;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.message.GenerateReason;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentState;
+import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
+import org.quyq.gwsu.common.ai.loop.AgentApprovalResolver;
+import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.ai.model.ModelProvider;
-import org.quyq.gwsu.common.ai.session.CommonSessionKey;
+import org.quyq.gwsu.common.ai.utils.AgentScopeMessageUtils;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
@@ -24,7 +27,6 @@ import org.quyq.gwsu.headless.core.session.HeadlessAccessSession;
 import org.quyq.gwsu.headless.domain.RouterInfo;
 import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.enums.GraphRouteType;
-import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -32,9 +34,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
-import java.awt.*;
 import java.util.*;
-import java.util.List;
 
 /**
  * @author Quyq
@@ -44,7 +44,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class IntentRecognitionNode implements NodeAction {
 
-    private final Session session;
+    private final AgentStateStore agentStateStore;
 
     private final HeadlessBrowserManager headlessBrowserManager;
 
@@ -70,15 +70,8 @@ public class IntentRecognitionNode implements NodeAction {
         }
 
 
-        ReActAgent agent = buildAgent();
+        List<Msg> messages = loadBrainMessages(threadId, userId.userId());
 
-        InMemoryMemory memory = new InMemoryMemory();
-        //加载历史记忆
-        if (StringUtils.hasText(threadId)) {
-            memory.loadIfExists(session, CommonSessionKey.of(threadId, userId.userId()));
-        }
-
-        List<Msg> messages = memory.getMessages();
 
         //没有历史消息直接下一步(首次必定是普通chat分支)
         if (CollectionUtils.isEmpty(messages)) {
@@ -90,8 +83,8 @@ public class IntentRecognitionNode implements NodeAction {
         }
 
         Msg newMsg = messages.getLast();
-        //判断是否为审批
-        boolean isApproval = newMsg.getMetadata().containsKey(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY);
+        boolean isApproval = newMsg.getGenerateReason() == GenerateReason.PERMISSION_ASKING;
+
 
         //判断是否为回复AI内容
         boolean isAnswer = newMsg.getRole() == MsgRole.ASSISTANT && newMsg.getContent().stream()
@@ -105,9 +98,13 @@ public class IntentRecognitionNode implements NodeAction {
                 ## 用户回复内容：
                 %s
                 """;
+        RouterInfo routerInfo;
 
         if (isApproval) {
-            systemContent = "用户消息属于审批回复\n审批提醒内容元数据：" + gson.toJson(newMsg.getMetadata().get(AIConstants.MSG_METADATA_APPROVAL_TOOLS_KEY));
+            HumanApprovalInfo approvalInfo = AgentApprovalResolver.buildReasoningApprovalInfo(
+                    newMsg.getContentBlocks(ToolUseBlock.class));
+            systemContent = "用户消息属于审批回复\n待审批上下文元数据：" + gson.toJson(approvalInfo)
+                    + "\n优先规则：如果用户消息里已经带有结构化 approval_result 内容块，则必须直接按结构化结果路由，不要再做自然语言推断。";
 
         } else if (isAnswer) {
             ToolUseBlock toolUseBlock = newMsg.getContent().stream()
@@ -123,41 +120,45 @@ public class IntentRecognitionNode implements NodeAction {
         }
 
         //追加节点会话历史消息
-        CommonSessionKey sessionKey = CommonSessionKey.of(threadId, userId.userId());
         List<Msg> nodeHistory = new ArrayList<>();
         if (StringUtils.hasText(threadId)) {
-            nodeHistory = session.getList(sessionKey, HEADLESS_RECOGNITION_NODE_KEY, Msg.class);
-            if (!CollectionUtils.isEmpty(nodeHistory)) {
-                Memory agentMemory = agent.getMemory();
-                nodeHistory.forEach(agentMemory::addMessage);
-            }
+            nodeHistory = agentStateStore.getList(userId.userId(), threadId, HEADLESS_RECOGNITION_NODE_KEY, Msg.class);
         }
 
-        RouterInfo routerInfo;
         int retryCount = 0;
         PropertiesCheckResult checkR = null;
-        do {
+        try (ReActAgent agent = buildAgent()) {
+            do {
 
-            if(retryCount > 0){
-                systemContent += """
-                        \n**注意：** 解析的路由信息数据缺失，重新解析，上次解析的错误信息如下：
-                        %s
-                        """.formatted(checkR.errInfo);
-            }
+                if (retryCount > 0) {
+                    systemContent += """
+                            \n**注意：** 解析的路由信息数据缺失，重新解析，上次解析的错误信息如下：
+                            %s
+                            """.formatted(checkR.errInfo);
+                }
 
-            routerInfo = Optional.ofNullable(
-                            agent.call(Msg.builder()
-                                            .role(MsgRole.USER)
-                                            .textContent(userTemplate.formatted(systemContent, query))
-                                            .build(), RouterInfo.class)
-                                    .block()
-                    ).map(r -> r.getStructuredData(RouterInfo.class))
-                    .orElseThrow();
+                List<Msg> requestMessages = new ArrayList<>(nodeHistory);
+                requestMessages.add(Msg.builder()
+                        .role(MsgRole.USER)
+                        .textContent(userTemplate.formatted(systemContent, query))
+                        .build());
 
-            checkR = propertiesCheck(routerInfo);
-        }while (!checkR.pass && retryCount++ < ROUTE_RECOGNIZE);
+                routerInfo = Optional.ofNullable(
+                                agent.call(requestMessages, RouterInfo.class, RuntimeContext.builder()
+                                                .sessionId(threadId)
+                                                .userId(userId.userId())
+                                                .build())
+                                        .block()
+                        ).map(r -> r.getStructuredData(RouterInfo.class))
+                        .orElseThrow();
 
-        if(!checkR.pass){
+                checkR = propertiesCheck(routerInfo);
+            } while (!checkR.pass && retryCount++ < ROUTE_RECOGNIZE);
+
+        }
+
+
+        if (!checkR.pass) {
             throw new BusinessException("路由解析错误，错误信息：%s".formatted(checkR.errInfo));
         }
 
@@ -177,7 +178,7 @@ public class IntentRecognitionNode implements NodeAction {
                     .build();
 
             nodeHistory.add(assistantMsg);
-            session.save(sessionKey, HEADLESS_RECOGNITION_NODE_KEY, nodeHistory);
+            agentStateStore.save(userId.userId(), threadId, HEADLESS_RECOGNITION_NODE_KEY, nodeHistory);
 
             Flux<ChatResponse> output = Flux.just(getContent(assistantMsg));
 
@@ -185,13 +186,13 @@ public class IntentRecognitionNode implements NodeAction {
             return Map.of(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId,
                     HeadlessConstants.Headless.GRAPH_PARAM_OUTPUT, output,
                     HeadlessConstants.Headless.GRAPH_PARAM_ROUTE_INFO, routerInfo);
-        }else if(type == GraphRouteType.ANSWER && StringUtils.hasText(toolCallId)){
+        } else if (type == GraphRouteType.ANSWER && StringUtils.hasText(toolCallId)) {
             routerInfo.setToolCallId(toolCallId);
         }
 
 
         //清除节点会话
-        session.delete(sessionKey, HEADLESS_RECOGNITION_NODE_KEY);
+        agentStateStore.delete(userId.userId(), threadId, HEADLESS_RECOGNITION_NODE_KEY);
 
         return Map.of(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId,
                 HeadlessConstants.Headless.GRAPH_PARAM_ROUTE_INFO, routerInfo);
@@ -199,31 +200,32 @@ public class IntentRecognitionNode implements NodeAction {
 
 
     private PropertiesCheckResult propertiesCheck(RouterInfo type) {
-        if(GraphRouteType.CHAT == type.getType()){
-            return new PropertiesCheckResult(true , null);
-        }else if(GraphRouteType.ANSWER == type.getType()){
-            if(Objects.isNull(type.getAnswerInfo())){
-                return new PropertiesCheckResult(false , "判断出的路由信息为：ANSWER , 但是 `answerInfo`属性 为NULL");
-            }else if(!StringUtils.hasText(type.getToolCallId())){
-                return new PropertiesCheckResult(false , "判断出的路由信息为：ANSWER , 但是 `toolCallId` 为NULL");
+        if (GraphRouteType.CHAT == type.getType()) {
+            return new PropertiesCheckResult(true, null);
+        } else if (GraphRouteType.ANSWER == type.getType()) {
+            if (Objects.isNull(type.getAnswerInfo())) {
+                return new PropertiesCheckResult(false, "判断出的路由信息为：ANSWER , 但是 `answerInfo`属性 为NULL");
+            } else if (!StringUtils.hasText(type.getToolCallId())) {
+                return new PropertiesCheckResult(false, "判断出的路由信息为：ANSWER , 但是 `toolCallId` 为NULL");
             }
-        }else if (GraphRouteType.APPROVAL == type.getType()){
-            if(Objects.isNull(type.getApprovalInfo())){
-                return new PropertiesCheckResult(false , "判断出的路由信息为：APPROVAL , 但是 `approvalInfo`属性 为NULL");
+        } else if (GraphRouteType.APPROVAL == type.getType()) {
+            if (Objects.isNull(type.getApprovalInfo())) {
+                return new PropertiesCheckResult(false, "判断出的路由信息为：APPROVAL , 但是 `approvalInfo`属性 为NULL");
             }
-        }else if (GraphRouteType.UNKNOWN == type.getType()){
-            if(Objects.isNull(type.getUnknownReply())){
-                return new PropertiesCheckResult(false , "判断出的路由信息为：UNKNOWN , 但是 `unknownReply`属性 为NULL");
+        } else if (GraphRouteType.UNKNOWN == type.getType()) {
+            if (Objects.isNull(type.getUnknownReply())) {
+                return new PropertiesCheckResult(false, "判断出的路由信息为：UNKNOWN , 但是 `unknownReply`属性 为NULL");
             }
-        }else if (Objects.isNull(type.getType())){
-            return new PropertiesCheckResult(false , "没有正确解析出路由类型");
+        } else if (Objects.isNull(type.getType())) {
+            return new PropertiesCheckResult(false, "没有正确解析出路由类型");
         }
 
-        return new PropertiesCheckResult(true , null);
+        return new PropertiesCheckResult(true, null);
 
     }
 
-    record PropertiesCheckResult(boolean pass , String errInfo){}
+    record PropertiesCheckResult(boolean pass, String errInfo) {
+    }
 
 
     private ReActAgent buildAgent() {
@@ -232,16 +234,30 @@ public class IntentRecognitionNode implements NodeAction {
                 .name("intentRecognitionAgent")
                 .sysPrompt(sysPrompt())
                 .model(ModelProvider.generateModel())
-                .memory(new InMemoryMemory())
                 .build();
 
+    }
+
+    private List<Msg> loadBrainMessages(String threadId, String userId) {
+        if (!StringUtils.hasText(threadId)) {
+            return Collections.emptyList();
+        }
+        AgentState agentState = AgentApprovalResolver.resolveAgentState(
+                agentStateStore,
+                CoreConstants.Agent.BRAIN_AGENT_NAME,
+                threadId,
+                userId);
+        if (agentState == null || CollectionUtils.isEmpty(agentState.getContext())) {
+            return Collections.emptyList();
+        }
+        return agentState.getContext();
     }
 
 
     private ChatResponse getContent(Msg msg) {
 
         AssistantMessage message = AgentScopeMessageUtils.toAssistantMessage(msg);
-        message.getMetadata().put("status" , HeadlessAgentStatus.COMPLETE);
+        message.getMetadata().put("status", HeadlessAgentStatus.COMPLETE);
         return new ChatResponse(List.of(new Generation(message)));
     }
 
@@ -310,7 +326,7 @@ public class IntentRecognitionNode implements NodeAction {
                 - **注意**：
                     - 即使某个问题的答案不在选项中，只要用户明确给出了答案，都应视为有效回答，不应触发 `UNKNOWN`。
                     - 若 system 中未提供问题列表或 `toolCallId`，则尝试从历史会话中提取；若仍缺失，可在 `unknownReply` 中说明“未检测到待回答问题，请重新表述”。                
-                                
+                
                 ### 4. 其他情况
                 - 若 `<system>` 内容既不是“无”也不含上述关键词，则按“无”处理，归为 `CHAT`。
                 
@@ -492,7 +508,7 @@ public class IntentRecognitionNode implements NodeAction {
                 }
                 ```
                 
-                """.replace("{askUserQuestion}", AIConstants.ToolName.ASK_USER_QUESTION);
+                """;
     }
 
 

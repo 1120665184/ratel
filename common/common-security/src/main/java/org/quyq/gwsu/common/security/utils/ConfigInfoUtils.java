@@ -26,7 +26,7 @@ public class ConfigInfoUtils {
     }
 
 
-    private static ObjectMapper objectMapper;
+    private static ObjectMapper objectMapper = SpringUtils.getBean(ObjectMapper.class);
 
 
     public static String get(String key) {

@@ -1,14 +1,13 @@
 package org.quyq.gwsu.headless.core.parser;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.microsoft.playwright.Response;
 import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.event.AguiEventType;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * SSE 事件解析器
@@ -22,103 +21,39 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HeadlessSseEventParser {
 
-    private final Gson gson = new Gson();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 解析单个 SSE 事件 JSON 为 AguiEvent 子类型
-     * 根据 JSON 中的 type 字段路由到对应的 AguiEvent record 构造
+     * 依赖 AguiEvent 上的 Jackson 多态注解自动根据 type 反序列化
      */
     public AguiEvent parseEvent(String eventJson) {
-        Map<String, Object> raw;
         try {
-            raw = gson.fromJson(eventJson, new TypeToken<Map<String, Object>>() {});
+            return objectMapper.readValue(eventJson, AguiEvent.class);
+        } catch (InvalidTypeIdException e) {
+            try {
+                Map<String, Object> raw = objectMapper.readValue(
+                        eventJson,
+                        new TypeReference<Map<String, Object>>() {
+                        });
+                if (raw == null) {
+                    return null;
+                }
+
+                // 未知事件类型时退化为 Raw，避免上层因协议扩展而立即失效
+                return new AguiEvent.Raw(
+                        str(raw, "threadId"),
+                        str(raw, "runId"),
+                        raw
+                );
+            } catch (Exception ex) {
+                log.warn("SSE 未知事件兜底解析失败: {}", ex.getMessage());
+                return null;
+            }
         } catch (Exception e) {
             log.warn("SSE 事件 JSON 解析失败: {}", e.getMessage());
             return null;
         }
-        if (raw == null) return null;
-
-        String typeStr = (String) raw.getOrDefault("type", "");
-        AguiEventType type;
-        try {
-            type = AguiEventType.valueOf(typeStr);
-        } catch (IllegalArgumentException e) {
-            // 未知类型，返回 Raw
-            return new AguiEvent.Raw(
-                    str(raw, "threadId"),
-                    str(raw, "runId"),
-                    raw
-            );
-        }
-
-        String threadId = str(raw, "threadId");
-        String runId = str(raw, "runId");
-
-        return switch (type) {
-            case RUN_STARTED -> new AguiEvent.RunStarted(threadId, runId);
-            case RUN_FINISHED -> new AguiEvent.RunFinished(threadId, runId);
-            case TEXT_MESSAGE_START -> new AguiEvent.TextMessageStart(
-                    threadId, runId,
-                    str(raw, "messageId"),
-                    str(raw, "role"));
-            case TEXT_MESSAGE_CONTENT -> new AguiEvent.TextMessageContent(
-                    threadId, runId,
-                    str(raw, "messageId"),
-                    str(raw, "delta"));
-            case TEXT_MESSAGE_END -> new AguiEvent.TextMessageEnd(
-                    threadId, runId,
-                    str(raw, "messageId"));
-            case TOOL_CALL_START -> new AguiEvent.ToolCallStart(
-                    threadId, runId,
-                    str(raw, "toolCallId"),
-                    str(raw, "toolCallName"));
-            case TOOL_CALL_ARGS -> new AguiEvent.ToolCallArgs(
-                    threadId, runId,
-                    str(raw, "toolCallId"),
-                    str(raw, "delta"));
-            case TOOL_CALL_END -> new AguiEvent.ToolCallEnd(
-                    threadId, runId,
-                    str(raw, "toolCallId"));
-            case TOOL_CALL_RESULT -> new AguiEvent.ToolCallResult(
-                    threadId, runId,
-                    str(raw, "toolCallId"),
-                    str(raw, "content"),
-                    str(raw, "role"),
-                    str(raw, "messageId"));
-            case CUSTOM -> new AguiEvent.Custom(
-                    threadId, runId,
-                    str(raw, "name"),
-                    raw.get("value"));
-            case STATE_SNAPSHOT -> new AguiEvent.StateSnapshot(
-                    threadId, runId,
-                    mapVal(raw, "snapshot"));
-            case STATE_DELTA -> new AguiEvent.StateDelta(
-                    threadId, runId,
-                    parseJsonPatchOperations(raw));
-            case REASONING_START -> new AguiEvent.ReasoningStart(
-                    threadId, runId,
-                    str(raw, "messageId"),
-                    str(raw, "encryptedContent"));
-            case REASONING_MESSAGE_START -> new AguiEvent.ReasoningMessageStart(
-                    threadId, runId,
-                    str(raw, "messageId"),
-                    str(raw, "role"));
-            case REASONING_MESSAGE_CONTENT -> new AguiEvent.ReasoningMessageContent(
-                    threadId, runId,
-                    str(raw, "messageId"),
-                    str(raw, "delta"));
-            case REASONING_MESSAGE_END -> new AguiEvent.ReasoningMessageEnd(
-                    threadId, runId,
-                    str(raw, "messageId"));
-            case REASONING_MESSAGE_CHUNK -> new AguiEvent.ReasoningMessageChunk(
-                    threadId, runId,
-                    str(raw, "messageId"),
-                    str(raw, "delta"));
-            case REASONING_END -> new AguiEvent.ReasoningEnd(
-                    threadId, runId,
-                    str(raw, "messageId"));
-            case RAW -> new AguiEvent.Raw(threadId, runId, raw);
-        };
     }
 
     /**
@@ -129,38 +64,8 @@ public class HeadlessSseEventParser {
         return contentType != null && contentType.contains("text/event-stream");
     }
 
-    /**
-     * 解析 delta 字段为 JsonPatchOperation 列表
-     */
-    @SuppressWarnings("unchecked")
-    private List<AguiEvent.JsonPatchOperation> parseJsonPatchOperations(Map<String, Object> raw) {
-        Object deltaObj = raw.get("delta");
-        if (!(deltaObj instanceof List)) return List.of();
-
-        try {
-            List<Map<String, Object>> deltaList = (List<Map<String, Object>>) deltaObj;
-            return deltaList.stream()
-                    .map(m -> new AguiEvent.JsonPatchOperation(
-                            str(m, "op"),
-                            str(m, "path"),
-                            m.get("value"),
-                            str(m, "from")))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.warn("STATE_DELTA delta 字段解析失败", e);
-            return List.of();
-        }
-    }
-
     private static String str(Map<String, Object> raw, String key) {
         Object v = raw.get(key);
         return v != null ? v.toString() : "";
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> mapVal(Map<String, Object> raw, String key) {
-        Object v = raw.get(key);
-        if (v instanceof Map) return (Map<String, Object>) v;
-        return Map.of();
     }
 }

@@ -3,23 +3,18 @@ package org.quyq.gwsu.headless.config;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
-import io.agentscope.core.session.Session;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.quyq.gwsu.common.ai.session.DatabaseSession;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.core.pool.BrowserContextPool;
 import org.quyq.gwsu.headless.core.pool.SessionCleanupTask;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
-
-import javax.sql.DataSource;
 
 @Data
 @Slf4j
@@ -93,18 +88,6 @@ public class HeadlessBrowserConfiguration {
      */
     public static final String SESSION_TABLE_NAME = "security_brain_sessions";
 
-
-    /**
-     * 智能体上下文持久化
-     *
-     * @param dataSource
-     * @return
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public Session databaseAgentSession(DataSource dataSource) {
-        return new DatabaseSession(dataSource, SESSION_TABLE_NAME);
-    }
 
     @Bean(destroyMethod = "close")
     public Playwright playwright() {

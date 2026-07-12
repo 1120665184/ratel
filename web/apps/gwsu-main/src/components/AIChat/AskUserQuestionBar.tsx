@@ -2,6 +2,7 @@ import  { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Input, Radio, Checkbox } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { useAgent } from '@copilotkit/react-core/v2';
+import { useCopilotKit } from '@copilotkit/react-core/v2';
 import { onAskUserQuestion, clearAskUserQuestion } from '@/services/ask-user-question';
 import type { AskUserQuestionPayload, AskUserQuestionAnswer, QuestionParam } from '@/services/ask-user-question';
 import styles from './AskUserQuestionBar.module.less';
@@ -19,6 +20,7 @@ export function AskUserQuestionBar() {
   const [otherInputs, setOtherInputs] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const { agent } = useAgent({ agentId: 'brain' });
+  const { copilotkit } = useCopilotKit();
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 监听 AskUserQuestion 事件
@@ -83,13 +85,13 @@ export function AskUserQuestionBar() {
       } as any);
 
       clearAskUserQuestion();
-      await agent.runAgent();
+      await copilotkit.runAgent({ agent });
     } catch (error) {
       console.error('[AskUserQuestion] 提交答案失败:', error);
     } finally {
       setSubmitting(false);
     }
-  }, [payload, answers, annotations, agent]);
+  }, [payload, answers, annotations, agent, copilotkit]);
 
   // 选中选项
   const handleSelect = useCallback((question: QuestionParam, label: string, isOther: boolean) => {

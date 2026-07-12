@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.agentscope.core.agui.converter.AguiMessageConverter;
 import io.agentscope.core.agui.model.AguiMessage;
+import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.MsgRole;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.state.AgentState;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
@@ -19,6 +23,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 大脑历史会话服务实现
@@ -49,8 +54,10 @@ public class BrainHistoryServiceImpl implements IBrainHistoryService {
 
         // 处理标题和时间显示
         for (BrainHistorySessionVo vo : records) {
-            // 从 state_data JSON 中提取第一条消息内容作为标题
-            vo.setTitle(extractTitle(vo.getTitle()));
+            AgentState agentState = parseAgentState(vo.getTitle()).orElse(null);
+            List<Msg> context = agentState != null ? agentState.getContext() : Collections.emptyList();
+            vo.setTitle(extractTitle(context));
+            vo.setMessageCount(context.size());
             // 计算时间显示
             vo.setTimeDisplay(formatTimeDisplay(vo.getUpdatedAt()));
         }
@@ -68,10 +75,12 @@ public class BrainHistoryServiceImpl implements IBrainHistoryService {
             return Collections.emptyList();
         }
 
-        return messages.stream().map(mess -> {
-            Msg msg = objectMapper.readValue(mess, Msg.class);
-            return messageConverter.toAguiMessage(msg);
-        }).toList();
+        return parseAgentState(messages.getFirst())
+                .map(AgentState::getContext)
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(messageConverter::toAguiMessage)
+                .toList();
 
     }
 
@@ -81,28 +90,54 @@ public class BrainHistoryServiceImpl implements IBrainHistoryService {
     }
 
     /**
-     * 从 state_data JSON 中提取标题
-     * state_data 格式: {"id":"xxx","role":"USER","content":[{"type":"text","text":"哈哈"}],...}
+     * 从 AgentState 上下文中提取首条用户文本作为标题。
      */
-    private String extractTitle(String stateData) {
-        if (CharSequenceUtil.isBlank(stateData)) {
+    private String extractTitle(List<Msg> context) {
+        if (CollectionUtils.isEmpty(context)) {
             return "新对话";
         }
-        try {
-            // 简单提取 content 中的 text 字段
-            int textIndex = stateData.indexOf("\"text\":\"");
-            if (textIndex > 0) {
-                int start = textIndex + 8;
-                int end = stateData.indexOf("\"", start);
-                if (end > start) {
-                    String text = stateData.substring(start, end);
-                    // 截取前50字符
-                    return text.length() > 50 ? text.substring(0, 50) + "..." : text;
-                }
+
+        for (Msg msg : context) {
+            if (msg == null || msg.getRole() != MsgRole.USER) {
+                continue;
             }
-        } catch (Exception ignored) {
+            String text = extractText(msg);
+            if (CharSequenceUtil.isNotBlank(text)) {
+                return truncateTitle(text);
+            }
         }
         return "新对话";
+    }
+
+    private Optional<AgentState> parseAgentState(String stateData) {
+        if (CharSequenceUtil.isBlank(stateData)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(objectMapper.readValue(stateData, AgentState.class));
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private String extractText(Msg msg) {
+        if (msg == null || CollectionUtils.isEmpty(msg.getContent())) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (ContentBlock contentBlock : msg.getContent()) {
+            if (contentBlock instanceof TextBlock textBlock && CharSequenceUtil.isNotBlank(textBlock.getText())) {
+                if (!builder.isEmpty()) {
+                    builder.append('\n');
+                }
+                builder.append(textBlock.getText());
+            }
+        }
+        return builder.isEmpty() ? null : builder.toString();
+    }
+
+    private String truncateTitle(String text) {
+        return text.length() > 50 ? text.substring(0, 50) + "..." : text;
     }
 
     /**
