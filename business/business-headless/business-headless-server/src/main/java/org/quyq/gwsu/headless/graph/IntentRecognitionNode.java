@@ -6,7 +6,6 @@ import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.google.gson.Gson;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.message.GenerateReason;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolUseBlock;
@@ -83,7 +82,9 @@ public class IntentRecognitionNode implements NodeAction {
         }
 
         Msg newMsg = messages.getLast();
-        boolean isApproval = newMsg.getGenerateReason() == GenerateReason.PERMISSION_ASKING;
+        HumanApprovalInfo approvalInfo = AgentApprovalResolver.buildReasoningApprovalInfo(
+                newMsg.getContentBlocks(ToolUseBlock.class));
+        boolean isApproval = approvalInfo != null;
 
 
         //判断是否为回复AI内容
@@ -101,8 +102,6 @@ public class IntentRecognitionNode implements NodeAction {
         RouterInfo routerInfo;
 
         if (isApproval) {
-            HumanApprovalInfo approvalInfo = AgentApprovalResolver.buildReasoningApprovalInfo(
-                    newMsg.getContentBlocks(ToolUseBlock.class));
             systemContent = "用户消息属于审批回复\n待审批上下文元数据：" + gson.toJson(approvalInfo)
                     + "\n优先规则：如果用户消息里已经带有结构化 approval_result 内容块，则必须直接按结构化结果路由，不要再做自然语言推断。";
 
@@ -244,7 +243,7 @@ public class IntentRecognitionNode implements NodeAction {
         }
         AgentState agentState = AgentApprovalResolver.resolveAgentState(
                 agentStateStore,
-                CoreConstants.Agent.BRAIN_AGENT_NAME,
+                "agent_state",
                 threadId,
                 userId);
         if (agentState == null || CollectionUtils.isEmpty(agentState.getContext())) {

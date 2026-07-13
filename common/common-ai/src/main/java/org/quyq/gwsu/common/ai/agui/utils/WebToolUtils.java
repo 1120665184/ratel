@@ -1,10 +1,8 @@
 package org.quyq.gwsu.common.ai.agui.utils;
 
 
-import com.google.gson.Gson;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.message.ToolResultBlock;
-import io.agentscope.core.tool.ToolEmitter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.AgentException;
@@ -19,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Web工具执行服务
@@ -31,7 +28,6 @@ import java.util.concurrent.TimeoutException;
 @RequiredArgsConstructor
 public class WebToolUtils {
 
-    public static final String WEB_TOOL_IDENTIFICATION = "NOTICE_WEB_TOOL:";
 
     /**
      * Redis key 前缀
@@ -53,16 +49,15 @@ public class WebToolUtils {
      */
     private static final long REDIS_TTL_SECONDS = 120;
 
-    private static final Gson gson = new Gson();
 
     private final CacheUtils cacheUtils;
 
     /**
      * 通知web端执行指定工具，阻塞等待前端结果后返回
      *
-     * @param wrapper 工具发射器
-     * @param toolName    工具名称
-     * @param params      工具参数
+     * @param wrapper  工具发射器
+     * @param toolName 工具名称
+     * @param params   工具参数
      * @return 工具执行结果
      */
     public ToolResultBlock webExecuteTool(AIRunnerInstanceWrapper wrapper, String toolName,
@@ -73,7 +68,7 @@ public class WebToolUtils {
     /**
      * 通知web端执行指定工具，阻塞等待前端结果后返回
      *
-     * @param wrapper    工具发射器
+     * @param wrapper        工具发射器
      * @param toolName       工具名称
      * @param params         工具参数
      * @param timeoutSeconds 超时时间（秒）
@@ -82,7 +77,7 @@ public class WebToolUtils {
     public ToolResultBlock webExecuteTool(AIRunnerInstanceWrapper wrapper, String toolName,
                                           Map<String, Object> params,
                                           long timeoutSeconds) {
-        if(Objects.isNull(wrapper)) {
+        if (Objects.isNull(wrapper)) {
             throw new RuntimeException("AI runner instance wrapper is null");
         }
         String toolCallId = UUID.randomUUID().toString();

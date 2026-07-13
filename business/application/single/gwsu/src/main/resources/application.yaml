@@ -76,3 +76,4 @@ logging:
   level:
     org.springframework.context.support: ERROR
     org.quyq: DEBUG
+    org.quyq.gwsu.kit.job: ERROR
