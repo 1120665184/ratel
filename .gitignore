@@ -65,9 +65,10 @@ yarn-error.log*
 ### other ###
 .claude/
 .trae/
+.agents/
 .superpowers/
 .worktrees/
 docs/superpowers
-.agentscope
+.agentscope/
 
 **/application-dev.yaml
