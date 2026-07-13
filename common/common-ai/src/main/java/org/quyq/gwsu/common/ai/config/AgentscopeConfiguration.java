@@ -24,7 +24,7 @@ import javax.sql.DataSource;
  */
 @AutoConfiguration
 @ConditionalOnClass(ReActAgent.class)
-public class AgentscopeConfiguraiton {
+public class AgentscopeConfiguration {
 
 
     @Bean
