@@ -3,6 +3,7 @@ package org.quyq.gwsu.system.manager.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import cn.dev33.satoken.stp.StpUtil;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
@@ -11,6 +12,8 @@ import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
+import org.quyq.gwsu.common.security.constants.SecurityConstants;
+import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.system.api.manager.dto.ChangePasswordDTO;
@@ -159,6 +162,28 @@ public class UserController {
                 .map(UserInfo::getUserId)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.E03001));
         userService.updateCurrentUserProfile(userId, dto);
+        refreshCurrentSubjectSession(userId);
         return R.ok();
+    }
+
+    private void refreshCurrentSubjectSession(String userId) {
+        securityUtils.getSubject().ifPresent(currentSubject -> {
+            SysUserDetailVO latestUser = userService.getDetailById(userId);
+            updateCurrentSubjectSession(copySubjectWithLatestUser(currentSubject, latestUser));
+        });
+    }
+
+    private Subject<UserInfo> copySubjectWithLatestUser(Subject<?> currentSubject, SysUserDetailVO latestUser) {
+        Subject<UserInfo> refreshedSubject = new Subject<>(latestUser);
+        refreshedSubject.setRoles(currentSubject.getRoles());
+        refreshedSubject.setDataScope(currentSubject.getDataScope());
+        refreshedSubject.setTerminalType(currentSubject.getTerminalType());
+        refreshedSubject.setAuthUser(currentSubject.getAuthUser());
+        return refreshedSubject;
+    }
+
+    void updateCurrentSubjectSession(Subject<?> subject) {
+        StpUtil.getSession()
+                .set(SecurityConstants.Session.SESSION_SUBJECT_INFO_KEY, subject);
     }
 }
