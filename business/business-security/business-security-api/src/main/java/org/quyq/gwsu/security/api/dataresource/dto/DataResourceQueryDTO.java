@@ -19,8 +19,11 @@ public class DataResourceQueryDTO extends BaseDTO {
     @Schema(description = "表名（模糊查询）")
     private String tableName;
 
-    @Schema(description = "库名（模糊查询）")
-    private String databaseName;
+    @Schema(description = "Catalog 名称（模糊查询）")
+    private String catalogName;
+
+    @Schema(description = "数据库/Schema 名称（模糊查询）")
+    private String schemaName;
 
     @Schema(description = "启用状态")
     private Boolean status;

@@ -3,7 +3,7 @@
 -- =============================================
 
 -- 角色初始化
-INSERT INTO security_role (id, role_name, role_code, sort, description, status, role_type, data_scope, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('1', '超级管理员', 'super_admin', 1, '拥有所有权限', 1, 1, 0, NULL, NULL, '2026-05-02 01:52:45.688324', 'admin', '2026-05-04 15:44:28.18939', 0, NULL, NULL);
+INSERT INTO security_role (id, role_name, role_code, sort, description, status, role_type, data_scope, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('1', '超级管理员', 'super_admin', 1, '拥有所有权限', 1, 1, 1, NULL, NULL, '2026-05-02 01:52:45.688324', 'admin', '2026-05-04 15:44:28.18939', 0, NULL, NULL);
 INSERT INTO security_role (id, role_name, role_code, sort, description, status, role_type, data_scope, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2', '通用角色', 'common', 1, '所有用户都拥有该角色', 1, 1, 4, NULL, NULL, '2026-05-02 01:52:45.688324', 'admin', '2026-05-26 10:24:21.803287', 0, NULL, NULL);
 
 -- 权限初始化
@@ -17,6 +17,10 @@ INSERT INTO security_abac_permission (id, tenant_id, abac_id, resource_type, act
 
 -- 角色用户关联初始化
 INSERT INTO security_role_subject (id, subject_id, role_id, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('1', '1', '1', NULL, NULL, '2026-05-01 01:16:11.414947', NULL, NULL, 0, NULL, NULL);
+
+-- 数据权限
+INSERT INTO security_data_resource (id, schema_name, table_name, description, support_self_only, self_only_field, status, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, catalog_name) VALUES ('2076622640277331968', 'public', 'sys_user_dept', NULL, 0, NULL, 1, NULL, 'admin', '2026-07-13 18:59:53.882136', 'kaifa', '2026-07-13 19:54:43.440546', 0, NULL, NULL, 'gwsu');
+INSERT INTO security_data_resource_condition (id, data_resource_id, field_name, show_null, user_resource_fields, assert_type, relationship, sort, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2076622640365412352', '2076622640277331968', 'dept_id', 1, 'deptId', 'EQ', 'AND', 1, NULL, 'kaifa', '2026-07-13 19:54:43.452626', 'kaifa', '2026-07-13 19:54:43.452626', 0, NULL, NULL);
 
 -- 系统配置初始化
 INSERT INTO security_config (id, config_key, config_name, config_value, value_type, config_type, description, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time) VALUES ('2061834119926693888', 'assistant_view_config', '助手展示配置', '{"showThinking":true,"showToolCalls":true,"showHistory":true,"enableDragMode":true}', 4, 1, 'AI 助手界面展示配置', NULL, 'admin', '2026-06-02 23:35:35.874567', 'admin', '2026-06-02 23:51:24.23065', 0, NULL, NULL);

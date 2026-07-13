@@ -1,7 +1,8 @@
 /** 数据资源配置 */
 export interface DataResourceInfo {
   id?: string;
-  databaseName?: string;
+  catalogName?: string;
+  schemaName?: string;
   tableName: string;
   description?: string;
   supportSelfOnly?: boolean;
@@ -25,7 +26,8 @@ export interface DataResourceCondition {
 /** 数据资源查询条件 */
 export interface DataResourceQuery {
   tableName?: string;
-  databaseName?: string;
+  catalogName?: string;
+  schemaName?: string;
   status?: boolean;
   pageNum?: number;
   pageSize?: number;

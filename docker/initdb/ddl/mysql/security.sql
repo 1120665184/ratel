@@ -245,7 +245,8 @@ CREATE INDEX idx_security_api_resource_tag_name ON security_api_resource (tag_na
 CREATE TABLE security_data_resource
 (
     id                VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
-    database_name     VARCHAR(100)          DEFAULT NULL COMMENT '库名，为空时匹配所有库',
+    catalog_name      VARCHAR(100)          DEFAULT NULL COMMENT 'Catalog 名称，为空时匹配所有 Catalog',
+    schema_name       VARCHAR(100)          DEFAULT NULL COMMENT '数据库/Schema 名称，为空时匹配所有数据库或 Schema',
     table_name        VARCHAR(100) NOT NULL             COMMENT '表名',
     description       VARCHAR(200)          DEFAULT NULL COMMENT '规则描述',
     support_self_only SMALLINT     NOT NULL DEFAULT 0   COMMENT '是否支持SELF_ONLY过滤：0-不支持 1-支持',
@@ -263,7 +264,8 @@ CREATE TABLE security_data_resource
 
 -- 索引
 CREATE INDEX idx_security_data_resource_table_name ON security_data_resource (table_name);
-CREATE INDEX idx_security_data_resource_database_name ON security_data_resource (database_name);
+CREATE INDEX idx_security_data_resource_catalog_name ON security_data_resource (catalog_name);
+CREATE INDEX idx_security_data_resource_schema_name ON security_data_resource (schema_name);
 
 -- =============================================
 -- 表名：security_data_resource_condition
@@ -638,4 +640,3 @@ CREATE TABLE security_business_function_table
 CREATE UNIQUE INDEX uk_security_business_function_table_bt ON security_business_function_table (business_id, table_model_id);
 CREATE INDEX idx_security_business_function_table_business ON security_business_function_table (business_id);
 CREATE INDEX idx_security_business_function_table_table ON security_business_function_table (table_model_id);
-

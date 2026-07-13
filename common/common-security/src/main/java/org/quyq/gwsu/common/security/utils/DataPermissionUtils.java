@@ -168,7 +168,8 @@ public class DataPermissionUtils {
      */
     private DataResoureRule buildSelfOnlyRule(DataResoureRule original) {
         DataResoureRule rule = new DataResoureRule();
-        rule.setDatabaseName(original.getDatabaseName());
+        rule.setCatalogName(original.getCatalogName());
+        rule.setSchemaName(original.getSchemaName());
         rule.setTableName(original.getTableName());
         rule.setSupportSelfOnly(original.getSupportSelfOnly());
         rule.setSelfOnlyField(original.getSelfOnlyField());
@@ -339,35 +340,58 @@ public class DataPermissionUtils {
             return false;
         }
 
-        if (join == null) {
-            Expression where = plainSelect.getWhere();
-            if (where == null) {
-                plainSelect.setWhere(condition);
-            } else {
-                plainSelect.setWhere(new AndExpression(where, condition));
-            }
+        if (join == null || shouldAppendConditionToWhere(join)) {
+            appendConditionToWhere(plainSelect, condition);
         } else {
-            Expression onExpression = join.getOnExpression();
-            if (onExpression == null) {
-                join.setOnExpression(condition);
-            } else {
-                join.setOnExpression(new AndExpression(onExpression, condition));
-            }
+            appendConditionToJoin(join, condition);
         }
 
         return true;
     }
 
+    private void appendConditionToWhere(PlainSelect plainSelect, Expression condition) {
+        Expression where = plainSelect.getWhere();
+        if (where == null) {
+            plainSelect.setWhere(condition);
+        } else {
+            plainSelect.setWhere(new AndExpression(where, condition));
+        }
+    }
+
+    private void appendConditionToJoin(Join join, Expression condition) {
+        Expression onExpression = mergeExpressions(join.getOnExpressions());
+        if (onExpression == null) {
+            join.setOnExpressions(List.of(condition));
+        } else {
+            join.setOnExpressions(List.of(new AndExpression(onExpression, condition)));
+        }
+    }
+
+    private Expression mergeExpressions(Collection<Expression> expressions) {
+        if (CollectionUtils.isEmpty(expressions)) {
+            return null;
+        }
+        Expression merged = null;
+        for (Expression expression : expressions) {
+            if (expression == null) {
+                continue;
+            }
+            merged = merged == null ? expression : new AndExpression(merged, expression);
+        }
+        return merged;
+    }
+
+    private boolean shouldAppendConditionToWhere(Join join) {
+        return join.isSimple() || join.isInner() || join.isCross() || join.isLeft();
+    }
+
     /**
-     * 根据表名匹配规则，再用库名过滤
+     * 根据表名匹配规则，再用 catalog 和数据库/Schema 过滤
      * <p>
      * 匹配逻辑：
      * 1. 按纯表名从分组中获取规则列表
-     * 2. 从 SQL 表引用或 DdlFactory 获取库名/模式名
-     * 3. 用库名对规则列表做过滤：
-     * - 规则未配置 databaseName → 匹配（适用于所有库的同名表）
-     * - 规则配置了 databaseName 且与当前库名一致 → 匹配
-     * - 规则配置了 databaseName 但与当前库名不一致 → 不匹配
+     * 2. 从 SQL 表引用或 DdlFactory 获取 catalog 和数据库/Schema
+     * 3. 规则中未配置的字段视为通配，已配置字段必须同时匹配
      */
     private List<DataResoureRule> findRulesForTable(Table table, Map<String, List<DataResoureRule>> rulesByTable) {
         String tableName = table.getName();
@@ -377,55 +401,75 @@ public class DataPermissionUtils {
             return rules;
         }
 
-        // 只有一条规则且未配置库名，无需过滤
-        if (rules.size() == 1 && rules.getFirst().getDatabaseName() == null) {
+        // 只有一条规则且未配置 catalog/schema，无需过滤
+        if (rules.size() == 1 && rules.getFirst().getCatalogName() == null && rules.getFirst().getSchemaName() == null) {
             return rules;
         }
 
-        // 所有规则都未配置库名，无需过滤
-        if (rules.stream().allMatch(rule -> rule.getDatabaseName() == null)) {
+        // 所有规则都未配置 catalog/schema，无需过滤
+        if (rules.stream().allMatch(rule -> rule.getCatalogName() == null && rule.getSchemaName() == null)) {
             return rules;
         }
 
-        // 获取当前表所属的库名/模式名
-        String databaseName = resolveDatabaseName(table);
+        TableLocation tableLocation = resolveTableLocation(table);
 
-        // 用库名过滤规则列表
         return rules.stream()
-                .filter(rule -> rule.getDatabaseName() == null
-                        || databaseName == null
-                        || databaseName.equalsIgnoreCase(rule.getDatabaseName()))
+                .filter(rule -> matchesRuleField(rule.getCatalogName(), tableLocation.catalogName()))
+                .filter(rule -> matchesRuleField(rule.getSchemaName(), tableLocation.schemaName()))
                 .toList();
     }
 
     /**
-     * 解析表所属的库名/模式名
+     * 解析表所属的 catalog 和数据库/Schema
      * <p>
-     * 优先从 SQL 表引用中提取（如 db.table），否则从 DdlFactory 获取当前数据源的库名
+     * 优先从 SQL 表引用中提取（如 catalog.schema.table / schema.table），否则从 DdlFactory 获取当前连接信息
      */
-    private String resolveDatabaseName(Table table) {
-        // 从全限定名中提取库名：如 catalog.schema.table 或 schema.table
+    private TableLocation resolveTableLocation(Table table) {
+        String currentCatalog = getCurrentCatalog();
+        String currentSchema = getCurrentDatabaseSchema();
         String fullName = table.getFullyQualifiedName();
         String tableName = table.getName();
 
         if (fullName != null && !fullName.equals(tableName)) {
             String[] parts = fullName.split("\\.");
+            String firstPart = parts[0].toLowerCase();
             if (parts.length == 2) {
-                // schema.table 形式，第一段是库名/模式名
-                return parts[0].toLowerCase();
+                if (currentSchema != null && firstPart.equalsIgnoreCase(currentSchema)
+                        && (currentCatalog == null || !firstPart.equalsIgnoreCase(currentCatalog))) {
+                    return new TableLocation(currentCatalog, firstPart);
+                }
+                return new TableLocation(firstPart, currentSchema);
             } else if (parts.length >= 3) {
-                // catalog.schema.table 形式，第二段是 scheme
-                return parts[1].toLowerCase();
+                return new TableLocation(firstPart, parts[1].toLowerCase());
             }
         }
 
-        // SQL 中无库名前缀，从当前数据源获取
+        return new TableLocation(currentCatalog, currentSchema);
+    }
+
+    private boolean matchesRuleField(String ruleValue, String actualValue) {
+        return ruleValue == null || actualValue == null || actualValue.equalsIgnoreCase(ruleValue);
+    }
+
+    private String getCurrentCatalog() {
         try {
-            return ddlFactory.getCurrentDatabaseOrSchema();
+            return ddlFactory.getCurrentCatalog();
         } catch (Exception e) {
-            log.debug("Failed to get current database name from DdlFactory", e);
+            log.debug("Failed to get current catalog from DdlFactory", e);
             return null;
         }
+    }
+
+    private String getCurrentDatabaseSchema() {
+        try {
+            return ddlFactory.getCurrentDatabaseSchema();
+        } catch (Exception e) {
+            log.debug("Failed to get current database schema from DdlFactory", e);
+            return null;
+        }
+    }
+
+    private record TableLocation(String catalogName, String schemaName) {
     }
 
     /**

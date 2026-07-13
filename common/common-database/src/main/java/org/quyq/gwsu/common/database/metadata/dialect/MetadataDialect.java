@@ -64,12 +64,21 @@ public interface MetadataDialect {
     DatabaseType getSupportedType();
 
     /**
-     * 从连接中获取当前的数据库或Schema名称
+     * 从连接中获取当前 Catalog 名称
+     *
+     * @param connection 数据库连接
+     * @return 当前 Catalog 名称
+     * @throws SQLException SQL执行异常
+     */
+    String getCurrentCatalog(Connection connection) throws SQLException;
+
+    /**
+     * 从连接中获取当前数据库/Schema 名称
      * MySQL 返回 catalog（库名），PostgreSQL 返回 schema（模式名）
      *
      * @param connection 数据库连接
-     * @return 当前的数据库/Schema名称
+     * @return 当前数据库/Schema 名称
      * @throws SQLException SQL执行异常
      */
-    String getCurrentDatabaseOrSchema(Connection connection) throws SQLException;
+    String getCurrentDatabaseSchema(Connection connection) throws SQLException;
 }

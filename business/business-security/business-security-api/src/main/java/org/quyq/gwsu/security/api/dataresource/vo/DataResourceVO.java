@@ -21,8 +21,11 @@ public class DataResourceVO extends BaseVO {
     @Schema(description = "主键ID")
     private String id;
 
-    @Schema(description = "库名，为空时匹配所有库")
-    private String databaseName;
+    @Schema(description = "Catalog 名称，为空时匹配所有 Catalog")
+    private String catalogName;
+
+    @Schema(description = "数据库/Schema 名称，为空时匹配所有数据库或 Schema")
+    private String schemaName;
 
     @Schema(description = "表名")
     private String tableName;

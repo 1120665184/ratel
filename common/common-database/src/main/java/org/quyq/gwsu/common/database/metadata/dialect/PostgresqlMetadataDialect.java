@@ -64,8 +64,12 @@ public class PostgresqlMetadataDialect extends AbstractMetadataDialect {
     }
 
     @Override
-    protected String doGetCurrentDatabaseOrSchema(Connection connection) throws SQLException {
-        // PostgreSQL 使用 schema
+    protected String doGetCurrentCatalog(Connection connection) throws SQLException {
+        return connection.getCatalog();
+    }
+
+    @Override
+    protected String doGetCurrentDatabaseSchema(Connection connection) throws SQLException {
         return connection.getSchema();
     }
 

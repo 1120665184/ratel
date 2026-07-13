@@ -16,9 +16,14 @@ import java.util.List;
 public class DataResoureRule {
 
     /**
-     * 库名
+     * Catalog 名称
      */
-    private String databaseName;
+    private String catalogName;
+
+    /**
+     * Database/Schema 名称
+     */
+    private String schemaName;
 
     /**
      * 表名

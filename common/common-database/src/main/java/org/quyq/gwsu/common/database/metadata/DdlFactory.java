@@ -34,11 +34,18 @@ public class DdlFactory {
     private final Map<DatabaseType, MetadataDialect> dialectMap;
 
     /**
-     * 数据源库名/模式名缓存
+     * 数据源当前 Catalog 缓存
      * key: 数据源名称（如 master、mysql 等）
-     * value: 库名（MySQL）或模式名（PostgreSQL），小写形式
+     * value: Catalog 名称，小写形式
      */
-    private final ConcurrentHashMap<String, String> databaseNameCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> currentCatalogCache = new ConcurrentHashMap<>();
+
+    /**
+     * 数据源当前数据库/Schema 缓存
+     * key: 数据源名称（如 master、mysql 等）
+     * value: 数据库/Schema 名称，小写形式
+     */
+    private final ConcurrentHashMap<String, String> currentDatabaseSchemaCache = new ConcurrentHashMap<>();
 
     public DdlFactory(DatabaseHelper databaseHelper, DataSource dataSource, List<MetadataDialect> dialects) {
         this.databaseHelper = databaseHelper;
@@ -97,13 +104,30 @@ public class DdlFactory {
      *
      * @return 库名/模式名；无法获取时返回 null
      */
-    public String getCurrentDatabaseOrSchema() {
+    public String getCurrentCatalog() {
         String dsKey = databaseHelper.getCurrentDatasourceKey();
-        return databaseNameCache.computeIfAbsent(dsKey, key -> {
+        return currentCatalogCache.computeIfAbsent(dsKey, key -> {
             try {
-                return executeWithDialect(MetadataDialect::getCurrentDatabaseOrSchema);
+                return executeWithDialect(MetadataDialect::getCurrentCatalog);
             } catch (Exception e) {
-                log.warn("获取数据源 [{}] 的库名/模式名失败", key, e);
+                log.warn("获取数据源 [{}] 的 Catalog 失败", key, e);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * 获取当前数据源的数据库/Schema 名称，结果已缓存
+     *
+     * @return 数据库/Schema 名称；无法获取时返回 null
+     */
+    public String getCurrentDatabaseSchema() {
+        String dsKey = databaseHelper.getCurrentDatasourceKey();
+        return currentDatabaseSchemaCache.computeIfAbsent(dsKey, key -> {
+            try {
+                return executeWithDialect(MetadataDialect::getCurrentDatabaseSchema);
+            } catch (Exception e) {
+                log.warn("获取数据源 [{}] 的数据库/Schema 失败", key, e);
                 return null;
             }
         });

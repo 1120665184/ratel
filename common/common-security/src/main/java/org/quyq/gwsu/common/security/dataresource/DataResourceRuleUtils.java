@@ -56,18 +56,22 @@ public class DataResourceRuleUtils {
     }
 
     /**
-     * 根据表名和库名获取对应的规则
+     * 根据表名、Catalog 和数据库/Schema 获取对应的规则
      *
-     * @param databaseName 库名
-     * @param tableName    表名
+     * @param catalogName Catalog 名称
+     * @param schemaName  数据库/Schema 名称
+     * @param tableName   表名
      * @return 匹配的规则列表
      */
-    public List<DataResoureRule> getRules(String databaseName, String tableName) {
+    public List<DataResoureRule> getRules(String catalogName, String schemaName, String tableName) {
         return getAllRules().stream()
                 .filter(rule -> tableName.equals(rule.getTableName()))
-                .filter(rule -> rule.getDatabaseName() == null ||
-                        databaseName == null ||
-                        databaseName.equals(rule.getDatabaseName()))
+                .filter(rule -> rule.getCatalogName() == null ||
+                        catalogName == null ||
+                        catalogName.equals(rule.getCatalogName()))
+                .filter(rule -> rule.getSchemaName() == null ||
+                        schemaName == null ||
+                        schemaName.equals(rule.getSchemaName()))
                 .toList();
     }
 

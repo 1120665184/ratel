@@ -15,6 +15,7 @@
         u.status,
         u.last_login_time
         FROM sys_user u
+        LEFT JOIN sys_user_dept ud ON u.id = ud.user_id AND ud.deleted = 0
         WHERE u.deleted = 0
         <if test="query.userIds != null and query.userIds.size() > 0">
             AND u.id IN
@@ -22,10 +23,13 @@
         </if>
         <if test="query.deptId != null and query.deptId != ''">
             AND u.id IN (
-            SELECT ud.user_id FROM sys_user_dept ud
-            INNER JOIN sys_dept d ON d.id = ud.dept_id AND d.deleted = 0
-            WHERE d.path LIKE CONCAT((SELECT d2.path FROM sys_dept d2 WHERE d2.id = #{query.deptId} AND d2.deleted = 0),
-            '%')
+            SELECT ud2.user_id
+            FROM sys_user_dept ud2
+            INNER JOIN sys_dept d ON d.id = ud2.dept_id AND d.deleted = 0
+            WHERE d.path LIKE CONCAT(
+            (SELECT d2.path FROM sys_dept d2 WHERE d2.id = #{query.deptId} AND d2.deleted = 0),
+            '%'
+            )
             OR d.id = #{query.deptId}
             )
         </if>
@@ -39,6 +43,17 @@
         <if test="query.status != null">
             AND u.status = #{query.status}
         </if>
+        GROUP BY
+        u.id,
+        u.username,
+        u.nickname,
+        u.avatar,
+        u.email,
+        u.phone,
+        u.gender,
+        u.status,
+        u.last_login_time,
+        u.create_time
         ORDER BY u.create_time DESC
     </select>
 

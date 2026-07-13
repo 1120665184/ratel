@@ -52,10 +52,13 @@ public class DBDataResourceConditionBuilder implements DataResourceConditionBuil
             String field = Objects.nonNull(alias) ? String.format("%s.%s", alias, condition.getFieldName()) : condition.getFieldName();
             Expression curExp = null;
             //构建数据
-            List<?> scopeDatas = condition.getUserResourceFields().stream()
+            List<?> scopeDatas = CollectionUtils.isEmpty(condition.getUserResourceFields())
+                    ? List.of()
+                    : condition.getUserResourceFields().stream()
                     .map(resourceScope::get)
                     .filter(Objects::nonNull)
-                    .flatMap(Collection::stream).toList();
+                    .flatMap(Collection::stream)
+                    .toList();
 
             if (!CollectionUtils.isEmpty(scopeDatas)) {
                 curExp = expressionBuilder.toCondition(field, (List<Object>) scopeDatas);
@@ -64,18 +67,19 @@ public class DBDataResourceConditionBuilder implements DataResourceConditionBuil
                 curExp = addShowNull(field, curExp);
             }
 
+            if (curExp == null) {
+                continue;
+            }
 
             if (Objects.isNull(ex)) {
                 ex = curExp;
             } else {
-
                 ex = DataResourceFieldConditionType.OR == condition.getRelationship() ? new OrExpression(ex, curExp) : new AndExpression(ex, curExp);
             }
 
         }
 
-
-        return new ParenthesedExpressionList<>(ex);
+        return ex == null ? null : new ParenthesedExpressionList<>(ex);
     }
 
 

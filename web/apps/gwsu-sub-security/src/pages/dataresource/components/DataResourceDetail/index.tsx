@@ -109,8 +109,11 @@ const DataResourceDetail: React.FC<DataResourceDetailProps> = ({
       {data && (
         <>
           <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="库名/模式">
-              {data.databaseName || '（全部）'}
+            <Descriptions.Item label="Catalog">
+              {data.catalogName || '（全部）'}
+            </Descriptions.Item>
+            <Descriptions.Item label="库名/Schema">
+              {data.schemaName || '（全部）'}
             </Descriptions.Item>
             <Descriptions.Item label="表名">
               <code>{data.tableName}</code>

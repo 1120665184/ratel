@@ -318,6 +318,7 @@ mvn spring-boot:run -pl business/application/distributed/gwsu-gateway
 # 3. 启动各业务服务
 mvn spring-boot:run -pl business/application/distributed/gwsu-security
 mvn spring-boot:run -pl business/application/distributed/gwsu-system
+mvn spring-boot:run -pl business/application/distributed/gwsu-headless
 mvn spring-boot:run -pl business/application/distributed/gwsu-kit
 mvn spring-boot:run -pl business/application/distributed/gwsu-log
 ```

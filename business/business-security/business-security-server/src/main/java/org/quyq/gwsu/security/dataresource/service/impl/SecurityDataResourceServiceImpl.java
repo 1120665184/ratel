@@ -79,7 +79,8 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
 
         LambdaQueryWrapper<SecurityDataResource> wrapper = new LambdaQueryWrapper<SecurityDataResource>()
                 .like(query.getTableName() != null, SecurityDataResource::getTableName, query.getTableName())
-                .like(query.getDatabaseName() != null, SecurityDataResource::getDatabaseName, query.getDatabaseName())
+                .like(query.getCatalogName() != null, SecurityDataResource::getCatalogName, query.getCatalogName())
+                .like(query.getSchemaName() != null, SecurityDataResource::getSchemaName, query.getSchemaName())
                 .eq(query.getStatus() != null, SecurityDataResource::getStatus, query.getStatus())
                 .orderByDesc(SecurityDataResource::getCreateTime);
 
@@ -103,7 +104,8 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
     public Boolean saveOrUpdate(DataResourceSaveDTO dto) {
         SecurityDataResource entity = new SecurityDataResource();
         entity.setId(dto.getId());
-        entity.setDatabaseName(dto.getDatabaseName());
+        entity.setCatalogName(dto.getCatalogName());
+        entity.setSchemaName(dto.getSchemaName());
         entity.setTableName(dto.getTableName());
         entity.setDescription(dto.getDescription());
         entity.setSupportSelfOnly(dto.getSupportSelfOnly());
@@ -189,7 +191,8 @@ public class SecurityDataResourceServiceImpl extends ServiceImpl<SecurityDataRes
         return dataResources.stream()
                 .map(dr -> {
                     DataResoureRule rule = new DataResoureRule();
-                    rule.setDatabaseName(dr.getDatabaseName());
+                    rule.setCatalogName(dr.getCatalogName());
+                    rule.setSchemaName(dr.getSchemaName());
                     rule.setTableName(dr.getTableName());
                     rule.setSupportSelfOnly(dr.getSupportSelfOnly());
                     rule.setSelfOnlyField(dr.getSelfOnlyField());

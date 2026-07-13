@@ -66,7 +66,8 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
     if (visible) {
       if (data) {
         form.setFieldsValue({
-          databaseName: data.databaseName,
+          catalogName: data.catalogName,
+          schemaName: data.schemaName,
           tableName: data.tableName,
           description: data.description,
           supportSelfOnly: data.supportSelfOnly ?? false,
@@ -276,8 +277,11 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
       destroyOnHidden
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="databaseName" label="库名/模式">
-          <Input placeholder="留空则匹配所有库" />
+        <Form.Item name="catalogName" label="Catalog">
+          <Input placeholder="留空则匹配所有 Catalog" />
+        </Form.Item>
+        <Form.Item name="schemaName" label="库名/Schema">
+          <Input placeholder="留空则匹配所有数据库或 Schema" />
         </Form.Item>
         <Form.Item
           name="tableName"

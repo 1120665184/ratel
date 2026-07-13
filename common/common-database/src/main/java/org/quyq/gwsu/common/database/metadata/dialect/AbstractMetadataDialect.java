@@ -119,31 +119,44 @@ public abstract class AbstractMetadataDialect implements MetadataDialect {
         if (databaseOrSchema != null) {
             return databaseOrSchema;
         }
-        return getCurrentDatabaseOrSchema(connection);
+        return getCurrentDatabaseSchema(connection);
     }
 
     /**
-     * 从连接中获取当前的数据库或Schema名称
-     * MySQL 返回 catalog（库名），PostgreSQL 返回 schema（模式名）
+     * 从连接中获取当前 Catalog 名称
      *
      * @param connection 数据库连接
-     * @return 当前的数据库/Schema名称
+     * @return 当前 Catalog 名称
      * @throws SQLException SQL执行异常
      */
     @Override
-    public String getCurrentDatabaseOrSchema(Connection connection) throws SQLException {
-        String dbOrSchema = doGetCurrentDatabaseOrSchema(connection);
-        return dbOrSchema != null ? dbOrSchema.toLowerCase() : null;
+    public String getCurrentCatalog(Connection connection) throws SQLException {
+        String catalog = doGetCurrentCatalog(connection);
+        return catalog != null ? catalog.toLowerCase() : null;
     }
 
     /**
-     * 子类实现：从连接中获取当前的数据库或Schema名称（原始值，不做大小写处理）
+     * 从连接中获取当前数据库/Schema 名称
      *
      * @param connection 数据库连接
-     * @return 当前的数据库/Schema名称
+     * @return 当前数据库/Schema 名称
      * @throws SQLException SQL执行异常
      */
-    protected abstract String doGetCurrentDatabaseOrSchema(Connection connection) throws SQLException;
+    @Override
+    public String getCurrentDatabaseSchema(Connection connection) throws SQLException {
+        String databaseSchema = doGetCurrentDatabaseSchema(connection);
+        return databaseSchema != null ? databaseSchema.toLowerCase() : null;
+    }
+
+    /**
+     * 子类实现：从连接中获取当前 Catalog 名称（原始值，不做大小写处理）
+     */
+    protected abstract String doGetCurrentCatalog(Connection connection) throws SQLException;
+
+    /**
+     * 子类实现：从连接中获取当前数据库/Schema 名称（原始值，不做大小写处理）
+     */
+    protected abstract String doGetCurrentDatabaseSchema(Connection connection) throws SQLException;
 
     /**
      * 获取表的主键列名集合

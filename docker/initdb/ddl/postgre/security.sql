@@ -400,7 +400,8 @@ CREATE INDEX idx_security_api_resource_tag_name ON security_api_resource (tag_na
 CREATE TABLE security_data_resource
 (
     id                VARCHAR(24) PRIMARY KEY,
-    database_name     VARCHAR(100)          DEFAULT NULL,
+    catalog_name      VARCHAR(100)          DEFAULT NULL,
+    schema_name       VARCHAR(100)          DEFAULT NULL,
     table_name        VARCHAR(100) NOT NULL,
     description       VARCHAR(200)          DEFAULT NULL,
     support_self_only INT2         NOT NULL DEFAULT 0,
@@ -419,7 +420,8 @@ CREATE TABLE security_data_resource
 -- 表和字段注释
 COMMENT ON TABLE security_data_resource IS '数据资源配置主表';
 COMMENT ON COLUMN security_data_resource.id IS '主键ID';
-COMMENT ON COLUMN security_data_resource.database_name IS '库名，为空时匹配所有库';
+COMMENT ON COLUMN security_data_resource.catalog_name IS 'Catalog 名称，为空时匹配所有 Catalog';
+COMMENT ON COLUMN security_data_resource.schema_name IS '数据库/Schema 名称，为空时匹配所有数据库或 Schema';
 COMMENT ON COLUMN security_data_resource.table_name IS '表名';
 COMMENT ON COLUMN security_data_resource.description IS '规则描述';
 COMMENT ON COLUMN security_data_resource.support_self_only IS '是否支持SELF_ONLY过滤：0-不支持 1-支持';
@@ -436,7 +438,8 @@ COMMENT ON COLUMN security_data_resource.delete_time IS '删除时间';
 
 -- 索引
 CREATE INDEX idx_security_data_resource_table_name ON security_data_resource (table_name) WHERE deleted = 0;
-CREATE INDEX idx_security_data_resource_database_name ON security_data_resource (database_name) WHERE deleted = 0;
+CREATE INDEX idx_security_data_resource_catalog_name ON security_data_resource (catalog_name) WHERE deleted = 0;
+CREATE INDEX idx_security_data_resource_schema_name ON security_data_resource (schema_name) WHERE deleted = 0;
 
 -- =============================================
 -- 表名：security_data_resource_condition
@@ -1042,4 +1045,3 @@ COMMENT ON COLUMN security_business_function_table.delete_time IS '删除时间'
 CREATE UNIQUE INDEX uk_security_business_function_table_bt ON security_business_function_table (business_id, table_model_id);
 CREATE INDEX idx_security_business_function_table_business ON security_business_function_table (business_id);
 CREATE INDEX idx_security_business_function_table_table ON security_business_function_table (table_model_id);
-

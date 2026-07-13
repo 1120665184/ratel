@@ -186,8 +186,14 @@ const DataResourcePage: React.FC = () => {
         (currentPage - 1) * pageSize + index + 1,
     },
     {
-      title: "库名",
-      dataIndex: "databaseName",
+      title: "Catalog",
+      dataIndex: "catalogName",
+      width: 140,
+      render: (val: string) => val || <Tag>全部</Tag>,
+    },
+    {
+      title: "库名/Schema",
+      dataIndex: "schemaName",
       width: 160,
       render: (val: string) => val || <Tag>全部</Tag>,
     },
@@ -278,10 +284,21 @@ const DataResourcePage: React.FC = () => {
             </Form.Item>
           </div>
           <div className={styles.searchItem}>
-            <span className={styles.searchLabel}>库名</span>
-            <Form.Item name="databaseName" noStyle>
+            <span className={styles.searchLabel}>Catalog</span>
+            <Form.Item name="catalogName" noStyle>
               <Input
-                placeholder="请输入库名"
+                placeholder="请输入 Catalog"
+                allowClear
+                style={{ width: 180 }}
+                onPressEnter={handleSearch}
+              />
+            </Form.Item>
+          </div>
+          <div className={styles.searchItem}>
+            <span className={styles.searchLabel}>库名/Schema</span>
+            <Form.Item name="schemaName" noStyle>
+              <Input
+                placeholder="请输入库名或 Schema"
                 allowClear
                 style={{ width: 180 }}
                 onPressEnter={handleSearch}
