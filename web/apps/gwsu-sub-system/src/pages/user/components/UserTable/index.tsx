@@ -128,6 +128,7 @@ const UserTable: React.FC<UserTableProps> = ({
       dataIndex: 'status',
       key: 'status',
       width: 80,
+      fixed: 'right' as const,
       render: (status: number) => {
         const statusInfo = USER_STATUS_MAP[status] || { text: '未知', color: '#999' };
         return <Tag color={statusInfo.color === '#52c41a' ? 'success' : 'error'}>{statusInfo.text}</Tag>;

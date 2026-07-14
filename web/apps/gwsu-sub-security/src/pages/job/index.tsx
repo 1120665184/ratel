@@ -262,6 +262,7 @@ const JobPage: React.FC = () => {
       title: "状态",
       dataIndex: "triggerStatus",
       width: 100,
+      fixed: "right",
       render: (val: number) => (
         <Tag color={val === 1 ? "green" : "red"}>
           {val === 1 ? "运行中" : "已停止"}

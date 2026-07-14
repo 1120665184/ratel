@@ -220,6 +220,7 @@ const DataResourcePage: React.FC = () => {
       title: "状态",
       dataIndex: "status",
       width: 120,
+      fixed: "right",
       render: (val: boolean, record: DataResourceInfo) => (
         <Space>
           <AuthGate buttonKey={PERM_EDIT}>
