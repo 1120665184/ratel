@@ -23,6 +23,8 @@ public interface AuthenticationConstants {
 
         String PASSWORD = "password";
 
+        String API_KEY = "api_key";
+
     }
 
     /**

@@ -9,9 +9,14 @@ import {
   InputNumber,
   Button,
   Table,
+  Tooltip,
 } from 'antd';
 import type { TableProps } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons';
 import styles from './index.module.less';
 import type {
   DataResourceInfo,
@@ -300,7 +305,17 @@ const DataResourceFormModal: React.FC<DataResourceFormModalProps> = ({
         </Form.Item>
         <Form.Item
           name="supportSelfOnly"
-          label="支持SELF_ONLY过滤"
+          label={(
+            <span className={styles.labelWithHelp}>
+              <span>支持SELF_ONLY过滤</span>
+              <Tooltip title="启用后，若用户的数据权限范围为“仅本人”，系统查询当前表时会自动追加创建人过滤条件，确保该用户只能查看自己创建的数据。">
+                <QuestionCircleOutlined
+                  className={styles.helpIcon}
+                  aria-label="SELF_ONLY过滤说明"
+                />
+              </Tooltip>
+            </span>
+          )}
           valuePropName="checked"
         >
           <Switch

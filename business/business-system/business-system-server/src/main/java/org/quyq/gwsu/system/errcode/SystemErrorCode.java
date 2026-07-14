@@ -50,6 +50,17 @@ public enum SystemErrorCode implements ReturnCode {
     E02012("昵称不能为空"),
     E02013("性别参数不合法"),
 
+    // API_KEY 模块错误码 E03xxx
+    E03001("API_KEY 名称不能为空"),
+    E03002("API_KEY 名称长度不能超过128个字符"),
+    E03003("API_KEY 有效期类型不能为空"),
+    E03004("API_KEY 有效天数必须大于0"),
+    E03005("API_KEY 过期时间必须晚于当前时间"),
+    E03006("API_KEY 不存在"),
+    E03007("无权操作该 API_KEY"),
+    E03008("API_KEY 已失效"),
+    E03009("API_KEY 已停用"),
+
     ;
 
     private final String msg;

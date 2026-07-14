@@ -74,7 +74,9 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
                         }
 
                         // 登录
-                        StpUtil.login("%s:%s".formatted(visitorType.name(), loginVO.getUserId()), new SaLoginParameter());
+                        SaLoginParameter loginParameter = Optional.ofNullable(properties.getSaLoginParameter())
+                                .orElseGet(SaLoginParameter::new);
+                        StpUtil.login("%s:%s".formatted(visitorType.name(), loginVO.getUserId()), loginParameter);
                         SaTokenInfo tokenInfo = StpUtil.getTokenInfo();
 
                         loginVO.setToken(tokenInfo.tokenValue);
@@ -163,6 +165,11 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
          * 重定向跳转地址
          */
         private String redirectUrl;
+
+        /**
+         * Sa-Token 登录参数
+         */
+        private SaLoginParameter saLoginParameter;
 
     }
 

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.system.apikey.mapper.SysApiKeyMapper">
+
+    <select id="selectPageByCondition" resultType="org.quyq.gwsu.system.apikey.domain.SysApiKey">
+        SELECT
+            id,
+            user_id AS userId,
+            api_key_name AS apiKeyName,
+            api_key_hash AS apiKeyHash,
+            hash_version AS hashVersion,
+            masked_key AS maskedKey,
+            status,
+            expire_time AS expireTime,
+            last_used_time AS lastUsedTime,
+            last_used_ip AS lastUsedIp,
+            remark,
+            tenant_id AS tenantId,
+            deleted,
+            delete_op AS deleteOp,
+            delete_time AS deleteTime,
+            create_op AS createOp,
+            create_time AS createTime,
+            modify_op AS modifyOp,
+            modify_time AS modifyTime
+        FROM sys_api_key
+        WHERE deleted = 0
+          AND user_id = #{userId}
+        <if test="query.apiKeyName != null and query.apiKeyName != ''">
+            AND api_key_name LIKE CONCAT('%', #{query.apiKeyName}, '%')
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByApiKeyHash" resultType="org.quyq.gwsu.system.apikey.domain.SysApiKey">
+        SELECT
+            id,
+            user_id AS userId,
+            api_key_name AS apiKeyName,
+            api_key_hash AS apiKeyHash,
+            hash_version AS hashVersion,
+            masked_key AS maskedKey,
+            status,
+            expire_time AS expireTime,
+            last_used_time AS lastUsedTime,
+            last_used_ip AS lastUsedIp,
+            remark,
+            tenant_id AS tenantId,
+            deleted,
+            delete_op AS deleteOp,
+            delete_time AS deleteTime,
+            create_op AS createOp,
+            create_time AS createTime,
+            modify_op AS modifyOp,
+            modify_time AS modifyTime
+        FROM sys_api_key
+        WHERE deleted = 0
+          AND api_key_hash = #{apiKeyHash}
+        LIMIT 1
+    </select>
+
+    <update id="updateLastUsedInfo">
+        UPDATE sys_api_key
+        SET last_used_time = #{lastUsedTime},
+            last_used_ip = #{lastUsedIp},
+            modify_time = #{lastUsedTime}
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+</mapper>

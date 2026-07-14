@@ -63,6 +63,39 @@ ALTER TABLE sys_account ADD CONSTRAINT account_userid_fk FOREIGN KEY (user_id) R
 
 
 -- =============================================
+-- API_KEY 表
+-- 存储用户创建的持久访问凭证
+-- =============================================
+CREATE TABLE sys_api_key (
+    id              VARCHAR(24) PRIMARY KEY COMMENT '主键ID（雪花算法）',
+    user_id         VARCHAR(24) NOT NULL              COMMENT '所属用户ID',
+    api_key_name    VARCHAR(128) NOT NULL             COMMENT 'API_KEY 名称',
+    api_key_hash    CHAR(64) NOT NULL                 COMMENT 'API_KEY 不可逆摘要值（HMAC-SHA256）',
+    hash_version    SMALLINT   NOT NULL DEFAULT 1     COMMENT '摘要版本',
+    masked_key      VARCHAR(512) NOT NULL             COMMENT '脱敏后的 API_KEY',
+    status          SMALLINT   NOT NULL DEFAULT 1     COMMENT '状态：0-停用 1-启用',
+    expire_time     DATETIME              DEFAULT NULL COMMENT '过期时间，为空表示永不过期',
+    last_used_time  DATETIME              DEFAULT NULL COMMENT '最近使用时间',
+    last_used_ip    VARCHAR(64)           DEFAULT NULL COMMENT '最近使用IP',
+    remark          VARCHAR(512)          DEFAULT NULL COMMENT '备注',
+    tenant_id       VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op       VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time     DATETIME   DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op       VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time     DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted         SMALLINT   DEFAULT 0              COMMENT '删除标识',
+    delete_op       VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time     DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT 'API_KEY 表';
+
+CREATE INDEX idx_sys_api_key_user_id ON sys_api_key(user_id);
+CREATE UNIQUE INDEX uk_sys_api_key_hash ON sys_api_key(api_key_hash);
+CREATE INDEX idx_sys_api_key_status ON sys_api_key(status);
+CREATE INDEX idx_sys_api_key_expire_time ON sys_api_key(expire_time);
+ALTER TABLE sys_api_key ADD CONSTRAINT api_key_userid_fk FOREIGN KEY (user_id) REFERENCES sys_user(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- =============================================
 -- 部门表
 -- 支持矩阵式组织结构
 -- =============================================

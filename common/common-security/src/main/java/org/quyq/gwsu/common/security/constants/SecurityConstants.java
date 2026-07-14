@@ -40,6 +40,11 @@ public interface SecurityConstants {
         String AUTH_SERVER_PREFIX = "system";
 
         /**
+         * API_KEY 前缀
+         */
+        String API_KEY_PREFIX = "sk-";
+
+        /**
          * 认证信息存储前缀
          */
         String AUTH_INFO_KEY_PREFIX = "authentication";

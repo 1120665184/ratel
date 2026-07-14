@@ -9,6 +9,7 @@ import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.util.function.CustomFunction;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.security.api.IApiKeyClientApi;
 import org.quyq.gwsu.common.security.casbin.RedisAdapter;
 import org.quyq.gwsu.common.security.casbin.RedisWatcher;
 import org.quyq.gwsu.common.security.casbin.field.FieldEnforcer;
@@ -125,8 +126,9 @@ public class CasbinConfiguration {
         @Bean
         public AuthenticationFilter authenticationFilter(Enforcer enforcer, FieldEnforcer fieldEnforcer,
                                                          SecurityUtils securityUtils,
-                                                         SecurityProperties securityProperties) {
-            return new AuthenticationFilter(enforcer, fieldEnforcer, securityUtils, securityProperties);
+                                                         SecurityProperties securityProperties,
+                                                         IApiKeyClientApi apiKeyClientApi) {
+            return new AuthenticationFilter(enforcer, fieldEnforcer, securityUtils, securityProperties, apiKeyClientApi);
         }
     }
 

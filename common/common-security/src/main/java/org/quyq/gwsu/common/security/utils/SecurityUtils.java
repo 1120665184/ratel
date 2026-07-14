@@ -66,6 +66,7 @@ public class SecurityUtils {
         return Optional.ofNullable(ServletUtils.getHeaders())
                 .map(headers -> headers.get(CoreConstants.Headers.HTTP_HEADER_TOKEN_KEY))
                 .map(token -> token.replace(CoreConstants.Headers.TOKEN_PREFIX, ""))
+                .map(this::normalizeToken)
                 .map(token -> {
                     if (JWTUtil.verify(token, SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))) {
                         return token;
@@ -139,17 +140,18 @@ public class SecurityUtils {
      * @return
      */
     public <U extends Visitor> Optional<Subject<U>> getSubject(String token) {
-        if (!StringUtils.hasText(token) ||
-                !JWTUtil.verify(token, SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))) {
+        String normalizedToken = normalizeToken(token);
+        if (!StringUtils.hasText(normalizedToken) ||
+                !JWTUtil.verify(normalizedToken, SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))) {
             return Optional.empty();
         }
 
-        JSONObject payloads = JWTUtil.parseToken(token).getPayloads();
+        JSONObject payloads = JWTUtil.parseToken(normalizedToken).getPayloads();
         return cacheUtils.withRebel(() ->
                 Optional.ofNullable(payloads)
                         .map(payload -> payload.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY))
                         //先校验TOKEN是否已过期
-                        .map(loginType -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_VALUE.apply(loginType) + token))
+                        .map(loginType -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_VALUE.apply(loginType) + normalizedToken))
                         .map(Object::toString)
                         .map(loginId -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_SESSION.apply(payloads.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY)) + loginId))
                         .map(Object::toString)
@@ -161,6 +163,22 @@ public class SecurityUtils {
 
         );
 
+    }
+
+    /**
+     * 标准化 token，兼容 API_KEY 前缀。
+     *
+     * @param token 原始 token
+     * @return 标准 JWT token
+     */
+    public String normalizeToken(String token) {
+        if (!StringUtils.hasText(token)) {
+            return null;
+        }
+        if (token.startsWith(SecurityConstants.Authentication.API_KEY_PREFIX)) {
+            return token.substring(SecurityConstants.Authentication.API_KEY_PREFIX.length());
+        }
+        return token;
     }
 
 

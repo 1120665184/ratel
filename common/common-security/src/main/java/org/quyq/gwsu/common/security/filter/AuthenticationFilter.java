@@ -2,6 +2,7 @@ package org.quyq.gwsu.common.security.filter;
 
 
 import cn.hutool.jwt.JWTException;
+import cn.hutool.core.net.NetUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -9,10 +10,15 @@ import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.casbin.jcasbin.main.Enforcer;
+import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
+import org.quyq.gwsu.common.core.utils.DeployUtils;
 import org.quyq.gwsu.common.core.utils.filter.RequestResponseContext;
 import org.quyq.gwsu.common.core.utils.filter.RequestResponseProcessor;
+import org.quyq.gwsu.common.security.api.IApiKeyClientApi;
+import org.quyq.gwsu.common.security.api.vo.ApiKeyLoginRequest;
+import org.quyq.gwsu.common.security.api.vo.ApiKeyLoginUserVO;
 import org.quyq.gwsu.common.security.casbin.field.FieldEnforcer;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
@@ -26,6 +32,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -48,6 +55,8 @@ public class AuthenticationFilter implements RequestResponseProcessor {
 
     private final SecurityProperties securityProperties;
 
+    private final IApiKeyClientApi apiKeyClientApi;
+
     private final Gson gson = new Gson();
 
     private static final String ATTRIBUTE_REQUEST_CONTEXT_KEY = "CURR_REQUEST_CONTEXT";
@@ -62,31 +71,58 @@ public class AuthenticationFilter implements RequestResponseProcessor {
                 return Mono.just(true);
             }
 
-           // Optional<Subject<Visitor>> subject = securityUtils.getSubject(getToken(context));
             Optional<Subject<Visitor>> subject;
+            String token = getToken(context);
             try {
-                subject = securityUtils.getSubject(getToken(context));
+                subject = securityUtils.getSubject(token);
             }catch (JWTException e){
-                String token = getToken(context);
                 throw new SecurityException(CommonErrorCode.E03001);
             }
-            if (subject.isEmpty()) {
-                throw new SecurityException(CommonErrorCode.E03001);
+            if (subject.isEmpty() && isApiKeyToken(token)) {
+                return authenticateApiKeyAndAuthorize(context, token);
             }
-
-            if(shouldAuthAllow(context.getPath())){
-                return Mono.just(true);
-            }
-
-            RequestContext rc = buildContext(subject.get(), context);
-            //权限校验
-            boolean allowed = enforcer.enforce(rc.subject(), rc.resType(), rc.action(), rc.resUrl(), rc.env());
-            if (!allowed) {
-                throw new SecurityException(CommonErrorCode.E03002);
-            }
-
-            return Mono.just(true);
+            return authorize(context, subject);
         });
+    }
+
+    private Mono<Boolean> authenticateApiKeyAndAuthorize(RequestResponseContext context, String token) {
+        ApiKeyLoginRequest loginRequest = new ApiKeyLoginRequest();
+        loginRequest.setApiKey(token);
+        loginRequest.setIp(resolveClientIp(context));
+
+        Mono<Optional<Subject<Visitor>>> loginMono = Mono.fromCallable(() -> {
+            FeignUtils.data(apiKeyClientApi.loginByApiKey(loginRequest));
+            return securityUtils.getSubject(token);
+        });
+
+        if (!DeployUtils.isSingle()) {
+            loginMono = loginMono.subscribeOn(Schedulers.boundedElastic());
+        }
+
+        return loginMono
+                .onErrorMap(NullPointerException.class, e -> {
+                    log.info("", e);
+                    return new SecurityException(CommonErrorCode.E03007);
+                })
+                .flatMap(subject -> authorize(context, subject));
+    }
+
+    private Mono<Boolean> authorize(RequestResponseContext context, Optional<Subject<Visitor>> subject) {
+        if (subject.isEmpty()) {
+            return Mono.error(new SecurityException(CommonErrorCode.E03001));
+        }
+
+        if (shouldAuthAllow(context.getPath())) {
+            return Mono.just(true);
+        }
+
+        RequestContext rc = buildContext(subject.get(), context);
+        boolean allowed = enforcer.enforce(rc.subject(), rc.resType(), rc.action(), rc.resUrl(), rc.env());
+        if (!allowed) {
+            return Mono.error(new SecurityException(CommonErrorCode.E03002));
+        }
+
+        return Mono.just(true);
     }
 
     /**
@@ -99,8 +135,31 @@ public class AuthenticationFilter implements RequestResponseProcessor {
         return securityProperties != null && securityProperties.shouldIgnore(path);
     }
 
+
     private boolean shouldAuthAllow(String path) {
         return securityProperties != null && securityProperties.shouldAuthAllow(path);
+    }
+
+    private boolean isApiKeyToken(String token) {
+        return StringUtils.hasText(token) && token.startsWith(SecurityConstants.Authentication.API_KEY_PREFIX);
+    }
+
+    private String resolveClientIp(RequestResponseContext context) {
+        String[] headerNames = new String[]{
+                "x-forwarded-for",
+                "x-real-ip",
+                "proxy-client-ip",
+                "wl-proxy-client-ip",
+                "http_client_ip",
+                "http_x_forwarded_for"
+        };
+        for (String headerName : headerNames) {
+            String ip = context.getHeader(headerName);
+            if (!NetUtil.isUnknown(ip)) {
+                return NetUtil.getMultistageReverseProxyIp(ip);
+            }
+        }
+        return null;
     }
 
     @Override

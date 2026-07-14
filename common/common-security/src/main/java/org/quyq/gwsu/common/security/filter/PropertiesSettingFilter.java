@@ -32,7 +32,7 @@ import java.util.Optional;
  * @date 2024/4/29
  * @description 统一全局过滤器
  */
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(-100)
 @RequiredArgsConstructor
 public class PropertiesSettingFilter implements Filter {
 

@@ -111,7 +111,7 @@ public class SessionUtils {
     }
 
     private Optional<JSONObject> getPayloads() {
-        String token = securityUtils.getToken();
+        String token = securityUtils.normalizeToken(securityUtils.getToken());
         if (!StringUtils.hasText(token)) {
             return Optional.empty();
         }

@@ -28,7 +28,7 @@ import java.util.Locale;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 100)
 public class SingleProcessorFilter implements Filter {
 
     private final ProcessorChain processorChain;

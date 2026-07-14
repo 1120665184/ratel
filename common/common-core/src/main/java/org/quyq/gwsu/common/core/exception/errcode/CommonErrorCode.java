@@ -23,6 +23,7 @@ public enum CommonErrorCode implements ReturnCode {
     E03004("无头认证凭证失效，登录失败"),
     E03005("钉钉认证未配置'redirect_uri' ， 请联系管理员"),
     E03006("钉钉三方认证异常"),
+    E03007("apiKey已失效,请联系管理员"),
 
     E04001("未知的登录类型"),
     E04002("该登录类型不支持生成web授权url"),

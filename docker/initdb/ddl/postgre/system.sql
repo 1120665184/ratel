@@ -109,6 +109,52 @@ ALTER TABLE sys_account add CONSTRAINT account_userid_fk FOREIGN key (user_id) R
 
 
 -- =============================================
+-- API_KEY 表
+-- 存储用户创建的持久访问凭证
+-- =============================================
+CREATE TABLE sys_api_key (
+    id              VARCHAR(24) PRIMARY KEY,
+    user_id         VARCHAR(24) NOT NULL,
+    api_key_name    VARCHAR(128) NOT NULL,
+    api_key_hash    CHAR(64) NOT NULL,
+    hash_version    INT2 NOT NULL DEFAULT 1,
+    masked_key      VARCHAR(512) NOT NULL,
+    status          SMALLINT NOT NULL DEFAULT 1,
+    expire_time     TIMESTAMP,
+    last_used_time  TIMESTAMP,
+    last_used_ip    VARCHAR(64),
+    remark          VARCHAR(512),
+    tenant_id       VARCHAR(50),
+    create_op       VARCHAR(50),
+    create_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    modify_op       VARCHAR(50),
+    modify_time     TIMESTAMP,
+    deleted         INT2 DEFAULT 0,
+    delete_op       VARCHAR(50),
+    delete_time     TIMESTAMP
+);
+
+COMMENT ON TABLE sys_api_key IS 'API_KEY 表';
+COMMENT ON COLUMN sys_api_key.id IS '主键ID（雪花算法）';
+COMMENT ON COLUMN sys_api_key.user_id IS '所属用户ID';
+COMMENT ON COLUMN sys_api_key.api_key_name IS 'API_KEY 名称';
+COMMENT ON COLUMN sys_api_key.api_key_hash IS 'API_KEY 不可逆摘要值（HMAC-SHA256）';
+COMMENT ON COLUMN sys_api_key.hash_version IS '摘要版本';
+COMMENT ON COLUMN sys_api_key.masked_key IS '脱敏后的 API_KEY';
+COMMENT ON COLUMN sys_api_key.status IS '状态：0-停用 1-启用';
+COMMENT ON COLUMN sys_api_key.expire_time IS '过期时间，为空表示永不过期';
+COMMENT ON COLUMN sys_api_key.last_used_time IS '最近使用时间';
+COMMENT ON COLUMN sys_api_key.last_used_ip IS '最近使用IP';
+COMMENT ON COLUMN sys_api_key.remark IS '备注';
+
+CREATE INDEX idx_sys_api_key_user_id ON sys_api_key(user_id) WHERE deleted = 0;
+CREATE UNIQUE INDEX uk_sys_api_key_hash ON sys_api_key(api_key_hash);
+CREATE INDEX idx_sys_api_key_status ON sys_api_key(status) WHERE deleted = 0;
+CREATE INDEX idx_sys_api_key_expire_time ON sys_api_key(expire_time) WHERE deleted = 0;
+ALTER TABLE sys_api_key add CONSTRAINT api_key_userid_fk FOREIGN key (user_id) REFERENCES sys_user(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- =============================================
 -- 部门表
 -- 支持矩阵式组织结构
 -- =============================================

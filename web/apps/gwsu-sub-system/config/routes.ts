@@ -32,6 +32,10 @@ export default [
     component: '@/pages/profile',
   },
   {
+    path: '/apikey',
+    component: '@/pages/apikey',
+  },
+  {
     path: '/file-test',
     component: '@/pages/file-test',
   },

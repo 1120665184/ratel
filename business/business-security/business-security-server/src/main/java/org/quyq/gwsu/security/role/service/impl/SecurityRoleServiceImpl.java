@@ -11,6 +11,7 @@ import org.quyq.gwsu.security.abac.enums.AbacPerType;
 import org.quyq.gwsu.security.abac.loading.RoleBindingMenuAbacLoading;
 import org.quyq.gwsu.security.abac.service.PermissionAlterationManager;
 import org.quyq.gwsu.security.api.menu.enums.MenuOwner;
+import org.quyq.gwsu.security.api.menu.enums.MenuPosition;
 import org.quyq.gwsu.security.api.role.dto.RoleQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleValidGroupDTO;
 import org.quyq.gwsu.security.api.role.enums.RoleType;
@@ -45,6 +46,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, SecurityRole> implements ISecurityRoleService {
+
+    private static final Comparator<SecurityMenu> MENU_TREE_COMPARATOR = Comparator
+            .comparingInt(SecurityRoleServiceImpl::menuPositionOrder)
+            .thenComparing(SecurityMenu::getSort, Comparator.nullsLast(Integer::compareTo))
+            .thenComparing(SecurityMenu::getId, Comparator.nullsLast(String::compareTo));
 
     private final SecurityRoleMenuMapper roleMenuMapper;
 
@@ -233,12 +239,13 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
         // 查询所有菜单
         LambdaQueryWrapper<SecurityMenu> wrapper = new LambdaQueryWrapper<SecurityMenu>()
                 .eq(SecurityMenu::getDeleted, false)
-                .eq(SecurityMenu::getStatus, true)
-                .orderByAsc(SecurityMenu::getSort);
+                .eq(SecurityMenu::getStatus, true);
         if (owner != null) {
             wrapper.eq(SecurityMenu::getOwner, owner);
         }
-        List<SecurityMenu> allMenus = menuMapper.selectList(wrapper);
+        List<SecurityMenu> allMenus = menuMapper.selectList(wrapper).stream()
+                .sorted(MENU_TREE_COMPARATOR)
+                .toList();
 
         // 查询角色已关联的菜单
         List<SecurityRoleMenu> boundMenus = roleMenuMapper.selectList(
@@ -442,6 +449,17 @@ public class SecurityRoleServiceImpl extends ServiceImpl<SecurityRoleMapper, Sec
             }
         }
         return roots;
+    }
+
+    private static int menuPositionOrder(SecurityMenu menu) {
+        MenuPosition position = menu.getPosition();
+        if (position == MenuPosition.HEADER) {
+            return 0;
+        }
+        if (position == MenuPosition.SIDEBAR) {
+            return 1;
+        }
+        return Integer.MAX_VALUE;
     }
 
     private void validateValidConfig(RoleValidGroupDTO dto) {
