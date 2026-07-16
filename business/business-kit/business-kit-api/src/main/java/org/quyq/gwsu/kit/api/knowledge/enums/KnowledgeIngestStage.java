@@ -9,5 +9,6 @@ public enum KnowledgeIngestStage {
     GENERATE_PAGE,
     MERGE_PAGE,
     BUILD_CHUNK,
+    EMBED_CHUNK,
     INDEX_ES
 }

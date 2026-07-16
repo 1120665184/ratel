@@ -21,9 +21,15 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class KnowledgeSearchEngine {
 
+    private static final int RERANK_RECALL_MULTIPLIER = 3;
+
     private final IKnowledgeSourceDocumentService sourceDocumentService;
 
     private final KnowledgeChunkIndexRepository chunkIndexRepository;
+
+    private final KnowledgeChunkEmbeddingService chunkEmbeddingService;
+
+    private final KnowledgeSearchRerankService searchRerankService;
 
     private final KnowledgeProperties properties;
 
@@ -35,7 +41,13 @@ public class KnowledgeSearchEngine {
                 dto.getTenantId(),
                 dto.getRoleCodes());
         int size = dto.getSize() == null || dto.getSize() <= 0 ? properties.getSearchSize() : dto.getSize();
-        return chunkIndexRepository.search(dto.getKeyword(), visibleSourceDocumentIds, size);
+        int recallSize = Math.max(size, size * RERANK_RECALL_MULTIPLIER);
+        List<KnowledgeSearchResultVO> results = chunkIndexRepository.search(
+                dto.getKeyword(),
+                visibleSourceDocumentIds,
+                recallSize,
+                chunkEmbeddingService.embedQuery(dto.getKeyword()));
+        return searchRerankService.rerank(dto.getKeyword(), results, size);
     }
 
     public Optional<KnowledgeSearchResultVO> findAdjacentChunk(

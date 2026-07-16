@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.KnnSimilarity;
 
 import java.time.Instant;
 
@@ -61,7 +62,7 @@ public class KnowledgeChunkDocument {
     @Field(name = "indexed_at", type = FieldType.Date)
     private Instant indexedAt;
 
-    @Field(name = "embedding", type = FieldType.Dense_Vector)
+    @Field(name = "embedding", type = FieldType.Dense_Vector, knnSimilarity = KnnSimilarity.COSINE)
     private float[] embedding;
 
     @Field(name = "embedding_model", type = FieldType.Keyword)

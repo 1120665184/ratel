@@ -89,7 +89,7 @@ class ElasticsearchKnowledgeChunkIndexRepositoryTest {
         when(operations.search(any(Query.class), eq(KnowledgeChunkDocument.class), eq(IndexCoordinates.of("test_knowledge_chunk"))))
                 .thenReturn(hits);
 
-        List<KnowledgeSearchResultVO> results = repository.search("安全", List.of("document-1"), 5);
+        List<KnowledgeSearchResultVO> results = repository.search("安全", List.of("document-1"), 5, Optional.empty());
 
         assertEquals(1, results.size());
         assertEquals("chunk-1", results.getFirst().getChunkId());

@@ -15,7 +15,11 @@ public interface KnowledgeChunkIndexRepository {
 
     void replacePageVersion(String pageId, String pageVersionId, List<KnowledgeChunkDocument> chunks);
 
-    List<KnowledgeSearchResultVO> search(String keyword, Collection<String> visibleSourceDocumentIds, int size);
+    List<KnowledgeSearchResultVO> search(
+            String keyword,
+            Collection<String> visibleSourceDocumentIds,
+            int size,
+            Optional<float[]> queryEmbedding);
 
     Optional<KnowledgeSearchResultVO> findAdjacentChunk(
             String chunkId,

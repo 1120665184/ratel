@@ -20,31 +20,51 @@ class KnowledgeSearchEngineTest {
     void searchUsesVisibleSourceDocumentsAsEsTermsFilter() {
         IKnowledgeSourceDocumentService sourceDocumentService = mock(IKnowledgeSourceDocumentService.class);
         KnowledgeChunkIndexRepository chunkIndexRepository = mock(KnowledgeChunkIndexRepository.class);
+        KnowledgeChunkEmbeddingService chunkEmbeddingService = mock(KnowledgeChunkEmbeddingService.class);
+        KnowledgeSearchRerankService searchRerankService = mock(KnowledgeSearchRerankService.class);
         KnowledgeProperties properties = new KnowledgeProperties();
         properties.setSearchSize(5);
-        KnowledgeSearchEngine searchEngine = new KnowledgeSearchEngine(sourceDocumentService, chunkIndexRepository, properties);
+        KnowledgeSearchEngine searchEngine = new KnowledgeSearchEngine(
+                sourceDocumentService,
+                chunkIndexRepository,
+                chunkEmbeddingService,
+                searchRerankService,
+                properties);
         KnowledgeSearchDTO dto = new KnowledgeSearchDTO();
         dto.setTenantId("tenant-1");
         dto.setKeyword("安全");
         dto.setRoleCodes(List.of("ROLE_A"));
+        Optional<float[]> queryEmbedding = Optional.of(new float[] {0.1f, 0.2f});
+        List<KnowledgeSearchResultVO> recalled = List.of(new KnowledgeSearchResultVO().setSourceDocumentId("role-a-document"));
         when(sourceDocumentService.listVisibleSourceDocumentIds("tenant-1", dto.getRoleCodes()))
                 .thenReturn(List.of("open-document", "role-a-document"));
-        when(chunkIndexRepository.search("安全", List.of("open-document", "role-a-document"), 5))
-                .thenReturn(List.of(new KnowledgeSearchResultVO().setSourceDocumentId("role-a-document")));
+        when(chunkEmbeddingService.embedQuery("安全")).thenReturn(queryEmbedding);
+        when(chunkIndexRepository.search("安全", List.of("open-document", "role-a-document"), 15, queryEmbedding))
+                .thenReturn(recalled);
+        when(searchRerankService.rerank("安全", recalled, 5)).thenReturn(recalled);
 
         List<KnowledgeSearchResultVO> results = searchEngine.search(dto);
 
         assertEquals(1, results.size());
         verify(sourceDocumentService).listVisibleSourceDocumentIds("tenant-1", dto.getRoleCodes());
-        verify(chunkIndexRepository).search("安全", List.of("open-document", "role-a-document"), 5);
+        verify(chunkEmbeddingService).embedQuery("安全");
+        verify(chunkIndexRepository).search("安全", List.of("open-document", "role-a-document"), 15, queryEmbedding);
+        verify(searchRerankService).rerank("安全", recalled, 5);
     }
 
     @Test
     void findAdjacentChunkUsesVisibleSourceDocumentsAsEsFilter() {
         IKnowledgeSourceDocumentService sourceDocumentService = mock(IKnowledgeSourceDocumentService.class);
         KnowledgeChunkIndexRepository chunkIndexRepository = mock(KnowledgeChunkIndexRepository.class);
+        KnowledgeChunkEmbeddingService chunkEmbeddingService = mock(KnowledgeChunkEmbeddingService.class);
+        KnowledgeSearchRerankService searchRerankService = mock(KnowledgeSearchRerankService.class);
         KnowledgeProperties properties = new KnowledgeProperties();
-        KnowledgeSearchEngine searchEngine = new KnowledgeSearchEngine(sourceDocumentService, chunkIndexRepository, properties);
+        KnowledgeSearchEngine searchEngine = new KnowledgeSearchEngine(
+                sourceDocumentService,
+                chunkIndexRepository,
+                chunkEmbeddingService,
+                searchRerankService,
+                properties);
         when(sourceDocumentService.listVisibleSourceDocumentIds("tenant-1", List.of("ROLE_A")))
                 .thenReturn(List.of("open-document", "role-a-document"));
         when(chunkIndexRepository.findAdjacentChunk(

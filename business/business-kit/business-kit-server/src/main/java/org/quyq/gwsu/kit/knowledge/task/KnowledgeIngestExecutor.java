@@ -9,17 +9,30 @@ import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeIngestStage;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeIngestTaskStatus;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestTask;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkBuildRequest;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkBuilder;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkDocument;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkEmbeddingService;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkIndexRepository;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeDocumentParser;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageGenerator;
 import org.quyq.gwsu.kit.knowledge.engine.ParsedKnowledgeDocument;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
+import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
+import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
+import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageVersionMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentMapper;
 import org.quyq.gwsu.kit.knowledge.service.KnowledgePageMergeService;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -33,11 +46,23 @@ public class KnowledgeIngestExecutor {
 
     private final KnowledgeSourceDocumentMapper sourceDocumentMapper;
 
+    private final KnowledgePageVersionMapper pageVersionMapper;
+
+    private final KnowledgePageBlockMapper pageBlockMapper;
+
+    private final KnowledgePageSourceRefMapper pageSourceRefMapper;
+
     private final KnowledgeDocumentParser documentParser;
 
     private final KnowledgePageGenerator pageGenerator;
 
     private final KnowledgePageMergeService pageMergeService;
+
+    private final KnowledgeChunkBuilder chunkBuilder;
+
+    private final KnowledgeChunkEmbeddingService chunkEmbeddingService;
+
+    private final KnowledgeChunkIndexRepository chunkIndexRepository;
 
     public void execute(String taskId) {
         KitKnowledgeIngestTask task = loadTask(taskId);
@@ -54,10 +79,24 @@ public class KnowledgeIngestExecutor {
                     parsedDocument.text());
 
             updateStage(task.getId(), KnowledgeIngestStage.MERGE_PAGE);
-            pageMergeService.publish(task.getTenantId(), sourceDocument, generatedPage);
+            String pageVersionId = pageMergeService.publish(task.getTenantId(), sourceDocument, generatedPage);
 
             updateStage(task.getId(), KnowledgeIngestStage.BUILD_CHUNK);
+            KitKnowledgePageVersion pageVersion = loadPageVersion(task.getTenantId(), pageVersionId);
+            List<KitKnowledgePageBlock> blocks = pageBlockMapper.selectByVersionId(task.getTenantId(), pageVersionId);
+            List<KitKnowledgePageSourceRef> sourceRefs = loadSourceRefs(task.getTenantId(), blocks);
+            List<KnowledgeChunkDocument> chunks = chunkBuilder.build(new KnowledgeChunkBuildRequest(
+                    pageVersion.getPageId(),
+                    generatedPage.title(),
+                    pageVersion,
+                    blocks,
+                    sourceRefs));
+
+            updateStage(task.getId(), KnowledgeIngestStage.EMBED_CHUNK);
+            chunkEmbeddingService.embedChunks(chunks);
+
             updateStage(task.getId(), KnowledgeIngestStage.INDEX_ES);
+            chunkIndexRepository.replacePageVersion(pageVersion.getPageId(), pageVersion.getId(), chunks);
             markSucceeded(task, sourceDocument);
         } catch (Exception ex) {
             markFailed(task, ex);
@@ -84,6 +123,26 @@ public class KnowledgeIngestExecutor {
             throw new BusinessException(KitErrorCode.E03001);
         }
         return sourceDocument;
+    }
+
+    private KitKnowledgePageVersion loadPageVersion(String tenantId, String pageVersionId) {
+        KitKnowledgePageVersion pageVersion = pageVersionMapper.selectOne(new LambdaQueryWrapper<KitKnowledgePageVersion>()
+                .eq(KitKnowledgePageVersion::getId, pageVersionId)
+                .eq(KitKnowledgePageVersion::getTenantId, tenantId)
+                .eq(KitKnowledgePageVersion::getDeleted, false));
+        if (Objects.isNull(pageVersion)) {
+            throw new BusinessException(KitErrorCode.E03009);
+        }
+        return pageVersion;
+    }
+
+    private List<KitKnowledgePageSourceRef> loadSourceRefs(String tenantId, List<KitKnowledgePageBlock> blocks) {
+        if (CollectionUtils.isEmpty(blocks)) {
+            return List.of();
+        }
+        return pageSourceRefMapper.selectByPageBlockIds(tenantId, blocks.stream()
+                .map(KitKnowledgePageBlock::getId)
+                .toList());
     }
 
     private void markTaskRunning(KitKnowledgeIngestTask task) {
