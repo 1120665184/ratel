@@ -67,6 +67,7 @@ public enum KitErrorCode implements ReturnCode {
     E03007("知识源文档解析失败"),
     E03008("知识Page生成失败"),
     E03009("知识Page构建参数不能为空"),
+    E03011("知识Chunk索引操作失败"),
 
     ;
 
