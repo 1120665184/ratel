@@ -18,11 +18,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -95,10 +97,69 @@ class ElasticsearchKnowledgeChunkIndexRepositoryTest {
         assertEquals(0.75D, results.getFirst().getScore());
     }
 
+    @Test
+    void findAdjacentChunkReturnsNextVisibleChunk() {
+        ElasticsearchOperations operations = mock(ElasticsearchOperations.class);
+        ElasticsearchKnowledgeChunkIndexRepository repository = repository(operations);
+        when(operations.get("chunk-1", KnowledgeChunkDocument.class, IndexCoordinates.of("test_knowledge_chunk")))
+                .thenReturn(chunk("chunk-1").setChunkOrder(1));
+        SearchHits<KnowledgeChunkDocument> hits = hits(new SearchHit<>(
+                "test_knowledge_chunk",
+                "chunk-2",
+                null,
+                0.5f,
+                null,
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                null,
+                null,
+                Collections.emptyMap(),
+                chunk("chunk-2").setChunkOrder(2)));
+        when(operations.search(any(Query.class), eq(KnowledgeChunkDocument.class), eq(IndexCoordinates.of("test_knowledge_chunk"))))
+                .thenReturn(hits);
+
+        KnowledgeSearchResultVO result = repository.findAdjacentChunk(
+                        "chunk-1",
+                        KnowledgeChunkDirection.NEXT,
+                        List.of("document-1"))
+                .orElseThrow();
+
+        assertEquals("chunk-2", result.getChunkId());
+        assertEquals(2, result.getChunkOrder());
+    }
+
+    @Test
+    void findAdjacentChunkDoesNotSearchWhenCurrentChunkIsInvisible() {
+        ElasticsearchOperations operations = mock(ElasticsearchOperations.class);
+        ElasticsearchKnowledgeChunkIndexRepository repository = repository(operations);
+        when(operations.get("chunk-1", KnowledgeChunkDocument.class, IndexCoordinates.of("test_knowledge_chunk")))
+                .thenReturn(chunk("chunk-1").setSourceDocumentId("document-1"));
+
+        assertEquals(Optional.empty(), repository.findAdjacentChunk(
+                "chunk-1",
+                KnowledgeChunkDirection.PREVIOUS,
+                List.of("document-2")));
+        verify(operations, never()).search(any(Query.class), eq(KnowledgeChunkDocument.class), eq(IndexCoordinates.of("test_knowledge_chunk")));
+    }
+
     private static ElasticsearchKnowledgeChunkIndexRepository repository(ElasticsearchOperations operations) {
         KnowledgeProperties properties = new KnowledgeProperties();
         properties.setIndexName("test_knowledge_chunk");
         return new ElasticsearchKnowledgeChunkIndexRepository(operations, properties);
+    }
+
+    private static SearchHits<KnowledgeChunkDocument> hits(SearchHit<KnowledgeChunkDocument> hit) {
+        return new SearchHitsImpl<>(
+                1,
+                TotalHitsRelation.EQUAL_TO,
+                hit.getScore(),
+                Duration.ofMillis(3),
+                null,
+                null,
+                List.of(hit),
+                null,
+                null,
+                null);
     }
 
     private static KnowledgeChunkDocument chunk(String chunkId) {

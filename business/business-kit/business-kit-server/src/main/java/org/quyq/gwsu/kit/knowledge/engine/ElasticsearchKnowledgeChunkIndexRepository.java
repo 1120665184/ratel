@@ -13,11 +13,13 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.DeleteQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Elasticsearch 知识 Chunk 索引仓储。
@@ -77,6 +79,33 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
         }
     }
 
+    @Override
+    public Optional<KnowledgeSearchResultVO> findAdjacentChunk(
+            String chunkId,
+            KnowledgeChunkDirection direction,
+            Collection<String> visibleSourceDocumentIds) {
+        if (CollectionUtils.isEmpty(visibleSourceDocumentIds)) {
+            return Optional.empty();
+        }
+        try {
+            KnowledgeChunkDocument current = elasticsearchOperations.get(
+                    chunkId,
+                    KnowledgeChunkDocument.class,
+                    indexCoordinates());
+            if (current == null || !visibleSourceDocumentIds.contains(current.getSourceDocumentId())) {
+                return Optional.empty();
+            }
+            return elasticsearchOperations.search(adjacentQuery(current, direction, visibleSourceDocumentIds),
+                            KnowledgeChunkDocument.class,
+                            indexCoordinates())
+                    .stream()
+                    .findFirst()
+                    .map(this::toSearchResult);
+        } catch (RuntimeException ex) {
+            throw new BusinessException(KitErrorCode.E03011, ex);
+        }
+    }
+
     private Query pageVersionQuery(String pageId, String pageVersionId) {
         Criteria criteria = Criteria.where("page_id").is(pageId)
                 .and("page_version_id").is(pageVersionId);
@@ -88,6 +117,26 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
                 .and("source_document_id").in(visibleSourceDocumentIds);
         return CriteriaQuery.builder(criteria)
                 .withMaxResults(size)
+                .build();
+    }
+
+    private Query adjacentQuery(
+            KnowledgeChunkDocument current,
+            KnowledgeChunkDirection direction,
+            Collection<String> visibleSourceDocumentIds) {
+        Criteria criteria = Criteria.where("page_version_id").is(current.getPageVersionId())
+                .and("source_document_id").in(visibleSourceDocumentIds);
+        Sort sort;
+        if (direction == KnowledgeChunkDirection.PREVIOUS) {
+            criteria = criteria.and("chunk_order").lessThan(current.getChunkOrder());
+            sort = Sort.by(Sort.Direction.DESC, "chunk_order");
+        } else {
+            criteria = criteria.and("chunk_order").greaterThan(current.getChunkOrder());
+            sort = Sort.by(Sort.Direction.ASC, "chunk_order");
+        }
+        return CriteriaQuery.builder(criteria)
+                .withSort(sort)
+                .withMaxResults(1)
                 .build();
     }
 
