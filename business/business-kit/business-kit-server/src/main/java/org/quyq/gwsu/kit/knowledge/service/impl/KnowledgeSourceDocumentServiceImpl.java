@@ -8,8 +8,8 @@ import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentRoleSaveDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentSaveDTO;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgeSourceDocument;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgeSourceDocumentRole;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocumentRole;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentRoleMapper;
 import org.quyq.gwsu.kit.knowledge.service.IKnowledgeSourceDocumentService;
@@ -29,7 +29,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class KnowledgeSourceDocumentServiceImpl
-        extends ServiceImpl<KnowledgeSourceDocumentMapper, KnowledgeSourceDocument>
+        extends ServiceImpl<KnowledgeSourceDocumentMapper, KitKnowledgeSourceDocument>
         implements IKnowledgeSourceDocumentService {
 
     private final KnowledgeSourceDocumentMapper sourceDocumentMapper;
@@ -42,7 +42,7 @@ public class KnowledgeSourceDocumentServiceImpl
         if (!StringUtils.hasText(dto.getTenantId())) {
             throw new BusinessException(KitErrorCode.E03005);
         }
-        KnowledgeSourceDocument document = new KnowledgeSourceDocument()
+        KitKnowledgeSourceDocument document = new KitKnowledgeSourceDocument()
                 .setId(dto.getId())
                 .setFileId(dto.getFileId())
                 .setFileName(dto.getFileName())
@@ -51,10 +51,10 @@ public class KnowledgeSourceDocumentServiceImpl
         document.setTenantId(dto.getTenantId());
 
         if (StringUtils.hasText(dto.getId())) {
-            long updated = baseMapper.update(document, new LambdaQueryWrapper<KnowledgeSourceDocument>()
-                    .eq(KnowledgeSourceDocument::getId, dto.getId())
-                    .eq(KnowledgeSourceDocument::getTenantId, dto.getTenantId())
-                    .eq(KnowledgeSourceDocument::getDeleted, false));
+            long updated = baseMapper.update(document, new LambdaQueryWrapper<KitKnowledgeSourceDocument>()
+                    .eq(KitKnowledgeSourceDocument::getId, dto.getId())
+                    .eq(KitKnowledgeSourceDocument::getTenantId, dto.getTenantId())
+                    .eq(KitKnowledgeSourceDocument::getDeleted, false));
             if (updated == 0) {
                 throw new BusinessException(KitErrorCode.E03001);
             }
@@ -76,18 +76,18 @@ public class KnowledgeSourceDocumentServiceImpl
         if (!StringUtils.hasText(dto.getTenantId())) {
             throw new BusinessException(KitErrorCode.E03005);
         }
-        KnowledgeSourceDocument document = getOne(new LambdaQueryWrapper<KnowledgeSourceDocument>()
-                .eq(KnowledgeSourceDocument::getId, dto.getSourceDocumentId())
-                .eq(KnowledgeSourceDocument::getTenantId, dto.getTenantId())
-                .eq(KnowledgeSourceDocument::getDeleted, false));
+        KitKnowledgeSourceDocument document = getOne(new LambdaQueryWrapper<KitKnowledgeSourceDocument>()
+                .eq(KitKnowledgeSourceDocument::getId, dto.getSourceDocumentId())
+                .eq(KitKnowledgeSourceDocument::getTenantId, dto.getTenantId())
+                .eq(KitKnowledgeSourceDocument::getDeleted, false));
         if (Objects.isNull(document)) {
             throw new BusinessException(KitErrorCode.E03001);
         }
 
-        roleMapper.delete(new LambdaQueryWrapper<KnowledgeSourceDocumentRole>()
-                .eq(KnowledgeSourceDocumentRole::getSourceDocumentId, dto.getSourceDocumentId())
-                .eq(KnowledgeSourceDocumentRole::getTenantId, dto.getTenantId())
-                .eq(KnowledgeSourceDocumentRole::getDeleted, false));
+        roleMapper.delete(new LambdaQueryWrapper<KitKnowledgeSourceDocumentRole>()
+                .eq(KitKnowledgeSourceDocumentRole::getSourceDocumentId, dto.getSourceDocumentId())
+                .eq(KitKnowledgeSourceDocumentRole::getTenantId, dto.getTenantId())
+                .eq(KitKnowledgeSourceDocumentRole::getDeleted, false));
 
         if (CollectionUtils.isEmpty(dto.getRoleCodes())) {
             return;
@@ -95,7 +95,7 @@ public class KnowledgeSourceDocumentServiceImpl
 
         new LinkedHashSet<>(dto.getRoleCodes()).stream()
                 .filter(StringUtils::hasText)
-                .map(roleCode -> new KnowledgeSourceDocumentRole()
+                .map(roleCode -> new KitKnowledgeSourceDocumentRole()
                         .setSourceDocumentId(dto.getSourceDocumentId())
                         .setRoleCode(roleCode))
                 .peek(role -> role.setTenantId(dto.getTenantId()))

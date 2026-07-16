@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeSourceType;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageSourceRef;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageVersion;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 
 import java.util.List;
 
@@ -21,8 +21,8 @@ class KnowledgeChunkBuilderTest {
         properties.setMaxToken(10);
         KnowledgeChunkBuilder builder = new KnowledgeChunkBuilder(properties);
 
-        KnowledgePageBlock block = block("block-1", 1, "第一句很长。第二句也很长。第三句。");
-        KnowledgePageSourceRef ref = ref("block-1", "document-a");
+        KitKnowledgePageBlock block = block("block-1", 1, "第一句很长。第二句也很长。第三句。");
+        KitKnowledgePageSourceRef ref = ref("block-1", "document-a");
 
         List<KnowledgeChunkDocument> chunks = builder.build(new KnowledgeChunkBuildRequest(
                 "page-1",
@@ -60,15 +60,15 @@ class KnowledgeChunkBuilderTest {
                 .toList());
     }
 
-    private static KnowledgePageVersion version() {
-        return new KnowledgePageVersion()
+    private static KitKnowledgePageVersion version() {
+        return new KitKnowledgePageVersion()
                 .setId("version-1")
                 .setPageId("page-1")
                 .setVersionNo(1);
     }
 
-    private static KnowledgePageBlock block(String id, int orderNo, String content) {
-        return new KnowledgePageBlock()
+    private static KitKnowledgePageBlock block(String id, int orderNo, String content) {
+        return new KitKnowledgePageBlock()
                 .setId(id)
                 .setPageVersionId("version-1")
                 .setOrderNo(orderNo)
@@ -76,8 +76,8 @@ class KnowledgeChunkBuilderTest {
                 .setContent(content);
     }
 
-    private static KnowledgePageSourceRef ref(String blockId, String sourceDocumentId) {
-        return new KnowledgePageSourceRef()
+    private static KitKnowledgePageSourceRef ref(String blockId, String sourceDocumentId) {
+        return new KitKnowledgePageSourceRef()
                 .setPageBlockId(blockId)
                 .setSourceType(KnowledgeSourceType.SOURCE_DOCUMENT)
                 .setSourceDocumentId(sourceDocumentId)

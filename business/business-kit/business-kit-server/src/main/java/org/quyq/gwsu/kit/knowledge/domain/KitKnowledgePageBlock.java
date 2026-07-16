@@ -8,24 +8,31 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 
 /**
- * 知识源文档角色授权。
+ * 知识 Page Block。
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-@TableName("knowledge_source_document_role")
-@Schema(description = "知识源文档角色授权")
-public class KnowledgeSourceDocumentRole extends BaseDO {
+@TableName("kit_knowledge_page_block")
+@Schema(description = "知识Page Block")
+public class KitKnowledgePageBlock extends BaseDO {
 
     @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键ID")
     private String id;
 
-    @Schema(description = "源文档ID")
-    private String sourceDocumentId;
+    @Schema(description = "Page版本ID")
+    private String pageVersionId;
 
-    @Schema(description = "角色编码")
-    private String roleCode;
+    @Schema(description = "排序号")
+    private Integer orderNo;
+
+    @Schema(description = "Block类型")
+    private KnowledgeBlockType blockType;
+
+    @Schema(description = "Block内容")
+    private String content;
 }

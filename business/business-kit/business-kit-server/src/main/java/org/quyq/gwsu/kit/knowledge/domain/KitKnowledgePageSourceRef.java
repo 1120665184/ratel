@@ -8,28 +8,31 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.quyq.gwsu.common.core.domain.BaseDO;
-import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageStatus;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeSourceType;
 
 /**
- * 知识 Page。
+ * 知识 Page Block 来源关系。
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-@TableName("knowledge_page")
-@Schema(description = "知识Page")
-public class KnowledgePage extends BaseDO {
+@TableName("kit_knowledge_page_source_ref")
+@Schema(description = "知识Page Block来源关系")
+public class KitKnowledgePageSourceRef extends BaseDO {
 
     @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键ID")
     private String id;
 
-    @Schema(description = "标题")
-    private String title;
+    @Schema(description = "Page Block ID")
+    private String pageBlockId;
 
-    @Schema(description = "Page状态")
-    private KnowledgePageStatus pageStatus;
+    @Schema(description = "来源类型")
+    private KnowledgeSourceType sourceType;
 
-    @Schema(description = "当前版本ID")
-    private String currentVersionId;
+    @Schema(description = "源文档ID")
+    private String sourceDocumentId;
+
+    @Schema(description = "来源定位")
+    private String sourceLocator;
 }

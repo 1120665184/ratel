@@ -10,11 +10,11 @@ import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageStatus;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageVersionStatus;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePage;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageSourceRef;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageVersion;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgeSourceDocument;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeBlockBuildResult;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeBlockFactory;
@@ -59,7 +59,7 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
     private final TransactionTemplate transactionTemplate;
 
     @Override
-    public String publish(String tenantId, KnowledgeSourceDocument sourceDocument, GeneratedKnowledgePage generatedPage) {
+    public String publish(String tenantId, KitKnowledgeSourceDocument sourceDocument, GeneratedKnowledgePage generatedPage) {
         AssertUtils.hasText(tenantId, KitErrorCode.E03005);
         AssertUtils.hasText(sourceDocument.getId(), KitErrorCode.E03009);
         AssertUtils.hasText(generatedPage.markdownContent(), KitErrorCode.E03009);
@@ -70,9 +70,9 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
 
     private String publishLocked(String tenantId,
                                  String pageId,
-                                 KnowledgeSourceDocument sourceDocument,
+                                 KitKnowledgeSourceDocument sourceDocument,
                                  GeneratedKnowledgePage generatedPage) {
-        KnowledgePage page = ensurePage(tenantId, pageId, generatedPage.title());
+        KitKnowledgePage page = ensurePage(tenantId, pageId, generatedPage.title());
         String newVersionId = IdWorker.getIdStr();
         int nextVersionNo = Objects.requireNonNullElse(pageVersionMapper.selectMaxVersionNo(tenantId, page.getId()), 0) + 1;
         KnowledgeBlockBuildResult newSourceBlocks = blockFactory.build(
@@ -81,7 +81,7 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
                 generatedPage.markdownContent());
         validateSingleSource(sourceDocument.getId(), newSourceBlocks);
 
-        KnowledgePageVersion newVersion = new KnowledgePageVersion()
+        KitKnowledgePageVersion newVersion = new KitKnowledgePageVersion()
                 .setId(newVersionId)
                 .setPageId(page.getId())
                 .setVersionNo(nextVersionNo)
@@ -91,8 +91,8 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
         newVersion.setTenantId(tenantId);
         pageVersionMapper.insert(newVersion);
 
-        List<KnowledgePageBlock> blocksToInsert = new ArrayList<>();
-        List<KnowledgePageSourceRef> refsToInsert = new ArrayList<>();
+        List<KitKnowledgePageBlock> blocksToInsert = new ArrayList<>();
+        List<KitKnowledgePageSourceRef> refsToInsert = new ArrayList<>();
         copyOtherSourceBlocks(tenantId, page.getCurrentVersionId(), newVersionId, sourceDocument.getId(),
                 blocksToInsert, refsToInsert);
         blocksToInsert.addAll(newSourceBlocks.blocks());
@@ -107,33 +107,33 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
             pageSourceRefMapper.insert(ref);
         });
 
-        KnowledgePage update = new KnowledgePage()
+        KitKnowledgePage update = new KitKnowledgePage()
                 .setTitle(StringUtils.hasText(generatedPage.title()) ? generatedPage.title() : page.getTitle())
                 .setPageStatus(KnowledgePageStatus.PUBLISHED)
                 .setCurrentVersionId(newVersionId);
-        pageMapper.update(update, new LambdaUpdateWrapper<KnowledgePage>()
-                .eq(KnowledgePage::getId, page.getId())
-                .eq(KnowledgePage::getTenantId, tenantId)
-                .eq(KnowledgePage::getDeleted, false));
+        pageMapper.update(update, new LambdaUpdateWrapper<KitKnowledgePage>()
+                .eq(KitKnowledgePage::getId, page.getId())
+                .eq(KitKnowledgePage::getTenantId, tenantId)
+                .eq(KitKnowledgePage::getDeleted, false));
         return newVersionId;
     }
 
-    private String resolvePageId(KnowledgeSourceDocument sourceDocument) {
+    private String resolvePageId(KitKnowledgeSourceDocument sourceDocument) {
         if (StringUtils.hasText(sourceDocument.getTargetPageId())) {
             return sourceDocument.getTargetPageId();
         }
         return IdWorker.getIdStr();
     }
 
-    private KnowledgePage ensurePage(String tenantId, String pageId, String title) {
-        KnowledgePage page = pageMapper.selectOne(new LambdaQueryWrapper<KnowledgePage>()
-                .eq(KnowledgePage::getId, pageId)
-                .eq(KnowledgePage::getTenantId, tenantId)
-                .eq(KnowledgePage::getDeleted, false));
+    private KitKnowledgePage ensurePage(String tenantId, String pageId, String title) {
+        KitKnowledgePage page = pageMapper.selectOne(new LambdaQueryWrapper<KitKnowledgePage>()
+                .eq(KitKnowledgePage::getId, pageId)
+                .eq(KitKnowledgePage::getTenantId, tenantId)
+                .eq(KitKnowledgePage::getDeleted, false));
         if (Objects.nonNull(page)) {
             return page;
         }
-        KnowledgePage created = new KnowledgePage()
+        KitKnowledgePage created = new KitKnowledgePage()
                 .setId(pageId)
                 .setTitle(title)
                 .setPageStatus(KnowledgePageStatus.DRAFT);
@@ -146,35 +146,35 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
                                        String currentVersionId,
                                        String newVersionId,
                                        String replacingSourceDocumentId,
-                                       List<KnowledgePageBlock> blocksToInsert,
-                                       List<KnowledgePageSourceRef> refsToInsert) {
+                                       List<KitKnowledgePageBlock> blocksToInsert,
+                                       List<KitKnowledgePageSourceRef> refsToInsert) {
         if (!StringUtils.hasText(currentVersionId)) {
             return;
         }
-        List<KnowledgePageBlock> currentBlocks = pageBlockMapper.selectByVersionId(tenantId, currentVersionId);
+        List<KitKnowledgePageBlock> currentBlocks = pageBlockMapper.selectByVersionId(tenantId, currentVersionId);
         if (CollectionUtils.isEmpty(currentBlocks)) {
             return;
         }
         List<String> currentBlockIds = currentBlocks.stream()
-                .map(KnowledgePageBlock::getId)
+                .map(KitKnowledgePageBlock::getId)
                 .toList();
-        Map<String, KnowledgePageSourceRef> refByBlockId = pageSourceRefMapper
+        Map<String, KitKnowledgePageSourceRef> refByBlockId = pageSourceRefMapper
                 .selectByPageBlockIds(tenantId, currentBlockIds)
                 .stream()
-                .collect(Collectors.toMap(KnowledgePageSourceRef::getPageBlockId, Function.identity(), (left, right) -> left));
-        for (KnowledgePageBlock currentBlock : currentBlocks) {
-            KnowledgePageSourceRef currentRef = refByBlockId.get(currentBlock.getId());
+                .collect(Collectors.toMap(KitKnowledgePageSourceRef::getPageBlockId, Function.identity(), (left, right) -> left));
+        for (KitKnowledgePageBlock currentBlock : currentBlocks) {
+            KitKnowledgePageSourceRef currentRef = refByBlockId.get(currentBlock.getId());
             if (Objects.isNull(currentRef)
                     || replacingSourceDocumentId.equals(currentRef.getSourceDocumentId())) {
                 continue;
             }
             String newBlockId = IdWorker.getIdStr();
-            KnowledgePageBlock copiedBlock = new KnowledgePageBlock()
+            KitKnowledgePageBlock copiedBlock = new KitKnowledgePageBlock()
                     .setId(newBlockId)
                     .setPageVersionId(newVersionId)
                     .setBlockType(currentBlock.getBlockType())
                     .setContent(currentBlock.getContent());
-            KnowledgePageSourceRef copiedRef = new KnowledgePageSourceRef()
+            KitKnowledgePageSourceRef copiedRef = new KitKnowledgePageSourceRef()
                     .setPageBlockId(newBlockId)
                     .setSourceType(currentRef.getSourceType())
                     .setSourceDocumentId(currentRef.getSourceDocumentId())
@@ -184,7 +184,7 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
         }
     }
 
-    private void resetOrderNo(List<KnowledgePageBlock> blocks) {
+    private void resetOrderNo(List<KitKnowledgePageBlock> blocks) {
         for (int i = 0; i < blocks.size(); i++) {
             blocks.get(i).setOrderNo(i + 1);
         }
@@ -194,14 +194,14 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
         if (buildResult.blocks().size() != buildResult.sourceRefs().size()) {
             throw new BusinessException(KitErrorCode.E03009);
         }
-        Map<String, KnowledgePageSourceRef> refByBlockId = new HashMap<>();
-        for (KnowledgePageSourceRef ref : buildResult.sourceRefs()) {
+        Map<String, KitKnowledgePageSourceRef> refByBlockId = new HashMap<>();
+        for (KitKnowledgePageSourceRef ref : buildResult.sourceRefs()) {
             if (!sourceDocumentId.equals(ref.getSourceDocumentId())
                     || refByBlockId.put(ref.getPageBlockId(), ref) != null) {
                 throw new BusinessException(KitErrorCode.E03009);
             }
         }
-        for (KnowledgePageBlock block : buildResult.blocks()) {
+        for (KitKnowledgePageBlock block : buildResult.blocks()) {
             if (!refByBlockId.containsKey(block.getId())) {
                 throw new BusinessException(KitErrorCode.E03009);
             }

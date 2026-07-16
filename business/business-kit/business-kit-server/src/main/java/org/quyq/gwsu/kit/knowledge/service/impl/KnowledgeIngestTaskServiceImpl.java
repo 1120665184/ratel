@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeIngestTaskStatus;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgeIngestTask;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestTask;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
 import org.quyq.gwsu.kit.knowledge.service.IKnowledgeIngestTaskService;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class KnowledgeIngestTaskServiceImpl
-        extends ServiceImpl<KnowledgeIngestTaskMapper, KnowledgeIngestTask>
+        extends ServiceImpl<KnowledgeIngestTaskMapper, KitKnowledgeIngestTask>
         implements IKnowledgeIngestTaskService {
 
     private static final List<KnowledgeIngestTaskStatus> ACTIVE_STATUSES = List.of(
@@ -35,10 +35,10 @@ public class KnowledgeIngestTaskServiceImpl
         if (!StringUtils.hasText(tenantId)) {
             throw new BusinessException(KitErrorCode.E03005);
         }
-        KnowledgeIngestTask failedTask = getOne(new LambdaQueryWrapper<KnowledgeIngestTask>()
-                .eq(KnowledgeIngestTask::getId, taskId)
-                .eq(KnowledgeIngestTask::getTenantId, tenantId)
-                .eq(KnowledgeIngestTask::getDeleted, false));
+        KitKnowledgeIngestTask failedTask = getOne(new LambdaQueryWrapper<KitKnowledgeIngestTask>()
+                .eq(KitKnowledgeIngestTask::getId, taskId)
+                .eq(KitKnowledgeIngestTask::getTenantId, tenantId)
+                .eq(KitKnowledgeIngestTask::getDeleted, false));
         if (Objects.isNull(failedTask)) {
             throw new BusinessException(KitErrorCode.E03002);
         }
@@ -46,16 +46,16 @@ public class KnowledgeIngestTaskServiceImpl
             throw new BusinessException(KitErrorCode.E03003);
         }
 
-        long activeCount = count(new LambdaQueryWrapper<KnowledgeIngestTask>()
-                .eq(KnowledgeIngestTask::getSourceDocumentId, failedTask.getSourceDocumentId())
-                .eq(KnowledgeIngestTask::getTenantId, failedTask.getTenantId())
-                .eq(KnowledgeIngestTask::getDeleted, false)
-                .in(KnowledgeIngestTask::getTaskStatus, ACTIVE_STATUSES));
+        long activeCount = count(new LambdaQueryWrapper<KitKnowledgeIngestTask>()
+                .eq(KitKnowledgeIngestTask::getSourceDocumentId, failedTask.getSourceDocumentId())
+                .eq(KitKnowledgeIngestTask::getTenantId, failedTask.getTenantId())
+                .eq(KitKnowledgeIngestTask::getDeleted, false)
+                .in(KitKnowledgeIngestTask::getTaskStatus, ACTIVE_STATUSES));
         if (activeCount > 0) {
             throw new BusinessException(KitErrorCode.E03004);
         }
 
-        KnowledgeIngestTask retryTask = new KnowledgeIngestTask()
+        KitKnowledgeIngestTask retryTask = new KitKnowledgeIngestTask()
                 .setSourceDocumentId(failedTask.getSourceDocumentId())
                 .setTaskStatus(KnowledgeIngestTaskStatus.PENDING)
                 .setRetryCount(Objects.requireNonNullElse(failedTask.getRetryCount(), 0) + 1);

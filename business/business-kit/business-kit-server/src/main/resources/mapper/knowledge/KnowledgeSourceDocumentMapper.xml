@@ -5,13 +5,13 @@
 
     <select id="listVisibleSourceDocumentIds" resultType="java.lang.String">
         SELECT sd.id
-        FROM knowledge_source_document sd
+        FROM kit_knowledge_source_document sd
         WHERE sd.tenant_id = #{tenantId}
           AND sd.deleted = 0
           AND (
             NOT EXISTS (
                 SELECT 1
-                FROM knowledge_source_document_role open_role
+                FROM kit_knowledge_source_document_role open_role
                 WHERE open_role.source_document_id = sd.id
                   AND open_role.tenant_id = #{tenantId}
                   AND open_role.deleted = 0
@@ -19,7 +19,7 @@
             <if test="roleCodes != null and roleCodes.size() > 0">
                 OR EXISTS (
                     SELECT 1
-                    FROM knowledge_source_document_role hit_role
+                    FROM kit_knowledge_source_document_role hit_role
                     WHERE hit_role.source_document_id = sd.id
                       AND hit_role.tenant_id = #{tenantId}
                       AND hit_role.deleted = 0

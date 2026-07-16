@@ -1,6 +1,6 @@
 package org.quyq.gwsu.kit.knowledge.service;
 
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgeSourceDocument;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
 
 /**
@@ -8,5 +8,5 @@ import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
  */
 public interface KnowledgePageMergeService {
 
-    String publish(String tenantId, KnowledgeSourceDocument sourceDocument, GeneratedKnowledgePage generatedPage);
+    String publish(String tenantId, KitKnowledgeSourceDocument sourceDocument, GeneratedKnowledgePage generatedPage);
 }

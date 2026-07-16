@@ -252,10 +252,10 @@ CREATE TABLE kit_job_lock
 
 -- =============================================
 -- 知识库相关表结构
--- 表名前缀：knowledge_
+-- 表名前缀：kit_knowledge_
 -- =============================================
 
-CREATE TABLE knowledge_source_document
+CREATE TABLE kit_knowledge_source_document
 (
     id               VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
     file_id          VARCHAR(24)           DEFAULT NULL COMMENT '文件ID',
@@ -274,10 +274,10 @@ CREATE TABLE knowledge_source_document
     delete_time      DATETIME              DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识源文档';
 
-CREATE INDEX idx_knowledge_source_document_file_id ON knowledge_source_document (file_id);
-CREATE INDEX idx_knowledge_source_document_status ON knowledge_source_document (document_status);
+CREATE INDEX idx_kit_knowledge_source_document_file_id ON kit_knowledge_source_document (file_id);
+CREATE INDEX idx_kit_knowledge_source_document_status ON kit_knowledge_source_document (document_status);
 
-CREATE TABLE knowledge_source_document_role
+CREATE TABLE kit_knowledge_source_document_role
 (
     id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
@@ -294,9 +294,9 @@ CREATE TABLE knowledge_source_document_role
     delete_time        DATETIME    DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识源文档角色授权';
 
-CREATE UNIQUE INDEX uk_knowledge_source_document_role_doc_role ON knowledge_source_document_role (active_source_document_id, active_role_code);
+CREATE UNIQUE INDEX uk_kit_knowledge_source_document_role_doc_role ON kit_knowledge_source_document_role (active_source_document_id, active_role_code);
 
-CREATE TABLE knowledge_page
+CREATE TABLE kit_knowledge_page
 (
     id                 VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
     title              VARCHAR(200)          DEFAULT NULL COMMENT '标题',
@@ -312,9 +312,9 @@ CREATE TABLE knowledge_page
     delete_time        DATETIME              DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识Page';
 
-CREATE INDEX idx_knowledge_page_status ON knowledge_page (page_status);
+CREATE INDEX idx_kit_knowledge_page_status ON kit_knowledge_page (page_status);
 
-CREATE TABLE knowledge_page_version
+CREATE TABLE kit_knowledge_page_version
 (
     id               VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
     page_id          VARCHAR(24)  NOT NULL COMMENT 'Page ID',
@@ -334,9 +334,9 @@ CREATE TABLE knowledge_page_version
     delete_time      DATETIME              DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识Page版本';
 
-CREATE UNIQUE INDEX uk_knowledge_page_version_page_no ON knowledge_page_version (active_page_id, active_version_no);
+CREATE UNIQUE INDEX uk_kit_knowledge_page_version_page_no ON kit_knowledge_page_version (active_page_id, active_version_no);
 
-CREATE TABLE knowledge_page_block
+CREATE TABLE kit_knowledge_page_block
 (
     id              VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     page_version_id VARCHAR(24) NOT NULL COMMENT 'Page版本ID',
@@ -355,9 +355,9 @@ CREATE TABLE knowledge_page_block
     delete_time     DATETIME             DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识Page Block';
 
-CREATE UNIQUE INDEX uk_knowledge_page_block_version_order ON knowledge_page_block (active_page_version_id, active_order_no);
+CREATE UNIQUE INDEX uk_kit_knowledge_page_block_version_order ON kit_knowledge_page_block (active_page_version_id, active_order_no);
 
-CREATE TABLE knowledge_page_source_ref
+CREATE TABLE kit_knowledge_page_source_ref
 (
     id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     page_block_id      VARCHAR(24) NOT NULL COMMENT 'Page Block ID',
@@ -375,10 +375,10 @@ CREATE TABLE knowledge_page_source_ref
     delete_time        DATETIME     DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识Page Block来源关系';
 
-CREATE UNIQUE INDEX uk_knowledge_page_source_ref_block ON knowledge_page_source_ref (active_page_block_id);
-CREATE INDEX idx_knowledge_page_source_ref_document ON knowledge_page_source_ref (source_document_id);
+CREATE UNIQUE INDEX uk_kit_knowledge_page_source_ref_block ON kit_knowledge_page_source_ref (active_page_block_id);
+CREATE INDEX idx_kit_knowledge_page_source_ref_document ON kit_knowledge_page_source_ref (source_document_id);
 
-CREATE TABLE knowledge_ingest_task
+CREATE TABLE kit_knowledge_ingest_task
 (
     id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
     source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
@@ -399,7 +399,7 @@ CREATE TABLE knowledge_ingest_task
     delete_time        DATETIME             DEFAULT NULL COMMENT '删除时间'
 ) COMMENT '知识文档导入任务';
 
-CREATE UNIQUE INDEX uk_knowledge_ingest_task_active_doc ON knowledge_ingest_task (active_task_source_document_id);
+CREATE UNIQUE INDEX uk_kit_knowledge_ingest_task_active_doc ON kit_knowledge_ingest_task (active_task_source_document_id);
 
 -- ================== 初始数据 ==================
 

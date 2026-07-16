@@ -3,8 +3,8 @@ package org.quyq.gwsu.kit.knowledge.engine;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
@@ -29,20 +29,20 @@ public class KnowledgeChunkBuilder {
     private final KnowledgeProperties properties;
 
     public List<KnowledgeChunkDocument> build(KnowledgeChunkBuildRequest request) {
-        Map<String, KnowledgePageSourceRef> refByBlockId = new HashMap<>();
-        for (KnowledgePageSourceRef ref : request.sourceRefs()) {
+        Map<String, KitKnowledgePageSourceRef> refByBlockId = new HashMap<>();
+        for (KitKnowledgePageSourceRef ref : request.sourceRefs()) {
             refByBlockId.put(ref.getPageBlockId(), ref);
         }
         List<KnowledgeChunkDocument> chunks = new ArrayList<>();
-        List<KnowledgePageBlock> orderedBlocks = request.blocks().stream()
-                .sorted(Comparator.comparing(KnowledgePageBlock::getOrderNo))
+        List<KitKnowledgePageBlock> orderedBlocks = request.blocks().stream()
+                .sorted(Comparator.comparing(KitKnowledgePageBlock::getOrderNo))
                 .toList();
         String currentHeading = "";
-        for (KnowledgePageBlock block : orderedBlocks) {
+        for (KitKnowledgePageBlock block : orderedBlocks) {
             if (block.getBlockType() != null && "HEADING".equals(block.getBlockType().name())) {
                 currentHeading = block.getContent();
             }
-            KnowledgePageSourceRef ref = refByBlockId.get(block.getId());
+            KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());
             if (ref == null || !StringUtils.hasText(ref.getSourceDocumentId())) {
                 continue;
             }

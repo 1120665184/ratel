@@ -18,9 +18,9 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-@TableName("knowledge_source_document")
+@TableName("kit_knowledge_source_document")
 @Schema(description = "知识源文档")
-public class KnowledgeSourceDocument extends BaseDO {
+public class KitKnowledgeSourceDocument extends BaseDO {
 
     @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键ID")

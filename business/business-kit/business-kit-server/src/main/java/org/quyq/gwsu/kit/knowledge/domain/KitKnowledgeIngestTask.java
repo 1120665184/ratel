@@ -19,9 +19,9 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-@TableName("knowledge_ingest_task")
+@TableName("kit_knowledge_ingest_task")
 @Schema(description = "知识文档导入任务")
-public class KnowledgeIngestTask extends BaseDO {
+public class KitKnowledgeIngestTask extends BaseDO {
 
     @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键ID")

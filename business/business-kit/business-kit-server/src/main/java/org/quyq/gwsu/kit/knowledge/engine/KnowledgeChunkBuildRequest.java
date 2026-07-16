@@ -1,8 +1,8 @@
 package org.quyq.gwsu.kit.knowledge.engine;
 
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageSourceRef;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageVersion;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
 public record KnowledgeChunkBuildRequest(
         String pageId,
         String title,
-        KnowledgePageVersion pageVersion,
-        List<KnowledgePageBlock> blocks,
-        List<KnowledgePageSourceRef> sourceRefs) {
+        KitKnowledgePageVersion pageVersion,
+        List<KitKnowledgePageBlock> blocks,
+        List<KitKnowledgePageSourceRef> sourceRefs) {
 }

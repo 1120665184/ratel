@@ -3,7 +3,7 @@ package org.quyq.gwsu.kit.knowledge.engine;
 import org.junit.jupiter.api.Test;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeSourceType;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 
 import java.util.List;
 
@@ -33,7 +33,7 @@ class KnowledgeBlockFactoryTest {
         KnowledgeBlockBuildResult result = factory.build("version-1", "document-1", markdown);
 
         List<KnowledgeBlockType> blockTypes = result.blocks().stream()
-                .map(KnowledgePageBlock::getBlockType)
+                .map(KitKnowledgePageBlock::getBlockType)
                 .toList();
         assertEquals(List.of(
                 KnowledgeBlockType.HEADING,

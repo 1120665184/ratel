@@ -5,11 +5,11 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageStatus;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageVersionStatus;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePage;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageSourceRef;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageVersion;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgeSourceDocument;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeBlockFactory;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
@@ -60,12 +60,12 @@ class KnowledgePageMergeServiceTest {
             }
         }
 
-        KnowledgePage currentPage = fixture.page();
-        List<KnowledgePageVersion> versions = fixture.versions();
-        List<KnowledgePageBlock> currentBlocks = fixture.blocksByVersion(currentPage.getCurrentVersionId());
+        KitKnowledgePage currentPage = fixture.page();
+        List<KitKnowledgePageVersion> versions = fixture.versions();
+        List<KitKnowledgePageBlock> currentBlocks = fixture.blocksByVersion(currentPage.getCurrentVersionId());
 
         assertEquals(2, versions.size());
-        assertEquals(List.of(1, 2), versions.stream().map(KnowledgePageVersion::getVersionNo).toList());
+        assertEquals(List.of(1, 2), versions.stream().map(KitKnowledgePageVersion::getVersionNo).toList());
         assertTrue(versions.stream().allMatch(version -> version.getVersionStatus() == KnowledgePageVersionStatus.PUBLISHED));
         assertEquals(versions.getLast().getId(), currentPage.getCurrentVersionId());
         assertEquals(2, currentBlocks.size());
@@ -81,8 +81,8 @@ class KnowledgePageMergeServiceTest {
         service.publish(TENANT_ID, document("document-a"), new GeneratedKnowledgePage("Wiki", "# 旧A"));
         service.publish(TENANT_ID, document("document-a"), new GeneratedKnowledgePage("Wiki", "# 新A"));
 
-        KnowledgePage currentPage = fixture.page();
-        List<KnowledgePageBlock> currentBlocks = fixture.blocksByVersion(currentPage.getCurrentVersionId());
+        KitKnowledgePage currentPage = fixture.page();
+        List<KitKnowledgePageBlock> currentBlocks = fixture.blocksByVersion(currentPage.getCurrentVersionId());
 
         assertEquals(2, fixture.versions().size());
         assertEquals(1, currentBlocks.size());
@@ -90,8 +90,8 @@ class KnowledgePageMergeServiceTest {
         assertEquals(List.of("document-a"), fixture.sourceDocumentIds(currentBlocks));
     }
 
-    private static KnowledgeSourceDocument document(String documentId) {
-        KnowledgeSourceDocument document = new KnowledgeSourceDocument()
+    private static KitKnowledgeSourceDocument document(String documentId) {
+        KitKnowledgeSourceDocument document = new KitKnowledgeSourceDocument()
                 .setId(documentId)
                 .setTargetPageId(PAGE_ID);
         document.setTenantId(TENANT_ID);
@@ -102,16 +102,16 @@ class KnowledgePageMergeServiceTest {
 
         private final ReentrantLock lock = new ReentrantLock();
 
-        private final KnowledgePage page = new KnowledgePage()
+        private final KitKnowledgePage page = new KitKnowledgePage()
                 .setId(PAGE_ID)
                 .setTitle("Wiki")
                 .setPageStatus(KnowledgePageStatus.DRAFT);
 
-        private final List<KnowledgePageVersion> versions = new ArrayList<>();
+        private final List<KitKnowledgePageVersion> versions = new ArrayList<>();
 
-        private final Map<String, List<KnowledgePageBlock>> blocksByVersion = new ConcurrentHashMap<>();
+        private final Map<String, List<KitKnowledgePageBlock>> blocksByVersion = new ConcurrentHashMap<>();
 
-        private final Map<String, KnowledgePageSourceRef> refByBlockId = new ConcurrentHashMap<>();
+        private final Map<String, KitKnowledgePageSourceRef> refByBlockId = new ConcurrentHashMap<>();
 
         private InMemoryMergeFixture() {
             page.setTenantId(TENANT_ID);
@@ -137,7 +137,7 @@ class KnowledgePageMergeServiceTest {
                     invocation.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
             when(pageMapper.selectOne(any())).thenAnswer(invocation -> page);
             doAnswer(invocation -> {
-                KnowledgePage update = invocation.getArgument(0);
+                KitKnowledgePage update = invocation.getArgument(0);
                 if (Objects.nonNull(update.getTitle())) {
                     page.setTitle(update.getTitle());
                 }
@@ -148,21 +148,21 @@ class KnowledgePageMergeServiceTest {
                     page.setCurrentVersionId(update.getCurrentVersionId());
                 }
                 return 1;
-            }).when(pageMapper).update(any(KnowledgePage.class), any());
+            }).when(pageMapper).update(any(KitKnowledgePage.class), any());
             when(pageVersionMapper.selectMaxVersionNo(TENANT_ID, PAGE_ID)).thenAnswer(invocation -> versions.size());
             doAnswer(invocation -> {
-                KnowledgePageVersion version = invocation.getArgument(0);
+                KitKnowledgePageVersion version = invocation.getArgument(0);
                 versions.add(version);
                 blocksByVersion.put(version.getId(), new ArrayList<>());
                 return 1;
-            }).when(pageVersionMapper).insert(any(KnowledgePageVersion.class));
+            }).when(pageVersionMapper).insert(any(KitKnowledgePageVersion.class));
             when(pageBlockMapper.selectByVersionId(anyString(), anyString())).thenAnswer(invocation ->
                     new ArrayList<>(blocksByVersion.getOrDefault(invocation.getArgument(1), List.of())));
             doAnswer(invocation -> {
-                KnowledgePageBlock block = invocation.getArgument(0);
+                KitKnowledgePageBlock block = invocation.getArgument(0);
                 blocksByVersion.computeIfAbsent(block.getPageVersionId(), key -> new ArrayList<>()).add(block);
                 return 1;
-            }).when(pageBlockMapper).insert(any(KnowledgePageBlock.class));
+            }).when(pageBlockMapper).insert(any(KitKnowledgePageBlock.class));
             when(pageSourceRefMapper.selectByPageBlockIds(anyString(), any(Collection.class))).thenAnswer(invocation -> {
                 Collection<String> blockIds = invocation.getArgument(1);
                 return blockIds.stream()
@@ -171,10 +171,10 @@ class KnowledgePageMergeServiceTest {
                         .toList();
             });
             doAnswer(invocation -> {
-                KnowledgePageSourceRef ref = invocation.getArgument(0);
+                KitKnowledgePageSourceRef ref = invocation.getArgument(0);
                 refByBlockId.put(ref.getPageBlockId(), ref);
                 return 1;
-            }).when(pageSourceRefMapper).insert(any(KnowledgePageSourceRef.class));
+            }).when(pageSourceRefMapper).insert(any(KitKnowledgePageSourceRef.class));
 
             return new KnowledgePageMergeServiceImpl(
                     cacheUtils,
@@ -186,23 +186,23 @@ class KnowledgePageMergeServiceTest {
                     transactionTemplate);
         }
 
-        KnowledgePage page() {
+        KitKnowledgePage page() {
             return page;
         }
 
-        List<KnowledgePageVersion> versions() {
+        List<KitKnowledgePageVersion> versions() {
             return versions;
         }
 
-        List<KnowledgePageBlock> blocksByVersion(String versionId) {
+        List<KitKnowledgePageBlock> blocksByVersion(String versionId) {
             return blocksByVersion.getOrDefault(versionId, List.of());
         }
 
-        List<String> sourceDocumentIds(List<KnowledgePageBlock> blocks) {
+        List<String> sourceDocumentIds(List<KitKnowledgePageBlock> blocks) {
             return blocks.stream()
                     .peek(block -> assertEquals(KnowledgeBlockType.HEADING, block.getBlockType()))
                     .map(block -> refByBlockId.get(block.getId()))
-                    .map(KnowledgePageSourceRef::getSourceDocumentId)
+                    .map(KitKnowledgePageSourceRef::getSourceDocumentId)
                     .toList();
         }
     }

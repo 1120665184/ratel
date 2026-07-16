@@ -412,10 +412,10 @@ COMMENT ON COLUMN kit_job_lock.lock_name IS '锁名称';
 
 -- =============================================
 -- 知识库相关表结构
--- 表名前缀：knowledge_
+-- 表名前缀：kit_knowledge_
 -- =============================================
 
-CREATE TABLE knowledge_source_document
+CREATE TABLE kit_knowledge_source_document
 (
     id               VARCHAR(24) PRIMARY KEY,
     file_id          VARCHAR(24)           DEFAULT NULL,
@@ -434,19 +434,19 @@ CREATE TABLE knowledge_source_document
     delete_time      TIMESTAMP             DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_source_document IS '知识源文档';
-COMMENT ON COLUMN knowledge_source_document.id IS '主键ID';
-COMMENT ON COLUMN knowledge_source_document.file_id IS '文件ID';
-COMMENT ON COLUMN knowledge_source_document.file_name IS '文件名';
-COMMENT ON COLUMN knowledge_source_document.document_status IS '文档处理状态';
-COMMENT ON COLUMN knowledge_source_document.target_page_id IS '目标Page ID';
-COMMENT ON COLUMN knowledge_source_document.process_message IS '处理信息';
-COMMENT ON COLUMN knowledge_source_document.processed_at IS '处理完成时间';
+COMMENT ON TABLE kit_knowledge_source_document IS '知识源文档';
+COMMENT ON COLUMN kit_knowledge_source_document.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_source_document.file_id IS '文件ID';
+COMMENT ON COLUMN kit_knowledge_source_document.file_name IS '文件名';
+COMMENT ON COLUMN kit_knowledge_source_document.document_status IS '文档处理状态';
+COMMENT ON COLUMN kit_knowledge_source_document.target_page_id IS '目标Page ID';
+COMMENT ON COLUMN kit_knowledge_source_document.process_message IS '处理信息';
+COMMENT ON COLUMN kit_knowledge_source_document.processed_at IS '处理完成时间';
 
-CREATE INDEX idx_knowledge_source_document_file_id ON knowledge_source_document (file_id) WHERE deleted = 0;
-CREATE INDEX idx_knowledge_source_document_status ON knowledge_source_document (document_status);
+CREATE INDEX idx_kit_knowledge_source_document_file_id ON kit_knowledge_source_document (file_id) WHERE deleted = 0;
+CREATE INDEX idx_kit_knowledge_source_document_status ON kit_knowledge_source_document (document_status);
 
-CREATE TABLE knowledge_source_document_role
+CREATE TABLE kit_knowledge_source_document_role
 (
     id                 VARCHAR(24) PRIMARY KEY,
     source_document_id VARCHAR(24)  NOT NULL,
@@ -461,14 +461,14 @@ CREATE TABLE knowledge_source_document_role
     delete_time        TIMESTAMP   DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_source_document_role IS '知识源文档角色授权';
-COMMENT ON COLUMN knowledge_source_document_role.id IS '主键ID';
-COMMENT ON COLUMN knowledge_source_document_role.source_document_id IS '源文档ID';
-COMMENT ON COLUMN knowledge_source_document_role.role_code IS '角色编码';
+COMMENT ON TABLE kit_knowledge_source_document_role IS '知识源文档角色授权';
+COMMENT ON COLUMN kit_knowledge_source_document_role.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_source_document_role.source_document_id IS '源文档ID';
+COMMENT ON COLUMN kit_knowledge_source_document_role.role_code IS '角色编码';
 
-CREATE UNIQUE INDEX uk_knowledge_source_document_role_doc_role ON knowledge_source_document_role (source_document_id, role_code) WHERE deleted = 0;
+CREATE UNIQUE INDEX uk_kit_knowledge_source_document_role_doc_role ON kit_knowledge_source_document_role (source_document_id, role_code) WHERE deleted = 0;
 
-CREATE TABLE knowledge_page
+CREATE TABLE kit_knowledge_page
 (
     id                 VARCHAR(24) PRIMARY KEY,
     title              VARCHAR(200)          DEFAULT NULL,
@@ -484,15 +484,15 @@ CREATE TABLE knowledge_page
     delete_time        TIMESTAMP             DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_page IS '知识Page';
-COMMENT ON COLUMN knowledge_page.id IS '主键ID';
-COMMENT ON COLUMN knowledge_page.title IS '标题';
-COMMENT ON COLUMN knowledge_page.page_status IS 'Page状态';
-COMMENT ON COLUMN knowledge_page.current_version_id IS '当前版本ID';
+COMMENT ON TABLE kit_knowledge_page IS '知识Page';
+COMMENT ON COLUMN kit_knowledge_page.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_page.title IS '标题';
+COMMENT ON COLUMN kit_knowledge_page.page_status IS 'Page状态';
+COMMENT ON COLUMN kit_knowledge_page.current_version_id IS '当前版本ID';
 
-CREATE INDEX idx_knowledge_page_status ON knowledge_page (page_status);
+CREATE INDEX idx_kit_knowledge_page_status ON kit_knowledge_page (page_status);
 
-CREATE TABLE knowledge_page_version
+CREATE TABLE kit_knowledge_page_version
 (
     id               VARCHAR(24) PRIMARY KEY,
     page_id          VARCHAR(24) NOT NULL,
@@ -510,17 +510,17 @@ CREATE TABLE knowledge_page_version
     delete_time      TIMESTAMP            DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_page_version IS '知识Page版本';
-COMMENT ON COLUMN knowledge_page_version.id IS '主键ID';
-COMMENT ON COLUMN knowledge_page_version.page_id IS 'Page ID';
-COMMENT ON COLUMN knowledge_page_version.version_no IS '版本号';
-COMMENT ON COLUMN knowledge_page_version.version_status IS '版本状态';
-COMMENT ON COLUMN knowledge_page_version.markdown_content IS 'Markdown内容快照';
-COMMENT ON COLUMN knowledge_page_version.published_at IS '发布时间';
+COMMENT ON TABLE kit_knowledge_page_version IS '知识Page版本';
+COMMENT ON COLUMN kit_knowledge_page_version.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_page_version.page_id IS 'Page ID';
+COMMENT ON COLUMN kit_knowledge_page_version.version_no IS '版本号';
+COMMENT ON COLUMN kit_knowledge_page_version.version_status IS '版本状态';
+COMMENT ON COLUMN kit_knowledge_page_version.markdown_content IS 'Markdown内容快照';
+COMMENT ON COLUMN kit_knowledge_page_version.published_at IS '发布时间';
 
-CREATE UNIQUE INDEX uk_knowledge_page_version_page_no ON knowledge_page_version (page_id, version_no) WHERE deleted = 0;
+CREATE UNIQUE INDEX uk_kit_knowledge_page_version_page_no ON kit_knowledge_page_version (page_id, version_no) WHERE deleted = 0;
 
-CREATE TABLE knowledge_page_block
+CREATE TABLE kit_knowledge_page_block
 (
     id              VARCHAR(24) PRIMARY KEY,
     page_version_id VARCHAR(24) NOT NULL,
@@ -537,16 +537,16 @@ CREATE TABLE knowledge_page_block
     delete_time     TIMESTAMP            DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_page_block IS '知识Page Block';
-COMMENT ON COLUMN knowledge_page_block.id IS '主键ID';
-COMMENT ON COLUMN knowledge_page_block.page_version_id IS 'Page版本ID';
-COMMENT ON COLUMN knowledge_page_block.order_no IS '排序号';
-COMMENT ON COLUMN knowledge_page_block.block_type IS 'Block类型';
-COMMENT ON COLUMN knowledge_page_block.content IS 'Block内容';
+COMMENT ON TABLE kit_knowledge_page_block IS '知识Page Block';
+COMMENT ON COLUMN kit_knowledge_page_block.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_page_block.page_version_id IS 'Page版本ID';
+COMMENT ON COLUMN kit_knowledge_page_block.order_no IS '排序号';
+COMMENT ON COLUMN kit_knowledge_page_block.block_type IS 'Block类型';
+COMMENT ON COLUMN kit_knowledge_page_block.content IS 'Block内容';
 
-CREATE UNIQUE INDEX uk_knowledge_page_block_version_order ON knowledge_page_block (page_version_id, order_no) WHERE deleted = 0;
+CREATE UNIQUE INDEX uk_kit_knowledge_page_block_version_order ON kit_knowledge_page_block (page_version_id, order_no) WHERE deleted = 0;
 
-CREATE TABLE knowledge_page_source_ref
+CREATE TABLE kit_knowledge_page_source_ref
 (
     id                 VARCHAR(24) PRIMARY KEY,
     page_block_id      VARCHAR(24) NOT NULL,
@@ -563,17 +563,17 @@ CREATE TABLE knowledge_page_source_ref
     delete_time        TIMESTAMP    DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_page_source_ref IS '知识Page Block来源关系';
-COMMENT ON COLUMN knowledge_page_source_ref.id IS '主键ID';
-COMMENT ON COLUMN knowledge_page_source_ref.page_block_id IS 'Page Block ID';
-COMMENT ON COLUMN knowledge_page_source_ref.source_type IS '来源类型';
-COMMENT ON COLUMN knowledge_page_source_ref.source_document_id IS '源文档ID';
-COMMENT ON COLUMN knowledge_page_source_ref.source_locator IS '来源定位';
+COMMENT ON TABLE kit_knowledge_page_source_ref IS '知识Page Block来源关系';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.page_block_id IS 'Page Block ID';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.source_type IS '来源类型';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.source_document_id IS '源文档ID';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.source_locator IS '来源定位';
 
-CREATE UNIQUE INDEX uk_knowledge_page_source_ref_block ON knowledge_page_source_ref (page_block_id) WHERE deleted = 0;
-CREATE INDEX idx_knowledge_page_source_ref_document ON knowledge_page_source_ref (source_document_id) WHERE deleted = 0;
+CREATE UNIQUE INDEX uk_kit_knowledge_page_source_ref_block ON kit_knowledge_page_source_ref (page_block_id) WHERE deleted = 0;
+CREATE INDEX idx_kit_knowledge_page_source_ref_document ON kit_knowledge_page_source_ref (source_document_id) WHERE deleted = 0;
 
-CREATE TABLE knowledge_ingest_task
+CREATE TABLE kit_knowledge_ingest_task
 (
     id                 VARCHAR(24) PRIMARY KEY,
     source_document_id VARCHAR(24) NOT NULL,
@@ -593,17 +593,17 @@ CREATE TABLE knowledge_ingest_task
     delete_time        TIMESTAMP            DEFAULT NULL
 );
 
-COMMENT ON TABLE knowledge_ingest_task IS '知识文档导入任务';
-COMMENT ON COLUMN knowledge_ingest_task.id IS '主键ID';
-COMMENT ON COLUMN knowledge_ingest_task.source_document_id IS '源文档ID';
-COMMENT ON COLUMN knowledge_ingest_task.task_status IS '任务状态';
-COMMENT ON COLUMN knowledge_ingest_task.current_stage IS '当前处理阶段';
-COMMENT ON COLUMN knowledge_ingest_task.retry_count IS '重试次数';
-COMMENT ON COLUMN knowledge_ingest_task.error_message IS '错误信息';
-COMMENT ON COLUMN knowledge_ingest_task.started_at IS '开始时间';
-COMMENT ON COLUMN knowledge_ingest_task.finished_at IS '完成时间';
+COMMENT ON TABLE kit_knowledge_ingest_task IS '知识文档导入任务';
+COMMENT ON COLUMN kit_knowledge_ingest_task.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_ingest_task.source_document_id IS '源文档ID';
+COMMENT ON COLUMN kit_knowledge_ingest_task.task_status IS '任务状态';
+COMMENT ON COLUMN kit_knowledge_ingest_task.current_stage IS '当前处理阶段';
+COMMENT ON COLUMN kit_knowledge_ingest_task.retry_count IS '重试次数';
+COMMENT ON COLUMN kit_knowledge_ingest_task.error_message IS '错误信息';
+COMMENT ON COLUMN kit_knowledge_ingest_task.started_at IS '开始时间';
+COMMENT ON COLUMN kit_knowledge_ingest_task.finished_at IS '完成时间';
 
-CREATE UNIQUE INDEX uk_knowledge_ingest_task_active_doc ON knowledge_ingest_task (source_document_id) WHERE deleted = 0 AND task_status IN ('PENDING', 'RUNNING');
+CREATE UNIQUE INDEX uk_kit_knowledge_ingest_task_active_doc ON kit_knowledge_ingest_task (source_document_id) WHERE deleted = 0 AND task_status IN ('PENDING', 'RUNNING');
 
 -- ================== 初始数据 ==================
 

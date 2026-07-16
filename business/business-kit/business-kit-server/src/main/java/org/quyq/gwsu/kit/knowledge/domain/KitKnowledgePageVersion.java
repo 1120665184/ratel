@@ -18,9 +18,9 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-@TableName("knowledge_page_version")
+@TableName("kit_knowledge_page_version")
 @Schema(description = "知识Page版本")
-public class KnowledgePageVersion extends BaseDO {
+public class KitKnowledgePageVersion extends BaseDO {
 
     @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键ID")

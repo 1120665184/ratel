@@ -4,7 +4,7 @@
 <mapper namespace="org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageVersionMapper">
     <select id="selectMaxVersionNo" resultType="java.lang.Integer">
         SELECT COALESCE(MAX(version_no), 0)
-        FROM knowledge_page_version
+        FROM kit_knowledge_page_version
         WHERE tenant_id = #{tenantId}
           AND page_id = #{pageId}
           AND deleted = 0

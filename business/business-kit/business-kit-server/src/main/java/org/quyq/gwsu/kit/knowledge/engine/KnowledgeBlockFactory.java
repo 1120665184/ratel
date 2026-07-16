@@ -5,8 +5,8 @@ import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeSourceType;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock;
-import org.quyq.gwsu.kit.knowledge.domain.KnowledgePageSourceRef;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -24,18 +24,18 @@ public class KnowledgeBlockFactory {
         AssertUtils.hasText(sourceDocumentId, KitErrorCode.E03009);
         AssertUtils.hasText(markdown, KitErrorCode.E03009);
         List<MarkdownSegment> segments = splitMarkdown(markdown);
-        List<KnowledgePageBlock> blocks = new ArrayList<>();
-        List<KnowledgePageSourceRef> refs = new ArrayList<>();
+        List<KitKnowledgePageBlock> blocks = new ArrayList<>();
+        List<KitKnowledgePageSourceRef> refs = new ArrayList<>();
         for (int i = 0; i < segments.size(); i++) {
             MarkdownSegment segment = segments.get(i);
             String blockId = nextBlockId();
-            KnowledgePageBlock block = new KnowledgePageBlock()
+            KitKnowledgePageBlock block = new KitKnowledgePageBlock()
                     .setId(blockId)
                     .setPageVersionId(pageVersionId)
                     .setOrderNo(i + 1)
                     .setBlockType(segment.type())
                     .setContent(segment.content());
-            KnowledgePageSourceRef ref = new KnowledgePageSourceRef()
+            KitKnowledgePageSourceRef ref = new KitKnowledgePageSourceRef()
                     .setPageBlockId(blockId)
                     .setSourceType(KnowledgeSourceType.SOURCE_DOCUMENT)
                     .setSourceDocumentId(sourceDocumentId)
