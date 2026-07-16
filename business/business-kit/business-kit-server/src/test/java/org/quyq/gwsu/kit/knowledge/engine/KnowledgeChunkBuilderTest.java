@@ -32,9 +32,9 @@ class KnowledgeChunkBuilderTest {
                 List.of(ref)));
 
         assertTrue(chunks.size() > 1);
-        assertTrue(chunks.stream().allMatch(chunk -> "block-1".equals(chunk.pageBlockId())));
-        assertTrue(chunks.stream().allMatch(chunk -> "document-a".equals(chunk.sourceDocumentId())));
-        assertTrue(chunks.getFirst().content().endsWith("。"));
+        assertTrue(chunks.stream().allMatch(chunk -> "block-1".equals(chunk.getPageBlockId())));
+        assertTrue(chunks.stream().allMatch(chunk -> "document-a".equals(chunk.getSourceDocumentId())));
+        assertTrue(chunks.getFirst().getContent().endsWith("。"));
     }
 
     @Test
@@ -56,7 +56,7 @@ class KnowledgeChunkBuilderTest {
 
         assertEquals(2, chunks.size());
         assertEquals(List.of("document-a", "document-b"), chunks.stream()
-                .map(KnowledgeChunkDocument::sourceDocumentId)
+                .map(KnowledgeChunkDocument::getSourceDocumentId)
                 .toList());
     }
 
