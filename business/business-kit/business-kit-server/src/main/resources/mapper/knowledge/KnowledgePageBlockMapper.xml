@@ -2,4 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper">
+    <select id="selectByVersionId" resultType="org.quyq.gwsu.kit.knowledge.domain.KnowledgePageBlock">
+        SELECT *
+        FROM knowledge_page_block
+        WHERE tenant_id = #{tenantId}
+          AND page_version_id = #{pageVersionId}
+          AND deleted = 0
+        ORDER BY order_no ASC
+    </select>
 </mapper>
