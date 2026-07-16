@@ -25,6 +25,9 @@ spring:
     import:
       - classpath:database.yaml
       - classpath:redis.yaml
+  elasticsearch:
+    username: elastic
+    password: elastic
 
 # mybatis配置
 mybatis-plus:
