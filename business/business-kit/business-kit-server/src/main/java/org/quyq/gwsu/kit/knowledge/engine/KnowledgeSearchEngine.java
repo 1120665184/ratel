@@ -34,9 +34,9 @@ public class KnowledgeSearchEngine {
     private final KnowledgeProperties properties;
 
     public List<KnowledgeSearchResultVO> search(KnowledgeSearchDTO dto) {
-        if (!StringUtils.hasText(dto.getTenantId())) {
-            throw new BusinessException(KitErrorCode.E03005);
-        }
+//        if (!StringUtils.hasText(dto.getTenantId())) {
+//            throw new BusinessException(KitErrorCode.E03005);
+//        }
         List<String> visibleSourceDocumentIds = sourceDocumentService.listVisibleSourceDocumentIds(
                 dto.getTenantId(),
                 dto.getRoleCodes());
