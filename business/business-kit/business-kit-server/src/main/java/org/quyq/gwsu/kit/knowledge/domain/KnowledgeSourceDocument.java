@@ -1,0 +1,46 @@
+package org.quyq.gwsu.kit.knowledge.domain;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+import org.quyq.gwsu.common.core.domain.BaseDO;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
+
+import java.time.LocalDateTime;
+
+/**
+ * 知识源文档。
+ */
+@EqualsAndHashCode(callSuper = true)
+@Data
+@Accessors(chain = true)
+@TableName("knowledge_source_document")
+@Schema(description = "知识源文档")
+public class KnowledgeSourceDocument extends BaseDO {
+
+    @TableId(type = IdType.ASSIGN_ID)
+    @Schema(description = "主键ID")
+    private String id;
+
+    @Schema(description = "文件ID")
+    private String fileId;
+
+    @Schema(description = "文件名")
+    private String fileName;
+
+    @Schema(description = "文档处理状态")
+    private KnowledgeDocumentStatus documentStatus;
+
+    @Schema(description = "目标Page ID")
+    private String targetPageId;
+
+    @Schema(description = "处理信息")
+    private String processMessage;
+
+    @Schema(description = "处理完成时间")
+    private LocalDateTime processedAt;
+}

@@ -250,6 +250,157 @@ CREATE TABLE kit_job_lock
     PRIMARY KEY (lock_name)
 ) COMMENT '调度锁表';
 
+-- =============================================
+-- 知识库相关表结构
+-- 表名前缀：knowledge_
+-- =============================================
+
+CREATE TABLE knowledge_source_document
+(
+    id               VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    file_id          VARCHAR(24)           DEFAULT NULL COMMENT '文件ID',
+    file_name        VARCHAR(200)          DEFAULT NULL COMMENT '文件名',
+    document_status  VARCHAR(32)  NOT NULL DEFAULT 'UPLOADED' COMMENT '文档处理状态',
+    target_page_id   VARCHAR(24)           DEFAULT NULL COMMENT '目标Page ID',
+    process_message  VARCHAR(1000)         DEFAULT NULL COMMENT '处理信息',
+    processed_at     DATETIME              DEFAULT NULL COMMENT '处理完成时间',
+    tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op        VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time      DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op        VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time      DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted          SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op        VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time      DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识源文档';
+
+CREATE INDEX idx_knowledge_source_document_file_id ON knowledge_source_document (file_id);
+CREATE INDEX idx_knowledge_source_document_status ON knowledge_source_document (document_status);
+
+CREATE TABLE knowledge_source_document_role
+(
+    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
+    role_code          VARCHAR(100) NOT NULL COMMENT '角色编码',
+    tenant_id          VARCHAR(50) DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50) DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50) DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME    DEFAULT NULL COMMENT '修改时间',
+    deleted            SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_source_document_id VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN source_document_id ELSE NULL END) STORED COMMENT '未删除源文档唯一键',
+    active_role_code   VARCHAR(100) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN role_code ELSE NULL END) STORED COMMENT '未删除角色唯一键',
+    delete_op          VARCHAR(50) DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME    DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识源文档角色授权';
+
+CREATE UNIQUE INDEX uk_knowledge_source_document_role_doc_role ON knowledge_source_document_role (active_source_document_id, active_role_code);
+
+CREATE TABLE knowledge_page
+(
+    id                 VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    title              VARCHAR(200)          DEFAULT NULL COMMENT '标题',
+    page_status        VARCHAR(32)  NOT NULL DEFAULT 'DRAFT' COMMENT 'Page状态',
+    current_version_id VARCHAR(24)           DEFAULT NULL COMMENT '当前版本ID',
+    tenant_id          VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted            SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    delete_op          VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识Page';
+
+CREATE INDEX idx_knowledge_page_status ON knowledge_page (page_status);
+
+CREATE TABLE knowledge_page_version
+(
+    id               VARCHAR(24)  PRIMARY KEY COMMENT '主键ID',
+    page_id          VARCHAR(24)  NOT NULL COMMENT 'Page ID',
+    version_no       INT          NOT NULL COMMENT '版本号',
+    version_status   VARCHAR(32)  NOT NULL DEFAULT 'DRAFT' COMMENT '版本状态',
+    markdown_content LONGTEXT              COMMENT 'Markdown内容快照',
+    published_at     DATETIME              DEFAULT NULL COMMENT '发布时间',
+    tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
+    create_op        VARCHAR(50)           DEFAULT NULL COMMENT '创建人',
+    create_time      DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op        VARCHAR(50)           DEFAULT NULL COMMENT '修改人',
+    modify_time      DATETIME              DEFAULT NULL COMMENT '修改时间',
+    deleted          SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_page_id    VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN page_id ELSE NULL END) STORED COMMENT '未删除Page唯一键',
+    active_version_no INT GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN version_no ELSE NULL END) STORED COMMENT '未删除版本号唯一键',
+    delete_op        VARCHAR(50)           DEFAULT NULL COMMENT '删除人',
+    delete_time      DATETIME              DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识Page版本';
+
+CREATE UNIQUE INDEX uk_knowledge_page_version_page_no ON knowledge_page_version (active_page_id, active_version_no);
+
+CREATE TABLE knowledge_page_block
+(
+    id              VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    page_version_id VARCHAR(24) NOT NULL COMMENT 'Page版本ID',
+    order_no        INT         NOT NULL COMMENT '排序号',
+    block_type      VARCHAR(32) NOT NULL COMMENT 'Block类型',
+    content         LONGTEXT             COMMENT 'Block内容',
+    tenant_id       VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op       VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time     DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op       VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time     DATETIME             DEFAULT NULL COMMENT '修改时间',
+    deleted         SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_page_version_id VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN page_version_id ELSE NULL END) STORED COMMENT '未删除版本唯一键',
+    active_order_no  INT GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN order_no ELSE NULL END) STORED COMMENT '未删除排序唯一键',
+    delete_op       VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time     DATETIME             DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识Page Block';
+
+CREATE UNIQUE INDEX uk_knowledge_page_block_version_order ON knowledge_page_block (active_page_version_id, active_order_no);
+
+CREATE TABLE knowledge_page_source_ref
+(
+    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    page_block_id      VARCHAR(24) NOT NULL COMMENT 'Page Block ID',
+    source_type        VARCHAR(32) NOT NULL COMMENT '来源类型',
+    source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
+    source_locator     VARCHAR(500) DEFAULT NULL COMMENT '来源定位',
+    tenant_id          VARCHAR(50)  DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50)  DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME     DEFAULT NULL COMMENT '修改时间',
+    deleted            SMALLINT     NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_page_block_id VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN page_block_id ELSE NULL END) STORED COMMENT '未删除Block唯一键',
+    delete_op          VARCHAR(50)  DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME     DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识Page Block来源关系';
+
+CREATE UNIQUE INDEX uk_knowledge_page_source_ref_block ON knowledge_page_source_ref (active_page_block_id);
+CREATE INDEX idx_knowledge_page_source_ref_document ON knowledge_page_source_ref (source_document_id);
+
+CREATE TABLE knowledge_ingest_task
+(
+    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
+    task_status        VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '任务状态',
+    current_stage      VARCHAR(32)          DEFAULT NULL COMMENT '当前处理阶段',
+    retry_count        INT         NOT NULL DEFAULT 0 COMMENT '重试次数',
+    error_message      VARCHAR(2000)        DEFAULT NULL COMMENT '错误信息',
+    started_at         DATETIME             DEFAULT NULL COMMENT '开始时间',
+    finished_at        DATETIME             DEFAULT NULL COMMENT '完成时间',
+    tenant_id          VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME             DEFAULT NULL COMMENT '修改时间',
+    deleted            SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_task_source_document_id VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 AND task_status IN ('PENDING', 'RUNNING') THEN source_document_id ELSE NULL END) STORED COMMENT '活跃任务源文档唯一键',
+    delete_op          VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME             DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识文档导入任务';
+
+CREATE UNIQUE INDEX uk_knowledge_ingest_task_active_doc ON knowledge_ingest_task (active_task_source_document_id);
+
 -- ================== 初始数据 ==================
 
 INSERT INTO kit_job_lock (lock_name) VALUES ('schedule_lock');
