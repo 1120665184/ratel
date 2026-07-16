@@ -1,26 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Button, App, Spin } from 'antd';
+import { Button, App, Spin } from 'antd';
 import {
   SaveOutlined,
   ReloadOutlined,
   EyeOutlined,
-  ApiOutlined,
   ControlOutlined,
 } from '@ant-design/icons';
 import { fetchConfigsBatch } from '@gwsu/core';
 import { saveOrUpdateConfig, saveRemoteControlConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
-import type { AssistantConfig, ModelProvider, GeminiConfig, ViewConfig, RemoteControlConfig, AssistantTabKey } from './types';
-import { createDefaultAssistantConfig, createDefaultViewConfig, createDefaultRemoteControlConfig, DEFAULT_DINGTALK_REMOTE_CONFIG } from './types';
-import ProviderSelector from './ProviderSelector';
-import ProviderConfigForm from './ProviderConfigForm';
-import GenerateOptionsForm from './GenerateOptionsForm';
+import type { ViewConfig, RemoteControlConfig, AssistantTabKey } from './types';
+import { createDefaultViewConfig, createDefaultRemoteControlConfig, DEFAULT_DINGTALK_REMOTE_CONFIG } from './types';
 import ViewConfigForm from './ViewConfigForm';
 import RemoteControlForm from './RemoteControlForm';
 import styles from './index.module.less';
 
-const LLM_CONFIG_KEY = 'assistant_llm_config';
 const VIEW_CONFIG_KEY = 'assistant_view_config';
 const REMOTE_CONTROL_CONFIG_KEY = 'assistant_remote_control_config';
 
@@ -29,10 +24,6 @@ const AssistantConfigTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<AssistantTabKey>('view');
-
-  // LLM 配置
-  const [llmConfig, setLlmConfig] = useState<AssistantConfig>(createDefaultAssistantConfig());
-  const [llmConfigId, setLlmConfigId] = useState<string | undefined>();
 
   // 展示配置
   const [viewConfig, setViewConfig] = useState<ViewConfig>(createDefaultViewConfig());
@@ -45,35 +36,7 @@ const AssistantConfigTab: React.FC = () => {
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const configMap = await fetchConfigsBatch([LLM_CONFIG_KEY, VIEW_CONFIG_KEY, REMOTE_CONTROL_CONFIG_KEY]);
-
-      // 解析 LLM 配置
-      const llmInfo = configMap[LLM_CONFIG_KEY] as ConfigInfo | undefined;
-      if (llmInfo?.configValue) {
-        try {
-          const parsed = JSON.parse(llmInfo.configValue) as AssistantConfig;
-          setLlmConfig({
-            provider: parsed.provider || 'openai',
-            dashscope: { ...createDefaultAssistantConfig().dashscope, ...parsed.dashscope },
-            openai: { ...createDefaultAssistantConfig().openai, ...parsed.openai },
-            gemini: { ...createDefaultAssistantConfig().gemini, ...parsed.gemini },
-            anthropic: { ...createDefaultAssistantConfig().anthropic, ...parsed.anthropic },
-            generateOptions: {
-              ...createDefaultAssistantConfig().generateOptions,
-              ...parsed.generateOptions,
-              additionalBodyParams: parsed.generateOptions?.additionalBodyParams ?? {},
-            },
-          });
-          setLlmConfigId(llmInfo.id);
-        } catch {
-          message.warning('LLM 配置解析失败，已恢复默认值');
-          setLlmConfig(createDefaultAssistantConfig());
-          setLlmConfigId(llmInfo.id);
-        }
-      } else {
-        setLlmConfig(createDefaultAssistantConfig());
-        setLlmConfigId(undefined);
-      }
+      const configMap = await fetchConfigsBatch([VIEW_CONFIG_KEY, REMOTE_CONTROL_CONFIG_KEY]);
 
       // 解析展示配置
       const viewInfo = configMap[VIEW_CONFIG_KEY] as ConfigInfo | undefined;
@@ -122,18 +85,6 @@ const AssistantConfigTab: React.FC = () => {
     fetchConfig();
   }, [fetchConfig]);
 
-  const handleProviderChange = (provider: ModelProvider) => {
-    setLlmConfig((prev) => ({ ...prev, provider }));
-  };
-
-  const handleProviderConfigChange = (updated: AssistantConfig) => {
-    setLlmConfig(updated);
-  };
-
-  const handleGenerateOptionsChange = (generateOptions: AssistantConfig['generateOptions']) => {
-    setLlmConfig((prev) => ({ ...prev, generateOptions }));
-  };
-
   const handleViewConfigChange = (updated: ViewConfig) => {
     setViewConfig(updated);
   };
@@ -143,27 +94,6 @@ const AssistantConfigTab: React.FC = () => {
   };
 
   const handleSave = async () => {
-    // LLM 配置校验
-    if (activeTab === 'llm') {
-      const currentConfig = llmConfig[llmConfig.provider];
-      if (!currentConfig.apiKey && llmConfig.provider !== 'gemini') {
-        message.warning('请填写 API Key');
-        return;
-      }
-      if (llmConfig.provider === 'gemini' && !currentConfig.apiKey && !(currentConfig as GeminiConfig).project) {
-        message.warning('Gemini 至少需要填写 API Key 或 GCP Project');
-        return;
-      }
-
-      const additionalBodyParams = llmConfig.generateOptions?.additionalBodyParams;
-      if (additionalBodyParams !== undefined && additionalBodyParams !== null) {
-        if (typeof additionalBodyParams !== 'object' || Array.isArray(additionalBodyParams)) {
-          message.warning('自定义请求体参数必须为 JSON 对象格式（{}）');
-          return;
-        }
-      }
-    }
-
     // 远程操作配置校验
     if (activeTab === 'remote' && remoteControlConfig.type === 'DING_TALK') {
       const dt = remoteControlConfig.dingTalk;
@@ -188,21 +118,7 @@ const AssistantConfigTab: React.FC = () => {
     setSaving(true);
     try {
       // 保存当前激活的 Tab 配置
-      if (activeTab === 'llm') {
-        const success = await saveOrUpdateConfig({
-          id: llmConfigId,
-          configKey: LLM_CONFIG_KEY,
-          configName: '助手 LLM 配置',
-          configValue: JSON.stringify(llmConfig),
-          valueType: ConfigValueType.JSON,
-          configType: ConfigType.SYSTEM,
-          description: 'AI 助手模型提供商及生成参数配置',
-        });
-        if (success) {
-          message.success('LLM 配置保存成功');
-          fetchConfig();
-        }
-      } else if (activeTab === 'view') {
+      if (activeTab === 'view') {
         const success = await saveOrUpdateConfig({
           id: viewConfigId,
           configKey: VIEW_CONFIG_KEY,
@@ -240,7 +156,6 @@ const AssistantConfigTab: React.FC = () => {
 
   const tabs: { key: AssistantTabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'view', label: '展示配置', icon: <EyeOutlined /> },
-    { key: 'llm', label: 'LLM 配置', icon: <ApiOutlined /> },
     { key: 'remote', label: '远程操作', icon: <ControlOutlined /> },
   ];
 
@@ -267,29 +182,6 @@ const AssistantConfigTab: React.FC = () => {
             <ViewConfigForm value={viewConfig} onChange={handleViewConfigChange} />
           )}
 
-          {activeTab === 'llm' && (
-            <>
-              <Card title="模型提供商" className={`${styles.sectionCard} ${styles.providerSection}`} size="small">
-                <ProviderSelector value={llmConfig.provider} onChange={handleProviderChange} />
-              </Card>
-
-              <Card title="连接配置" className={styles.sectionCard} size="small">
-                <ProviderConfigForm
-                  provider={llmConfig.provider}
-                  config={llmConfig}
-                  onConfigChange={handleProviderConfigChange}
-                />
-              </Card>
-
-              <Card title="生成参数" className={`${styles.sectionCard} ${styles.generateOptionsSection}`} size="small">
-                <GenerateOptionsForm
-                  value={llmConfig.generateOptions}
-                  onChange={handleGenerateOptionsChange}
-                />
-              </Card>
-            </>
-          )}
-
           {activeTab === 'remote' && (
             <RemoteControlForm
               value={remoteControlConfig}
@@ -302,7 +194,7 @@ const AssistantConfigTab: React.FC = () => {
             <Button icon={<ReloadOutlined />} onClick={fetchConfig}>
               重置
             </Button>
-            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
+            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave} data-ai-approval>
               保存
             </Button>
           </div>

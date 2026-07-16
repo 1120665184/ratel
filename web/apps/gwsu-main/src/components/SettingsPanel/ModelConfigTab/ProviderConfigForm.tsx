@@ -1,5 +1,5 @@
 import { Form } from 'antd';
-import type { ModelProvider, AssistantConfig } from './types';
+import type { ModelProvider, ModelLlmConfig } from './types';
 import DashScopeConfigForm from './providers/DashScopeConfigForm';
 import OpenAIConfigForm from './providers/OpenAIConfigForm';
 import GeminiConfigForm from './providers/GeminiConfigForm';
@@ -7,12 +7,12 @@ import AnthropicConfigForm from './providers/AnthropicConfigForm';
 
 interface ProviderConfigFormProps {
   provider: ModelProvider;
-  config: AssistantConfig;
-  onConfigChange: (config: AssistantConfig) => void;
+  config: ModelLlmConfig;
+  onConfigChange: (config: ModelLlmConfig) => void;
 }
 
 const ProviderConfigForm: React.FC<ProviderConfigFormProps> = ({ provider, config, onConfigChange }) => {
-  const handleProviderConfigChange = (providerConfig: AssistantConfig[ModelProvider]) => {
+  const handleProviderConfigChange = (providerConfig: ModelLlmConfig[ModelProvider]) => {
     onConfigChange({ ...config, [provider]: providerConfig });
   };
 

@@ -2,7 +2,7 @@ package org.quyq.gwsu.common.ai.model;
 
 
 import io.agentscope.core.model.Model;
-import org.quyq.gwsu.common.ai.config.properties.AssistantConfigDTO;
+import org.quyq.gwsu.common.ai.config.properties.ModelLlmConfigDTO;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 
 import java.util.Objects;
@@ -15,11 +15,11 @@ import java.util.Objects;
 public class ModelProvider {
 
 
-    private static AssistantConfigDTO CONFIG;
+    private static ModelLlmConfigDTO CONFIG;
 
     private static Model MODEL;
 
-    public final static String ASSISTANT_LLM_CONFIG = "assistant_llm_config";
+    public final static String MODEL_LLM_CONFIG = "model_llm_config";
 
 
     /**
@@ -29,7 +29,7 @@ public class ModelProvider {
      */
     public static Model generateModel() {
 
-        AssistantConfigDTO newConfig = ConfigInfoUtils.getByObject(ASSISTANT_LLM_CONFIG, AssistantConfigDTO.class);
+        ModelLlmConfigDTO newConfig = ConfigInfoUtils.getByObject(MODEL_LLM_CONFIG, ModelLlmConfigDTO.class);
         if (configChange(newConfig)) {
             createModel(newConfig);
         }
@@ -40,7 +40,7 @@ public class ModelProvider {
     }
 
 
-    private static void createModel(AssistantConfigDTO config) {
+    private static void createModel(ModelLlmConfigDTO config) {
         synchronized (ModelProvider.class) {
             if (configChange(config)) {
                 CONFIG = config;
@@ -51,7 +51,7 @@ public class ModelProvider {
     }
 
     //校验系统配置是否变更
-    private static boolean configChange(AssistantConfigDTO newConfig) {
+    private static boolean configChange(ModelLlmConfigDTO newConfig) {
         if (Objects.isNull(CONFIG) || Objects.isNull(MODEL)) {
             return true;
         }

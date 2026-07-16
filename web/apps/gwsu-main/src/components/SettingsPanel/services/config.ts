@@ -38,6 +38,12 @@ export async function saveOrUpdateConfig(data: Partial<ConfigInfo>) {
   return res.data;
 }
 
+/** 保存 LLM 模型配置并刷新智能助手模型 */
+export async function saveLlmModelConfig(data: Partial<ConfigInfo>) {
+  const res = await post<boolean>('/security/brain/model/llm-config', data);
+  return res.data;
+}
+
 /** 批量删除配置 */
 export async function deleteConfigs(ids: string[]) {
   const res = await del<boolean>(BASE, ids);

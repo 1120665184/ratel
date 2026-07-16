@@ -15,4 +15,6 @@ public interface IBrainService {
 
     AguiRequestProcessor buildAguiProcessor();
 
+    void refreshSingletonAgent();
+
 }

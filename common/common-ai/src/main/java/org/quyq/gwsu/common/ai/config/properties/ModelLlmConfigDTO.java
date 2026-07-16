@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 助手配置DTO，与前端 assistant_llm_config JSON 结构一一映射。
+ * LLM 模型配置 DTO，与前端 model_llm_config JSON 结构一一映射。
  *
  * <p>JSON 结构示例：
  *
@@ -37,7 +37,7 @@ import java.util.Map;
  * }</pre>
  */
 @Data
-public class AssistantConfigDTO {
+public class ModelLlmConfigDTO {
 
     /**
      * 当前激活的模型提供商标识。
@@ -45,6 +45,11 @@ public class AssistantConfigDTO {
      * <p>支持值：dashscope、openai、gemini、anthropic
      */
     private String provider;
+
+    /**
+     * 当前 LLM 模型是否支持多模态输入。
+     */
+    private Boolean supportMultimodal = false;
 
     /**
      * DashScope 提供商配置。

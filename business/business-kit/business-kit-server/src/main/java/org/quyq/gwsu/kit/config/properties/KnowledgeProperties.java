@@ -14,7 +14,7 @@ public class KnowledgeProperties {
     /**
      * ES 索引名。
      */
-    private String indexName = "gwsu_knowledge_chunk";
+    private String indexName = "kit_knowledge_chunk";
 
     /**
      * 单个 Chunk 内容长度上限。

@@ -16,14 +16,18 @@ import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
+import org.quyq.gwsu.common.security.api.vo.ConfigVO;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
+import org.quyq.gwsu.security.api.config.dto.ConfigSaveDTO;
+import org.quyq.gwsu.security.api.config.enums.ConfigValueType;
 import org.quyq.gwsu.security.brain.push.AguiEventRedisPusher;
 import org.quyq.gwsu.security.brain.service.IBrainHistoryService;
 import org.quyq.gwsu.security.brain.service.IBrainService;
+import org.quyq.gwsu.security.dict.service.ISecurityConfigService;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -45,17 +49,23 @@ import java.util.List;
 public class BrainController implements DisposableBean {
 
     private static final String DEFAULT_AGENT_ID_HEADER = "X-Agent-Id";
+    private static final String MODEL_LLM_CONFIG_KEY = "model_llm_config";
 
     private final AguiController aguiController;
+    private final IBrainService brainService;
     private final IBrainHistoryService brainHistoryService;
     private final SecurityUtils securityUtils;
+    private final ISecurityConfigService configService;
 
 
     public BrainController(IBrainService brainService , CacheUtils cacheUtils , ObjectMapper mapper, AgentStateStore agentStateStore, SecurityUtils securityUtils,
                            SessionUtils sessionUtils,
-                           IBrainHistoryService brainHistoryService, WebToolUtils webToolUtils) {
+                           IBrainHistoryService brainHistoryService, WebToolUtils webToolUtils,
+                           ISecurityConfigService configService) {
+        this.brainService = brainService;
         this.brainHistoryService = brainHistoryService;
         this.securityUtils = securityUtils;
+        this.configService = configService;
         this.aguiController = new AguiController(brainService.buildAguiProcessor(), webToolUtils, securityUtils,sessionUtils,600000L) {
             @Override
             protected CopilotKitInfo handleInfo() {
@@ -81,6 +91,29 @@ public class BrainController implements DisposableBean {
                                           @RequestHeader(value = DEFAULT_AGENT_ID_HEADER, required = false) String headerAgentId) {
 
         return aguiController.handleCopilotKitRequest(request, headerAgentId);
+    }
+
+    @Operation(summary = "保存 LLM 模型配置")
+    @PostMapping("model/llm-config")
+    public R<Boolean> saveLlmModelConfig(@RequestBody ConfigSaveDTO dto) {
+        ConfigVO existing = configService.getByKey(MODEL_LLM_CONFIG_KEY);
+        if (existing != null) {
+            dto.setId(existing.getId());
+        }
+        dto.setConfigKey(MODEL_LLM_CONFIG_KEY);
+        dto.setValueType(ConfigValueType.JSON);
+        if (dto.getConfigName() == null || dto.getConfigName().isBlank()) {
+            dto.setConfigName("LLM 模型配置");
+        }
+        if (dto.getDescription() == null || dto.getDescription().isBlank()) {
+            dto.setDescription("LLM 模型提供商、连接参数及生成参数配置");
+        }
+
+        Boolean saved = configService.saveOrUpdateConfig(dto);
+        if (Boolean.TRUE.equals(saved)) {
+            brainService.refreshSingletonAgent();
+        }
+        return R.ok(saved);
     }
 
     @Operation(summary = "分页查询历史会话列表")

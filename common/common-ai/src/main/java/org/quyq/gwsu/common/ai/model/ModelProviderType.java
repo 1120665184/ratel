@@ -22,7 +22,7 @@ import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.extensions.model.gemini.GeminiChatModel;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import org.quyq.gwsu.common.ai.AgentException;
-import org.quyq.gwsu.common.ai.config.properties.AssistantConfigDTO;
+import org.quyq.gwsu.common.ai.config.properties.ModelLlmConfigDTO;
 import org.springframework.util.StringUtils;
 
 import java.util.Locale;
@@ -35,8 +35,8 @@ import java.util.Objects;
 public enum ModelProviderType {
     DASHSCOPE("dashscope") {
         @Override
-        protected Model createModel(AssistantConfigDTO config) {
-            AssistantConfigDTO.DashscopeConfigDTO c = config.getDashscope();
+        protected Model createModel(ModelLlmConfigDTO config) {
+            ModelLlmConfigDTO.DashscopeConfigDTO c = config.getDashscope();
             if (Objects.isNull(c) || !StringUtils.hasText(c.getApiKey())) {
                 throw new AgentException("DashScope API Key must be configured");
             }
@@ -60,8 +60,8 @@ public enum ModelProviderType {
     },
     OPENAI("openai") {
         @Override
-        protected Model createModel(AssistantConfigDTO config) {
-            AssistantConfigDTO.OpenaiConfigDTO c = config.getOpenai();
+        protected Model createModel(ModelLlmConfigDTO config) {
+            ModelLlmConfigDTO.OpenaiConfigDTO c = config.getOpenai();
             if (Objects.isNull(c) || !StringUtils.hasText(c.getApiKey())) {
                 throw new AgentException("OpenAI API Key must be configured");
             }
@@ -87,8 +87,8 @@ public enum ModelProviderType {
     },
     GEMINI("gemini") {
         @Override
-        protected Model createModel(AssistantConfigDTO config) {
-            AssistantConfigDTO.GeminiConfigDTO c = config.getGemini();
+        protected Model createModel(ModelLlmConfigDTO config) {
+            ModelLlmConfigDTO.GeminiConfigDTO c = config.getGemini();
             if (c == null) {
                 throw new AgentException("Gemini config must not be null");
             }
@@ -121,8 +121,8 @@ public enum ModelProviderType {
     },
     ANTHROPIC("anthropic") {
         @Override
-        protected Model createModel(AssistantConfigDTO config) {
-            AssistantConfigDTO.AnthropicConfigDTO c = config.getAnthropic();
+        protected Model createModel(ModelLlmConfigDTO config) {
+            ModelLlmConfigDTO.AnthropicConfigDTO c = config.getAnthropic();
             if (Objects.isNull(c) || !StringUtils.hasText(c.getApiKey())) {
                 throw new IllegalStateException("Anthropic API Key must be configured");
             }
@@ -152,17 +152,17 @@ public enum ModelProviderType {
     }
 
 
-    protected abstract Model createModel(AssistantConfigDTO config);
+    protected abstract Model createModel(ModelLlmConfigDTO config);
 
     /**
-     * Create a concrete {@link Model} instance from an assistant configuration DTO.
+     * Create a concrete {@link Model} instance from an LLM model configuration DTO.
      *
-     * @param config the assistant configuration DTO
+     * @param config the LLM model configuration DTO
      * @return a new Model instance
      */
-    public static Model createModelFromConfig(AssistantConfigDTO config) {
+    public static Model createModelFromConfig(ModelLlmConfigDTO config) {
         if (config == null || config.getProvider() == null) {
-            throw new IllegalStateException("Assistant config or provider must not be null");
+            throw new IllegalStateException("LLM model config or provider must not be null");
         }
 
         String provider = config.getProvider().trim().toLowerCase(Locale.ROOT);
@@ -171,7 +171,7 @@ public enum ModelProviderType {
                 return type.createModel(config);
             }
         }
-        throw new IllegalStateException("Unsupported assistant config provider: " + provider);
+        throw new IllegalStateException("Unsupported LLM model config provider: " + provider);
     }
 
 
@@ -181,7 +181,7 @@ public enum ModelProviderType {
      * @param options
      * @return
      */
-    private static GenerateOptions transGenerateOptions(AssistantConfigDTO.GenerateOptionsDTO options) {
+    private static GenerateOptions transGenerateOptions(ModelLlmConfigDTO.GenerateOptionsDTO options) {
         GenerateOptions.Builder builder = GenerateOptions.builder()
                 .temperature(options.getTemperature())
                 .topP(options.getTopP())

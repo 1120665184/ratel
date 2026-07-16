@@ -217,9 +217,8 @@ public class BrainServiceImpl implements IBrainService {
         }
         synchronized (processorInitMonitor) {
             if (aguiRequestProcessor == null) {
-                Agent agent = getOrCreateSingletonAgent();
                 aguiRequestProcessor = AguiRequestProcessor.builder()
-                        .agentResolver(new SingletonAgentResolver(agent))
+                        .agentResolver(SingletonAgentResolver.lazy(this::getOrCreateSingletonAgent))
                         .config(AguiAdapterConfig.builder()
                                 .enableReasoning(true)
                                 .build())
@@ -238,6 +237,18 @@ public class BrainServiceImpl implements IBrainService {
                 singletonAgent = buildAgent();
             }
             return singletonAgent;
+        }
+    }
+
+    @Override
+    public void refreshSingletonAgent() {
+        if (singletonAgent == null) {
+            return;
+        }
+        synchronized (processorInitMonitor) {
+            if (singletonAgent != null) {
+                singletonAgent = buildAgent();
+            }
         }
     }
 

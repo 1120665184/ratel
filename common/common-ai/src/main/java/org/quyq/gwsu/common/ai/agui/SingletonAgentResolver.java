@@ -4,6 +4,7 @@ import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agui.processor.AgentResolver;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * 始终返回同一个 Agent 实例的解析器。
@@ -13,15 +14,23 @@ import java.util.Objects;
  */
 public class SingletonAgentResolver implements AgentResolver {
 
-    private final Agent agent;
+    private final Supplier<Agent> agentSupplier;
 
     public SingletonAgentResolver(Agent agent) {
-        this.agent = Objects.requireNonNull(agent, "agent cannot be null");
+        this(() -> Objects.requireNonNull(agent, "agent cannot be null"));
+    }
+
+    public static SingletonAgentResolver lazy(Supplier<Agent> agentSupplier) {
+        return new SingletonAgentResolver(agentSupplier);
+    }
+
+    private SingletonAgentResolver(Supplier<Agent> agentSupplier) {
+        this.agentSupplier = Objects.requireNonNull(agentSupplier, "agentSupplier cannot be null");
     }
 
     @Override
     public Agent resolveAgent(String agentId, String threadId) {
-        return agent;
+        return Objects.requireNonNull(agentSupplier.get(), "agent cannot be null");
     }
 
     @Override
