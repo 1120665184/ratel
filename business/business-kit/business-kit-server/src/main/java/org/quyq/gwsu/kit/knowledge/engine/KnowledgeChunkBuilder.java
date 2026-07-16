@@ -2,6 +2,7 @@ package org.quyq.gwsu.kit.knowledge.engine;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
@@ -39,7 +40,7 @@ public class KnowledgeChunkBuilder {
                 .toList();
         String currentHeading = "";
         for (KitKnowledgePageBlock block : orderedBlocks) {
-            if (block.getBlockType() != null && "HEADING".equals(block.getBlockType().name())) {
+            if (block.getBlockType() != null && KnowledgeBlockType.HEADING == block.getBlockType()) {
                 currentHeading = block.getContent();
             }
             KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());

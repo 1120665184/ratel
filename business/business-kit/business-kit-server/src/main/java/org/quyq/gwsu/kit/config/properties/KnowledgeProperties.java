@@ -19,10 +19,15 @@ public class KnowledgeProperties {
     /**
      * 单个 Chunk 内容长度上限。
      */
-    private int maxToken = 1000;
+    private int maxToken = 5000;
 
     /**
      * 默认检索数量。
      */
     private int searchSize = 10;
+
+    /**
+     * 单次批量向量化最大 Token 数。
+     */
+    private int embeddingBatchTokenCount = 8191;
 }

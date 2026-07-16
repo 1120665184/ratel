@@ -11,10 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 知识库检索结果重排服务。
@@ -64,9 +61,6 @@ public class KnowledgeSearchRerankService {
             DocumentWithScore rerankResult,
             Map<String, KnowledgeSearchResultVO> resultByChunkId) {
         Document document = rerankResult.getOutput();
-        if (document == null) {
-            return null;
-        }
         Object chunkId = document.getMetadata().getOrDefault(CHUNK_ID, document.getId());
         KnowledgeSearchResultVO result = resultByChunkId.get(String.valueOf(chunkId));
         if (result == null) {
