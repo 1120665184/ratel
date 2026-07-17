@@ -78,6 +78,10 @@ class KnowledgeIngestCheckpointModelTest {
         sameSizeOverlap.setAnalysisChunkOverlapTokenCount(6000);
         assertFalse(validator.validate(sameSizeOverlap).isEmpty());
 
+        KnowledgeProperties blankWikiOutputLanguage = new KnowledgeProperties();
+        blankWikiOutputLanguage.setWikiOutputLanguage("  ");
+        assertFalse(validator.validate(blankWikiOutputLanguage).isEmpty());
+
         KnowledgeProperties valid = new KnowledgeProperties();
         valid.setAnalysisChunkTokenCount(6000);
         valid.setAnalysisChunkOverlapTokenCount(5999);

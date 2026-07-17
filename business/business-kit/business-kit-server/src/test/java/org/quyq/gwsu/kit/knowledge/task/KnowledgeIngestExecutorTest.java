@@ -92,7 +92,7 @@ class KnowledgeIngestExecutorTest {
 
         when(ingestTaskMapper.selectOne(any())).thenReturn(task);
         when(sourceDocumentMapper.selectOne(any())).thenReturn(sourceDocument);
-        when(documentParser.parse("file-1")).thenReturn(new ParsedKnowledgeDocument("file.md", "正文"));
+        when(documentParser.parse("file-1")).thenReturn(ParsedKnowledgeDocument.of("file.md", "正文"));
         when(pageGenerator.generate("file.md", "正文")).thenReturn(page);
         when(pageMergeService.publish("tenant-1", sourceDocument, page)).thenReturn("version-1");
         when(pageVersionMapper.selectOne(any())).thenReturn(version);

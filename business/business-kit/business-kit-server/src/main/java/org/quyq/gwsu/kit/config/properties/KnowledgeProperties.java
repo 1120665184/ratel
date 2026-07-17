@@ -1,6 +1,7 @@
 package org.quyq.gwsu.kit.config.properties;
 
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
@@ -42,6 +43,7 @@ public class KnowledgeProperties {
     /**
      * Wiki 生成内容的统一输出语言。
      */
+    @NotBlank
     private String wikiOutputLanguage = "zh-CN";
 
     /**
