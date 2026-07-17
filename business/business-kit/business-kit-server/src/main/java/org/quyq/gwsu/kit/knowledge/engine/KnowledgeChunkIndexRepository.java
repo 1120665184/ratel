@@ -1,6 +1,7 @@
 package org.quyq.gwsu.kit.knowledge.engine;
 
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 
 import java.util.Collection;
 import java.util.List;

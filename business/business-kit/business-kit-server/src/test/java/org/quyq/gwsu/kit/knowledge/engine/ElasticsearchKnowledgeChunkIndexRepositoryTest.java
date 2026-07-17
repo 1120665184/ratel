@@ -1,6 +1,7 @@
 package org.quyq.gwsu.kit.knowledge.engine;
 
 import org.junit.jupiter.api.Test;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;

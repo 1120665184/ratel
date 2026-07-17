@@ -6,6 +6,8 @@ package org.quyq.gwsu.kit.api.knowledge.enums;
 public enum KnowledgeIngestStage {
 
     PARSE,
+    SANITIZE_SOURCE,
+    ANALYZE_SOURCE,
     GENERATE_PAGE,
     MERGE_PAGE,
     BUILD_CHUNK,

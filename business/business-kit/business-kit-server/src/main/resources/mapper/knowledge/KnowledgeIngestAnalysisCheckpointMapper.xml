@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestAnalysisCheckpointMapper">
+    <select id="selectByTaskId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint">
+        SELECT *
+        FROM kit_knowledge_ingest_analysis_checkpoint
+        WHERE tenant_id = #{tenantId}
+          AND ingest_task_id = #{ingestTaskId}
+          AND deleted = 0
+        ORDER BY chunk_no ASC
+    </select>
+
+    <select id="selectByTaskIdAndChunkNo" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint">
+        SELECT *
+        FROM kit_knowledge_ingest_analysis_checkpoint
+        WHERE tenant_id = #{tenantId}
+          AND ingest_task_id = #{ingestTaskId}
+          AND chunk_no = #{chunkNo}
+          AND deleted = 0
+    </select>
+</mapper>

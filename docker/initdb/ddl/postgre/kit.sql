@@ -605,6 +605,37 @@ COMMENT ON COLUMN kit_knowledge_ingest_task.finished_at IS '完成时间';
 
 CREATE UNIQUE INDEX uk_kit_knowledge_ingest_task_active_doc ON kit_knowledge_ingest_task (source_document_id) WHERE deleted = 0 AND task_status IN ('PENDING', 'RUNNING');
 
+CREATE TABLE kit_knowledge_ingest_analysis_checkpoint
+(
+    id                 VARCHAR(24) PRIMARY KEY,
+    ingest_task_id     VARCHAR(24) NOT NULL,
+    chunk_no           INT         NOT NULL,
+    chunk_content_hash VARCHAR(64) NOT NULL,
+    analysis_digest    TEXT,
+    checkpoint_status  VARCHAR(32) NOT NULL,
+    source_language    VARCHAR(32) DEFAULT NULL,
+    tenant_id          VARCHAR(50) DEFAULT NULL,
+    create_op          VARCHAR(50) DEFAULT NULL,
+    create_time        TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    modify_op          VARCHAR(50) DEFAULT NULL,
+    modify_time        TIMESTAMP   DEFAULT NULL,
+    deleted            INT2        NOT NULL DEFAULT 0,
+    delete_op          VARCHAR(50) DEFAULT NULL,
+    delete_time        TIMESTAMP   DEFAULT NULL
+);
+
+COMMENT ON TABLE kit_knowledge_ingest_analysis_checkpoint IS '知识文档导入分析检查点';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.ingest_task_id IS '导入任务ID';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.chunk_no IS '源文档分析片段序号';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.chunk_content_hash IS '源文档分析片段内容哈希';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.analysis_digest IS '片段分析摘要';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.checkpoint_status IS '检查点状态：PENDING-待处理 RUNNING-处理中 SUCCEEDED-成功 FAILED-失败';
+COMMENT ON COLUMN kit_knowledge_ingest_analysis_checkpoint.source_language IS '源文档片段识别语言';
+
+CREATE UNIQUE INDEX uk_kit_knowledge_ingest_analysis_checkpoint_task_chunk
+    ON kit_knowledge_ingest_analysis_checkpoint (ingest_task_id, chunk_no) WHERE deleted = 0;
+
 -- ================== 初始数据 ==================
 
 INSERT INTO kit_job_lock (lock_name) VALUES ('schedule_lock');

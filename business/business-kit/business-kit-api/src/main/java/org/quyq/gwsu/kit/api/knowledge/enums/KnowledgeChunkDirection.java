@@ -1,4 +1,4 @@
-package org.quyq.gwsu.kit.knowledge.engine;
+package org.quyq.gwsu.kit.api.knowledge.enums;
 
 /**
  * Chunk 邻近查询方向。

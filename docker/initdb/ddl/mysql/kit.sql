@@ -401,6 +401,30 @@ CREATE TABLE kit_knowledge_ingest_task
 
 CREATE UNIQUE INDEX uk_kit_knowledge_ingest_task_active_doc ON kit_knowledge_ingest_task (active_task_source_document_id);
 
+CREATE TABLE kit_knowledge_ingest_analysis_checkpoint
+(
+    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    ingest_task_id     VARCHAR(24) NOT NULL COMMENT '导入任务ID',
+    chunk_no           INT         NOT NULL COMMENT '源文档分析片段序号',
+    chunk_content_hash VARCHAR(64) NOT NULL COMMENT '源文档分析片段内容哈希',
+    analysis_digest    LONGTEXT             COMMENT '片段分析摘要',
+    checkpoint_status  VARCHAR(32) NOT NULL COMMENT '检查点状态：PENDING-待处理 RUNNING-处理中 SUCCEEDED-成功 FAILED-失败',
+    source_language    VARCHAR(32)          DEFAULT NULL COMMENT '源文档片段识别语言',
+    tenant_id          VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME             DEFAULT NULL COMMENT '修改时间',
+    deleted            SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_task_id     VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN ingest_task_id ELSE NULL END) STORED COMMENT '未删除导入任务唯一键',
+    active_chunk_no    INT GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN chunk_no ELSE NULL END) STORED COMMENT '未删除分析片段序号唯一键',
+    delete_op          VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME             DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识文档导入分析检查点';
+
+CREATE UNIQUE INDEX uk_kit_knowledge_ingest_analysis_checkpoint_active_task_chunk
+    ON kit_knowledge_ingest_analysis_checkpoint (active_task_id, active_chunk_no);
+
 -- ================== 初始数据 ==================
 
 INSERT INTO kit_job_lock (lock_name) VALUES ('schedule_lock');

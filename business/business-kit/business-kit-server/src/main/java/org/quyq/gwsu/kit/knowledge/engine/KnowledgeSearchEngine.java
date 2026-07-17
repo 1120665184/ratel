@@ -3,6 +3,7 @@ package org.quyq.gwsu.kit.knowledge.engine;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeSearchDTO;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;

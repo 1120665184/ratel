@@ -1,0 +1,41 @@
+package org.quyq.gwsu.kit.api.knowledge;
+
+import org.quyq.gwsu.common.api.annotation.ApiClient;
+import org.quyq.gwsu.common.core.constants.CoreConstants;
+import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeChunkAdjacentDTO;
+import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeSearchDTO;
+import org.quyq.gwsu.kit.api.knowledge.fallback.KnowledgeClientApiFallbackFactory;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PostExchange;
+
+import java.util.List;
+
+/**
+ * 服务间知识库检索 API。
+ */
+@ApiClient(value = CoreConstants.Server.KIT_NAME, note = "知识库检索客户端API",
+        fallbackFactory = KnowledgeClientApiFallbackFactory.class)
+@HttpExchange("/knowledge")
+public interface KnowledgeClientApi {
+
+    /**
+     * 检索当前角色可见的知识 Chunk。
+     *
+     * @param dto 检索条件
+     * @return 检索结果
+     */
+    @PostExchange("/search")
+    R<List<KnowledgeSearchResultVO>> search(@RequestBody KnowledgeSearchDTO dto);
+
+    /**
+     * 查询指定 Chunk 的上一个或下一个可见 Chunk。
+     *
+     * @param dto 邻近查询条件
+     * @return 邻近 Chunk，不存在或不可见时 data 为 null
+     */
+    @PostExchange("/chunk/adjacent")
+    R<KnowledgeSearchResultVO> findAdjacentChunk(@RequestBody KnowledgeChunkAdjacentDTO dto);
+}
