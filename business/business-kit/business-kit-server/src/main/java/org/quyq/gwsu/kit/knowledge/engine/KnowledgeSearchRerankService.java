@@ -33,7 +33,12 @@ public class KnowledgeSearchRerankService {
             List<Document> documents = results.stream()
                     .map(this::toDocument)
                     .toList();
-            RerankModel rerankModel = RerankModelProvider.generateModel();
+            Optional<RerankModel> rerankModelOptional = RerankModelProvider.generateModel();
+            if (rerankModelOptional.isEmpty()) {
+                log.warn("知识库未启用或未配置重排模型，检索结果将跳过重排");
+                return results.stream().limit(size).toList();
+            }
+            RerankModel rerankModel = rerankModelOptional.get();
             List<KnowledgeSearchResultVO> reranked = rerankModel.call(new RerankRequest(keyword, documents))
                     .getResults()
                     .stream()

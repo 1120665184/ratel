@@ -2,11 +2,14 @@ package org.quyq.gwsu.kit.knowledge.engine;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
+import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 
@@ -17,6 +20,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 从已发布 Page Block 构建 ES-only Chunk。
@@ -30,6 +34,7 @@ public class KnowledgeChunkBuilder {
     private final KnowledgeProperties properties;
 
     public List<KnowledgeChunkDocument> build(KnowledgeChunkBuildRequest request) {
+        validateSourceRefs(request);
         Map<String, KitKnowledgePageSourceRef> refByBlockId = new HashMap<>();
         for (KitKnowledgePageSourceRef ref : request.sourceRefs()) {
             refByBlockId.put(ref.getPageBlockId(), ref);
@@ -67,6 +72,29 @@ public class KnowledgeChunkBuilder {
             }
         }
         return List.copyOf(chunks);
+    }
+
+    private void validateSourceRefs(KnowledgeChunkBuildRequest request) {
+        if (CollectionUtils.isEmpty(request.blocks()) || CollectionUtils.isEmpty(request.sourceRefs())) {
+            throw new BusinessException(KitErrorCode.E03009);
+        }
+        Map<String, KitKnowledgePageSourceRef> refByBlockId = new HashMap<>();
+        for (KitKnowledgePageSourceRef ref : request.sourceRefs()) {
+            if (!StringUtils.hasText(ref.getPageBlockId())
+                    || !StringUtils.hasText(ref.getSourceDocumentId())
+                    || refByBlockId.put(ref.getPageBlockId(), ref) != null) {
+                throw new BusinessException(KitErrorCode.E03009);
+            }
+        }
+        for (KitKnowledgePageBlock block : request.blocks()) {
+            if (block == null || !StringUtils.hasText(block.getId())) {
+                throw new BusinessException(KitErrorCode.E03009);
+            }
+            KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());
+            if (Objects.isNull(ref)) {
+                throw new BusinessException(KitErrorCode.E03009);
+            }
+        }
     }
 
     private List<String> splitBlockContent(String content) {

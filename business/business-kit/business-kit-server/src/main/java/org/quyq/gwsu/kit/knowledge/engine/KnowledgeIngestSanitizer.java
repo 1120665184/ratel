@@ -43,6 +43,26 @@ public class KnowledgeIngestSanitizer {
         return new SanitizedKnowledgeSource(lineWrapped, warnings);
     }
 
+    /**
+     * 清洗已解析文档，并合并解析阶段与清洗阶段告警。
+     *
+     * @param document 已解析文档
+     * @return 清洗结果
+     */
+    public SanitizedKnowledgeSource sanitize(ParsedKnowledgeDocument document) {
+        if (document == null) {
+            return new SanitizedKnowledgeSource("", List.of());
+        }
+        SanitizedKnowledgeSource sanitized = sanitize(document.text());
+        if (document.parseWarnings().isEmpty()) {
+            return sanitized;
+        }
+        List<String> warnings = new ArrayList<>(document.parseWarnings().size() + sanitized.warnings().size());
+        warnings.addAll(document.parseWarnings());
+        warnings.addAll(sanitized.warnings());
+        return new SanitizedKnowledgeSource(sanitized.text(), warnings);
+    }
+
     private String normalizeLineEnding(String text) {
         return text.replace("\r\n", "\n").replace('\r', '\n');
     }

@@ -6,6 +6,7 @@ import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.ThinkingBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,8 @@ import java.util.Map;
 public final class AgentScopeMessageUtils {
 
     public static final String REASONING_CONTENT_KEY = "reasoning_content";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private AgentScopeMessageUtils() {
     }
@@ -58,10 +61,18 @@ public final class AgentScopeMessageUtils {
                             toolUseBlock.getName() == null ? "" : toolUseBlock.getName(),
                             toolUseBlock.getInput() == null || toolUseBlock.getInput().isEmpty()
                                     ? "{}"
-                                    : org.springframework.ai.util.json.JsonParser.toJson(toolUseBlock.getInput())))
+                                    : toJson(toolUseBlock.getInput())))
                     .toList());
         }
 
         return builder.build();
+    }
+
+    private static String toJson(Map<String, Object> input) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(input);
+        } catch (Exception ignored) {
+            return "{}";
+        }
     }
 }

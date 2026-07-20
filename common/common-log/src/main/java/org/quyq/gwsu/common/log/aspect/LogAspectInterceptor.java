@@ -28,12 +28,15 @@ import org.quyq.gwsu.common.log.service.AccessLogHandlerService;
 import org.quyq.gwsu.common.log.vo.LogOperationVO;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.slf4j.MDC;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,10 +46,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -79,6 +79,9 @@ public class LogAspectInterceptor implements MethodInterceptor {
         //如果是指定忽略的服务或者没有请求体不记录
         HttpServletRequest request = ServletUtils.getRequest();
         if (Objects.isNull(request)) {
+            return invocation.proceed();
+        }
+        if (isNestedControllerInvocation(invocation, request)) {
             return invocation.proceed();
         }
         String requestURI = request.getRequestURI();
@@ -341,6 +344,30 @@ public class LogAspectInterceptor implements MethodInterceptor {
                 && !method.isAnnotationPresent(PatchMapping.class);
         return method.isAnnotationPresent(LogIgnore.class)
                 || noApi;
+    }
+
+    private boolean isNestedControllerInvocation(MethodInvocation invocation, HttpServletRequest request) {
+        if (!DeployUtils.isSingle()) {
+            return false;
+        }
+        Object handler = request.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
+        if (!(handler instanceof HandlerMethod handlerMethod)) {
+            return false;
+        }
+
+        Class<?> targetClass = AopUtils.getTargetClass(invocation.getThis());
+        Method currentMethod = AopUtils.getMostSpecificMethod(invocation.getMethod(), targetClass);
+        Method requestHandlerMethod = handlerMethod.getMethod();
+        return !sameMethod(currentMethod, requestHandlerMethod);
+    }
+
+    private boolean sameMethod(Method currentMethod, Method requestHandlerMethod) {
+        if (currentMethod.equals(requestHandlerMethod)) {
+            return true;
+        }
+        return currentMethod.getName().equals(requestHandlerMethod.getName())
+                && currentMethod.getParameterCount() == requestHandlerMethod.getParameterCount()
+                && Arrays.equals(currentMethod.getParameterTypes(), requestHandlerMethod.getParameterTypes());
     }
 
     private String getMethodName(MethodInvocation invocation) {

@@ -7,12 +7,14 @@ import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeIngestStage;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeIngestTaskStatus;
+import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestTask;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
+import org.quyq.gwsu.kit.knowledge.engine.AnalyzedKnowledgeSource;
 import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkBuildRequest;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkBuilder;
@@ -20,8 +22,12 @@ import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkDocument;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkEmbeddingService;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkIndexRepository;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeDocumentParser;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgeIngestSanitizer;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageGenerator;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageGenerationRequest;
+import org.quyq.gwsu.kit.knowledge.engine.LongSourceAnalysisService;
 import org.quyq.gwsu.kit.knowledge.engine.ParsedKnowledgeDocument;
+import org.quyq.gwsu.kit.knowledge.engine.SanitizedKnowledgeSource;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
@@ -52,7 +58,13 @@ public class KnowledgeIngestExecutor {
 
     private final KnowledgePageSourceRefMapper pageSourceRefMapper;
 
+    private final KnowledgeProperties knowledgeProperties;
+
     private final KnowledgeDocumentParser documentParser;
+
+    private final KnowledgeIngestSanitizer ingestSanitizer;
+
+    private final LongSourceAnalysisService longSourceAnalysisService;
 
     private final KnowledgePageGenerator pageGenerator;
 
@@ -73,18 +85,27 @@ public class KnowledgeIngestExecutor {
             updateStage(task.getId(), KnowledgeIngestStage.PARSE);
             ParsedKnowledgeDocument parsedDocument = documentParser.parse(sourceDocument.getFileId());
 
+            updateStage(task.getId(), KnowledgeIngestStage.SANITIZE_SOURCE);
+            SanitizedKnowledgeSource sanitizedSource = ingestSanitizer.sanitize(parsedDocument);
+
+            updateStage(task.getId(), KnowledgeIngestStage.ANALYZE_SOURCE);
+            AnalyzedKnowledgeSource analyzedSource = longSourceAnalysisService.analyze(task, parsedDocument, sanitizedSource);
+
             updateStage(task.getId(), KnowledgeIngestStage.GENERATE_PAGE);
-            GeneratedKnowledgePage generatedPage = pageGenerator.generate(
+            GeneratedKnowledgePage generatedPage = pageGenerator.generate(new KnowledgePageGenerationRequest(
                     parsedDocument.fileName(),
-                    parsedDocument.text());
+                    analyzedSource.sourceLanguage(),
+                    analyzedSource.analysisDigest(),
+                    analyzedSource.boundedSourceText(),
+                    knowledgeProperties.getWikiOutputLanguage()));
 
             updateStage(task.getId(), KnowledgeIngestStage.MERGE_PAGE);
-            String pageVersionId = pageMergeService.publish(task.getTenantId(), sourceDocument, generatedPage);
+            String pageVersionId = pageMergeService.publish(sourceDocument, generatedPage);
 
             updateStage(task.getId(), KnowledgeIngestStage.BUILD_CHUNK);
-            KitKnowledgePageVersion pageVersion = loadPageVersion(task.getTenantId(), pageVersionId);
-            List<KitKnowledgePageBlock> blocks = pageBlockMapper.selectByVersionId(task.getTenantId(), pageVersionId);
-            List<KitKnowledgePageSourceRef> sourceRefs = loadSourceRefs(task.getTenantId(), blocks);
+            KitKnowledgePageVersion pageVersion = loadPageVersion(pageVersionId);
+            List<KitKnowledgePageBlock> blocks = pageBlockMapper.selectByVersionId(pageVersionId);
+            List<KitKnowledgePageSourceRef> sourceRefs = loadSourceRefs(blocks);
             List<KnowledgeChunkDocument> chunks = chunkBuilder.build(new KnowledgeChunkBuildRequest(
                     pageVersion.getPageId(),
                     generatedPage.title(),
@@ -93,7 +114,8 @@ public class KnowledgeIngestExecutor {
                     sourceRefs));
 
             updateStage(task.getId(), KnowledgeIngestStage.EMBED_CHUNK);
-            chunkEmbeddingService.embedChunks(chunks);
+            boolean embeddingCompleted = chunkEmbeddingService.embedChunks(chunks);
+            updateSourceEmbeddingCompleted(sourceDocument.getId(), embeddingCompleted);
 
             updateStage(task.getId(), KnowledgeIngestStage.INDEX_ES);
             chunkIndexRepository.replacePageVersion(pageVersion.getPageId(), pageVersion.getId(), chunks);
@@ -117,7 +139,6 @@ public class KnowledgeIngestExecutor {
     private KitKnowledgeSourceDocument loadSourceDocument(KitKnowledgeIngestTask task) {
         KitKnowledgeSourceDocument sourceDocument = sourceDocumentMapper.selectOne(new LambdaQueryWrapper<KitKnowledgeSourceDocument>()
                 .eq(KitKnowledgeSourceDocument::getId, task.getSourceDocumentId())
-                .eq(KitKnowledgeSourceDocument::getTenantId, task.getTenantId())
                 .eq(KitKnowledgeSourceDocument::getDeleted, false));
         if (Objects.isNull(sourceDocument)) {
             throw new BusinessException(KitErrorCode.E03001);
@@ -125,10 +146,9 @@ public class KnowledgeIngestExecutor {
         return sourceDocument;
     }
 
-    private KitKnowledgePageVersion loadPageVersion(String tenantId, String pageVersionId) {
+    private KitKnowledgePageVersion loadPageVersion(String pageVersionId) {
         KitKnowledgePageVersion pageVersion = pageVersionMapper.selectOne(new LambdaQueryWrapper<KitKnowledgePageVersion>()
                 .eq(KitKnowledgePageVersion::getId, pageVersionId)
-                .eq(KitKnowledgePageVersion::getTenantId, tenantId)
                 .eq(KitKnowledgePageVersion::getDeleted, false));
         if (Objects.isNull(pageVersion)) {
             throw new BusinessException(KitErrorCode.E03009);
@@ -136,11 +156,11 @@ public class KnowledgeIngestExecutor {
         return pageVersion;
     }
 
-    private List<KitKnowledgePageSourceRef> loadSourceRefs(String tenantId, List<KitKnowledgePageBlock> blocks) {
+    private List<KitKnowledgePageSourceRef> loadSourceRefs(List<KitKnowledgePageBlock> blocks) {
         if (CollectionUtils.isEmpty(blocks)) {
             return List.of();
         }
-        return pageSourceRefMapper.selectByPageBlockIds(tenantId, blocks.stream()
+        return pageSourceRefMapper.selectByPageBlockIds(blocks.stream()
                 .map(KitKnowledgePageBlock::getId)
                 .toList());
     }
@@ -149,8 +169,9 @@ public class KnowledgeIngestExecutor {
         updateTask(task.getId(), new KitKnowledgeIngestTask()
                 .setTaskStatus(KnowledgeIngestTaskStatus.RUNNING)
                 .setStartedAt(LocalDateTime.now()));
-        updateSourceStatus(task.getSourceDocumentId(), task.getTenantId(), new KitKnowledgeSourceDocument()
-                .setDocumentStatus(KnowledgeDocumentStatus.PROCESSING));
+        updateSourceStatus(task.getSourceDocumentId(), new KitKnowledgeSourceDocument()
+                .setDocumentStatus(KnowledgeDocumentStatus.PROCESSING)
+                .setEmbeddingCompleted(false));
     }
 
     private void updateStage(String taskId, KnowledgeIngestStage stage) {
@@ -161,7 +182,7 @@ public class KnowledgeIngestExecutor {
         updateTask(task.getId(), new KitKnowledgeIngestTask()
                 .setTaskStatus(KnowledgeIngestTaskStatus.SUCCEEDED)
                 .setFinishedAt(LocalDateTime.now()));
-        updateSourceStatus(sourceDocument.getId(), task.getTenantId(), new KitKnowledgeSourceDocument()
+        updateSourceStatus(sourceDocument.getId(), new KitKnowledgeSourceDocument()
                 .setDocumentStatus(KnowledgeDocumentStatus.PROCESSED)
                 .setProcessedAt(LocalDateTime.now()));
     }
@@ -171,7 +192,7 @@ public class KnowledgeIngestExecutor {
                 .setTaskStatus(KnowledgeIngestTaskStatus.FAILED)
                 .setErrorMessage(ex.getMessage())
                 .setFinishedAt(LocalDateTime.now()));
-        updateSourceStatus(task.getSourceDocumentId(), task.getTenantId(), new KitKnowledgeSourceDocument()
+        updateSourceStatus(task.getSourceDocumentId(), new KitKnowledgeSourceDocument()
                 .setDocumentStatus(KnowledgeDocumentStatus.FAILED)
                 .setProcessMessage(ex.getMessage()));
     }
@@ -182,10 +203,14 @@ public class KnowledgeIngestExecutor {
                 .eq(KitKnowledgeIngestTask::getDeleted, false));
     }
 
-    private void updateSourceStatus(String sourceDocumentId, String tenantId, KitKnowledgeSourceDocument update) {
+    private void updateSourceStatus(String sourceDocumentId, KitKnowledgeSourceDocument update) {
         sourceDocumentMapper.update(update, new LambdaUpdateWrapper<KitKnowledgeSourceDocument>()
                 .eq(KitKnowledgeSourceDocument::getId, sourceDocumentId)
-                .eq(KitKnowledgeSourceDocument::getTenantId, tenantId)
                 .eq(KitKnowledgeSourceDocument::getDeleted, false));
+    }
+
+    private void updateSourceEmbeddingCompleted(String sourceDocumentId, boolean embeddingCompleted) {
+        updateSourceStatus(sourceDocumentId, new KitKnowledgeSourceDocument()
+                .setEmbeddingCompleted(embeddingCompleted));
     }
 }

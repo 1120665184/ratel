@@ -5,8 +5,7 @@
     <select id="selectByPageBlockIds" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef">
         SELECT *
         FROM kit_knowledge_page_source_ref
-        WHERE tenant_id = #{tenantId}
-          AND deleted = 0
+        WHERE deleted = 0
           <choose>
               <when test="pageBlockIds != null and pageBlockIds.size() > 0">
                   AND page_block_id IN

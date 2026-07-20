@@ -5,8 +5,7 @@
     <select id="selectByVersionId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock">
         SELECT *
         FROM kit_knowledge_page_block
-        WHERE tenant_id = #{tenantId}
-          AND page_version_id = #{pageVersionId}
+        WHERE page_version_id = #{pageVersionId}
           AND deleted = 0
         ORDER BY order_no ASC
     </select>

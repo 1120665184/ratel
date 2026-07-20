@@ -20,16 +20,23 @@ const RerankConfigForm: React.FC<RerankConfigFormProps> = ({ value, onChange }) 
   return (
     <>
       <Card title="模型提供商" className={`${styles.sectionCard} ${styles.providerSection}`} size="small">
-        <Select
-          value={value.provider}
-          onChange={handleProviderChange}
-          options={RERANK_PROVIDER_LIST.map((item) => ({
-            label: `${item.label} - ${item.description}`,
-            value: item.key,
-          }))}
-          className={styles.fullWidthControl}
-          aria-label="重排模型提供商"
-        />
+        <Form layout="vertical">
+          <Form.Item label="启用">
+            <Switch checked={value.enabled} onChange={(enabled) => onChange({ ...value, enabled })} />
+          </Form.Item>
+          <Form.Item label="提供商">
+            <Select
+              value={value.provider}
+              onChange={handleProviderChange}
+              options={RERANK_PROVIDER_LIST.map((item) => ({
+                label: `${item.label} - ${item.description}`,
+                value: item.key,
+              }))}
+              className={styles.fullWidthControl}
+              aria-label="重排模型提供商"
+            />
+          </Form.Item>
+        </Form>
       </Card>
       <Card title="连接配置" className={styles.sectionCard} size="small">
         <Form layout="vertical">

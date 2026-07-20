@@ -5,8 +5,7 @@
     <select id="selectMaxVersionNo" resultType="java.lang.Integer">
         SELECT COALESCE(MAX(version_no), 0)
         FROM kit_knowledge_page_version
-        WHERE tenant_id = #{tenantId}
-          AND page_id = #{pageId}
+        WHERE page_id = #{pageId}
           AND deleted = 0
     </select>
 </mapper>

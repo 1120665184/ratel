@@ -90,6 +90,7 @@ export interface OllamaEmbeddingConfig {
 }
 
 export interface ModelEmbeddingConfig {
+  enabled: boolean;
   provider: EmbeddingProvider;
   dashscope: DashscopeEmbeddingConfig;
   openai: EmbeddingProviderConfig;
@@ -106,6 +107,7 @@ export interface DashscopeRerankConfig {
 }
 
 export interface ModelRerankConfig {
+  enabled: boolean;
   provider: RerankProvider;
   dashscope: DashscopeRerankConfig;
 }
@@ -184,6 +186,7 @@ export function createDefaultModelLlmConfig(): ModelLlmConfig {
 
 export function createDefaultModelEmbeddingConfig(): ModelEmbeddingConfig {
   return {
+    enabled: true,
     provider: 'dashscope',
     dashscope: {
       apiKey: '',
@@ -216,6 +219,7 @@ export function createDefaultModelEmbeddingConfig(): ModelEmbeddingConfig {
 
 export function createDefaultModelRerankConfig(): ModelRerankConfig {
   return {
+    enabled: true,
     provider: 'dashscope',
     dashscope: {
       apiKey: '',

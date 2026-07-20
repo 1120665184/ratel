@@ -16,9 +16,6 @@ import java.util.List;
 @Schema(description = "知识Chunk邻近查询条件")
 public class KnowledgeChunkAdjacentDTO extends BaseDTO {
 
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @Schema(description = "当前用户角色编码")
     private List<String> roleCodes;
 

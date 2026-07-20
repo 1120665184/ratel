@@ -29,18 +29,23 @@ public class KnowledgeChunkEmbeddingService {
 
     private final KnowledgeProperties properties;
 
-    private final Supplier<EmbeddingModel> embeddingModelSupplier = EmbeddingModelProvider::generateModel;
+    private final Supplier<Optional<EmbeddingModel>> embeddingModelSupplier = EmbeddingModelProvider::generateModel;
 
     public KnowledgeChunkEmbeddingService(KnowledgeProperties properties) {
         this.properties = properties;
     }
 
-    public void embedChunks(List<KnowledgeChunkDocument> chunks) {
+    public boolean embedChunks(List<KnowledgeChunkDocument> chunks) {
         if (chunks == null || chunks.isEmpty()) {
-            return;
+            return false;
         }
         try {
-            EmbeddingModel model = embeddingModelSupplier.get();
+            Optional<EmbeddingModel> modelOptional = embeddingModelSupplier.get();
+            if (modelOptional.isEmpty()) {
+                log.warn("知识库未启用或未配置向量化模型，跳过文档向量化步骤");
+                return false;
+            }
+            EmbeddingModel model = modelOptional.get();
             List<Document> documents = chunks.stream()
                     .map(chunk -> Document.builder()
                             .text(StringUtils.hasText(chunk.getContent()) ? chunk.getContent() : "")
@@ -56,6 +61,7 @@ public class KnowledgeChunkEmbeddingService {
                         .setEmbedding(embeddings.get(i))
                         .setEmbeddingModel(embeddingModel);
             }
+            return true;
         } catch (BusinessException ex) {
             throw ex;
         } catch (RuntimeException ex) {
@@ -68,7 +74,12 @@ public class KnowledgeChunkEmbeddingService {
             return Optional.empty();
         }
         try {
-            return Optional.of(embeddingModelSupplier.get().embed(keyword));
+            Optional<EmbeddingModel> modelOptional = embeddingModelSupplier.get();
+            if (modelOptional.isEmpty()) {
+                log.warn("知识库未启用或未配置向量化模型，查询将仅使用倒排索引检索");
+                return Optional.empty();
+            }
+            return Optional.of(modelOptional.get().embed(keyword));
         } catch (RuntimeException ex) {
             log.warn("知识库查询向量化失败，将仅使用全文检索", ex);
             return Optional.empty();

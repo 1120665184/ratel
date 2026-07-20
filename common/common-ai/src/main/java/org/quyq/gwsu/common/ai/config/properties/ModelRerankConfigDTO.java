@@ -9,6 +9,11 @@ import lombok.Data;
 public class ModelRerankConfigDTO {
 
     /**
+     * 是否启用重排模型。
+     */
+    private Boolean enabled = true;
+
+    /**
      * 当前激活的重排模型提供商。
      *
      * <p>当前支持值：dashscope

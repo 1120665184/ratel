@@ -11,5 +11,5 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 @Mapper
 public interface KnowledgePageVersionMapper extends BaseMapper<KitKnowledgePageVersion> {
 
-    Integer selectMaxVersionNo(@Param("tenantId") String tenantId, @Param("pageId") String pageId);
+    Integer selectMaxVersionNo(@Param("pageId") String pageId);
 }

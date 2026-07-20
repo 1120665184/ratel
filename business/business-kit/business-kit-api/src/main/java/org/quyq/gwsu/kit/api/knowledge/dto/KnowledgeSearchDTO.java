@@ -15,9 +15,6 @@ import java.util.List;
 @Schema(description = "知识库检索条件")
 public class KnowledgeSearchDTO extends BaseDTO {
 
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @Schema(description = "关键词")
     private String keyword;
 

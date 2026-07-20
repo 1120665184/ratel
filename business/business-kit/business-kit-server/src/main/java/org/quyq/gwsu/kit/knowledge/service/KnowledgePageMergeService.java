@@ -8,5 +8,5 @@ import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
  */
 public interface KnowledgePageMergeService {
 
-    String publish(String tenantId, KitKnowledgeSourceDocument sourceDocument, GeneratedKnowledgePage generatedPage);
+    String publish(KitKnowledgeSourceDocument sourceDocument, GeneratedKnowledgePage generatedPage);
 }

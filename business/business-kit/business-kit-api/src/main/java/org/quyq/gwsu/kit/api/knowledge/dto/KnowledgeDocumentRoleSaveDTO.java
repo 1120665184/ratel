@@ -15,9 +15,6 @@ public class KnowledgeDocumentRoleSaveDTO {
     @Schema(description = "源文档ID")
     private String sourceDocumentId;
 
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @Schema(description = "授权角色编码；为空表示开放文档")
     private List<String> roleCodes;
 }

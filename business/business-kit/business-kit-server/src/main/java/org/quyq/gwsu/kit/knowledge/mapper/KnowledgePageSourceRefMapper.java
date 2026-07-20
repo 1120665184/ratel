@@ -14,6 +14,5 @@ import java.util.List;
 @Mapper
 public interface KnowledgePageSourceRefMapper extends BaseMapper<KitKnowledgePageSourceRef> {
 
-    List<KitKnowledgePageSourceRef> selectByPageBlockIds(@Param("tenantId") String tenantId,
-                                                      @Param("pageBlockIds") Collection<String> pageBlockIds);
+    List<KitKnowledgePageSourceRef> selectByPageBlockIds(@Param("pageBlockIds") Collection<String> pageBlockIds);
 }

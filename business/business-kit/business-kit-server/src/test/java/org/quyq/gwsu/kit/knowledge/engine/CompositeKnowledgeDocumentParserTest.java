@@ -54,6 +54,33 @@ class CompositeKnowledgeDocumentParserTest {
     }
 
     @Test
+    void shouldFallbackToTikaWhenSpecializedParserOnlyReturnsStructuralMarkers() {
+        KnowledgeDocumentParser pdf = parser("pdf", true, ParsedKnowledgeDocument.of("guide.pdf", "Page 1\n\nPage 2"));
+        KnowledgeDocumentParser tika = parser("tika", true, ParsedKnowledgeDocument.of("guide.pdf", "Tika 正文"));
+        CompositeKnowledgeDocumentParser parser = new CompositeKnowledgeDocumentParser(pdf, unsupportedParser(), tika, metadataResolver);
+
+        ParsedKnowledgeDocument result = parser.parse("file-1");
+
+        assertEquals("Tika 正文", result.text());
+        assertTrue(result.parseWarnings().stream().anyMatch(warning -> warning.contains("仅提取到结构边界标记")));
+    }
+
+    @Test
+    void shouldFallbackToTikaForLegacyOfficeThroughComposite() {
+        KnowledgeFileMetadataResolver officeMetadataResolver = fileId ->
+                new KnowledgeFileMetadata("legacy.doc", "application/msword");
+        KnowledgeDocumentParser pdf = parser("pdf", false, new AssertionError("旧版 Office 不应命中 PDF 解析器"));
+        KnowledgeDocumentParser office = parser("office", false, new AssertionError("旧版 Office 不应命中 OOXML 专用解析器"));
+        KnowledgeDocumentParser tika = parser("tika", true, ParsedKnowledgeDocument.of("legacy.doc", "Legacy Tika 正文"));
+        CompositeKnowledgeDocumentParser parser = new CompositeKnowledgeDocumentParser(pdf, office, tika, officeMetadataResolver);
+
+        ParsedKnowledgeDocument result = parser.parse("file-1");
+
+        assertEquals("Legacy Tika 正文", result.text());
+        assertTrue(result.parseWarnings().isEmpty());
+    }
+
+    @Test
     void shouldInjectThreeDifferentParsersIntoComposite() throws Exception {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.registerBean(KnowledgePdfParseProperties.class);

@@ -54,6 +54,22 @@ class KnowledgeIngestSanitizerTest {
     }
 
     @Test
+    void shouldMergeParseWarningsWhenSanitizingParsedDocument() {
+        ParsedKnowledgeDocument document = new ParsedKnowledgeDocument(
+                "guide.md",
+                "text/markdown",
+                "zh",
+                "正文\u0000",
+                java.util.List.of("解析阶段告警"));
+
+        SanitizedKnowledgeSource result = sanitizer.sanitize(document);
+
+        assertTrue(result.warnings().contains("解析阶段告警"));
+        assertTrue(result.warnings().stream().anyMatch(warning -> warning.contains("不可见控制字符")));
+        assertEquals("正文", result.text());
+    }
+
+    @Test
     void shouldPreserveEmptyLookingTableRowsInsideFencedCodeBlock() {
         String source = "正文\n```text\n|  |  |\n```\n|  |  |";
 

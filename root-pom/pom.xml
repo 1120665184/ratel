@@ -44,8 +44,8 @@
         <gson-javatime.version>1.1.2</gson-javatime.version>
         <jsqlparser.version>5.2</jsqlparser.version>
         <agentscope.version>2.0.0-RC5</agentscope.version>
-        <spring-ai.version>1.1.2</spring-ai.version>
-        <spring-ai-alibaba.version>1.1.2.2</spring-ai-alibaba.version>
+        <spring-ai.version>2.0.0-M1</spring-ai.version>
+        <spring-ai-alibaba.version>2.0.0-M1.1</spring-ai-alibaba.version>
         <tika.version>3.3.1</tika.version>
         <minio.version>8.6.0</minio.version>
         <okhttp.version>5.1.0</okhttp.version>

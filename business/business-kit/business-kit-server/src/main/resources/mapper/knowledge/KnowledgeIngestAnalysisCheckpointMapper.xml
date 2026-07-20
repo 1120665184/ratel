@@ -5,8 +5,7 @@
     <select id="selectByTaskId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint">
         SELECT *
         FROM kit_knowledge_ingest_analysis_checkpoint
-        WHERE tenant_id = #{tenantId}
-          AND ingest_task_id = #{ingestTaskId}
+        WHERE ingest_task_id = #{ingestTaskId}
           AND deleted = 0
         ORDER BY chunk_no ASC
     </select>
@@ -14,8 +13,7 @@
     <select id="selectByTaskIdAndChunkNo" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint">
         SELECT *
         FROM kit_knowledge_ingest_analysis_checkpoint
-        WHERE tenant_id = #{tenantId}
-          AND ingest_task_id = #{ingestTaskId}
+        WHERE ingest_task_id = #{ingestTaskId}
           AND chunk_no = #{chunkNo}
           AND deleted = 0
     </select>

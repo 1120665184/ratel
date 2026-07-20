@@ -25,24 +25,24 @@ class KnowledgeVisibleSourceServiceTest {
     @Test
     void roleASeesOpenAndRoleADocument() {
         Set<String> roleCodes = Set.of("ROLE_A");
-        when(sourceDocumentMapper.listVisibleSourceDocumentIds(TENANT_ID, roleCodes))
+        when(sourceDocumentMapper.listVisibleSourceDocumentIds(roleCodes))
                 .thenReturn(List.of("open-document", "role-a-document"));
 
-        List<String> visibleIds = service.listVisibleSourceDocumentIds(TENANT_ID, roleCodes);
+        List<String> visibleIds = service.listVisibleSourceDocumentIds(roleCodes);
 
         assertEquals(List.of("open-document", "role-a-document"), visibleIds);
-        verify(sourceDocumentMapper).listVisibleSourceDocumentIds(TENANT_ID, roleCodes);
+        verify(sourceDocumentMapper).listVisibleSourceDocumentIds(roleCodes);
     }
 
     @Test
     void roleCOnlySeesOpenDocument() {
         Set<String> roleCodes = Set.of("ROLE_C");
-        when(sourceDocumentMapper.listVisibleSourceDocumentIds(TENANT_ID, roleCodes))
+        when(sourceDocumentMapper.listVisibleSourceDocumentIds(roleCodes))
                 .thenReturn(List.of("open-document"));
 
-        List<String> visibleIds = service.listVisibleSourceDocumentIds(TENANT_ID, roleCodes);
+        List<String> visibleIds = service.listVisibleSourceDocumentIds(roleCodes);
 
         assertEquals(List.of("open-document"), visibleIds);
-        verify(sourceDocumentMapper).listVisibleSourceDocumentIds(TENANT_ID, roleCodes);
+        verify(sourceDocumentMapper).listVisibleSourceDocumentIds(roleCodes);
     }
 }

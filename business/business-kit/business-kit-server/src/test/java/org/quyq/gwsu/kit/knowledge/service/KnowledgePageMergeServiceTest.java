@@ -53,8 +53,8 @@ class KnowledgePageMergeServiceTest {
 
         try (var pool = Executors.newFixedThreadPool(2)) {
             List<Future<String>> futures = pool.invokeAll(List.of(
-                    () -> service.publish(TENANT_ID, document("document-a"), new GeneratedKnowledgePage("Wiki", "# 来源A")),
-                    () -> service.publish(TENANT_ID, document("document-b"), new GeneratedKnowledgePage("Wiki", "# 来源B"))));
+                    () -> service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# 来源A")),
+                    () -> service.publish(document("document-b"), new GeneratedKnowledgePage("Wiki", "# 来源B"))));
             for (Future<String> future : futures) {
                 future.get();
             }
@@ -78,8 +78,8 @@ class KnowledgePageMergeServiceTest {
         InMemoryMergeFixture fixture = new InMemoryMergeFixture();
         KnowledgePageMergeService service = fixture.createService();
 
-        service.publish(TENANT_ID, document("document-a"), new GeneratedKnowledgePage("Wiki", "# 旧A"));
-        service.publish(TENANT_ID, document("document-a"), new GeneratedKnowledgePage("Wiki", "# 新A"));
+        service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# 旧A"));
+        service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# 新A"));
 
         KitKnowledgePage currentPage = fixture.page();
         List<KitKnowledgePageBlock> currentBlocks = fixture.blocksByVersion(currentPage.getCurrentVersionId());
@@ -94,7 +94,6 @@ class KnowledgePageMergeServiceTest {
         KitKnowledgeSourceDocument document = new KitKnowledgeSourceDocument()
                 .setId(documentId)
                 .setTargetPageId(PAGE_ID);
-        document.setTenantId(TENANT_ID);
         return document;
     }
 
@@ -114,7 +113,6 @@ class KnowledgePageMergeServiceTest {
         private final Map<String, KitKnowledgePageSourceRef> refByBlockId = new ConcurrentHashMap<>();
 
         private InMemoryMergeFixture() {
-            page.setTenantId(TENANT_ID);
         }
 
         KnowledgePageMergeService createService() {
@@ -149,22 +147,22 @@ class KnowledgePageMergeServiceTest {
                 }
                 return 1;
             }).when(pageMapper).update(any(KitKnowledgePage.class), any());
-            when(pageVersionMapper.selectMaxVersionNo(TENANT_ID, PAGE_ID)).thenAnswer(invocation -> versions.size());
+            when(pageVersionMapper.selectMaxVersionNo(PAGE_ID)).thenAnswer(invocation -> versions.size());
             doAnswer(invocation -> {
                 KitKnowledgePageVersion version = invocation.getArgument(0);
                 versions.add(version);
                 blocksByVersion.put(version.getId(), new ArrayList<>());
                 return 1;
             }).when(pageVersionMapper).insert(any(KitKnowledgePageVersion.class));
-            when(pageBlockMapper.selectByVersionId(anyString(), anyString())).thenAnswer(invocation ->
-                    new ArrayList<>(blocksByVersion.getOrDefault(invocation.getArgument(1), List.of())));
+            when(pageBlockMapper.selectByVersionId(anyString())).thenAnswer(invocation ->
+                    new ArrayList<>(blocksByVersion.getOrDefault(invocation.getArgument(0), List.of())));
             doAnswer(invocation -> {
                 KitKnowledgePageBlock block = invocation.getArgument(0);
                 blocksByVersion.computeIfAbsent(block.getPageVersionId(), key -> new ArrayList<>()).add(block);
                 return 1;
             }).when(pageBlockMapper).insert(any(KitKnowledgePageBlock.class));
-            when(pageSourceRefMapper.selectByPageBlockIds(anyString(), any(Collection.class))).thenAnswer(invocation -> {
-                Collection<String> blockIds = invocation.getArgument(1);
+            when(pageSourceRefMapper.selectByPageBlockIds(any(Collection.class))).thenAnswer(invocation -> {
+                Collection<String> blockIds = invocation.getArgument(0);
                 return blockIds.stream()
                         .map(refByBlockId::get)
                         .filter(Objects::nonNull)

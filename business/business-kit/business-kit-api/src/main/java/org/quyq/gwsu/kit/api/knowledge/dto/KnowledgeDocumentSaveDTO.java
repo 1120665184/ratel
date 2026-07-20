@@ -15,9 +15,6 @@ public class KnowledgeDocumentSaveDTO {
     @Schema(description = "源文档ID")
     private String id;
 
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @Schema(description = "文件ID")
     private String fileId;
 

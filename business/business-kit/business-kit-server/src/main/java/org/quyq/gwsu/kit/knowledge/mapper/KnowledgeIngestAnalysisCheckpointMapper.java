@@ -13,12 +13,9 @@ import java.util.List;
 @Mapper
 public interface KnowledgeIngestAnalysisCheckpointMapper extends BaseMapper<KitKnowledgeIngestAnalysisCheckpoint> {
 
-    List<KitKnowledgeIngestAnalysisCheckpoint> selectByTaskId(
-            @Param("tenantId") String tenantId,
-            @Param("ingestTaskId") String ingestTaskId);
+    List<KitKnowledgeIngestAnalysisCheckpoint> selectByTaskId(@Param("ingestTaskId") String ingestTaskId);
 
     KitKnowledgeIngestAnalysisCheckpoint selectByTaskIdAndChunkNo(
-            @Param("tenantId") String tenantId,
             @Param("ingestTaskId") String ingestTaskId,
             @Param("chunkNo") Integer chunkNo);
 }

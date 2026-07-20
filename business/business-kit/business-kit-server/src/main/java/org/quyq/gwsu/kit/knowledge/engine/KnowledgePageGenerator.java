@@ -5,5 +5,5 @@ package org.quyq.gwsu.kit.knowledge.engine;
  */
 public interface KnowledgePageGenerator {
 
-    GeneratedKnowledgePage generate(String fileName, String parsedText);
+    GeneratedKnowledgePage generate(KnowledgePageGenerationRequest request);
 }

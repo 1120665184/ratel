@@ -3,8 +3,10 @@ package org.quyq.gwsu.common.ai.model;
 import org.quyq.gwsu.common.ai.config.properties.ModelEmbeddingConfigDTO;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.util.StringUtils;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 向量化模型提供入口。
@@ -17,12 +19,17 @@ public class EmbeddingModelProvider {
 
     private static EmbeddingModel MODEL;
 
-    public static EmbeddingModel generateModel() {
+    public static Optional<EmbeddingModel> generateModel() {
         ModelEmbeddingConfigDTO newConfig = ConfigInfoUtils.getByObject(MODEL_EMBEDDING_CONFIG, ModelEmbeddingConfigDTO.class);
+        if (!isEnabled(newConfig) || !isConfigReady(newConfig)) {
+            CONFIG = newConfig;
+            MODEL = null;
+            return Optional.empty();
+        }
         if (configChange(newConfig)) {
             createModel(newConfig);
         }
-        return MODEL;
+        return Optional.ofNullable(MODEL);
     }
 
     private static void createModel(ModelEmbeddingConfigDTO config) {
@@ -39,5 +46,29 @@ public class EmbeddingModelProvider {
             return true;
         }
         return !Objects.equals(newConfig, CONFIG);
+    }
+
+    private static boolean isEnabled(ModelEmbeddingConfigDTO config) {
+        return config != null && !Boolean.FALSE.equals(config.getEnabled());
+    }
+
+    private static boolean isConfigReady(ModelEmbeddingConfigDTO config) {
+        if (config == null || !StringUtils.hasText(config.getProvider())) {
+            return false;
+        }
+        return switch (config.getProvider().trim().toLowerCase()) {
+            case "dashscope" -> config.getDashscope() != null
+                    && StringUtils.hasText(config.getDashscope().getApiKey())
+                    && StringUtils.hasText(config.getDashscope().getModelName());
+            case "openai" -> config.getOpenai() != null
+                    && StringUtils.hasText(config.getOpenai().getApiKey())
+                    && StringUtils.hasText(config.getOpenai().getModelName());
+            case "ollama" -> config.getOllama() != null
+                    && StringUtils.hasText(config.getOllama().getModelName());
+            case "zhipuai" -> config.getZhipuai() != null
+                    && StringUtils.hasText(config.getZhipuai().getApiKey())
+                    && StringUtils.hasText(config.getZhipuai().getModelName());
+            default -> false;
+        };
     }
 }

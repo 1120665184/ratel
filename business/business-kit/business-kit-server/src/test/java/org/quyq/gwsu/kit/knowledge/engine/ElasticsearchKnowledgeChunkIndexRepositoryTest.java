@@ -47,7 +47,7 @@ class ElasticsearchKnowledgeChunkIndexRepositoryTest {
     }
 
     @Test
-    void replacePageVersionDeletesOldChunksThenSavesNewChunks() {
+    void replacePageVersionDeletesCurrentPageChunksThenSavesNewChunks() {
         ElasticsearchOperations operations = mock(ElasticsearchOperations.class);
         IndexOperations indexOperations = mock(IndexOperations.class);
         when(operations.indexOps(IndexCoordinates.of("test_knowledge_chunk"))).thenReturn(indexOperations);

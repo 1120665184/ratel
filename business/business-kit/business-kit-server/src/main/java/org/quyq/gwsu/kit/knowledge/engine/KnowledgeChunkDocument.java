@@ -15,7 +15,7 @@ import java.time.Instant;
 /**
  * ES-only 知识 Chunk 文档。
  */
-@Document(indexName = "gwsu_knowledge_chunk", createIndex = false)
+@Document(indexName = "kit_knowledge_chunk", createIndex = false)
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor

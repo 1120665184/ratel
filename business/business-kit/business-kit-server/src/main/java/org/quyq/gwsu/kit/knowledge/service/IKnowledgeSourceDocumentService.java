@@ -1,8 +1,11 @@
 package org.quyq.gwsu.kit.knowledge.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentQueryDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentRoleSaveDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentSaveDTO;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeDocumentVO;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 
 import java.util.Collection;
@@ -17,5 +20,9 @@ public interface IKnowledgeSourceDocumentService extends IService<KitKnowledgeSo
 
     void saveDocumentRoles(KnowledgeDocumentRoleSaveDTO dto);
 
-    List<String> listVisibleSourceDocumentIds(String tenantId, Collection<String> roleCodes);
+    IPage<KnowledgeDocumentVO> pageDocuments(KnowledgeDocumentQueryDTO dto);
+
+    KnowledgeDocumentVO getDocument(String documentId);
+
+    List<String> listVisibleSourceDocumentIds(Collection<String> roleCodes);
 }

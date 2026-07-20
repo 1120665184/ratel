@@ -13,6 +13,5 @@ import java.util.List;
 @Mapper
 public interface KnowledgePageBlockMapper extends BaseMapper<KitKnowledgePageBlock> {
 
-    List<KitKnowledgePageBlock> selectByVersionId(@Param("tenantId") String tenantId,
-                                               @Param("pageVersionId") String pageVersionId);
+    List<KitKnowledgePageBlock> selectByVersionId(@Param("pageVersionId") String pageVersionId);
 }

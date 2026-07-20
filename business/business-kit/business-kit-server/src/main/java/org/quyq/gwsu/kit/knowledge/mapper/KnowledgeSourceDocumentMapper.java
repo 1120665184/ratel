@@ -14,7 +14,5 @@ import java.util.List;
 @Mapper
 public interface KnowledgeSourceDocumentMapper extends BaseMapper<KitKnowledgeSourceDocument> {
 
-    List<String> listVisibleSourceDocumentIds(
-            @Param("tenantId") String tenantId,
-            @Param("roleCodes") Collection<String> roleCodes);
+    List<String> listVisibleSourceDocumentIds(@Param("roleCodes") Collection<String> roleCodes);
 }

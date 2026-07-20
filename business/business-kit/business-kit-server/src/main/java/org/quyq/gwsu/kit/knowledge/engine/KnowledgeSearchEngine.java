@@ -22,8 +22,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class KnowledgeSearchEngine {
 
-    private static final int RERANK_RECALL_MULTIPLIER = 3;
-
     private final IKnowledgeSourceDocumentService sourceDocumentService;
 
     private final KnowledgeChunkIndexRepository chunkIndexRepository;
@@ -35,14 +33,9 @@ public class KnowledgeSearchEngine {
     private final KnowledgeProperties properties;
 
     public List<KnowledgeSearchResultVO> search(KnowledgeSearchDTO dto) {
-//        if (!StringUtils.hasText(dto.getTenantId())) {
-//            throw new BusinessException(KitErrorCode.E03005);
-//        }
-        List<String> visibleSourceDocumentIds = sourceDocumentService.listVisibleSourceDocumentIds(
-                dto.getTenantId(),
-                dto.getRoleCodes());
+        List<String> visibleSourceDocumentIds = sourceDocumentService.listVisibleSourceDocumentIds(dto.getRoleCodes());
         int size = dto.getSize() == null || dto.getSize() <= 0 ? properties.getSearchSize() : dto.getSize();
-        int recallSize = Math.max(size, size * RERANK_RECALL_MULTIPLIER);
+        int recallSize = Math.max(size, properties.getHybridRecallSize());
         List<KnowledgeSearchResultVO> results = chunkIndexRepository.search(
                 dto.getKeyword(),
                 visibleSourceDocumentIds,
@@ -52,14 +45,13 @@ public class KnowledgeSearchEngine {
     }
 
     public Optional<KnowledgeSearchResultVO> findAdjacentChunk(
-            String tenantId,
             Collection<String> roleCodes,
             String chunkId,
             KnowledgeChunkDirection direction) {
-        if (!StringUtils.hasText(tenantId) || !StringUtils.hasText(chunkId) || direction == null) {
+        if (!StringUtils.hasText(chunkId) || direction == null) {
             throw new BusinessException(KitErrorCode.E03005);
         }
-        List<String> visibleSourceDocumentIds = sourceDocumentService.listVisibleSourceDocumentIds(tenantId, roleCodes);
+        List<String> visibleSourceDocumentIds = sourceDocumentService.listVisibleSourceDocumentIds(roleCodes);
         return chunkIndexRepository.findAdjacentChunk(chunkId, direction, visibleSourceDocumentIds);
     }
 }

@@ -263,6 +263,7 @@ CREATE TABLE kit_knowledge_source_document
     document_status  VARCHAR(32)  NOT NULL DEFAULT 'UPLOADED' COMMENT '文档处理状态',
     target_page_id   VARCHAR(24)           DEFAULT NULL COMMENT '目标Page ID',
     process_message  VARCHAR(1000)         DEFAULT NULL COMMENT '处理信息',
+    embedding_completed SMALLINT   NOT NULL DEFAULT 0 COMMENT '是否已完成向量化：0-否 1-是',
     processed_at     DATETIME              DEFAULT NULL COMMENT '处理完成时间',
     tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',
     create_op        VARCHAR(50)           DEFAULT NULL COMMENT '创建人',

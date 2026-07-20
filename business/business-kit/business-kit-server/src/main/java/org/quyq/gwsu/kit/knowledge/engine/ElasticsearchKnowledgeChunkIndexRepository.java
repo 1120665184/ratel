@@ -3,7 +3,10 @@ package org.quyq.gwsu.kit.knowledge.engine;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.KnnSearch;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.ai.config.properties.ModelEmbeddingConfigDTO;
+import org.quyq.gwsu.common.ai.model.EmbeddingModelProvider;
 import org.quyq.gwsu.common.core.exception.BusinessException;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
@@ -11,6 +14,7 @@ import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Criteria;
@@ -20,9 +24,12 @@ import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -44,7 +51,7 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
                 return;
             }
             indexOperations.create();
-            indexOperations.putMapping(indexOperations.createMapping(KnowledgeChunkDocument.class));
+            indexOperations.putMapping(buildIndexMapping());
         } catch (RuntimeException ex) {
             throw new BusinessException(KitErrorCode.E03011, ex);
         }
@@ -54,7 +61,7 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
     public void replacePageVersion(String pageId, String pageVersionId, List<KnowledgeChunkDocument> chunks) {
         ensureIndex();
         try {
-            elasticsearchOperations.delete(DeleteQuery.builder(pageVersionQuery(pageId, pageVersionId)).build(),
+            elasticsearchOperations.delete(DeleteQuery.builder(pageQuery(pageId)).build(),
                     KnowledgeChunkDocument.class,
                     indexCoordinates());
             if (CollectionUtils.isEmpty(chunks)) {
@@ -75,6 +82,7 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
         if (CollectionUtils.isEmpty(visibleSourceDocumentIds)) {
             return List.of();
         }
+        ensureIndex();
         try {
             return elasticsearchOperations.search(searchQuery(keyword, visibleSourceDocumentIds, size, queryEmbedding),
                             KnowledgeChunkDocument.class,
@@ -95,6 +103,7 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
         if (CollectionUtils.isEmpty(visibleSourceDocumentIds)) {
             return Optional.empty();
         }
+        ensureIndex();
         try {
             KnowledgeChunkDocument current = elasticsearchOperations.get(
                     chunkId,
@@ -114,10 +123,8 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
         }
     }
 
-    private Query pageVersionQuery(String pageId, String pageVersionId) {
-        Criteria criteria = Criteria.where("page_id").is(pageId)
-                .and("page_version_id").is(pageVersionId);
-        return CriteriaQuery.builder(criteria).build();
+    private Query pageQuery(String pageId) {
+        return CriteriaQuery.builder(Criteria.where("page_id").is(pageId)).build();
     }
 
     private Query searchQuery(
@@ -209,5 +216,61 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
 
     private IndexCoordinates indexCoordinates() {
         return IndexCoordinates.of(properties.getIndexName());
+    }
+
+    private Document buildIndexMapping() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("chunk_id", keywordField());
+        properties.put("page_id", keywordField());
+        properties.put("page_version_id", keywordField());
+        properties.put("page_block_id", keywordField());
+        properties.put("source_document_id", keywordField());
+        properties.put("title", textField());
+        properties.put("heading_path", textField());
+        properties.put("content", textField());
+        properties.put("chunk_order", Map.of("type", "integer"));
+        properties.put("content_hash", keywordField());
+        properties.put("status", keywordField());
+        properties.put("version", Map.of("type", "integer"));
+        properties.put("indexed_at", Map.of("type", "date"));
+        properties.put("embedding", denseVectorField(resolveEmbeddingDimensions()));
+        properties.put("embedding_model", keywordField());
+        return Document.from(Map.of("properties", properties));
+    }
+
+    private Map<String, Object> keywordField() {
+        return Map.of("type", "keyword");
+    }
+
+    private Map<String, Object> textField() {
+        return Map.of("type", "text");
+    }
+
+    private Map<String, Object> denseVectorField(int dims) {
+        Map<String, Object> field = new LinkedHashMap<>();
+        field.put("type", "dense_vector");
+        field.put("dims", dims);
+        field.put("similarity", "cosine");
+        return field;
+    }
+
+    private int resolveEmbeddingDimensions() {
+        ModelEmbeddingConfigDTO config = ConfigInfoUtils.getByObject(
+                EmbeddingModelProvider.MODEL_EMBEDDING_CONFIG,
+                ModelEmbeddingConfigDTO.class);
+        if (config == null || !StringUtils.hasText(config.getProvider())) {
+            return 1024;
+        }
+        Integer dimensions = switch (config.getProvider().trim().toLowerCase()) {
+            case "dashscope" -> config.getDashscope() == null ? null : config.getDashscope().getDimensions();
+            case "openai" -> config.getOpenai() == null ? null : config.getOpenai().getDimensions();
+            case "ollama" -> config.getOllama() == null ? null : config.getOllama().getDimensions();
+            case "zhipuai" -> config.getZhipuai() == null ? null : config.getZhipuai().getDimensions();
+            default -> null;
+        };
+        if (dimensions == null || dimensions <= 0) {
+            return 1024;
+        }
+        return dimensions;
     }
 }

@@ -7,19 +7,12 @@
         SELECT sd.id
         FROM kit_knowledge_source_document sd
         <where>
-            <if test="tenantId != null and tenantId != ''">
-                AND sd.tenant_id = #{tenantId}
-            </if>
             AND sd.deleted = 0
             AND (
             NOT EXISTS (
             SELECT 1
             FROM kit_knowledge_source_document_role open_role
             WHERE open_role.source_document_id = sd.id
-            <if test="tenantId != null and tenantId != ''">
-                AND open_role.tenant_id = #{tenantId}
-            </if>
-
             AND open_role.deleted = 0
             )
             <if test="roleCodes != null and roleCodes.size() > 0">
@@ -27,7 +20,6 @@
                 SELECT 1
                 FROM kit_knowledge_source_document_role hit_role
                 WHERE hit_role.source_document_id = sd.id
-                AND hit_role.tenant_id = #{tenantId}
                 AND hit_role.deleted = 0
                 AND hit_role.role_code IN
                 <foreach collection="roleCodes" item="roleCode" open="(" separator="," close=")">

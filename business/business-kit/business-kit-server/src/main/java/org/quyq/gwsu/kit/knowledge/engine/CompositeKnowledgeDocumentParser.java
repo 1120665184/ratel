@@ -7,6 +7,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 按文件类型路由并在专用解析失败时回退到 Tika 的主解析器。
@@ -16,6 +17,12 @@ import java.util.List;
 public class CompositeKnowledgeDocumentParser implements KnowledgeDocumentParser {
 
     private static final double MIN_VISIBLE_CHARACTER_RATIO = 0.1D;
+
+    private static final Pattern STRUCTURAL_ONLY_LINE = Pattern.compile(
+            "^(?:Page \\d+|Slide \\d+|Sheet \\d+:.*|\\[Table \\d+])$");
+
+    private static final Pattern STRUCTURAL_PREFIX = Pattern.compile(
+            "^(?:Title|Paragraph|Content|Row \\d+|Table Row):\\s*");
 
     private final KnowledgeDocumentParser pdfParser;
 
@@ -94,8 +101,12 @@ public class CompositeKnowledgeDocumentParser implements KnowledgeDocumentParser
         if (!StringUtils.hasText(text)) {
             return "未提取到有效可见字符";
         }
-        long nonWhitespaceCount = text.codePoints().filter(codePoint -> !Character.isWhitespace(codePoint)).count();
-        long visibleCount = text.codePoints().filter(this::isVisibleCharacter).count();
+        String normalizedText = removeStructuralMarkers(text);
+        if (!StringUtils.hasText(normalizedText)) {
+            return "仅提取到结构边界标记";
+        }
+        long nonWhitespaceCount = normalizedText.codePoints().filter(codePoint -> !Character.isWhitespace(codePoint)).count();
+        long visibleCount = normalizedText.codePoints().filter(this::isVisibleCharacter).count();
         if (visibleCount == 0) {
             return "未提取到有效可见字符";
         }
@@ -108,6 +119,17 @@ public class CompositeKnowledgeDocumentParser implements KnowledgeDocumentParser
     private boolean isVisibleCharacter(int codePoint) {
         return Character.isLetterOrDigit(codePoint)
                 || Character.UnicodeScript.of(codePoint) == Character.UnicodeScript.HAN;
+    }
+
+    private String removeStructuralMarkers(String text) {
+        return text.lines()
+                .map(String::strip)
+                .filter(StringUtils::hasText)
+                .filter(line -> !STRUCTURAL_ONLY_LINE.matcher(line).matches())
+                .map(line -> STRUCTURAL_PREFIX.matcher(line).replaceFirst(""))
+                .filter(StringUtils::hasText)
+                .reduce((left, right) -> left + '\n' + right)
+                .orElse("");
     }
 
     private String parserName(KnowledgeDocumentParser parser) {

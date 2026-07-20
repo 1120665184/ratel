@@ -10,6 +10,11 @@ import lombok.EqualsAndHashCode;
 public class ModelEmbeddingConfigDTO {
 
     /**
+     * 是否启用向量化模型。
+     */
+    private Boolean enabled = true;
+
+    /**
      * 当前激活的向量化模型提供商。
      *
      * <p>支持值：dashscope、openai、ollama、zhipuai
@@ -39,17 +44,17 @@ public class ModelEmbeddingConfigDTO {
     }
 
     @Data
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class DashscopeEmbeddingConfigDTO extends BaseRemoteEmbeddingConfigDTO {
     }
 
     @Data
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class OpenaiEmbeddingConfigDTO extends BaseRemoteEmbeddingConfigDTO {
     }
 
     @Data
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class ZhipuaiEmbeddingConfigDTO extends BaseRemoteEmbeddingConfigDTO {
     }
 

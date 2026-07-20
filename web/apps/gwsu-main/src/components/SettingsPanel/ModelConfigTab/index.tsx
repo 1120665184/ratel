@@ -93,6 +93,7 @@ const ModelConfigTab: React.FC = () => {
           const parsed = JSON.parse(embeddingInfo.configValue) as Partial<ModelEmbeddingConfig>;
           const defaults = createDefaultModelEmbeddingConfig();
           setEmbeddingConfig({
+            enabled: parsed.enabled ?? true,
             provider: parsed.provider || defaults.provider,
             dashscope: { ...defaults.dashscope, ...parsed.dashscope },
             openai: { ...defaults.openai, ...parsed.openai },
@@ -116,6 +117,7 @@ const ModelConfigTab: React.FC = () => {
           const parsed = JSON.parse(rerankInfo.configValue) as Partial<ModelRerankConfig>;
           const defaults = createDefaultModelRerankConfig();
           setRerankConfig({
+            enabled: parsed.enabled ?? true,
             provider: parsed.provider || defaults.provider,
             dashscope: { ...defaults.dashscope, ...parsed.dashscope },
           });
@@ -165,25 +167,29 @@ const ModelConfigTab: React.FC = () => {
     }
 
     if (activeTab === 'embedding') {
-      const currentConfig = embeddingConfig[embeddingConfig.provider];
-      if (embeddingConfig.provider !== 'ollama' && !('apiKey' in currentConfig && currentConfig.apiKey)) {
-        message.warning('请填写 API Key');
-        return;
-      }
-      if (!currentConfig.modelName) {
-        message.warning('请填写模型名称');
-        return;
+      if (embeddingConfig.enabled) {
+        const currentConfig = embeddingConfig[embeddingConfig.provider];
+        if (embeddingConfig.provider !== 'ollama' && !('apiKey' in currentConfig && currentConfig.apiKey)) {
+          message.warning('请填写 API Key');
+          return;
+        }
+        if (!currentConfig.modelName) {
+          message.warning('请填写模型名称');
+          return;
+        }
       }
     }
 
     if (activeTab === 'rerank') {
-      if (!rerankConfig.dashscope.apiKey) {
-        message.warning('请填写 API Key');
-        return;
-      }
-      if (!rerankConfig.dashscope.modelName) {
-        message.warning('请填写模型名称');
-        return;
+      if (rerankConfig.enabled) {
+        if (!rerankConfig.dashscope.apiKey) {
+          message.warning('请填写 API Key');
+          return;
+        }
+        if (!rerankConfig.dashscope.modelName) {
+          message.warning('请填写模型名称');
+          return;
+        }
       }
     }
 

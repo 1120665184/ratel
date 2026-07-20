@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Select, Card } from 'antd';
+import { Form, Input, InputNumber, Select, Card, Switch } from 'antd';
 import type {
   EmbeddingProvider,
   ModelEmbeddingConfig,
@@ -113,16 +113,23 @@ const EmbeddingConfigForm: React.FC<EmbeddingConfigFormProps> = ({ value, onChan
   return (
     <>
       <Card title="模型提供商" className={`${styles.sectionCard} ${styles.providerSection}`} size="small">
-        <Select
-          value={value.provider}
-          onChange={handleProviderChange}
-          options={EMBEDDING_PROVIDER_LIST.map((item) => ({
-            label: `${item.label} - ${item.description}`,
-            value: item.key,
-          }))}
-          className={styles.fullWidthControl}
-          aria-label="向量化模型提供商"
-        />
+        <Form layout="vertical">
+          <Form.Item label="启用">
+            <Switch checked={value.enabled} onChange={(enabled) => onChange({ ...value, enabled })} />
+          </Form.Item>
+          <Form.Item label="提供商">
+            <Select
+              value={value.provider}
+              onChange={handleProviderChange}
+              options={EMBEDDING_PROVIDER_LIST.map((item) => ({
+                label: `${item.label} - ${item.description}`,
+                value: item.key,
+              }))}
+              className={styles.fullWidthControl}
+              aria-label="向量化模型提供商"
+            />
+          </Form.Item>
+        </Form>
       </Card>
       <Card title="连接配置" className={styles.sectionCard} size="small">
         <Form layout="vertical">

@@ -1,6 +1,7 @@
 package org.quyq.gwsu.kit.knowledge.engine;
 
 import org.junit.jupiter.api.Test;
+import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeSourceType;
 import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
@@ -11,6 +12,7 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class KnowledgeChunkBuilderTest {
@@ -58,6 +60,20 @@ class KnowledgeChunkBuilderTest {
         assertEquals(List.of("document-a", "document-b"), chunks.stream()
                 .map(KnowledgeChunkDocument::getSourceDocumentId)
                 .toList());
+    }
+
+    @Test
+    void buildThrowsWhenBlockMissingSourceRef() {
+        KnowledgeProperties properties = new KnowledgeProperties();
+        properties.setMaxToken(100);
+        KnowledgeChunkBuilder builder = new KnowledgeChunkBuilder(properties);
+
+        assertThrows(BusinessException.class, () -> builder.build(new KnowledgeChunkBuildRequest(
+                "page-1",
+                "标题",
+                version(),
+                List.of(block("block-1", 1, "来源A短段落")),
+                List.of())));
     }
 
     private static KitKnowledgePageVersion version() {
