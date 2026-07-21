@@ -1,0 +1,224 @@
+.knowledgePage {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--background-color);
+  padding: 16px;
+  gap: 12px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.pageTitle {
+  margin: 0 0 4px;
+}
+
+.tabs {
+  flex: 1;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.searchItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchLabel {
+  font-size: 13px;
+  color: var(--text-secondary-color);
+  white-space: nowrap;
+}
+
+.searchInput {
+  width: 180px;
+}
+
+.longSearchInput {
+  width: 300px;
+}
+
+.searchSelect {
+  width: 140px;
+}
+
+.searchActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.tableWrapper {
+  flex: 1;
+  min-height: 0;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tableTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.searchPanel {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.searchCard,
+.resultCard {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.resultItem {
+  align-items: stretch;
+}
+
+.resultContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.resultTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chunkText {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+.metaLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.adjacentBox {
+  padding: 10px 12px;
+  background: var(--background-color);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+}
+
+.modalAlert {
+  margin-bottom: 12px;
+}
+
+.modalDescriptions {
+  margin-bottom: 12px;
+}
+
+.drawerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.markdownArticle {
+  min-height: 420px;
+  padding: 24px;
+  color: var(--text-color);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.blockNotice {
+  margin-bottom: 12px;
+}
+
+.blockList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blockCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--surface-color);
+}
+
+.blockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.blockTypeSelect {
+  width: 120px;
+}
+
+.blockMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .searchPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .searchActions {
+    margin-left: 0;
+  }
+}

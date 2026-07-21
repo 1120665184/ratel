@@ -35,14 +35,14 @@ public class KitKnowledgeSourceDocument extends BaseDO {
     @Schema(description = "文档处理状态")
     private KnowledgeDocumentStatus documentStatus;
 
-    @Schema(description = "目标Page ID")
-    private String targetPageId;
-
     @Schema(description = "处理信息")
     private String processMessage;
 
     @Schema(description = "是否已完成向量化")
     private Boolean embeddingCompleted;
+
+    @Schema(description = "是否启用")
+    private Boolean enabled;
 
     @Schema(description = "处理完成时间")
     private LocalDateTime processedAt;

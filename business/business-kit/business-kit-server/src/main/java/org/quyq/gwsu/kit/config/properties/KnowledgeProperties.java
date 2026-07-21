@@ -77,6 +77,18 @@ public class KnowledgeProperties {
     private int answerContextAdjacentChunkCount = 1;
 
     /**
+     * Page 归属判断时提交给模型的候选 Page 数量。
+     */
+    @Positive
+    private int pageMatchCandidateSize = 8;
+
+    /**
+     * Page 归属候选召回时读取的最大 Page 数量。
+     */
+    @Positive
+    private int pageMatchRecallSize = 80;
+
+    /**
      * 校验分析片段重叠长度不得达到或超过片段长度。
      *
      * @return 是否满足重叠长度约束

@@ -21,9 +21,6 @@ public class KnowledgeDocumentSaveDTO {
     @Schema(description = "文件名")
     private String fileName;
 
-    @Schema(description = "目标Page ID")
-    private String targetPageId;
-
     @Schema(description = "授权角色编码；为空表示开放文档")
     private List<String> roleCodes;
 }

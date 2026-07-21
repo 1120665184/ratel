@@ -25,7 +25,7 @@ public class KnowledgeIngestApplicationService {
             ingestTaskService.ensureNoActiveTask(dto.getId());
         }
         String sourceDocumentId = sourceDocumentService.saveDocument(dto);
-        String taskId = ingestTaskService.createTask(sourceDocumentId, 0);
+        String taskId = ingestTaskService.createOrResetTask(sourceDocumentId, false);
         ingestDispatcher.dispatchAfterCommit(taskId);
         return taskId;
     }

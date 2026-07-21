@@ -7,7 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.kit.api.knowledge.KnowledgeClientApi;
 import org.quyq.gwsu.kit.api.knowledge.dto.*;
-import org.quyq.gwsu.kit.api.knowledge.vo.*;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeDocumentVO;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageDetailVO;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageVO;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeSearchEngine;
 import org.quyq.gwsu.kit.knowledge.service.*;
 import org.springframework.web.bind.annotation.*;
@@ -68,10 +71,25 @@ public class KnowledgeController implements KnowledgeClientApi {
         return R.ok(sourceDocumentService.getDocument(documentId));
     }
 
-    @PostMapping("/task/page")
-    @Operation(summary = "分页查询知识导入任务")
-    public R<IPage<KnowledgeIngestTaskVO>> pageTasks(@RequestBody KnowledgeIngestTaskQueryDTO dto) {
-        return R.ok(ingestTaskService.pageTasks(dto));
+    @PostMapping("/document/enable/{documentId}")
+    @Operation(summary = "启用知识源文档")
+    public R<Void> enableDocument(@PathVariable String documentId, @RequestBody KnowledgeDocumentQueryDTO dto) {
+        sourceDocumentService.updateEnabled(documentId, true);
+        return R.ok();
+    }
+
+    @PostMapping("/document/disable/{documentId}")
+    @Operation(summary = "禁用知识源文档")
+    public R<Void> disableDocument(@PathVariable String documentId, @RequestBody KnowledgeDocumentQueryDTO dto) {
+        sourceDocumentService.updateEnabled(documentId, false);
+        return R.ok();
+    }
+
+    @PostMapping("/document/delete/{documentId}")
+    @Operation(summary = "删除知识源文档")
+    public R<Void> deleteDocument(@PathVariable String documentId, @RequestBody KnowledgeDocumentQueryDTO dto) {
+        sourceDocumentService.deleteDocument(documentId);
+        return R.ok();
     }
 
     @PostMapping("/page/save")
@@ -93,14 +111,8 @@ public class KnowledgeController implements KnowledgeClientApi {
         return R.ok(pageQueryService.getPage(pageId));
     }
 
-    @PostMapping("/task/{taskId}")
-    @Operation(summary = "查询知识导入任务详情")
-    public R<KnowledgeIngestTaskVO> getTask(@PathVariable String taskId, @RequestBody KnowledgeIngestTaskQueryDTO dto) {
-        return R.ok(ingestTaskService.getTask(taskId));
-    }
-
     @PostMapping("/task/retry/{taskId}")
-    @Operation(summary = "重试失败的知识导入任务")
+    @Operation(summary = "重新提交知识导入任务")
     public R<String> retryTask(@PathVariable String taskId, @RequestBody KnowledgeIngestTaskQueryDTO dto) {
         return R.ok(knowledgeIngestApplicationService.retryAndSubmit(taskId));
     }

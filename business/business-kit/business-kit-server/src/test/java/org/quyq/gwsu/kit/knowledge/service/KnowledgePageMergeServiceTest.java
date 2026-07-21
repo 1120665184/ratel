@@ -5,6 +5,7 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageStatus;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgePageVersionStatus;
+import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
@@ -12,6 +13,12 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.engine.KnowledgeBlockFactory;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageCandidateService;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageMatchAction;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageMatchDecision;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageMergeModelClient;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageMergePlan;
+import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageMergePromptBuilder;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
@@ -53,8 +60,8 @@ class KnowledgePageMergeServiceTest {
 
         try (var pool = Executors.newFixedThreadPool(2)) {
             List<Future<String>> futures = pool.invokeAll(List.of(
-                    () -> service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# 来源A")),
-                    () -> service.publish(document("document-b"), new GeneratedKnowledgePage("Wiki", "# 来源B"))));
+                    () -> service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# Wiki\n\n来源A 内容")),
+                    () -> service.publish(document("document-b"), new GeneratedKnowledgePage("Wiki", "# Wiki\n\n来源B 内容"))));
             for (Future<String> future : futures) {
                 future.get();
             }
@@ -68,7 +75,7 @@ class KnowledgePageMergeServiceTest {
         assertEquals(List.of(1, 2), versions.stream().map(KitKnowledgePageVersion::getVersionNo).toList());
         assertTrue(versions.stream().allMatch(version -> version.getVersionStatus() == KnowledgePageVersionStatus.PUBLISHED));
         assertEquals(versions.getLast().getId(), currentPage.getCurrentVersionId());
-        assertEquals(2, currentBlocks.size());
+        assertEquals(3, currentBlocks.size());
         assertEquals(new HashSet<>(List.of("document-a", "document-b")),
                 new HashSet<>(fixture.sourceDocumentIds(currentBlocks)));
     }
@@ -78,23 +85,21 @@ class KnowledgePageMergeServiceTest {
         InMemoryMergeFixture fixture = new InMemoryMergeFixture();
         KnowledgePageMergeService service = fixture.createService();
 
-        service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# 旧A"));
-        service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# 新A"));
+        service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# Wiki\n\n旧A 内容"));
+        service.publish(document("document-a"), new GeneratedKnowledgePage("Wiki", "# Wiki\n\n新A 内容"));
 
         KitKnowledgePage currentPage = fixture.page();
         List<KitKnowledgePageBlock> currentBlocks = fixture.blocksByVersion(currentPage.getCurrentVersionId());
 
         assertEquals(2, fixture.versions().size());
-        assertEquals(1, currentBlocks.size());
-        assertEquals("# 新A", currentBlocks.getFirst().getContent());
+        assertEquals(2, currentBlocks.size());
+        assertTrue(currentBlocks.stream().anyMatch(block -> "新A 内容".equals(block.getContent())));
         assertEquals(List.of("document-a"), fixture.sourceDocumentIds(currentBlocks));
     }
 
     private static KitKnowledgeSourceDocument document(String documentId) {
-        KitKnowledgeSourceDocument document = new KitKnowledgeSourceDocument()
-                .setId(documentId)
-                .setTargetPageId(PAGE_ID);
-        return document;
+        return new KitKnowledgeSourceDocument()
+                .setId(documentId);
     }
 
     private static final class InMemoryMergeFixture {
@@ -121,6 +126,9 @@ class KnowledgePageMergeServiceTest {
             KnowledgePageVersionMapper pageVersionMapper = mock(KnowledgePageVersionMapper.class);
             KnowledgePageBlockMapper pageBlockMapper = mock(KnowledgePageBlockMapper.class);
             KnowledgePageSourceRefMapper pageSourceRefMapper = mock(KnowledgePageSourceRefMapper.class);
+            KnowledgePageCandidateService candidateService = mock(KnowledgePageCandidateService.class);
+            KnowledgePageMergePromptBuilder promptBuilder = mock(KnowledgePageMergePromptBuilder.class);
+            KnowledgePageMergeModelClient mergeModelClient = mock(KnowledgePageMergeModelClient.class);
             TransactionTemplate transactionTemplate = mock(TransactionTemplate.class);
 
             when(cacheUtils.executeWithLock(anyString(), any(Supplier.class))).thenAnswer(invocation -> {
@@ -173,6 +181,14 @@ class KnowledgePageMergeServiceTest {
                 refByBlockId.put(ref.getPageBlockId(), ref);
                 return 1;
             }).when(pageSourceRefMapper).insert(any(KitKnowledgePageSourceRef.class));
+            when(promptBuilder.buildMatchPrompt(anyString(), any(), any())).thenReturn("match-prompt");
+            when(mergeModelClient.matchPage(anyString(), any())).thenReturn(
+                    new KnowledgePageMatchDecision(KnowledgePageMatchAction.MATCH_EXISTING_PAGE, PAGE_ID, 1.0D, "测试固定 Page"));
+            when(promptBuilder.buildMergePlanPrompt(anyString(), anyString(), any(), any())).thenReturn("merge-prompt");
+            when(mergeModelClient.planMerge(anyString())).thenReturn(new KnowledgePageMergePlan("Wiki", List.of(
+                    new KnowledgePageMergePlan.Item("HEADING", null, "# Wiki"),
+                    new KnowledgePageMergePlan.Item("EXISTING_BLOCK", "E2", null),
+                    new KnowledgePageMergePlan.Item("INCOMING_BLOCK", "I2", null))));
 
             return new KnowledgePageMergeServiceImpl(
                     cacheUtils,
@@ -181,6 +197,10 @@ class KnowledgePageMergeServiceTest {
                     pageBlockMapper,
                     pageSourceRefMapper,
                     new KnowledgeBlockFactory(),
+                    new KnowledgeProperties(),
+                    candidateService,
+                    promptBuilder,
+                    mergeModelClient,
                     transactionTemplate);
         }
 
@@ -198,7 +218,7 @@ class KnowledgePageMergeServiceTest {
 
         List<String> sourceDocumentIds(List<KitKnowledgePageBlock> blocks) {
             return blocks.stream()
-                    .peek(block -> assertEquals(KnowledgeBlockType.HEADING, block.getBlockType()))
+                    .filter(block -> block.getBlockType() != KnowledgeBlockType.HEADING)
                     .map(block -> refByBlockId.get(block.getId()))
                     .map(KitKnowledgePageSourceRef::getSourceDocumentId)
                     .toList();

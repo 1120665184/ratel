@@ -8,6 +8,7 @@
         FROM kit_knowledge_source_document sd
         <where>
             AND sd.deleted = 0
+            AND COALESCE(sd.enabled, 1) = 1
             AND (
             NOT EXISTS (
             SELECT 1

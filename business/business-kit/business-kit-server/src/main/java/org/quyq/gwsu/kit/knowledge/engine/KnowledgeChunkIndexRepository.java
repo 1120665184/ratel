@@ -16,6 +16,8 @@ public interface KnowledgeChunkIndexRepository {
 
     void replacePageVersion(String pageId, String pageVersionId, List<KnowledgeChunkDocument> chunks);
 
+    void deleteBySourceDocumentId(String sourceDocumentId);
+
     List<KnowledgeSearchResultVO> search(
             String keyword,
             Collection<String> visibleSourceDocumentIds,

@@ -21,13 +21,13 @@ class KnowledgeIngestApplicationServiceTest {
                 dispatcher);
         KnowledgeDocumentSaveDTO dto = new KnowledgeDocumentSaveDTO();
         when(sourceDocumentService.saveDocument(dto)).thenReturn("document-1");
-        when(ingestTaskService.createTask("document-1", 0)).thenReturn("task-1");
+        when(ingestTaskService.createOrResetTask("document-1", false)).thenReturn("task-1");
 
         String taskId = service.saveDocumentAndSubmit(dto);
 
         assertEquals("task-1", taskId);
         verify(sourceDocumentService).saveDocument(dto);
-        verify(ingestTaskService).createTask("document-1", 0);
+        verify(ingestTaskService).createOrResetTask("document-1", false);
         verify(dispatcher).dispatchAfterCommit("task-1");
     }
 
@@ -40,12 +40,12 @@ class KnowledgeIngestApplicationServiceTest {
                 sourceDocumentService,
                 ingestTaskService,
                 dispatcher);
-        when(ingestTaskService.retry("task-old")).thenReturn("task-new");
+        when(ingestTaskService.retry("task-old")).thenReturn("task-old");
 
         String taskId = service.retryAndSubmit("task-old");
 
-        assertEquals("task-new", taskId);
+        assertEquals("task-old", taskId);
         verify(ingestTaskService).retry("task-old");
-        verify(dispatcher).dispatchAfterCommit("task-new");
+        verify(dispatcher).dispatchAfterCommit("task-old");
     }
 }

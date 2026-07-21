@@ -49,7 +49,7 @@ public class KnowledgeChunkBuilder {
                 currentHeading = block.getContent();
             }
             KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());
-            if (ref == null || !StringUtils.hasText(ref.getSourceDocumentId())) {
+            if (block.getBlockType() == KnowledgeBlockType.HEADING || ref == null || !StringUtils.hasText(ref.getSourceDocumentId())) {
                 continue;
             }
             for (String content : splitBlockContent(block.getContent())) {
@@ -81,7 +81,6 @@ public class KnowledgeChunkBuilder {
         Map<String, KitKnowledgePageSourceRef> refByBlockId = new HashMap<>();
         for (KitKnowledgePageSourceRef ref : request.sourceRefs()) {
             if (!StringUtils.hasText(ref.getPageBlockId())
-                    || !StringUtils.hasText(ref.getSourceDocumentId())
                     || refByBlockId.put(ref.getPageBlockId(), ref) != null) {
                 throw new BusinessException(KitErrorCode.E03009);
             }
@@ -91,7 +90,8 @@ public class KnowledgeChunkBuilder {
                 throw new BusinessException(KitErrorCode.E03009);
             }
             KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());
-            if (Objects.isNull(ref)) {
+            if (block.getBlockType() != KnowledgeBlockType.HEADING
+                    && (Objects.isNull(ref) || !StringUtils.hasText(ref.getSourceDocumentId()))) {
                 throw new BusinessException(KitErrorCode.E03009);
             }
         }

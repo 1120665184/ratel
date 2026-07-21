@@ -12,7 +12,6 @@ import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgePageSaveDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeSearchDTO;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeDocumentVO;
-import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeIngestTaskVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageDetailVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
@@ -112,19 +111,14 @@ class KnowledgeControllerTest {
         @SuppressWarnings("unchecked")
         IPage<KnowledgeDocumentVO> documentPage = mock(IPage.class);
         @SuppressWarnings("unchecked")
-        IPage<KnowledgeIngestTaskVO> taskPage = mock(IPage.class);
-        @SuppressWarnings("unchecked")
         IPage<KnowledgePageVO> pagePage = mock(IPage.class);
         KnowledgeDocumentVO documentVO = new KnowledgeDocumentVO().setId("document-1");
-        KnowledgeIngestTaskVO taskVO = new KnowledgeIngestTaskVO().setId("task-1");
         KnowledgePageDetailVO pageDetailVO = new KnowledgePageDetailVO();
         pageDetailVO.setId("page-1");
         when(applicationService.saveDocumentAndSubmit(saveDTO)).thenReturn("task-1");
         when(pageCommandService.savePage(pageSaveDTO)).thenReturn("page-1");
         when(sourceDocumentService.pageDocuments(documentQueryDTO)).thenReturn(documentPage);
         when(sourceDocumentService.getDocument("document-1")).thenReturn(documentVO);
-        when(ingestTaskService.pageTasks(taskQueryDTO)).thenReturn(taskPage);
-        when(ingestTaskService.getTask("task-1")).thenReturn(taskVO);
         when(pageQueryService.pagePages(pageQueryDTO)).thenReturn(pagePage);
         when(pageQueryService.getPage("page-1")).thenReturn(pageDetailVO);
         when(applicationService.retryAndSubmit("task-1")).thenReturn("task-2");
@@ -133,8 +127,6 @@ class KnowledgeControllerTest {
         assertEquals("page-1", controller.savePage(pageSaveDTO).data());
         assertEquals(documentPage, controller.pageDocuments(documentQueryDTO).data());
         assertEquals(documentVO, controller.getDocument("document-1", documentQueryDTO).data());
-        assertEquals(taskPage, controller.pageTasks(taskQueryDTO).data());
-        assertEquals(taskVO, controller.getTask("task-1", taskQueryDTO).data());
         assertEquals(pagePage, controller.pagePages(pageQueryDTO).data());
         assertEquals(pageDetailVO, controller.getPage("page-1", pageQueryDTO).data());
         assertEquals("task-2", controller.retryTask("task-1", taskQueryDTO).data());

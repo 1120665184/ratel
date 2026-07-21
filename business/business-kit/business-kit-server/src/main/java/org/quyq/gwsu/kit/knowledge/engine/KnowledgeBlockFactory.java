@@ -35,13 +35,15 @@ public class KnowledgeBlockFactory {
                     .setOrderNo(i + 1)
                     .setBlockType(segment.type())
                     .setContent(segment.content());
-            KitKnowledgePageSourceRef ref = new KitKnowledgePageSourceRef()
-                    .setPageBlockId(blockId)
-                    .setSourceType(KnowledgeSourceType.SOURCE_DOCUMENT)
-                    .setSourceDocumentId(sourceDocumentId)
-                    .setSourceLocator("line:" + segment.startLine() + "-" + segment.endLine());
             blocks.add(block);
-            refs.add(ref);
+            if (segment.type() != KnowledgeBlockType.HEADING) {
+                KitKnowledgePageSourceRef ref = new KitKnowledgePageSourceRef()
+                        .setPageBlockId(blockId)
+                        .setSourceType(KnowledgeSourceType.SOURCE_DOCUMENT)
+                        .setSourceDocumentId(sourceDocumentId)
+                        .setSourceLocator("line:" + segment.startLine() + "-" + segment.endLine());
+                refs.add(ref);
+            }
         }
         return new KnowledgeBlockBuildResult(List.copyOf(blocks), List.copyOf(refs));
     }

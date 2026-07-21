@@ -8,11 +8,7 @@ import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xwpf.usermodel.IBodyElement;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.poi.xwpf.usermodel.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -69,7 +65,7 @@ public class OfficeKnowledgeDocumentParser extends AbstractLocalKnowledgeDocumen
         StringBuilder content = new StringBuilder();
         int tableIndex = 1;
         try (FileInputStream inputStream = new FileInputStream(downloadedFile);
-             org.apache.poi.xwpf.usermodel.XWPFDocument document = new org.apache.poi.xwpf.usermodel.XWPFDocument(inputStream)) {
+             XWPFDocument document = new XWPFDocument(inputStream)) {
             for (IBodyElement bodyElement : document.getBodyElements()) {
                 if (bodyElement instanceof XWPFParagraph paragraph) {
                     appendParagraph(content, paragraph);

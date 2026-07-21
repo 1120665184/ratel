@@ -118,13 +118,15 @@ public class KnowledgePageCommandServiceImpl implements IKnowledgePageCommandSer
                     .setContent(blockVO.getContent());
             blocks.add(block);
 
-            KitKnowledgePageSourceRef ref = new KitKnowledgePageSourceRef()
-                    .setId(IdWorker.getIdStr())
-                    .setPageBlockId(blockId)
-                    .setSourceType(blockVO.getSourceType())
-                    .setSourceDocumentId(blockVO.getSourceDocumentId())
-                    .setSourceLocator(blockVO.getSourceLocator());
-            refs.add(ref);
+            if (blockVO.getBlockType() != KnowledgeBlockType.HEADING) {
+                KitKnowledgePageSourceRef ref = new KitKnowledgePageSourceRef()
+                        .setId(IdWorker.getIdStr())
+                        .setPageBlockId(blockId)
+                        .setSourceType(blockVO.getSourceType())
+                        .setSourceDocumentId(blockVO.getSourceDocumentId())
+                        .setSourceLocator(blockVO.getSourceLocator());
+                refs.add(ref);
+            }
         }
         blocks.forEach(pageBlockMapper::insert);
         refs.forEach(pageSourceRefMapper::insert);
@@ -155,8 +157,10 @@ public class KnowledgePageCommandServiceImpl implements IKnowledgePageCommandSer
                 continue;
             }
             AssertUtils.notNull(block.getBlockType(), KitErrorCode.E03009);
-            AssertUtils.notNull(block.getSourceType(), KitErrorCode.E03009);
-            AssertUtils.hasText(block.getSourceDocumentId(), KitErrorCode.E03009);
+            if (block.getBlockType() != KnowledgeBlockType.HEADING) {
+                AssertUtils.notNull(block.getSourceType(), KitErrorCode.E03009);
+                AssertUtils.hasText(block.getSourceDocumentId(), KitErrorCode.E03009);
+            }
             KnowledgePageBlockVO copy = new KnowledgePageBlockVO()
                     .setId(StringUtils.hasText(block.getId()) ? block.getId().trim() : null)
                     .setBlockType(block.getBlockType())
@@ -178,6 +182,9 @@ public class KnowledgePageCommandServiceImpl implements IKnowledgePageCommandSer
                 .filter(StringUtils::hasText)
                 .distinct()
                 .toList();
+        if (CollectionUtils.isEmpty(sourceDocumentIds)) {
+            return;
+        }
         List<KitKnowledgeSourceDocument> sourceDocuments = sourceDocumentMapper.selectList(
                 new LambdaQueryWrapper<KitKnowledgeSourceDocument>()
                         .in(KitKnowledgeSourceDocument::getId, sourceDocumentIds)
@@ -211,6 +218,15 @@ public class KnowledgePageCommandServiceImpl implements IKnowledgePageCommandSer
                 throw new BusinessException(KitErrorCode.E03009);
             }
             KitKnowledgePageSourceRef currentRef = currentRefMap.get(block.getId());
+            if (block.getBlockType() == KnowledgeBlockType.HEADING) {
+                if (currentRef != null
+                        || StringUtils.hasText(block.getSourceDocumentId())
+                        || block.getSourceType() != null
+                        || StringUtils.hasText(block.getSourceLocator())) {
+                    throw new BusinessException(KitErrorCode.E03009);
+                }
+                continue;
+            }
             if (currentRef == null
                     || block.getSourceType() != currentRef.getSourceType()
                     || !Objects.equals(block.getSourceDocumentId(), currentRef.getSourceDocumentId())

@@ -25,6 +25,9 @@ public class KnowledgeIngestTaskVO extends BaseVO {
     @Schema(description = "源文档ID")
     private String sourceDocumentId;
 
+    @Schema(description = "源文档名称")
+    private String sourceDocumentName;
+
     @Schema(description = "任务状态")
     private KnowledgeIngestTaskStatus taskStatus;
 

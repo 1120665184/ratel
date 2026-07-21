@@ -24,5 +24,9 @@ public interface IKnowledgeSourceDocumentService extends IService<KitKnowledgeSo
 
     KnowledgeDocumentVO getDocument(String documentId);
 
+    void updateEnabled(String documentId, boolean enabled);
+
+    void deleteDocument(String documentId);
+
     List<String> listVisibleSourceDocumentIds(Collection<String> roleCodes);
 }

@@ -74,6 +74,21 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
     }
 
     @Override
+    public void deleteBySourceDocumentId(String sourceDocumentId) {
+        if (!StringUtils.hasText(sourceDocumentId)) {
+            return;
+        }
+        ensureIndex();
+        try {
+            elasticsearchOperations.delete(DeleteQuery.builder(sourceDocumentQuery(sourceDocumentId)).build(),
+                    KnowledgeChunkDocument.class,
+                    indexCoordinates());
+        } catch (RuntimeException ex) {
+            throw new BusinessException(KitErrorCode.E03011, ex);
+        }
+    }
+
+    @Override
     public List<KnowledgeSearchResultVO> search(
             String keyword,
             Collection<String> visibleSourceDocumentIds,
@@ -125,6 +140,10 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
 
     private Query pageQuery(String pageId) {
         return CriteriaQuery.builder(Criteria.where("page_id").is(pageId)).build();
+    }
+
+    private Query sourceDocumentQuery(String sourceDocumentId) {
+        return CriteriaQuery.builder(Criteria.where("source_document_id").is(sourceDocumentId)).build();
     }
 
     private Query searchQuery(

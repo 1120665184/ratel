@@ -23,4 +23,8 @@ export default [
     path: '/job',
     component: '@/pages/job',
   },
+  {
+    path: '/knowledge',
+    component: '@/pages/knowledge',
+  },
 ];

@@ -19,4 +19,7 @@ public class KnowledgeDocumentQueryDTO extends BaseDTO {
 
     @Schema(description = "文档处理状态")
     private KnowledgeDocumentStatus documentStatus;
+
+    @Schema(description = "是否启用")
+    private Boolean enabled;
 }
