@@ -39,6 +39,16 @@ public class ModelProvider {
 
     }
 
+    /**
+     * 当前配置的模型是否支持多模态输入。
+     *
+     * @return 支持返回 true，否则返回 false
+     */
+    public static boolean supportMultimodal() {
+        ModelLlmConfigDTO config = ConfigInfoUtils.getByObject(MODEL_LLM_CONFIG, ModelLlmConfigDTO.class);
+        return config != null && Boolean.TRUE.equals(config.getSupportMultimodal());
+    }
+
 
     private static void createModel(ModelLlmConfigDTO config) {
         synchronized (ModelProvider.class) {

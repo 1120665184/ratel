@@ -13,6 +13,7 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
+import org.quyq.gwsu.kit.knowledge.engine.image.KnowledgeContentRenderService;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
@@ -41,6 +42,8 @@ public class KnowledgePageQueryServiceImpl implements IKnowledgePageQueryService
     private final KnowledgePageBlockMapper pageBlockMapper;
 
     private final KnowledgePageSourceRefMapper pageSourceRefMapper;
+
+    private final KnowledgeContentRenderService contentRenderService;
 
     @Override
     public IPage<KnowledgePageVO> pagePages(KnowledgePageQueryDTO dto) {
@@ -83,7 +86,7 @@ public class KnowledgePageQueryServiceImpl implements IKnowledgePageQueryService
             detail.setBlocks(List.of());
             return detail;
         }
-        detail.setMarkdownContent(version.getMarkdownContent());
+        detail.setMarkdownContent(contentRenderService.render(version.getMarkdownContent()));
         detail.setCurrentVersionNo(version.getVersionNo());
         detail.setCurrentVersionStatus(version.getVersionStatus());
         detail.setCurrentPublishedAt(version.getPublishedAt());
@@ -115,7 +118,7 @@ public class KnowledgePageQueryServiceImpl implements IKnowledgePageQueryService
                 .setPageVersionId(block.getPageVersionId())
                 .setOrderNo(block.getOrderNo())
                 .setBlockType(block.getBlockType())
-                .setContent(block.getContent());
+                .setContent(contentRenderService.render(block.getContent()));
         if (ref != null) {
             vo.setSourceType(ref.getSourceType())
                     .setSourceDocumentId(ref.getSourceDocumentId())

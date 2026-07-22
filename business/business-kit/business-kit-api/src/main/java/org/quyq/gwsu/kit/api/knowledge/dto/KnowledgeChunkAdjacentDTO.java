@@ -16,12 +16,16 @@ import java.util.List;
 @Schema(description = "知识Chunk邻近查询条件")
 public class KnowledgeChunkAdjacentDTO extends BaseDTO {
 
-    @Schema(description = "当前用户角色编码")
-    private List<String> roleCodes;
-
-    @Schema(description = "当前Chunk ID")
-    private String chunkId;
+    @Schema(description = "当前Page Block ID")
+    private String pageBlockId;
 
     @Schema(description = "邻近查询方向")
     private KnowledgeChunkDirection direction;
+
+    @Schema(description = "偏移量，1表示上一个或下一个")
+    private Integer offset = 1;
+
+
+    @Schema(description = "角色")
+    private List<String> roleCodes;
 }

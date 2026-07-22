@@ -31,11 +31,11 @@ public interface KnowledgeClientApi {
     R<List<KnowledgeSearchResultVO>> search(@RequestBody KnowledgeSearchDTO dto);
 
     /**
-     * 查询指定 Chunk 的上一个或下一个可见 Chunk。
+     * 查询指定 Block 的上一个或下一个可见 Block。
      *
      * @param dto 邻近查询条件
-     * @return 邻近 Chunk，不存在或不可见时 data 为 null
+     * @return 邻近 Block 列表，不存在或不可见时 data 为空列表
      */
     @PostExchange("/chunk/adjacent")
-    R<KnowledgeSearchResultVO> findAdjacentChunk(@RequestBody KnowledgeChunkAdjacentDTO dto);
+    R<List<KnowledgeSearchResultVO>> findAdjacentChunk(@RequestBody KnowledgeChunkAdjacentDTO dto);
 }

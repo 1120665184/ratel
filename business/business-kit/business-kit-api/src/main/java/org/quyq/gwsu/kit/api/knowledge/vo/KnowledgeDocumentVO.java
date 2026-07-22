@@ -36,6 +36,9 @@ public class KnowledgeDocumentVO extends BaseVO {
     @Schema(description = "处理信息")
     private String processMessage;
 
+    @Schema(description = "图片是否已完成 OCR 解析")
+    private Boolean imageOcrParsed;
+
     @Schema(description = "是否已完成向量化")
     private Boolean embeddingCompleted;
 

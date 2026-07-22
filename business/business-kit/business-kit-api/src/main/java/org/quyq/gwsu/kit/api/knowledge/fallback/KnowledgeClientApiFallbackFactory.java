@@ -28,7 +28,7 @@ public class KnowledgeClientApiFallbackFactory implements FallbackFactory<Knowle
             }
 
             @Override
-            public R<KnowledgeSearchResultVO> findAdjacentChunk(KnowledgeChunkAdjacentDTO dto) {
+            public R<List<KnowledgeSearchResultVO>> findAdjacentChunk(KnowledgeChunkAdjacentDTO dto) {
                 return R.fail("服务暂时不可用: " + cause.getMessage());
             }
         };

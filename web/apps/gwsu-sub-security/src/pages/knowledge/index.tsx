@@ -11,6 +11,7 @@ import {
   List,
   Modal,
   Select,
+  Segmented,
   Space,
   Table,
   Tabs,
@@ -34,6 +35,7 @@ import {
   StopOutlined,
 } from '@ant-design/icons';
 import { AuthGate, FileScope, FileUpload, useAuth } from '@gwsu/core';
+import MarkdownPreview from '../../components/MarkdownPreview';
 import styles from './index.module.less';
 import {
   findAdjacentKnowledgeChunk,
@@ -105,6 +107,42 @@ function buildPageContent(blocks: KnowledgePageBlockVO[], fallback?: string): st
   return blocks.map((block) => block.content).join('\n\n');
 }
 
+function normalizeHeadingText(value?: string): string {
+  return (value ?? '')
+    .replace(/^#+\s*/, '')
+    .trim()
+    .toLowerCase();
+}
+
+function stripDuplicatePageTitle(content: string, pageTitle?: string): string {
+  const normalizedTitle = normalizeHeadingText(pageTitle);
+  if (!normalizedTitle) {
+    return content;
+  }
+
+  const lines = content.split('\n');
+  const firstNonEmptyIndex = lines.findIndex((line) => line.trim());
+  if (firstNonEmptyIndex < 0) {
+    return content;
+  }
+
+  const firstLine = lines[firstNonEmptyIndex].trim();
+  const headingMatch = firstLine.match(/^#\s+(.+)$/);
+  if (!headingMatch) {
+    return content;
+  }
+
+  if (normalizeHeadingText(headingMatch[1]) !== normalizedTitle) {
+    return content;
+  }
+
+  const remainingLines = lines.slice(firstNonEmptyIndex + 1);
+  while (remainingLines.length > 0 && !remainingLines[0].trim()) {
+    remainingLines.shift();
+  }
+  return remainingLines.join('\n');
+}
+
 const KnowledgePage: React.FC = () => {
   const [documentForm] = Form.useForm<KnowledgeDocumentQuery>();
   const [pageForm] = Form.useForm<KnowledgePageQuery>();
@@ -142,6 +180,7 @@ const KnowledgePage: React.FC = () => {
   const [detailSubmitting, setDetailSubmitting] = useState(false);
   const [pageDetail, setPageDetail] = useState<KnowledgePageDetailVO | null>(null);
   const [editingBlocks, setEditingBlocks] = useState<KnowledgePageBlockVO[]>([]);
+  const [contentViewMode, setContentViewMode] = useState<'preview' | 'markdown'>('preview');
 
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<KnowledgeSearchResultVO[]>([]);
@@ -320,6 +359,7 @@ const KnowledgePage: React.FC = () => {
   const handleOpenPageDetail = useCallback(async (record: KnowledgePageVO | KnowledgeSearchResultVO) => {
     setDetailVisible(true);
     setDetailLoading(true);
+    setContentViewMode('preview');
     try {
       const pageId = 'pageId' in record ? record.pageId : record.id;
       const detail = await getKnowledgePage(pageId);
@@ -400,6 +440,16 @@ const KnowledgePage: React.FC = () => {
       }
     },
     [searchForm],
+  );
+
+  const pageMarkdownContent = useMemo(
+    () => buildPageContent(editingBlocks, pageDetail?.markdownContent),
+    [editingBlocks, pageDetail?.markdownContent],
+  );
+
+  const pagePreviewContent = useMemo(
+    () => stripDuplicatePageTitle(pageMarkdownContent, pageDetail?.title),
+    [pageDetail?.title, pageMarkdownContent],
   );
 
   const documentColumns: TableProps<KnowledgeDocumentVO>['columns'] = useMemo(() => [
@@ -995,12 +1045,34 @@ const KnowledgePage: React.FC = () => {
                   key: "content",
                   label: "完整内容",
                   children: (
-                    <article className={styles.markdownArticle}>
-                      {buildPageContent(
-                        editingBlocks,
-                        pageDetail.markdownContent
-                      ) || "暂无内容"}
-                    </article>
+                    <div className={styles.contentTab}>
+                      <div className={styles.contentToolbar}>
+                        <Segmented
+                          size="small"
+                          options={[
+                            { label: '预览', value: 'preview' },
+                            { label: 'MD 原文', value: 'markdown' },
+                          ]}
+                          value={contentViewMode}
+                          onChange={(value) =>
+                            setContentViewMode(value as 'preview' | 'markdown')
+                          }
+                        />
+                      </div>
+                      {contentViewMode === 'preview' ? (
+                        <MarkdownPreview
+                          className={styles.markdownArticle}
+                          content={pagePreviewContent}
+                        />
+                      ) : (
+                        <Input.TextArea
+                          className={styles.markdownSource}
+                          value={pageMarkdownContent || '暂无内容'}
+                          readOnly
+                          autoSize={{ minRows: 18, maxRows: 30 }}
+                        />
+                      )}
+                    </div>
                   ),
                 },
                 {

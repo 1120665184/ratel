@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentQueryDTO;
@@ -12,11 +14,12 @@ import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentRoleSaveDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeDocumentSaveDTO;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeDocumentVO;
+import org.quyq.gwsu.kit.api.utils.FileUtils;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestTask;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocumentRole;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkIndexRepository;
+import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkIndexRepository;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentRoleMapper;
@@ -38,6 +41,8 @@ public class KnowledgeSourceDocumentServiceImpl
         extends ServiceImpl<KnowledgeSourceDocumentMapper, KitKnowledgeSourceDocument>
         implements IKnowledgeSourceDocumentService {
 
+    private static final Gson GSON = new Gson();
+
     private final KnowledgeSourceDocumentMapper sourceDocumentMapper;
 
     private final KnowledgeSourceDocumentRoleMapper roleMapper;
@@ -58,6 +63,8 @@ public class KnowledgeSourceDocumentServiceImpl
                 .setFileName(dto.getFileName())
                 .setDocumentStatus(KnowledgeDocumentStatus.UPLOADED)
                 .setProcessMessage(null)
+                .setImageFileIdsJson(Objects.nonNull(existingDocument) ? existingDocument.getImageFileIdsJson() : null)
+                .setImageOcrParsed(false)
                 .setEmbeddingCompleted(false)
                 .setEnabled(true);
 
@@ -177,6 +184,7 @@ public class KnowledgeSourceDocumentServiceImpl
                 .set(KitKnowledgeIngestTask::getDeleted, true));
         pageSyncService.removeSourceDocumentFromCurrentPages(documentId);
         chunkIndexRepository.deleteBySourceDocumentId(documentId);
+        removeKnowledgeImages(document.getImageFileIdsJson());
     }
 
     @Override
@@ -212,6 +220,7 @@ public class KnowledgeSourceDocumentServiceImpl
                 .setFileName(document.getFileName())
                 .setDocumentStatus(document.getDocumentStatus())
                 .setProcessMessage(document.getProcessMessage())
+                .setImageOcrParsed(Boolean.TRUE.equals(document.getImageOcrParsed()))
                 .setEmbeddingCompleted(Boolean.TRUE.equals(document.getEmbeddingCompleted()))
                 .setEnabled(!Boolean.FALSE.equals(document.getEnabled()))
                 .setProcessedAt(document.getProcessedAt())
@@ -257,5 +266,24 @@ public class KnowledgeSourceDocumentServiceImpl
                         Collectors.mapping(KitKnowledgeSourceDocumentRole::getRoleCode, Collectors.toList())))
                 .forEach(roleCodeMap::put);
         return roleCodeMap;
+    }
+
+    private void removeKnowledgeImages(String imageFileIdsJson) {
+        if (!StringUtils.hasText(imageFileIdsJson)) {
+            return;
+        }
+        List<String> fileIds;
+        try {
+            fileIds = GSON.fromJson(imageFileIdsJson, new TypeToken<List<String>>() {
+            }.getType());
+        } catch (Exception ignored) {
+            return;
+        }
+        if (CollectionUtils.isEmpty(fileIds)) {
+            return;
+        }
+        new LinkedHashSet<>(fileIds).stream()
+                .filter(StringUtils::hasText)
+                .forEach(FileUtils::delete);
     }
 }

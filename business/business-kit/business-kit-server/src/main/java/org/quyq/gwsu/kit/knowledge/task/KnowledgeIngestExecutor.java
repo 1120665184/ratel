@@ -2,6 +2,7 @@ package org.quyq.gwsu.kit.knowledge.task;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
@@ -14,20 +15,20 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
-import org.quyq.gwsu.kit.knowledge.engine.AnalyzedKnowledgeSource;
-import org.quyq.gwsu.kit.knowledge.engine.GeneratedKnowledgePage;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkBuildRequest;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkBuilder;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkDocument;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkEmbeddingService;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeChunkIndexRepository;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeDocumentParser;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeIngestSanitizer;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageGenerator;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgePageGenerationRequest;
-import org.quyq.gwsu.kit.knowledge.engine.LongSourceAnalysisService;
-import org.quyq.gwsu.kit.knowledge.engine.ParsedKnowledgeDocument;
-import org.quyq.gwsu.kit.knowledge.engine.SanitizedKnowledgeSource;
+import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkBuildRequest;
+import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkBuilder;
+import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkDocument;
+import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkEmbeddingService;
+import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkIndexRepository;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.AnalyzedKnowledgeSource;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.KnowledgeDocumentParser;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.KnowledgeIngestSanitizer;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.LongSourceAnalysisService;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.ParsedKnowledgeDocument;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.SanitizedKnowledgeSource;
+import org.quyq.gwsu.kit.knowledge.engine.page.GeneratedKnowledgePage;
+import org.quyq.gwsu.kit.knowledge.engine.page.KnowledgePageGenerationRequest;
+import org.quyq.gwsu.kit.knowledge.engine.page.KnowledgePageGenerator;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
@@ -47,6 +48,8 @@ import java.util.Objects;
 @Component
 @RequiredArgsConstructor
 public class KnowledgeIngestExecutor {
+
+    private static final Gson GSON = new Gson();
 
     private final KnowledgeIngestTaskMapper ingestTaskMapper;
 
@@ -84,9 +87,12 @@ public class KnowledgeIngestExecutor {
 
             updateStage(task.getId(), KnowledgeIngestStage.PARSE);
             ParsedKnowledgeDocument parsedDocument = documentParser.parse(sourceDocument.getFileId());
+            updateSourceParsedImages(sourceDocument.getId(), parsedDocument.imageFileIds());
+            updateSourceImageOcrParsed(sourceDocument.getId(), parsedDocument.imageOcrParsed());
 
             updateStage(task.getId(), KnowledgeIngestStage.SANITIZE_SOURCE);
             SanitizedKnowledgeSource sanitizedSource = ingestSanitizer.sanitize(parsedDocument);
+            updateSourceProcessMessage(sourceDocument.getId(), sanitizedSource.warnings());
 
             updateStage(task.getId(), KnowledgeIngestStage.ANALYZE_SOURCE);
             AnalyzedKnowledgeSource analyzedSource = longSourceAnalysisService.analyze(task, parsedDocument, sanitizedSource);
@@ -171,6 +177,8 @@ public class KnowledgeIngestExecutor {
                 .setStartedAt(LocalDateTime.now()));
         updateSourceStatus(task.getSourceDocumentId(), new KitKnowledgeSourceDocument()
                 .setDocumentStatus(KnowledgeDocumentStatus.PROCESSING)
+                .setProcessMessage(null)
+                .setImageOcrParsed(false)
                 .setEmbeddingCompleted(false));
     }
 
@@ -212,5 +220,23 @@ public class KnowledgeIngestExecutor {
     private void updateSourceEmbeddingCompleted(String sourceDocumentId, boolean embeddingCompleted) {
         updateSourceStatus(sourceDocumentId, new KitKnowledgeSourceDocument()
                 .setEmbeddingCompleted(embeddingCompleted));
+    }
+
+    private void updateSourceParsedImages(String sourceDocumentId, List<String> imageFileIds) {
+        updateSourceStatus(sourceDocumentId, new KitKnowledgeSourceDocument()
+                .setImageFileIdsJson(GSON.toJson(imageFileIds == null ? List.of() : imageFileIds)));
+    }
+
+    private void updateSourceImageOcrParsed(String sourceDocumentId, boolean imageOcrParsed) {
+        updateSourceStatus(sourceDocumentId, new KitKnowledgeSourceDocument()
+                .setImageOcrParsed(imageOcrParsed));
+    }
+
+    private void updateSourceProcessMessage(String sourceDocumentId, List<String> warnings) {
+        String message = warnings == null || warnings.isEmpty()
+                ? null
+                : String.join("；", warnings);
+        updateSourceStatus(sourceDocumentId, new KitKnowledgeSourceDocument()
+                .setProcessMessage(message));
     }
 }

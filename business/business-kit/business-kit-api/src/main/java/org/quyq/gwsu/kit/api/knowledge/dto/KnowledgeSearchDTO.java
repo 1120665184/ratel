@@ -18,7 +18,7 @@ public class KnowledgeSearchDTO extends BaseDTO {
     @Schema(description = "关键词")
     private String keyword;
 
-    @Schema(description = "当前用户角色编码")
+    @Schema(description = "角色")
     private List<String> roleCodes;
 
     @Schema(description = "返回数量")

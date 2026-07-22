@@ -11,7 +11,7 @@ import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeDocumentVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageDetailVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
-import org.quyq.gwsu.kit.knowledge.engine.KnowledgeSearchEngine;
+import org.quyq.gwsu.kit.knowledge.engine.search.KnowledgeSearchEngine;
 import org.quyq.gwsu.kit.knowledge.service.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -126,11 +126,12 @@ public class KnowledgeController implements KnowledgeClientApi {
 
     @Override
     @PostMapping("/chunk/adjacent")
-    @Operation(summary = "查询指定Chunk的上一个或下一个")
-    public R<KnowledgeSearchResultVO> findAdjacentChunk(@RequestBody KnowledgeChunkAdjacentDTO dto) {
+    @Operation(summary = "查询指定Block的上一个或下一个")
+    public R<List<KnowledgeSearchResultVO>> findAdjacentChunk(@RequestBody KnowledgeChunkAdjacentDTO dto) {
         return R.ok(knowledgeSearchEngine.findAdjacentChunk(
                 dto.getRoleCodes(),
-                dto.getChunkId(),
-                dto.getDirection()).orElse(null));
+                dto.getPageBlockId(),
+                dto.getDirection(),
+                dto.getOffset()));
     }
 }

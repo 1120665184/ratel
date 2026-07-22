@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Segmented } from 'antd';
+import MarkdownPreview from '../MarkdownPreview';
 import styles from './index.module.less';
 
 interface MarkdownEditorProps {
@@ -23,19 +24,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     },
     [onChange],
   );
-
-  const renderMarkdownPreview = useCallback((content: string) => {
-    return content
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`(.+?)`/g, '<code>$1</code>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-      .replace(/\n/g, '<br/>');
-  }, []);
 
   return (
     <div className={styles.mdEditor}>
@@ -62,10 +50,11 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           />
         )}
         {(mdMode === 'preview' || mdMode === 'split') && (
-          <div
+          <MarkdownPreview
             className={styles.mdPreview}
+            content={value}
+            emptyText={placeholder ?? '请输入 Markdown 内容'}
             style={{ width: mdMode === 'split' ? '50%' : '100%' }}
-            dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(value) }}
           />
         )}
       </div>

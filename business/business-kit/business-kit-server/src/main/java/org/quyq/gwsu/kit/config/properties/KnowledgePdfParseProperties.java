@@ -2,7 +2,7 @@ package org.quyq.gwsu.kit.config.properties;
 
 import lombok.Data;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
-import org.quyq.gwsu.kit.knowledge.engine.PdfParseMode;
+import org.quyq.gwsu.kit.knowledge.engine.support.PdfParseMode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**

@@ -423,6 +423,8 @@ CREATE TABLE kit_knowledge_source_document
     document_status  VARCHAR(32)  NOT NULL DEFAULT 'UPLOADED',
     target_page_id   VARCHAR(24)           DEFAULT NULL,
     process_message  VARCHAR(1000)         DEFAULT NULL,
+    image_file_ids_json TEXT               DEFAULT NULL,
+    image_ocr_parsed INT2         NOT NULL DEFAULT 0,
     embedding_completed INT2      NOT NULL DEFAULT 0,
     processed_at     TIMESTAMP             DEFAULT NULL,
     tenant_id        VARCHAR(50)           DEFAULT NULL,
@@ -442,6 +444,8 @@ COMMENT ON COLUMN kit_knowledge_source_document.file_name IS '文件名';
 COMMENT ON COLUMN kit_knowledge_source_document.document_status IS '文档处理状态';
 COMMENT ON COLUMN kit_knowledge_source_document.target_page_id IS '目标Page ID';
 COMMENT ON COLUMN kit_knowledge_source_document.process_message IS '处理信息';
+COMMENT ON COLUMN kit_knowledge_source_document.image_file_ids_json IS '导入图片文件ID JSON';
+COMMENT ON COLUMN kit_knowledge_source_document.image_ocr_parsed IS '图片是否已完成 OCR 解析：0-否 1-是';
 COMMENT ON COLUMN kit_knowledge_source_document.embedding_completed IS '是否已完成向量化：0-否 1-是';
 COMMENT ON COLUMN kit_knowledge_source_document.processed_at IS '处理完成时间';
 

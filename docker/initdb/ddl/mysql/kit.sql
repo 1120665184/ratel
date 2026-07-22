@@ -263,6 +263,8 @@ CREATE TABLE kit_knowledge_source_document
     document_status  VARCHAR(32)  NOT NULL DEFAULT 'UPLOADED' COMMENT '文档处理状态',
     target_page_id   VARCHAR(24)           DEFAULT NULL COMMENT '目标Page ID',
     process_message  VARCHAR(1000)         DEFAULT NULL COMMENT '处理信息',
+    image_file_ids_json TEXT               DEFAULT NULL COMMENT '导入图片文件ID JSON',
+    image_ocr_parsed SMALLINT      NOT NULL DEFAULT 0 COMMENT '图片是否已完成 OCR 解析：0-否 1-是',
     embedding_completed SMALLINT   NOT NULL DEFAULT 0 COMMENT '是否已完成向量化：0-否 1-是',
     processed_at     DATETIME              DEFAULT NULL COMMENT '处理完成时间',
     tenant_id        VARCHAR(50)           DEFAULT NULL COMMENT '租户ID',

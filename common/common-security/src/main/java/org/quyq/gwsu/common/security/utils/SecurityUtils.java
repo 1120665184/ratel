@@ -14,6 +14,8 @@ import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
+import org.quyq.gwsu.common.core.exception.BusinessException;
+import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
@@ -130,6 +132,12 @@ public class SecurityUtils {
      */
     public <U extends Visitor> Optional<Subject<U>> getSubject() {
         return getSubject(getToken());
+    }
+
+
+    public <U extends Visitor> Subject<U> checkSubject(){
+        return (Subject<U>) getSubject()
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.E03001));
     }
 
     /**

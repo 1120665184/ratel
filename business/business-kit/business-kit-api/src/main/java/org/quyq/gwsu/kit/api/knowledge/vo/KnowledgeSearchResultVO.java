@@ -3,6 +3,7 @@ package org.quyq.gwsu.kit.api.knowledge.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeBlockType;
 
 /**
  * 知识库检索结果。
@@ -24,6 +25,9 @@ public class KnowledgeSearchResultVO {
     @Schema(description = "Page Block ID")
     private String pageBlockId;
 
+    @Schema(description = "Block类型")
+    private KnowledgeBlockType blockType;
+
     @Schema(description = "源文档ID")
     private String sourceDocumentId;
 
@@ -33,8 +37,11 @@ public class KnowledgeSearchResultVO {
     @Schema(description = "标题路径")
     private String headingPath;
 
-    @Schema(description = "内容")
+    @Schema(description = "Block完整内容")
     private String content;
+
+    @Schema(description = "Block序号")
+    private Integer blockOrder;
 
     @Schema(description = "Chunk序号")
     private Integer chunkOrder;
