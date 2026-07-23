@@ -9,4 +9,22 @@
           AND deleted = 0
         ORDER BY order_no ASC
     </select>
+
+    <select id="selectByVersionIds" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock">
+        SELECT *
+        FROM kit_knowledge_page_block
+        WHERE deleted = 0
+          <choose>
+              <when test="pageVersionIds != null and pageVersionIds.size() > 0">
+                  AND page_version_id IN
+                  <foreach collection="pageVersionIds" item="pageVersionId" open="(" separator="," close=")">
+                      #{pageVersionId}
+                  </foreach>
+              </when>
+              <otherwise>
+                  AND 1 = 0
+              </otherwise>
+          </choose>
+        ORDER BY page_version_id ASC, order_no ASC
+    </select>
 </mapper>

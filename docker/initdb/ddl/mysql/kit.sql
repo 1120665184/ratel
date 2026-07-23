@@ -280,6 +280,30 @@ CREATE TABLE kit_knowledge_source_document
 CREATE INDEX idx_kit_knowledge_source_document_file_id ON kit_knowledge_source_document (file_id);
 CREATE INDEX idx_kit_knowledge_source_document_status ON kit_knowledge_source_document (document_status);
 
+CREATE TABLE kit_knowledge_source_segment
+(
+    id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
+    source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
+    segment_no         INT         NOT NULL COMMENT '片段顺序号',
+    segment_type       VARCHAR(32) NOT NULL COMMENT '片段类型',
+    heading_path       VARCHAR(1000)        DEFAULT NULL COMMENT '标题路径',
+    source_locator     VARCHAR(500)         DEFAULT NULL COMMENT '来源定位',
+    content            LONGTEXT             COMMENT '片段内容',
+    tenant_id          VARCHAR(50)          DEFAULT NULL COMMENT '租户ID',
+    create_op          VARCHAR(50)          DEFAULT NULL COMMENT '创建人',
+    create_time        DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    modify_op          VARCHAR(50)          DEFAULT NULL COMMENT '修改人',
+    modify_time        DATETIME             DEFAULT NULL COMMENT '修改时间',
+    deleted            SMALLINT    NOT NULL DEFAULT 0 COMMENT '删除标识：0-未删除 1-已删除',
+    active_source_document_id VARCHAR(24) GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN source_document_id ELSE NULL END) STORED COMMENT '未删除源文档唯一键',
+    active_segment_no  INT GENERATED ALWAYS AS (CASE WHEN deleted = 0 THEN segment_no ELSE NULL END) STORED COMMENT '未删除片段唯一键',
+    delete_op          VARCHAR(50)          DEFAULT NULL COMMENT '删除人',
+    delete_time        DATETIME             DEFAULT NULL COMMENT '删除时间'
+) COMMENT '知识源文档解析片段';
+
+CREATE UNIQUE INDEX uk_kit_knowledge_source_segment_doc_no ON kit_knowledge_source_segment (active_source_document_id, active_segment_no);
+CREATE INDEX idx_kit_knowledge_source_segment_document ON kit_knowledge_source_segment (source_document_id);
+
 CREATE TABLE kit_knowledge_source_document_role
 (
     id                 VARCHAR(24) PRIMARY KEY COMMENT '主键ID',
@@ -366,6 +390,8 @@ CREATE TABLE kit_knowledge_page_source_ref
     page_block_id      VARCHAR(24) NOT NULL COMMENT 'Page Block ID',
     source_type        VARCHAR(32) NOT NULL COMMENT '来源类型',
     source_document_id VARCHAR(24) NOT NULL COMMENT '源文档ID',
+    source_segment_start_no INT              DEFAULT NULL COMMENT '起始片段序号',
+    source_segment_end_no   INT              DEFAULT NULL COMMENT '结束片段序号',
     source_locator     VARCHAR(500) DEFAULT NULL COMMENT '来源定位',
     tenant_id          VARCHAR(50)  DEFAULT NULL COMMENT '租户ID',
     create_op          VARCHAR(50)  DEFAULT NULL COMMENT '创建人',

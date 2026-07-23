@@ -26,7 +26,6 @@ import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
-  FileSearchOutlined,
   MoreOutlined,
   ReloadOutlined,
   RetweetOutlined,
@@ -52,6 +51,7 @@ import {
   saveKnowledgePage,
   searchKnowledge,
 } from './services/knowledge';
+import { getRoleList } from '../role/services/role';
 import {
   BLOCK_TYPE_OPTIONS,
   DOCUMENT_STATUS_OPTIONS,
@@ -67,6 +67,7 @@ import {
   type KnowledgeSearchResultVO,
   type PageResult,
 } from './types';
+import type { RoleInfo } from '../role/types';
 import {
   PERM_KNOWLEDGE_PAGE_EDIT,
   PERM_KNOWLEDGE_ROLE_EDIT,
@@ -143,6 +144,20 @@ function stripDuplicatePageTitle(content: string, pageTitle?: string): string {
   return remainingLines.join('\n');
 }
 
+function normalizeKnowledgeImageMarkdown(content: string): string {
+  return content.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, altText: string, src: string) => {
+    const matched = src.match(/(?:^|\/)kit\/file\/stream\/([^/?#)]+)/);
+    if (!matched?.[1]) {
+      return `![${altText}](${src})`;
+    }
+    return `![${altText}](knowledge_image:fileId=${matched[1]})`;
+  });
+}
+
+function stripSearchHighlight(content?: string): string {
+  return (content ?? '').replace(/<\/?mark>/g, '');
+}
+
 const KnowledgePage: React.FC = () => {
   const [documentForm] = Form.useForm<KnowledgeDocumentQuery>();
   const [pageForm] = Form.useForm<KnowledgePageQuery>();
@@ -174,6 +189,7 @@ const KnowledgePage: React.FC = () => {
   const [roleVisible, setRoleVisible] = useState(false);
   const [roleSubmitting, setRoleSubmitting] = useState(false);
   const [currentDocument, setCurrentDocument] = useState<KnowledgeDocumentVO | null>(null);
+  const [roleOptions, setRoleOptions] = useState<Array<{ label: string; value: string }>>([]);
 
   const [detailVisible, setDetailVisible] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -184,8 +200,31 @@ const KnowledgePage: React.FC = () => {
 
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<KnowledgeSearchResultVO[]>([]);
-  const [adjacentLoadingKey, setAdjacentLoadingKey] = useState('');
-  const [adjacentMap, setAdjacentMap] = useState<Record<string, KnowledgeSearchResultVO | null>>({});
+  const [searchDetailMode, setSearchDetailMode] = useState<'preview' | 'markdown'>('preview');
+  const [selectedSearchResult, setSelectedSearchResult] = useState<KnowledgeSearchResultVO | null>(null);
+  const [searchDetailBlocks, setSearchDetailBlocks] = useState<KnowledgeSearchResultVO[]>([]);
+  const [searchAdjacentLoading, setSearchAdjacentLoading] = useState<'PREVIOUS' | 'NEXT' | ''>('');
+  const [searchBoundaryReached, setSearchBoundaryReached] = useState({
+    PREVIOUS: false,
+    NEXT: false,
+  });
+
+  const roleLabelMap = useMemo(
+    () =>
+      roleOptions.reduce<Record<string, string>>((accumulator, option) => {
+        accumulator[option.value] = option.label;
+        return accumulator;
+      }, {}),
+    [roleOptions],
+  );
+
+  const renderRoleTags = useCallback(
+    (roleCodes?: string[]) =>
+      roleCodes?.length
+        ? roleCodes.map((code) => <Tag key={code}>{roleLabelMap[code] ?? code}</Tag>)
+        : <Tag color="green">开放</Tag>,
+    [roleLabelMap],
+  );
 
   const loadDocuments = useCallback(async (query: KnowledgeDocumentQuery) => {
     setDocumentLoading(true);
@@ -214,6 +253,23 @@ const KnowledgePage: React.FC = () => {
   useEffect(() => {
     void loadPages(wikiQuery);
   }, [loadPages, wikiQuery]);
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const roles = await getRoleList(1);
+        setRoleOptions(
+          (roles ?? []).map((item: RoleInfo) => ({
+            label: `${item.roleName} (${item.roleCode})`,
+            value: item.roleCode,
+          })),
+        );
+      } catch {
+        message.warning('角色列表加载失败，角色选择可能不可用');
+      }
+    };
+    void loadRoles();
+  }, []);
 
   const refreshAll = useCallback(() => {
     void loadDocuments(documentQuery);
@@ -356,13 +412,12 @@ const KnowledgePage: React.FC = () => {
     }
   }, [handleDeleteDocument, handleOpenRole, handleRetryDocument, handleToggleDocumentEnabled]);
 
-  const handleOpenPageDetail = useCallback(async (record: KnowledgePageVO | KnowledgeSearchResultVO) => {
+  const handleOpenPageDetail = useCallback(async (record: KnowledgePageVO) => {
     setDetailVisible(true);
     setDetailLoading(true);
     setContentViewMode('preview');
     try {
-      const pageId = 'pageId' in record ? record.pageId : record.id;
-      const detail = await getKnowledgePage(pageId);
+      const detail = await getKnowledgePage(record.id);
       setPageDetail(detail);
       setEditingBlocks((detail.blocks ?? []).map((block) => ({ ...block })));
     } finally {
@@ -390,7 +445,10 @@ const KnowledgePage: React.FC = () => {
       await saveKnowledgePage({
         id: pageDetail.id,
         title: pageDetail.title,
-        blocks: editingBlocks,
+        blocks: editingBlocks.map((block) => ({
+          ...block,
+          content: normalizeKnowledgeImageMarkdown(block.content),
+        })),
       });
       message.success('Wiki Page 已保存并重建 Chunk 索引');
       const detail = await getKnowledgePage(pageDetail.id);
@@ -405,7 +463,9 @@ const KnowledgePage: React.FC = () => {
   const handleSearchKnowledge = useCallback(async () => {
     const values = await searchForm.validateFields();
     setSearchLoading(true);
-    setAdjacentMap({});
+    setSelectedSearchResult(null);
+    setSearchDetailBlocks([]);
+    setSearchBoundaryReached({ PREVIOUS: false, NEXT: false });
     try {
       const data = await searchKnowledge({
         pageNum: 1,
@@ -423,23 +483,68 @@ const KnowledgePage: React.FC = () => {
     }
   }, [searchForm]);
 
-  const handleFindAdjacent = useCallback(
-    async (record: KnowledgeSearchResultVO, direction: 'PREVIOUS' | 'NEXT') => {
+  const handleOpenSearchDetail = useCallback((record: KnowledgeSearchResultVO) => {
+    setSelectedSearchResult(record);
+    setSearchDetailBlocks([{ ...record, content: stripSearchHighlight(record.content) }]);
+    setSearchDetailMode('preview');
+    setSearchBoundaryReached({ PREVIOUS: false, NEXT: false });
+  }, []);
+
+  const handleBackToSearchList = useCallback(() => {
+    setSelectedSearchResult(null);
+    setSearchDetailBlocks([]);
+    setSearchBoundaryReached({ PREVIOUS: false, NEXT: false });
+  }, []);
+
+  const handleLoadAdjacentBlocks = useCallback(
+    async (direction: 'PREVIOUS' | 'NEXT') => {
+      if (searchDetailBlocks.length === 0) {
+        return;
+      }
+      const boundaryBlock =
+        direction === 'PREVIOUS'
+          ? searchDetailBlocks[0]
+          : searchDetailBlocks[searchDetailBlocks.length - 1];
+      if (!boundaryBlock.pageBlockId) {
+        message.warning('当前内容缺少 Block 标识，无法继续加载相邻内容');
+        return;
+      }
       const values = searchForm.getFieldsValue();
-      const key = `${record.chunkId}_${direction}`;
-      setAdjacentLoadingKey(key);
+      setSearchAdjacentLoading(direction);
       try {
         const data = await findAdjacentKnowledgeChunk({
-          chunkId: record.chunkId,
+          pageBlockId: boundaryBlock.pageBlockId,
           direction,
+          offset: 1,
           roleCodes: splitCodes(values.roleCodes),
         });
-        setAdjacentMap((prev) => ({ ...prev, [key]: data }));
+        const normalizedBlocks = data.map((item) => ({
+          ...item,
+          content: stripSearchHighlight(item.content),
+        }));
+        if (normalizedBlocks.length === 0) {
+          setSearchBoundaryReached((prev) => ({ ...prev, [direction]: true }));
+          message.info(direction === 'PREVIOUS' ? '已经是第一段内容' : '已经是最后一段内容');
+          return;
+        }
+        setSearchBoundaryReached((prev) => ({ ...prev, [direction]: false }));
+        setSearchDetailBlocks((prev) => {
+          const existingIds = new Set(prev.map((item) => item.pageBlockId).filter(Boolean));
+          const deduplicated = normalizedBlocks.filter(
+            (item) => !item.pageBlockId || !existingIds.has(item.pageBlockId),
+          );
+          if (deduplicated.length === 0) {
+            return prev;
+          }
+          return direction === 'PREVIOUS'
+            ? [...deduplicated.reverse(), ...prev]
+            : [...prev, ...deduplicated];
+        });
       } finally {
-        setAdjacentLoadingKey('');
+        setSearchAdjacentLoading('');
       }
     },
-    [searchForm],
+    [searchDetailBlocks, searchForm],
   );
 
   const pageMarkdownContent = useMemo(
@@ -450,6 +555,16 @@ const KnowledgePage: React.FC = () => {
   const pagePreviewContent = useMemo(
     () => stripDuplicatePageTitle(pageMarkdownContent, pageDetail?.title),
     [pageDetail?.title, pageMarkdownContent],
+  );
+
+  const searchDetailMarkdownContent = useMemo(
+    () => searchDetailBlocks.map((item) => item.content).join('\n\n'),
+    [searchDetailBlocks],
+  );
+
+  const searchDetailPreviewContent = useMemo(
+    () => stripDuplicatePageTitle(searchDetailMarkdownContent, selectedSearchResult?.title),
+    [searchDetailMarkdownContent, selectedSearchResult?.title],
   );
 
   const documentColumns: TableProps<KnowledgeDocumentVO>['columns'] = useMemo(() => [
@@ -469,16 +584,16 @@ const KnowledgePage: React.FC = () => {
       },
     },
     {
-      title: '启用',
-      dataIndex: 'enabled',
-      width: 80,
-      render: (value) => value === false ? <Tag color="default">禁用</Tag> : <Tag color="success">启用</Tag>,
-    },
-    {
       title: '向量化',
       dataIndex: 'embeddingCompleted',
       width: 90,
       render: (value) => value ? <Tag color="success">已完成</Tag> : <Tag color="warning">未完成</Tag>,
+    },
+    {
+      title: '图片 OCR',
+      dataIndex: 'imageOcrParsed',
+      width: 100,
+      render: (value) => value ? <Tag color="success">已解析</Tag> : <Tag color="default">未解析</Tag>,
     },
     {
       title: '最近导入',
@@ -498,17 +613,10 @@ const KnowledgePage: React.FC = () => {
       },
     },
     {
-      title: '重试次数',
-      dataIndex: 'latestTaskRetryCount',
-      width: 100,
-      render: (value) => value ?? 0,
-    },
-    {
       title: '授权角色',
       dataIndex: 'roleCodes',
       width: 220,
-      render: (value: string[] | undefined) =>
-        value?.length ? value.map((code) => <Tag key={code}>{code}</Tag>) : <Tag color="green">开放</Tag>,
+      render: (value: string[] | undefined) => renderRoleTags(value),
     },
     {
       title: '处理信息',
@@ -528,6 +636,13 @@ const KnowledgePage: React.FC = () => {
       dataIndex: 'latestTaskFinishedAt',
       width: 180,
       render: (value, record) => value || record.processedAt || '-',
+    },
+    {
+      title: '启用',
+      dataIndex: 'enabled',
+      width: 80,
+      fixed: 'right',
+      render: (value) => value === false ? <Tag color="default">禁用</Tag> : <Tag color="success">启用</Tag>,
     },
     {
       title: '操作',
@@ -618,7 +733,7 @@ const KnowledgePage: React.FC = () => {
         );
       },
     },
-  ], [canEditRole, canManageDocument, canRetryTask, handleMoreAction]);
+  ], [canEditRole, canManageDocument, canRetryTask, handleMoreAction, renderRoleTags]);
 
   const pageColumns: TableProps<KnowledgePageVO>['columns'] = useMemo(() => [
     {
@@ -626,6 +741,13 @@ const KnowledgePage: React.FC = () => {
       dataIndex: 'title',
       ellipsis: true,
       width: 280,
+    },
+    {
+      title: '源文档',
+      dataIndex: 'sourceDocumentName',
+      ellipsis: true,
+      width: 240,
+      render: (value) => value || '-',
     },
     {
       title: '状态',
@@ -802,9 +924,12 @@ const KnowledgePage: React.FC = () => {
           </Form.Item>
           <Form.Item name="roleCodes" label="当前检索角色">
             <Select
-              mode="tags"
-              tokenSeparators={[',', '，', ' ']}
-              placeholder="为空表示开放角色；输入后仅检索有权限的源文档"
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="为空表示开放角色；选择后仅检索有权限的源文档"
+              options={roleOptions}
             />
           </Form.Item>
           <Form.Item name="size" label="返回数量">
@@ -827,58 +952,92 @@ const KnowledgePage: React.FC = () => {
         </div>
         {searchResults.length === 0 ? (
           <Empty description="暂无结果" />
+        ) : selectedSearchResult ? (
+          <div className={styles.searchDetailCard}>
+            <div className={styles.searchDetailHeader}>
+              <div>
+                <Text strong>{selectedSearchResult.title}</Text>
+                {selectedSearchResult.headingPath && (
+                  <div className={styles.searchDetailSubTitle}>
+                    <Text type="secondary">{selectedSearchResult.headingPath}</Text>
+                  </div>
+                )}
+              </div>
+              <Space wrap>
+                <Button onClick={handleBackToSearchList}>返回列表</Button>
+                <Button
+                  loading={searchAdjacentLoading === 'PREVIOUS'}
+                  disabled={searchBoundaryReached.PREVIOUS}
+                  onClick={() => void handleLoadAdjacentBlocks('PREVIOUS')}
+                >
+                  加载上一段
+                </Button>
+                <Button
+                  loading={searchAdjacentLoading === 'NEXT'}
+                  disabled={searchBoundaryReached.NEXT}
+                  onClick={() => void handleLoadAdjacentBlocks('NEXT')}
+                >
+                  加载下一段
+                </Button>
+              </Space>
+            </div>
+            <Descriptions column={2} size="small" bordered className={styles.searchDetailMeta}>
+              <Descriptions.Item label="Page ID">{selectedSearchResult.pageId || '-'}</Descriptions.Item>
+              <Descriptions.Item label="命中 Block">{selectedSearchResult.pageBlockId || '-'}</Descriptions.Item>
+              <Descriptions.Item label="源文档ID">{selectedSearchResult.sourceDocumentId || '-'}</Descriptions.Item>
+              <Descriptions.Item label="Block 序号">{selectedSearchResult.blockOrder ?? '-'}</Descriptions.Item>
+            </Descriptions>
+            <div className={styles.contentTab}>
+              <div className={styles.contentToolbar}>
+                <Segmented
+                  size="small"
+                  options={[
+                    { label: '预览', value: 'preview' },
+                    { label: 'MD 原文', value: 'markdown' },
+                  ]}
+                  value={searchDetailMode}
+                  onChange={(value) => setSearchDetailMode(value as 'preview' | 'markdown')}
+                />
+              </div>
+              {searchDetailMode === 'preview' ? (
+                <MarkdownPreview
+                  className={styles.markdownArticle}
+                  content={searchDetailPreviewContent}
+                />
+              ) : (
+                <Input.TextArea
+                  className={styles.markdownSource}
+                  value={searchDetailMarkdownContent || '暂无内容'}
+                  readOnly
+                  autoSize={{ minRows: 18, maxRows: 30 }}
+                />
+              )}
+            </div>
+          </div>
         ) : (
           <List
             dataSource={searchResults}
             renderItem={(item) => {
-              const previousKey = `${item.chunkId}_PREVIOUS`;
-              const nextKey = `${item.chunkId}_NEXT`;
               return (
                 <List.Item className={styles.resultItem}>
-                  <div className={styles.resultContent}>
+                  <button
+                    type="button"
+                    className={styles.resultButton}
+                    onClick={() => handleOpenSearchDetail(item)}
+                  >
                     <div className={styles.resultTitle}>
                       <Text strong>{item.title}</Text>
                       {typeof item.score === 'number' && <Tag color="blue">score {item.score.toFixed(4)}</Tag>}
-                      {typeof item.chunkOrder === 'number' && <Tag>#{item.chunkOrder}</Tag>}
+                      {typeof item.blockOrder === 'number' && <Tag>Block #{item.blockOrder}</Tag>}
+                      {typeof item.chunkOrder === 'number' && <Tag>Chunk #{item.chunkOrder}</Tag>}
                     </div>
                     {item.headingPath && <Text type="secondary">{item.headingPath}</Text>}
-                    <Paragraph className={styles.chunkText}>{item.content}</Paragraph>
+                    <Paragraph className={styles.chunkText}>{stripSearchHighlight(item.content)}</Paragraph>
                     <div className={styles.metaLine}>
-                      <Text type="secondary">chunkId：{item.chunkId}</Text>
+                      <Text type="secondary">pageBlockId：{item.pageBlockId ?? '-'}</Text>
                       <Text type="secondary">sourceDocumentId：{item.sourceDocumentId}</Text>
                     </div>
-                    <Space wrap>
-                      <Button size="small" icon={<FileSearchOutlined />} onClick={() => handleOpenPageDetail(item)}>
-                        查看 Page
-                      </Button>
-                      <Button
-                        size="small"
-                        loading={adjacentLoadingKey === previousKey}
-                        onClick={() => handleFindAdjacent(item, 'PREVIOUS')}
-                      >
-                        上一个 Chunk
-                      </Button>
-                      <Button
-                        size="small"
-                        loading={adjacentLoadingKey === nextKey}
-                        onClick={() => handleFindAdjacent(item, 'NEXT')}
-                      >
-                        下一个 Chunk
-                      </Button>
-                    </Space>
-                    {previousKey in adjacentMap && (
-                      <div className={styles.adjacentBox}>
-                        <Text strong>上一个 Chunk</Text>
-                        {adjacentMap[previousKey] ? <Paragraph>{adjacentMap[previousKey]?.content}</Paragraph> : <Text type="secondary">没有更多内容</Text>}
-                      </div>
-                    )}
-                    {nextKey in adjacentMap && (
-                      <div className={styles.adjacentBox}>
-                        <Text strong>下一个 Chunk</Text>
-                        {adjacentMap[nextKey] ? <Paragraph>{adjacentMap[nextKey]?.content}</Paragraph> : <Text type="secondary">没有更多内容</Text>}
-                      </div>
-                    )}
-                  </div>
+                  </button>
                 </List.Item>
               );
             }}
@@ -951,9 +1110,12 @@ const KnowledgePage: React.FC = () => {
           </Form.Item>
           <Form.Item name="roleCodes" label="授权角色编码">
             <Select
-              mode="tags"
-              tokenSeparators={[",", "，", " "]}
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
               placeholder="为空表示开放文档"
+              options={roleOptions}
             />
           </Form.Item>
         </Form>
@@ -990,9 +1152,12 @@ const KnowledgePage: React.FC = () => {
         <Form form={roleForm} layout="vertical">
           <Form.Item name="roleCodes" label="授权角色编码">
             <Select
-              mode="tags"
-              tokenSeparators={[",", "，", " "]}
-              placeholder="请输入角色编码"
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="请选择角色"
+              options={roleOptions}
             />
           </Form.Item>
         </Form>
@@ -1004,19 +1169,6 @@ const KnowledgePage: React.FC = () => {
         onClose={() => setDetailVisible(false)}
         width="72vw"
         destroyOnHidden
-        extra={
-          canEditPage && (
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              loading={detailSubmitting}
-              onClick={handleSavePage}
-              data-ai-approval
-            >
-              保存 Page
-            </Button>
-          )
-        }
       >
         {detailLoading || !pageDetail ? (
           <Empty
@@ -1080,6 +1232,19 @@ const KnowledgePage: React.FC = () => {
                   label: canEditPage ? "Block 编辑 / 来源明细" : "来源明细",
                   children: (
                     <>
+                      {canEditPage && (
+                        <div className={styles.blockToolbar}>
+                          <Button
+                            type="primary"
+                            icon={<SaveOutlined />}
+                            loading={detailSubmitting}
+                            onClick={() => void handleSavePage()}
+                            data-ai-approval
+                          >
+                            保存 Page
+                          </Button>
+                        </div>
+                      )}
                       <Alert
                         type="warning"
                         showIcon

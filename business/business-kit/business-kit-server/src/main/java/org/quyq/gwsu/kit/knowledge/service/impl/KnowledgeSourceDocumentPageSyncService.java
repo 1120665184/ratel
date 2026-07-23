@@ -1,5 +1,6 @@
 package org.quyq.gwsu.kit.knowledge.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +27,16 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 知识源文档与 Wiki Page 同步服务。
@@ -66,8 +73,11 @@ public class KnowledgeSourceDocumentPageSyncService {
         if (!StringUtils.hasText(sourceDocumentId)) {
             return;
         }
-        for (KitKnowledgePage page : pageMapper.selectCurrentPagesBySourceDocumentId(sourceDocumentId)) {
-            pruneCurrentPage(page, sourceDocumentId);
+        for (KitKnowledgePage page : pageMapper.selectPagesBySourceDocumentId(sourceDocumentId)) {
+            if (currentVersionContainsSourceDocument(page.getCurrentVersionId(), sourceDocumentId)) {
+                pruneCurrentPage(page, sourceDocumentId);
+            }
+            purgeSourceDocumentHistory(page.getId(), sourceDocumentId);
         }
     }
 
@@ -99,7 +109,7 @@ public class KnowledgeSourceDocumentPageSyncService {
 
         List<KitKnowledgePageBlock> currentBlocks = pageBlockMapper.selectByVersionId(currentVersion.getId());
         if (CollectionUtils.isEmpty(currentBlocks)) {
-            deletePage(page, currentVersion.getId());
+            deletePage(page);
             return;
         }
 
@@ -113,7 +123,7 @@ public class KnowledgeSourceDocumentPageSyncService {
             remainedBlocks.add(new BlockSnapshot(block, ref));
         }
         if (!hasContentBlock(remainedBlocks)) {
-            deletePage(page, currentVersion.getId());
+            deletePage(page);
             return;
         }
 
@@ -147,6 +157,8 @@ public class KnowledgeSourceDocumentPageSyncService {
                         .setPageBlockId(blockId)
                         .setSourceType(snapshot.ref().getSourceType())
                         .setSourceDocumentId(snapshot.ref().getSourceDocumentId())
+                        .setSourceSegmentStartNo(snapshot.ref().getSourceSegmentStartNo())
+                        .setSourceSegmentEndNo(snapshot.ref().getSourceSegmentEndNo())
                         .setSourceLocator(snapshot.ref().getSourceLocator()));
             }
         }
@@ -162,15 +174,114 @@ public class KnowledgeSourceDocumentPageSyncService {
         replacePageVersion(page, newVersion, newBlocks, newRefs);
     }
 
-    private void deletePage(KitKnowledgePage page, String currentVersionId) {
-        archiveCurrentVersion(currentVersionId);
-        pageMapper.update(null, new LambdaUpdateWrapper<KitKnowledgePage>()
-                .eq(KitKnowledgePage::getId, page.getId())
-                .eq(KitKnowledgePage::getDeleted, false)
-                .set(KitKnowledgePage::getDeleted, true)
-                .set(KitKnowledgePage::getCurrentVersionId, null)
-                .set(KitKnowledgePage::getPageStatus, KnowledgePageStatus.ARCHIVED));
-        chunkIndexRepository.replacePageVersion(page.getId(), currentVersionId, List.of());
+    private boolean currentVersionContainsSourceDocument(String currentVersionId, String sourceDocumentId) {
+        if (!StringUtils.hasText(currentVersionId) || !StringUtils.hasText(sourceDocumentId)) {
+            return false;
+        }
+        List<KitKnowledgePageBlock> blocks = pageBlockMapper.selectByVersionId(currentVersionId);
+        if (CollectionUtils.isEmpty(blocks)) {
+            return false;
+        }
+        return loadRefs(blocks).stream()
+                .anyMatch(ref -> Objects.equals(sourceDocumentId, ref.getSourceDocumentId()));
+    }
+
+    private void purgeSourceDocumentHistory(String pageId, String sourceDocumentId) {
+        if (!StringUtils.hasText(pageId) || !StringUtils.hasText(sourceDocumentId)) {
+            return;
+        }
+        List<KitKnowledgePageVersion> versions = pageVersionMapper.selectByPageId(pageId);
+        if (CollectionUtils.isEmpty(versions)) {
+            deleteOrphanPageIfPresent(pageId);
+            return;
+        }
+
+        List<KitKnowledgePageBlock> blocks = pageBlockMapper.selectByVersionIds(
+                versions.stream().map(KitKnowledgePageVersion::getId).toList());
+        Map<String, List<KitKnowledgePageBlock>> blocksByVersionId = blocks.stream()
+                .collect(Collectors.groupingBy(KitKnowledgePageBlock::getPageVersionId));
+        Map<String, KitKnowledgePageSourceRef> refByBlockId = loadRefMap(blocks);
+
+        Set<String> versionIdsToDelete = versions.stream()
+                .filter(version -> containsSourceDocument(blocksByVersionId.get(version.getId()), refByBlockId, sourceDocumentId))
+                .map(KitKnowledgePageVersion::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (CollectionUtils.isEmpty(versionIdsToDelete)) {
+            deleteOrphanPageIfPresent(pageId);
+            return;
+        }
+
+        KitKnowledgePage page = pageMapper.selectById(pageId);
+        if (page != null && StringUtils.hasText(page.getCurrentVersionId())
+                && versionIdsToDelete.contains(page.getCurrentVersionId())) {
+            deletePage(page);
+            return;
+        }
+
+        deletePageArtifacts(versionIdsToDelete);
+        deleteOrphanPageIfPresent(pageId);
+    }
+
+    private boolean containsSourceDocument(List<KitKnowledgePageBlock> blocks,
+                                           Map<String, KitKnowledgePageSourceRef> refByBlockId,
+                                           String sourceDocumentId) {
+        if (CollectionUtils.isEmpty(blocks)) {
+            return false;
+        }
+        for (KitKnowledgePageBlock block : blocks) {
+            KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());
+            if (ref != null && Objects.equals(sourceDocumentId, ref.getSourceDocumentId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void deletePage(KitKnowledgePage page) {
+        if (page == null) {
+            return;
+        }
+        chunkIndexRepository.replacePageVersion(page.getId(), page.getCurrentVersionId(), List.of());
+        deletePageArtifacts(pageVersionMapper.selectByPageId(page.getId()).stream()
+                .map(KitKnowledgePageVersion::getId)
+                .toList());
+        pageMapper.deleteById(page.getId());
+    }
+
+    private void deleteOrphanPageIfPresent(String pageId) {
+        if (!StringUtils.hasText(pageId)) {
+            return;
+        }
+        KitKnowledgePage page = pageMapper.selectById(pageId);
+        if (page == null) {
+            return;
+        }
+        List<KitKnowledgePageVersion> remainingVersions = pageVersionMapper.selectByPageId(pageId);
+        if (!CollectionUtils.isEmpty(remainingVersions)) {
+            return;
+        }
+        chunkIndexRepository.replacePageVersion(pageId, page.getCurrentVersionId(), List.of());
+        pageMapper.deleteById(pageId);
+    }
+
+    private void deletePageArtifacts(Collection<String> pageVersionIds) {
+        if (CollectionUtils.isEmpty(pageVersionIds)) {
+            return;
+        }
+        List<KitKnowledgePageBlock> blocks = pageBlockMapper.selectByVersionIds(pageVersionIds);
+        List<String> blockIds = blocks.stream()
+                .map(KitKnowledgePageBlock::getId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+        if (!CollectionUtils.isEmpty(blockIds)) {
+            pageSourceRefMapper.delete(new LambdaQueryWrapper<KitKnowledgePageSourceRef>()
+                    .in(KitKnowledgePageSourceRef::getPageBlockId, blockIds));
+            pageBlockMapper.delete(new LambdaQueryWrapper<KitKnowledgePageBlock>()
+                    .in(KitKnowledgePageBlock::getId, blockIds));
+        }
+        pageVersionMapper.delete(new LambdaQueryWrapper<KitKnowledgePageVersion>()
+                .in(KitKnowledgePageVersion::getId, pageVersionIds));
     }
 
     private void replacePageVersion(KitKnowledgePage page,
@@ -209,6 +320,14 @@ public class KnowledgeSourceDocumentPageSyncService {
         return refByBlockId;
     }
 
+    private Map<String, KitKnowledgePageSourceRef> loadRefMap(Collection<KitKnowledgePageBlock> blocks) {
+        if (CollectionUtils.isEmpty(blocks)) {
+            return Map.of();
+        }
+        return loadRefs(new ArrayList<>(blocks)).stream()
+                .collect(Collectors.toMap(KitKnowledgePageSourceRef::getPageBlockId, Function.identity(), (left, right) -> left));
+    }
+
     private boolean hasContentBlock(List<BlockSnapshot> blocks) {
         return blocks.stream().anyMatch(snapshot -> snapshot.block().getBlockType() != KnowledgeBlockType.HEADING);
     }
@@ -225,8 +344,10 @@ public class KnowledgeSourceDocumentPageSyncService {
 
     private String renderMarkdown(List<BlockSnapshot> blocks) {
         return blocks.stream()
+                .sorted(Comparator.comparingInt(snapshot -> Objects.requireNonNullElse(snapshot.block().getOrderNo(), 0)))
                 .map(snapshot -> snapshot.block().getContent())
                 .filter(StringUtils::hasText)
+                .map(String::trim)
                 .reduce((left, right) -> left + "\n\n" + right)
                 .orElse("");
     }

@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 
+import java.util.List;
+
 /**
  * 知识 Page 版本 Mapper。
  */
@@ -12,4 +14,6 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
 public interface KnowledgePageVersionMapper extends BaseMapper<KitKnowledgePageVersion> {
 
     Integer selectMaxVersionNo(@Param("pageId") String pageId);
+
+    List<KitKnowledgePageVersion> selectByPageId(@Param("pageId") String pageId);
 }

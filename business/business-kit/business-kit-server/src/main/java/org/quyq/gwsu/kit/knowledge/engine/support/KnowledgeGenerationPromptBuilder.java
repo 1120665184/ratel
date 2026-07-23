@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class KnowledgeGenerationPromptBuilder {
 
     public String buildPrompt(KnowledgePageGenerationRequest request) {
-        String markerSummary = KnowledgeImageMarkerSupport.buildMarkerSummary(request.boundedSourceText());
+        String markerSummary = KnowledgeImageMarkerSupport.buildMarkerSummary(request.sourceContext());
         return """
                 你是知识库 Wiki 页面整理助手。
                 请把知识源内容整理成结构清晰、事实准确的 Markdown 页面。
@@ -31,7 +31,7 @@ public class KnowledgeGenerationPromptBuilder {
                 %s
                 ```
                 
-                受限原文上下文：
+                生成上下文：
                 ```text
                 %s
                 ```
@@ -42,7 +42,7 @@ public class KnowledgeGenerationPromptBuilder {
                 request.sourceLanguage(),
                 request.fileName(),
                 request.analysisDigest(),
-                request.boundedSourceText(),
+                request.sourceContext(),
                 markerSummary);
     }
 }

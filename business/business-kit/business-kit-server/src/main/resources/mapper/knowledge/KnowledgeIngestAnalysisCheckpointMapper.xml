@@ -17,4 +17,22 @@
           AND chunk_no = #{chunkNo}
           AND deleted = 0
     </select>
+
+    <select id="selectByTaskIds" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint">
+        SELECT *
+        FROM kit_knowledge_ingest_analysis_checkpoint
+        WHERE deleted = 0
+          <choose>
+              <when test="ingestTaskIds != null and ingestTaskIds.size() > 0">
+                  AND ingest_task_id IN
+                  <foreach collection="ingestTaskIds" item="ingestTaskId" open="(" separator="," close=")">
+                      #{ingestTaskId}
+                  </foreach>
+              </when>
+              <otherwise>
+                  AND 1 = 0
+              </otherwise>
+          </choose>
+        ORDER BY ingest_task_id ASC, chunk_no ASC
+    </select>
 </mapper>

@@ -8,4 +8,12 @@
         WHERE page_id = #{pageId}
           AND deleted = 0
     </select>
+
+    <select id="selectByPageId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion">
+        SELECT *
+        FROM kit_knowledge_page_version
+        WHERE page_id = #{pageId}
+          AND deleted = 0
+        ORDER BY version_no DESC, create_time DESC
+    </select>
 </mapper>

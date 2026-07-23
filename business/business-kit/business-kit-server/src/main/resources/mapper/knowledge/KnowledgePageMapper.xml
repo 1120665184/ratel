@@ -2,6 +2,22 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageMapper">
+    <select id="selectPagesBySourceDocumentId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage">
+        SELECT DISTINCT p.*
+        FROM kit_knowledge_page p
+                 INNER JOIN kit_knowledge_page_version v
+                            ON v.page_id = p.id
+                                AND v.deleted = 0
+                 INNER JOIN kit_knowledge_page_block b
+                            ON b.page_version_id = v.id
+                                AND b.deleted = 0
+                 INNER JOIN kit_knowledge_page_source_ref r
+                            ON r.page_block_id = b.id
+                                AND r.deleted = 0
+        WHERE p.deleted = 0
+          AND r.source_document_id = #{sourceDocumentId}
+    </select>
+
     <select id="selectCurrentPagesBySourceDocumentId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage">
         SELECT DISTINCT p.*
         FROM kit_knowledge_page p

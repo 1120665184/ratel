@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 长文档分析服务。
@@ -36,6 +37,18 @@ public class LongSourceAnalysisService {
     private static final EncodingRegistry TOKEN_ENCODING_REGISTRY = Encodings.newLazyEncodingRegistry();
 
     private static final Encoding TOKEN_ENCODING = TOKEN_ENCODING_REGISTRY.getEncoding(EncodingType.CL100K_BASE);
+
+    private static final List<String> TRIM_BOUNDARY_MARKERS = List.of(
+            "\n## ",
+            "\n# ",
+            "\n\n",
+            "\n",
+            "。", "！", "？",
+            ". ", "! ", "? ",
+            "；", ";",
+            "，", ",",
+            "、", "：", ":",
+            "）", ")", "】", "]");
 
     private final KnowledgeProperties properties;
 
@@ -55,13 +68,15 @@ public class LongSourceAnalysisService {
             return new AnalyzedKnowledgeSource(
                     sourceLanguage,
                     "",
-                    trimToTokens(sanitizedSource.text(), budget.generationSourceTokens()));
+                    trimToTokens(sanitizedSource.text(), budget.generationSourceTokens()),
+                    false);
         }
         List<KitKnowledgeIngestAnalysisCheckpoint> existingCheckpoints = checkpointMapper.selectByTaskId(task.getId());
         Map<Integer, KitKnowledgeIngestAnalysisCheckpoint> checkpointByChunkNo = new LinkedHashMap<>();
         existingCheckpoints.forEach(checkpoint -> checkpointByChunkNo.put(checkpoint.getChunkNo(), checkpoint));
 
         List<String> chunkDigests = new ArrayList<>(chunks.size());
+        String rollingDigest = "";
         for (int i = 0; i < chunks.size(); i++) {
             int chunkNo = i + 1;
             String chunkText = chunks.get(i);
@@ -75,6 +90,7 @@ public class LongSourceAnalysisService {
                 if (StringUtils.hasText(checkpoint.getSourceLanguage())) {
                     sourceLanguage = checkpoint.getSourceLanguage();
                 }
+                rollingDigest = summarizeRollingDigest(parsedDocument, sourceLanguage, chunkNo, chunks.size(), rollingDigest, checkpoint.getAnalysisDigest());
                 continue;
             }
             String digest = analysisModelClient.analyzeChunk(promptBuilder.buildChunkAnalysisPrompt(
@@ -82,22 +98,28 @@ public class LongSourceAnalysisService {
                     sourceLanguage,
                     properties.getWikiOutputLanguage(),
                     chunkNo,
-                    chunkText));
+                    chunkText,
+                    rollingDigest));
             upsertCheckpoint(task, checkpoint, chunkNo, chunkHash, digest, sourceLanguage);
             chunkDigests.add(digest);
+            rollingDigest = summarizeRollingDigest(parsedDocument, sourceLanguage, chunkNo, chunks.size(), rollingDigest, digest);
         }
-        String analysisDigest = chunkDigests.size() == 1
-                ? chunkDigests.getFirst()
-                : analysisModelClient.summarizeDigests(promptBuilder.buildDigestSummaryPrompt(
-                parsedDocument.fileName(),
-                sourceLanguage,
-                properties.getWikiOutputLanguage(),
-                chunkDigests));
+        String analysisDigest = buildFinalAnalysisDigest(parsedDocument, sourceLanguage, chunkDigests, rollingDigest);
         String markerSummary = KnowledgeImageMarkerSupport.buildMarkerSummary(sanitizedSource.text());
+        String sourceContext = buildGenerationSourceContext(
+                parsedDocument,
+                sourceLanguage,
+                budget,
+                chunks,
+                chunkDigests,
+                analysisDigest,
+                markerSummary,
+                sanitizedSource.text());
         return new AnalyzedKnowledgeSource(
                 sourceLanguage,
                 trimToTokens(KnowledgeImageMarkerSupport.appendMarkerSummary(analysisDigest, markerSummary), budget.digestTokens()),
-                trimToTokens(sanitizedSource.text(), budget.generationSourceTokens()));
+                sourceContext,
+                chunks.size() > 1);
     }
 
     List<String> split(String text, KnowledgeContextBudget budget) {
@@ -244,10 +266,116 @@ public class LongSourceAnalysisService {
         if (estimateTokens(text) <= maxTokens) {
             return text;
         }
-        return TOKEN_ENCODING.decode(TOKEN_ENCODING.encode(text, maxTokens).getTokens()).trim();
+        String truncated = TOKEN_ENCODING.decode(TOKEN_ENCODING.encode(text, maxTokens).getTokens()).trim();
+        String boundaryTrimmed = trimToBoundary(truncated);
+        return StringUtils.hasText(boundaryTrimmed) ? boundaryTrimmed : truncated;
     }
 
     private int estimateTokens(String text) {
         return text == null ? 0 : TOKEN_ENCODING.countTokens(text);
+    }
+
+    private String trimToBoundary(String text) {
+        if (!StringUtils.hasText(text)) {
+            return "";
+        }
+        String normalized = text.trim();
+        if (normalized.length() < 200) {
+            return normalized;
+        }
+        int minAcceptableLength = Math.max(120, normalized.length() * 2 / 3);
+        int boundary = -1;
+        for (String marker : TRIM_BOUNDARY_MARKERS) {
+            int candidate = normalized.lastIndexOf(marker);
+            if (candidate < minAcceptableLength) {
+                continue;
+            }
+            int end = candidate + marker.length();
+            if (end > boundary) {
+                boundary = end;
+            }
+        }
+        if (boundary < 0 || boundary >= normalized.length()) {
+            return normalized;
+        }
+        return normalized.substring(0, boundary).trim();
+    }
+
+    private String summarizeRollingDigest(ParsedKnowledgeDocument parsedDocument,
+                                          String sourceLanguage,
+                                          int chunkNo,
+                                          int totalChunks,
+                                          String currentDigest,
+                                          String latestChunkDigest) {
+        if (!StringUtils.hasText(latestChunkDigest)) {
+            return currentDigest;
+        }
+        if (!StringUtils.hasText(currentDigest)) {
+            return latestChunkDigest.trim();
+        }
+        return analysisModelClient.summarizeDigests(promptBuilder.buildRollingDigestSummaryPrompt(
+                parsedDocument.fileName(),
+                sourceLanguage,
+                properties.getWikiOutputLanguage(),
+                currentDigest,
+                chunkNo,
+                totalChunks,
+                latestChunkDigest));
+    }
+
+    private String buildFinalAnalysisDigest(ParsedKnowledgeDocument parsedDocument,
+                                            String sourceLanguage,
+                                            List<String> chunkDigests,
+                                            String rollingDigest) {
+        if (chunkDigests.size() == 1) {
+            return chunkDigests.getFirst();
+        }
+        if (StringUtils.hasText(rollingDigest)) {
+            return rollingDigest;
+        }
+        return analysisModelClient.summarizeDigests(promptBuilder.buildDigestSummaryPrompt(
+                parsedDocument.fileName(),
+                sourceLanguage,
+                properties.getWikiOutputLanguage(),
+                chunkDigests));
+    }
+
+    private String buildGenerationSourceContext(ParsedKnowledgeDocument parsedDocument,
+                                                String sourceLanguage,
+                                                KnowledgeContextBudget budget,
+                                                List<String> chunks,
+                                                List<String> chunkDigests,
+                                                String analysisDigest,
+                                                String markerSummary,
+                                                String sanitizedText) {
+        if (chunks.size() <= 1) {
+            return trimToTokens(sanitizedText, budget.generationSourceTokens());
+        }
+        List<String> chunkNotes = new ArrayList<>(chunkDigests.size());
+        for (int i = 0; i < chunkDigests.size(); i++) {
+            chunkNotes.add("### 片段 " + (i + 1) + "/" + chunkDigests.size() + "\n" + chunkDigests.get(i));
+        }
+        String consolidatedContext = """
+                # 长文档压缩上下文
+
+                文件名：%s
+                源文语言：%s
+                片段总数：%d
+
+                ## 全局分析摘要
+                %s
+
+                ## 分片分析要点
+                %s
+
+                %s
+                """.formatted(
+                parsedDocument.fileName(),
+                sourceLanguage,
+                chunks.size(),
+                analysisDigest,
+                chunkNotes.stream().collect(Collectors.joining("\n\n")),
+                markerSummary);
+        return trimToTokens(consolidatedContext, budget.generationSourceTokens());
     }
 }

@@ -6,5 +6,6 @@ package org.quyq.gwsu.kit.knowledge.engine.ingest;
 public record AnalyzedKnowledgeSource(
         String sourceLanguage,
         String analysisDigest,
-        String boundedSourceText) {
+        String generationSourceContext,
+        boolean chunked) {
 }

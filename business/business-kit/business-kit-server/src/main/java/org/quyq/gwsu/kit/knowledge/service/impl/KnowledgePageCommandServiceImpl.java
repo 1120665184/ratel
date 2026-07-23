@@ -218,15 +218,7 @@ public class KnowledgePageCommandServiceImpl implements IKnowledgePageCommandSer
                 throw new BusinessException(KitErrorCode.E03009);
             }
             KitKnowledgePageSourceRef currentRef = currentRefMap.get(block.getId());
-            if (block.getBlockType() == KnowledgeBlockType.HEADING) {
-                if (currentRef != null
-                        || StringUtils.hasText(block.getSourceDocumentId())
-                        || block.getSourceType() != null
-                        || StringUtils.hasText(block.getSourceLocator())) {
-                    throw new BusinessException(KitErrorCode.E03009);
-                }
-                continue;
-            }
+
             if (currentRef == null
                     || block.getSourceType() != currentRef.getSourceType()
                     || !Objects.equals(block.getSourceDocumentId(), currentRef.getSourceDocumentId())
@@ -276,26 +268,9 @@ public class KnowledgePageCommandServiceImpl implements IKnowledgePageCommandSer
 
     private String renderMarkdown(List<KnowledgePageBlockVO> blocks) {
         return blocks.stream()
-                .map(this::renderBlockMarkdown)
+                .map(KnowledgePageBlockVO::getContent)
+                .filter(StringUtils::hasText)
+                .map(String::trim)
                 .collect(Collectors.joining("\n\n"));
-    }
-
-    private String renderBlockMarkdown(KnowledgePageBlockVO block) {
-        String content = block.getContent().trim();
-        if (!StringUtils.hasText(content)) {
-            return "";
-        }
-        return switch (block.getBlockType()) {
-            case HEADING -> content.startsWith("#") ? content : "# " + content;
-            case QUOTE -> toPrefixedLines(content, "> ");
-            case CODE -> content.startsWith("```") ? content : "```\n" + content + "\n```";
-            case LIST, TABLE, PARAGRAPH -> content;
-        };
-    }
-
-    private String toPrefixedLines(String content, String prefix) {
-        return content.lines()
-                .map(line -> prefix + line)
-                .collect(Collectors.joining("\n"));
     }
 }

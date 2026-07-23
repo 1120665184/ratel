@@ -27,4 +27,7 @@ public class KnowledgePageVO extends BaseVO {
 
     @Schema(description = "当前版本ID")
     private String currentVersionId;
+
+    @Schema(description = "源文档名称")
+    private String sourceDocumentName;
 }

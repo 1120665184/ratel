@@ -82,9 +82,9 @@ export async function searchKnowledge(
 
 export async function findAdjacentKnowledgeChunk(
   data: KnowledgeChunkAdjacentDTO,
-): Promise<KnowledgeSearchResultVO | null> {
-  const res = await post<KnowledgeSearchResultVO | null>(`${BASE}/chunk/adjacent`, data);
-  return res.data ?? null;
+): Promise<KnowledgeSearchResultVO[]> {
+  const res = await post<KnowledgeSearchResultVO[]>(`${BASE}/chunk/adjacent`, data);
+  return res.data ?? [];
 }
 
 export async function resolveFileName(fileId: string): Promise<string> {

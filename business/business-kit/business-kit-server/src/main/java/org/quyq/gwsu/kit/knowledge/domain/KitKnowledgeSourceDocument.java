@@ -35,6 +35,9 @@ public class KitKnowledgeSourceDocument extends BaseDO {
     @Schema(description = "文档处理状态")
     private KnowledgeDocumentStatus documentStatus;
 
+    @Schema(description = "目标Page ID")
+    private String targetPageId;
+
     @Schema(description = "处理信息")
     private String processMessage;
 

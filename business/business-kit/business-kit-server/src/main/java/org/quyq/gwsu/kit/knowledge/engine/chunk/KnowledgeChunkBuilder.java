@@ -44,15 +44,22 @@ public class KnowledgeChunkBuilder {
                 .sorted(Comparator.comparing(KitKnowledgePageBlock::getOrderNo))
                 .toList();
         String currentHeading = "";
+        List<String> consecutiveHeadingContents = new ArrayList<>();
         for (KitKnowledgePageBlock block : orderedBlocks) {
             if (block.getBlockType() != null && KnowledgeBlockType.HEADING == block.getBlockType()) {
                 currentHeading = block.getContent();
+                if (StringUtils.hasText(block.getContent())) {
+                    consecutiveHeadingContents.add(block.getContent().trim());
+                }
             }
             KitKnowledgePageSourceRef ref = refByBlockId.get(block.getId());
             if (block.getBlockType() == KnowledgeBlockType.HEADING || ref == null || !StringUtils.hasText(ref.getSourceDocumentId())) {
                 continue;
             }
-            for (String content : splitBlockContent(block.getContent())) {
+            String headingPrefix = buildHeadingPrefix(consecutiveHeadingContents);
+            List<String> blockChunks = splitBlockContent(block.getContent());
+            for (int index = 0; index < blockChunks.size(); index++) {
+                String content = prependHeadingPrefix(blockChunks.get(index), headingPrefix, index == 0);
                 chunks.add(new KnowledgeChunkDocument(
                         IdWorker.getIdStr(),
                         request.pageId(),
@@ -70,6 +77,7 @@ public class KnowledgeChunkBuilder {
                         null,
                         null));
             }
+            consecutiveHeadingContents.clear();
         }
         return List.copyOf(chunks);
     }
@@ -131,5 +139,27 @@ public class KnowledgeChunkBuilder {
             return boundary;
         }
         return maxToken;
+    }
+
+    private String buildHeadingPrefix(List<String> headingContents) {
+        if (CollectionUtils.isEmpty(headingContents)) {
+            return "";
+        }
+        return headingContents.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+    }
+
+    private String prependHeadingPrefix(String chunkContent, String headingPrefix, boolean firstChunk) {
+        if (!firstChunk || !StringUtils.hasText(headingPrefix)) {
+            return chunkContent;
+        }
+        if (!StringUtils.hasText(chunkContent)) {
+            return headingPrefix;
+        }
+        return headingPrefix + "\n" + chunkContent;
     }
 }

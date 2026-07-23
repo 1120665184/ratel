@@ -6,12 +6,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeIngestTaskStatus;
 import org.quyq.gwsu.kit.errcode.KitErrorCode;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestTask;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
+import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestAnalysisCheckpointMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentMapper;
+import org.quyq.gwsu.kit.knowledge.service.IKnowledgeSourceDocumentService;
 import org.quyq.gwsu.kit.knowledge.service.IKnowledgeIngestTaskService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +36,10 @@ public class KnowledgeIngestTaskServiceImpl
 
     private final KnowledgeSourceDocumentMapper sourceDocumentMapper;
 
+    private final KnowledgeIngestAnalysisCheckpointMapper checkpointMapper;
+
+    private final IKnowledgeSourceDocumentService sourceDocumentService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createOrResetTask(String sourceDocumentId, boolean incrementRetryCount) {
@@ -43,6 +50,7 @@ public class KnowledgeIngestTaskServiceImpl
             throw new BusinessException(KitErrorCode.E03001);
         }
         ensureNoActiveTask(sourceDocumentId);
+        sourceDocumentService.purgeDocumentDerivedData(sourceDocumentId);
         KitKnowledgeIngestTask existingTask = getOne(new LambdaQueryWrapper<KitKnowledgeIngestTask>()
                 .eq(KitKnowledgeIngestTask::getSourceDocumentId, sourceDocumentId)
                 .eq(KitKnowledgeIngestTask::getDeleted, false)
@@ -61,6 +69,9 @@ public class KnowledgeIngestTaskServiceImpl
         if (incrementRetryCount) {
             nextRetryCount += 1;
         }
+        checkpointMapper.delete(new LambdaQueryWrapper<KitKnowledgeIngestAnalysisCheckpoint>()
+                .eq(KitKnowledgeIngestAnalysisCheckpoint::getIngestTaskId, existingTask.getId())
+                .eq(KitKnowledgeIngestAnalysisCheckpoint::getDeleted, false));
         update(new LambdaUpdateWrapper<KitKnowledgeIngestTask>()
                 .eq(KitKnowledgeIngestTask::getId, existingTask.getId())
                 .eq(KitKnowledgeIngestTask::getDeleted, false)

@@ -13,5 +13,7 @@ import java.util.List;
 @Mapper
 public interface KnowledgePageMapper extends BaseMapper<KitKnowledgePage> {
 
+    List<KitKnowledgePage> selectPagesBySourceDocumentId(@Param("sourceDocumentId") String sourceDocumentId);
+
     List<KitKnowledgePage> selectCurrentPagesBySourceDocumentId(@Param("sourceDocumentId") String sourceDocumentId);
 }

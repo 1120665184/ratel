@@ -13,11 +13,13 @@ import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePage;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageVersion;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceDocument;
 import org.quyq.gwsu.kit.knowledge.engine.image.KnowledgeContentRenderService;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageVersionMapper;
+import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentMapper;
 import org.quyq.gwsu.kit.knowledge.service.IKnowledgePageQueryService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -27,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 知识 Page 查询服务实现。
@@ -43,6 +46,8 @@ public class KnowledgePageQueryServiceImpl implements IKnowledgePageQueryService
 
     private final KnowledgePageSourceRefMapper pageSourceRefMapper;
 
+    private final KnowledgeSourceDocumentMapper sourceDocumentMapper;
+
     private final KnowledgeContentRenderService contentRenderService;
 
     @Override
@@ -55,7 +60,10 @@ public class KnowledgePageQueryServiceImpl implements IKnowledgePageQueryService
                         .orderByDesc(KitKnowledgePage::getCreateTime));
         Page<KnowledgePageVO> result = Page.of(page.getCurrent(), page.getSize(), page.getTotal());
         result.setPages(page.getPages());
-        result.setRecords(page.getRecords().stream().map(this::toPageVO).toList());
+        Map<String, String> sourceDocumentNameByPageId = loadSourceDocumentNameByPageId(page.getRecords());
+        result.setRecords(page.getRecords().stream()
+                .map(record -> toPageVO(record, sourceDocumentNameByPageId.get(record.getId())))
+                .toList());
         return result;
     }
 
@@ -102,12 +110,33 @@ public class KnowledgePageQueryServiceImpl implements IKnowledgePageQueryService
         return detail;
     }
 
-    private KnowledgePageVO toPageVO(KitKnowledgePage page) {
+    private Map<String, String> loadSourceDocumentNameByPageId(List<KitKnowledgePage> pages) {
+        if (CollectionUtils.isEmpty(pages)) {
+            return Map.of();
+        }
+        List<String> pageIds = pages.stream().map(KitKnowledgePage::getId).filter(StringUtils::hasText).toList();
+        if (CollectionUtils.isEmpty(pageIds)) {
+            return Map.of();
+        }
+        return sourceDocumentMapper.selectList(new LambdaQueryWrapper<KitKnowledgeSourceDocument>()
+                        .in(KitKnowledgeSourceDocument::getTargetPageId, pageIds)
+                        .eq(KitKnowledgeSourceDocument::getDeleted, false))
+                .stream()
+                .filter(document -> StringUtils.hasText(document.getTargetPageId()))
+                .collect(Collectors.toMap(
+                        KitKnowledgeSourceDocument::getTargetPageId,
+                        document -> StringUtils.hasText(document.getFileName()) ? document.getFileName() : "-",
+                        (left, right) -> left,
+                        HashMap::new));
+    }
+
+    private KnowledgePageVO toPageVO(KitKnowledgePage page, String sourceDocumentName) {
         KnowledgePageVO vo = new KnowledgePageVO()
                 .setId(page.getId())
                 .setTitle(page.getTitle())
                 .setPageStatus(page.getPageStatus())
-                .setCurrentVersionId(page.getCurrentVersionId());
+                .setCurrentVersionId(page.getCurrentVersionId())
+                .setSourceDocumentName(sourceDocumentName);
         vo.copyBaseProperties(page);
         return vo;
     }

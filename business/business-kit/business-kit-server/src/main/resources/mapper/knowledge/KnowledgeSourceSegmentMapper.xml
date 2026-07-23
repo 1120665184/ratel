@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceSegmentMapper">
+    <select id="selectBySourceDocumentId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceSegment">
+        SELECT *
+        FROM kit_knowledge_source_segment
+        WHERE deleted = 0
+          AND source_document_id = #{sourceDocumentId}
+        ORDER BY segment_no ASC
+    </select>
+</mapper>

@@ -62,6 +62,7 @@ export interface KnowledgeDocumentVO {
   documentStatus: KnowledgeDocumentStatus;
   processMessage?: string;
   embeddingCompleted?: boolean;
+  imageOcrParsed?: boolean;
   enabled?: boolean;
   processedAt?: string;
   roleCodes?: string[];
@@ -97,6 +98,7 @@ export interface KnowledgePageVO {
   title: string;
   pageStatus: KnowledgePageStatus;
   currentVersionId?: string;
+  sourceDocumentName?: string;
   createTime?: string;
   modifyTime?: string;
 }
@@ -126,18 +128,21 @@ export interface KnowledgeSearchResultVO {
   pageId: string;
   pageVersionId?: string;
   pageBlockId?: string;
-  sourceDocumentId: string;
-  title: string;
+  blockType?: KnowledgeBlockType;
+  sourceDocumentId?: string;
+  title?: string;
   headingPath?: string;
   content: string;
+  blockOrder?: number;
   chunkOrder?: number;
   score?: number;
 }
 
 export interface KnowledgeChunkAdjacentDTO {
   roleCodes?: string[];
-  chunkId: string;
+  pageBlockId: string;
   direction: KnowledgeChunkDirection;
+  offset?: number;
 }
 
 export const DOCUMENT_STATUS_OPTIONS: Array<{

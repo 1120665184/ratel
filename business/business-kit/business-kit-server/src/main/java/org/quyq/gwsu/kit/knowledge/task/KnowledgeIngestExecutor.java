@@ -3,6 +3,7 @@ package org.quyq.gwsu.kit.knowledge.task;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeDocumentStatus;
@@ -20,21 +21,23 @@ import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkBuilder;
 import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkDocument;
 import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkEmbeddingService;
 import org.quyq.gwsu.kit.knowledge.engine.chunk.KnowledgeChunkIndexRepository;
-import org.quyq.gwsu.kit.knowledge.engine.ingest.AnalyzedKnowledgeSource;
 import org.quyq.gwsu.kit.knowledge.engine.ingest.KnowledgeDocumentParser;
 import org.quyq.gwsu.kit.knowledge.engine.ingest.KnowledgeIngestSanitizer;
-import org.quyq.gwsu.kit.knowledge.engine.ingest.LongSourceAnalysisService;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.KnowledgeSourceSegmentDraft;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.KnowledgeSourceSegmentationService;
 import org.quyq.gwsu.kit.knowledge.engine.ingest.ParsedKnowledgeDocument;
+import org.quyq.gwsu.kit.knowledge.engine.ingest.SegmentedKnowledgeSource;
 import org.quyq.gwsu.kit.knowledge.engine.ingest.SanitizedKnowledgeSource;
-import org.quyq.gwsu.kit.knowledge.engine.page.GeneratedKnowledgePage;
-import org.quyq.gwsu.kit.knowledge.engine.page.KnowledgePageGenerationRequest;
-import org.quyq.gwsu.kit.knowledge.engine.page.KnowledgePageGenerator;
+import org.quyq.gwsu.kit.knowledge.engine.page.GeneratedKnowledgePageDraft;
+import org.quyq.gwsu.kit.knowledge.engine.page.HighFidelityKnowledgePageGenerator;
+import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeSourceSegment;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeIngestTaskMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageBlockMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageSourceRefMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgePageVersionMapper;
 import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceDocumentMapper;
-import org.quyq.gwsu.kit.knowledge.service.KnowledgePageMergeService;
+import org.quyq.gwsu.kit.knowledge.mapper.KnowledgeSourceSegmentMapper;
+import org.quyq.gwsu.kit.knowledge.service.impl.KnowledgeSourceDocumentPagePublishService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
@@ -46,6 +49,7 @@ import java.util.Objects;
  * 知识源文档导入执行器。
  */
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class KnowledgeIngestExecutor {
 
@@ -67,11 +71,13 @@ public class KnowledgeIngestExecutor {
 
     private final KnowledgeIngestSanitizer ingestSanitizer;
 
-    private final LongSourceAnalysisService longSourceAnalysisService;
+    private final KnowledgeSourceSegmentationService segmentationService;
 
-    private final KnowledgePageGenerator pageGenerator;
+    private final KnowledgeSourceSegmentMapper sourceSegmentMapper;
 
-    private final KnowledgePageMergeService pageMergeService;
+    private final HighFidelityKnowledgePageGenerator highFidelityPageGenerator;
+
+    private final KnowledgeSourceDocumentPagePublishService pagePublishService;
 
     private final KnowledgeChunkBuilder chunkBuilder;
 
@@ -95,18 +101,30 @@ public class KnowledgeIngestExecutor {
             updateSourceProcessMessage(sourceDocument.getId(), sanitizedSource.warnings());
 
             updateStage(task.getId(), KnowledgeIngestStage.ANALYZE_SOURCE);
-            AnalyzedKnowledgeSource analyzedSource = longSourceAnalysisService.analyze(task, parsedDocument, sanitizedSource);
+            SegmentedKnowledgeSource segmentedSource = segmentationService.segment(parsedDocument, sanitizedSource);
+            replaceSourceSegments(sourceDocument.getId(), segmentedSource.segments());
 
             updateStage(task.getId(), KnowledgeIngestStage.GENERATE_PAGE);
-            GeneratedKnowledgePage generatedPage = pageGenerator.generate(new KnowledgePageGenerationRequest(
+            log.info("开始高保真生成知识页面: taskId={}, sourceDocumentId={}, fileName={}, parsedSourceLanguage={}, segmentedSourceLanguage={}, segmentCount={}, warnings={}",
+                    task.getId(),
+                    sourceDocument.getId(),
                     parsedDocument.fileName(),
-                    analyzedSource.sourceLanguage(),
-                    analyzedSource.analysisDigest(),
-                    analyzedSource.boundedSourceText(),
-                    knowledgeProperties.getWikiOutputLanguage()));
+                    parsedDocument.sourceLanguage(),
+                    segmentedSource.sourceLanguage(),
+                    segmentedSource.segments().size(),
+                    sanitizedSource.warnings());
+            GeneratedKnowledgePageDraft generatedPage = highFidelityPageGenerator.generate(
+                    parsedDocument.fileName(),
+                    knowledgeProperties.getWikiOutputLanguage(),
+                    segmentedSource);
+            log.info("知识页面生成结果: taskId={}, sourceDocumentId={}, titlePreview={}, markdownLength={}",
+                    task.getId(),
+                    sourceDocument.getId(),
+                    abbreviate(generatedPage.title(), 120),
+                    safeLength(generatedPage.markdownContent()));
 
             updateStage(task.getId(), KnowledgeIngestStage.MERGE_PAGE);
-            String pageVersionId = pageMergeService.publish(sourceDocument, generatedPage);
+            String pageVersionId = pagePublishService.publish(sourceDocument, generatedPage);
 
             updateStage(task.getId(), KnowledgeIngestStage.BUILD_CHUNK);
             KitKnowledgePageVersion pageVersion = loadPageVersion(pageVersionId);
@@ -238,5 +256,38 @@ public class KnowledgeIngestExecutor {
                 : String.join("；", warnings);
         updateSourceStatus(sourceDocumentId, new KitKnowledgeSourceDocument()
                 .setProcessMessage(message));
+    }
+
+    private void replaceSourceSegments(String sourceDocumentId, List<KnowledgeSourceSegmentDraft> segments) {
+        sourceSegmentMapper.delete(new LambdaUpdateWrapper<KitKnowledgeSourceSegment>()
+                .eq(KitKnowledgeSourceSegment::getSourceDocumentId, sourceDocumentId)
+                .eq(KitKnowledgeSourceSegment::getDeleted, false));
+        if (CollectionUtils.isEmpty(segments)) {
+            return;
+        }
+        for (KnowledgeSourceSegmentDraft segment : segments) {
+            sourceSegmentMapper.insert(new KitKnowledgeSourceSegment()
+                    .setSourceDocumentId(sourceDocumentId)
+                    .setSegmentNo(segment.segmentNo())
+                    .setSegmentType(segment.segmentType())
+                    .setHeadingPath(segment.headingPath())
+                    .setSourceLocator(segment.sourceLocator())
+                    .setContent(segment.content()));
+        }
+    }
+
+    private int safeLength(String text) {
+        return text == null ? 0 : text.length();
+    }
+
+    private String abbreviate(String text, int maxLength) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = text.replaceAll("\\s+", " ").trim();
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength) + "...[truncated]";
     }
 }

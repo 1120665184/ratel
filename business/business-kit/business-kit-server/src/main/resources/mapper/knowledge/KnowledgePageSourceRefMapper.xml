@@ -18,4 +18,11 @@
               </otherwise>
           </choose>
     </select>
+
+    <select id="selectBySourceDocumentId" resultType="org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageSourceRef">
+        SELECT *
+        FROM kit_knowledge_page_source_ref
+        WHERE deleted = 0
+          AND source_document_id = #{sourceDocumentId}
+    </select>
 </mapper>

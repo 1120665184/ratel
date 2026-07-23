@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgePageBlock;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -14,4 +15,6 @@ import java.util.List;
 public interface KnowledgePageBlockMapper extends BaseMapper<KitKnowledgePageBlock> {
 
     List<KitKnowledgePageBlock> selectByVersionId(@Param("pageVersionId") String pageVersionId);
+
+    List<KitKnowledgePageBlock> selectByVersionIds(@Param("pageVersionIds") Collection<String> pageVersionIds);
 }

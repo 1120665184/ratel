@@ -65,6 +65,12 @@ public class KnowledgeProperties {
     private int generationContextTokenCount = 12000;
 
     /**
+     * Wiki 生成时可使用的源文上下文最大 Token 数。
+     */
+    @Positive
+    private int generationSourceTokenCount = 2000;
+
+    /**
      * 混合召回阶段保留的候选 Chunk 数。
      */
     @Positive
@@ -96,5 +102,10 @@ public class KnowledgeProperties {
     @AssertTrue(message = "analysisChunkOverlapTokenCount 必须小于 analysisChunkTokenCount")
     public boolean isAnalysisChunkOverlapTokenCountValid() {
         return analysisChunkOverlapTokenCount < analysisChunkTokenCount;
+    }
+
+    @AssertTrue(message = "generationSourceTokenCount 必须小于 generationContextTokenCount")
+    public boolean isGenerationSourceTokenCountValid() {
+        return generationSourceTokenCount < generationContextTokenCount;
     }
 }

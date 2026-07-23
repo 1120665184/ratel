@@ -396,6 +396,7 @@ public class KnowledgePageMergeServiceImpl implements KnowledgePageMergeService 
                         Objects.requireNonNullElse(right.getOrderNo(), 0)))
                 .map(KitKnowledgePageBlock::getContent)
                 .filter(StringUtils::hasText)
+                .map(String::trim)
                 .collect(Collectors.joining("\n\n"));
     }
 

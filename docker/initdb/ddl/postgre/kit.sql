@@ -452,6 +452,37 @@ COMMENT ON COLUMN kit_knowledge_source_document.processed_at IS '处理完成时
 CREATE INDEX idx_kit_knowledge_source_document_file_id ON kit_knowledge_source_document (file_id) WHERE deleted = 0;
 CREATE INDEX idx_kit_knowledge_source_document_status ON kit_knowledge_source_document (document_status);
 
+CREATE TABLE kit_knowledge_source_segment
+(
+    id                 VARCHAR(24) PRIMARY KEY,
+    source_document_id VARCHAR(24)  NOT NULL,
+    segment_no         INT          NOT NULL,
+    segment_type       VARCHAR(32)  NOT NULL,
+    heading_path       VARCHAR(1000)         DEFAULT NULL,
+    source_locator     VARCHAR(500)          DEFAULT NULL,
+    content            TEXT                  DEFAULT NULL,
+    tenant_id          VARCHAR(50)           DEFAULT NULL,
+    create_op          VARCHAR(50)           DEFAULT NULL,
+    create_time        TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    modify_op          VARCHAR(50)           DEFAULT NULL,
+    modify_time        TIMESTAMP             DEFAULT NULL,
+    deleted            INT2         NOT NULL DEFAULT 0,
+    delete_op          VARCHAR(50)           DEFAULT NULL,
+    delete_time        TIMESTAMP             DEFAULT NULL
+);
+
+COMMENT ON TABLE kit_knowledge_source_segment IS '知识源文档解析片段';
+COMMENT ON COLUMN kit_knowledge_source_segment.id IS '主键ID';
+COMMENT ON COLUMN kit_knowledge_source_segment.source_document_id IS '源文档ID';
+COMMENT ON COLUMN kit_knowledge_source_segment.segment_no IS '片段顺序号';
+COMMENT ON COLUMN kit_knowledge_source_segment.segment_type IS '片段类型';
+COMMENT ON COLUMN kit_knowledge_source_segment.heading_path IS '标题路径';
+COMMENT ON COLUMN kit_knowledge_source_segment.source_locator IS '来源定位';
+COMMENT ON COLUMN kit_knowledge_source_segment.content IS '片段内容';
+
+CREATE UNIQUE INDEX uk_kit_knowledge_source_segment_doc_no ON kit_knowledge_source_segment (source_document_id, segment_no) WHERE deleted = 0;
+CREATE INDEX idx_kit_knowledge_source_segment_document ON kit_knowledge_source_segment (source_document_id) WHERE deleted = 0;
+
 CREATE TABLE kit_knowledge_source_document_role
 (
     id                 VARCHAR(24) PRIMARY KEY,
@@ -558,6 +589,8 @@ CREATE TABLE kit_knowledge_page_source_ref
     page_block_id      VARCHAR(24) NOT NULL,
     source_type        VARCHAR(32) NOT NULL,
     source_document_id VARCHAR(24) NOT NULL,
+    source_segment_start_no INT             DEFAULT NULL,
+    source_segment_end_no   INT             DEFAULT NULL,
     source_locator     VARCHAR(500) DEFAULT NULL,
     tenant_id          VARCHAR(50)  DEFAULT NULL,
     create_op          VARCHAR(50)  DEFAULT NULL,
@@ -574,6 +607,8 @@ COMMENT ON COLUMN kit_knowledge_page_source_ref.id IS '主键ID';
 COMMENT ON COLUMN kit_knowledge_page_source_ref.page_block_id IS 'Page Block ID';
 COMMENT ON COLUMN kit_knowledge_page_source_ref.source_type IS '来源类型';
 COMMENT ON COLUMN kit_knowledge_page_source_ref.source_document_id IS '源文档ID';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.source_segment_start_no IS '起始片段序号';
+COMMENT ON COLUMN kit_knowledge_page_source_ref.source_segment_end_no IS '结束片段序号';
 COMMENT ON COLUMN kit_knowledge_page_source_ref.source_locator IS '来源定位';
 
 CREATE UNIQUE INDEX uk_kit_knowledge_page_source_ref_block ON kit_knowledge_page_source_ref (page_block_id) WHERE deleted = 0;

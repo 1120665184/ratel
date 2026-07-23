@@ -20,6 +20,7 @@ public record ParsedKnowledgeDocument(String fileName,
         text = text == null ? "" : text;
         parseWarnings = parseWarnings == null ? List.of() : List.copyOf(parseWarnings);
         imageFileIds = imageFileIds == null ? List.of() : List.copyOf(imageFileIds);
+        imageOcrParsed = imageOcrParsed || imageFileIds.isEmpty();
     }
 
     /**

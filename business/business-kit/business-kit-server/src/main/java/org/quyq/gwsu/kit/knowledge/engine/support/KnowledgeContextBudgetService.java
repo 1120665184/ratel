@@ -19,11 +19,16 @@ public class KnowledgeContextBudgetService {
         int analysisChunkTokens = properties.getAnalysisChunkTokenCount();
         int overlapTokens = properties.getAnalysisChunkOverlapTokenCount();
         int generationContextTokens = properties.getGenerationContextTokenCount();
-        if (analysisChunkTokens <= 0 || generationContextTokens <= 1 || overlapTokens < 0 || overlapTokens >= analysisChunkTokens) {
+        int sourceTokens = properties.getGenerationSourceTokenCount();
+        if (analysisChunkTokens <= 0
+                || generationContextTokens <= 1
+                || sourceTokens <= 0
+                || sourceTokens >= generationContextTokens
+                || overlapTokens < 0
+                || overlapTokens >= analysisChunkTokens) {
             throw new BusinessException(KitErrorCode.E03005, "知识库上下文预算配置无效");
         }
-        int digestTokens = Math.max(1, generationContextTokens / 3);
-        int sourceTokens = generationContextTokens - digestTokens;
+        int digestTokens = generationContextTokens - sourceTokens;
         if (sourceTokens <= 0) {
             throw new BusinessException(KitErrorCode.E03005, "知识库生成上下文预算配置无效");
         }

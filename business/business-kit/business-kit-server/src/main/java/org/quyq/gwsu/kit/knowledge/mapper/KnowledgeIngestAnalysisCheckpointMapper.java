@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.quyq.gwsu.kit.knowledge.domain.KitKnowledgeIngestAnalysisCheckpoint;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -18,4 +19,6 @@ public interface KnowledgeIngestAnalysisCheckpointMapper extends BaseMapper<KitK
     KitKnowledgeIngestAnalysisCheckpoint selectByTaskIdAndChunkNo(
             @Param("ingestTaskId") String ingestTaskId,
             @Param("chunkNo") Integer chunkNo);
+
+    List<KitKnowledgeIngestAnalysisCheckpoint> selectByTaskIds(@Param("ingestTaskIds") Collection<String> ingestTaskIds);
 }

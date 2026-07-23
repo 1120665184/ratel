@@ -7,6 +7,6 @@ public record KnowledgePageGenerationRequest(
         String fileName,
         String sourceLanguage,
         String analysisDigest,
-        String boundedSourceText,
+        String sourceContext,
         String outputLanguage) {
 }
