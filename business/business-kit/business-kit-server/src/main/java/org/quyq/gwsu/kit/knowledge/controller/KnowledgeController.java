@@ -5,12 +5,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.domain.R;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchMetaVO;
 import org.quyq.gwsu.kit.api.knowledge.KnowledgeClientApi;
 import org.quyq.gwsu.kit.api.knowledge.dto.*;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeDocumentVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageDetailVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgePageVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
+import org.quyq.gwsu.kit.config.properties.KnowledgeProperties;
 import org.quyq.gwsu.kit.knowledge.engine.search.KnowledgeSearchEngine;
 import org.quyq.gwsu.kit.knowledge.service.*;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +36,8 @@ import java.util.List;
 //        KitKnowledgePageSourceRef.class})
 public class KnowledgeController implements KnowledgeClientApi {
 
+    private final KnowledgeProperties knowledgeProperties;
+
     private final KnowledgeIngestApplicationService knowledgeIngestApplicationService;
 
     private final IKnowledgeSourceDocumentService sourceDocumentService;
@@ -45,6 +49,14 @@ public class KnowledgeController implements KnowledgeClientApi {
     private final IKnowledgePageQueryService pageQueryService;
 
     private final KnowledgeSearchEngine knowledgeSearchEngine;
+
+    @Override
+    @GetMapping("/search/meta")
+    @Operation(summary = "获取知识检索元信息")
+    public R<KnowledgeSearchMetaVO> getSearchMeta() {
+        return R.ok(new KnowledgeSearchMetaVO()
+                .setWikiPageLanguage(knowledgeProperties.getWikiOutputLanguage()));
+    }
 
     @PostMapping("/document/save")
     @Operation(summary = "保存知识源文档并提交导入")

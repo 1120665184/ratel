@@ -42,6 +42,8 @@ public class DatabaseSearchAgent {
 
     public static final String AGENT_NAME = "SelectiveSQLAgent";
 
+    private static final String AGENT_SOURCE = "database-search";
+
     private static final String TABLE_MODEL_PERMISSION_KEY = "tableModelPermission";
 
     private final ObjectProvider<Toolkit> toolkitProvider;
@@ -89,6 +91,7 @@ public class DatabaseSearchAgent {
                 .model(ModelProvider.generateModel())
                 .toolkit(toolkit)
                 .skillRepository(new DatabaseSearchSkillRepository(
+                        AGENT_SOURCE,
                         tableModelTableService::listAll,
                         businessFunctionService::listAll,
                         businessFunctionService::getDetailById,
@@ -102,7 +105,7 @@ public class DatabaseSearchAgent {
         SkillBox skillBox = new SkillBox(toolkit);
         AgentSkill templateSkill = AgentSkill.builder()
                 .name(DatabaseSearchSkillRepository.SKILL_NAME)
-                .source("database-search")
+                .source(AGENT_SOURCE)
                 .description("""
                         根据自然语言问题生成SQL并执行查询。优先识别用户是否命中已有业务功能，若命中则优先查阅业务文档与表模型说明，再结合工具返回的真实结构生成只读 SQL。
                         """)

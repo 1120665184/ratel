@@ -33,6 +33,7 @@ public class DatabaseSearchSkillRepository implements AgentSkillRepository {
     private final AgentSkillRepositoryInfo repositoryInfo;
 
     public DatabaseSearchSkillRepository(
+            String source ,
             Supplier<List<TableModelTableVO>> allTablesSupplier,
             Supplier<List<BusinessFunctionVO>> businessFunctionsSupplier,
             Function<String, BusinessFunctionDetailVO> businessDetailSupplier,
@@ -43,7 +44,7 @@ public class DatabaseSearchSkillRepository implements AgentSkillRepository {
         this.businessDetailSupplier = Objects.requireNonNull(businessDetailSupplier, "businessDetailSupplier must not be null");
         this.permissionSupplier = Objects.requireNonNull(permissionSupplier, "permissionSupplier must not be null");
         this.singleDeploySupplier = Objects.requireNonNull(singleDeploySupplier, "singleDeploySupplier must not be null");
-        this.repositoryInfo = new AgentSkillRepositoryInfo("dynamic", "database-search", false);
+        this.repositoryInfo = new AgentSkillRepositoryInfo("dynamic", source, false);
     }
 
     @Override

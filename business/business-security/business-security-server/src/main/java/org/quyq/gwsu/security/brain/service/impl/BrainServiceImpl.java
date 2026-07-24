@@ -14,6 +14,7 @@ import org.quyq.gwsu.common.ai.agui.SingletonAgentResolver;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.model.ModelProvider;
+import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
@@ -25,11 +26,14 @@ import org.quyq.gwsu.security.brain.service.middleware.ApprovalTipMiddleware;
 import org.quyq.gwsu.security.brain.service.middleware.DynamicViewToolFilterMiddleware;
 import org.quyq.gwsu.security.brain.service.middleware.ForwardedPropsMiddleware;
 import org.quyq.gwsu.security.brain.service.middleware.StatisticsMiddleware;
+import org.quyq.gwsu.security.brain.service.skill.KnowledgeSearchSkillRepository;
 import org.quyq.gwsu.security.brain.service.skill.UserMenuSkillRepository;
+import org.quyq.gwsu.security.brain.service.tool.KnowledgeSearchTool;
 import org.quyq.gwsu.security.brain.service.tool.web.ClickElementTool;
 import org.quyq.gwsu.security.brain.service.tool.web.EnterAiModeTool;
 import org.quyq.gwsu.security.brain.service.tool.web.WebTool;
 import org.quyq.gwsu.security.menu.service.ISecurityMenuService;
+import org.quyq.gwsu.kit.api.knowledge.KnowledgeClientApi;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
@@ -68,6 +72,10 @@ public class BrainServiceImpl implements IBrainService {
 
     private final ClickElementTool clickElementTool;
 
+    private final KnowledgeSearchTool knowledgeSearchTool;
+
+    private final KnowledgeClientApi knowledgeClientApi;
+
     private final ObjectMapper objectMapper;
 
     private static final String PERMISSION_SOURCE = "central-brain";
@@ -81,6 +89,7 @@ public class BrainServiceImpl implements IBrainService {
         toolkit.registerTool(new AskUserQuestionTool());
 
         registerViewOperationSkill(toolkit);
+        registerKnowledgeSearchSkill(toolkit);
 
         return getAgent(toolkit);
     }
@@ -108,6 +117,21 @@ public class BrainServiceImpl implements IBrainService {
                 .apply();
     }
 
+    private void registerKnowledgeSearchSkill(Toolkit toolkit) {
+        SkillBox skillBox = new SkillBox(toolkit);
+        AgentSkill templateSkill = AgentSkill.builder()
+                .name(KnowledgeSearchSkillRepository.SKILL_NAME)
+                .source(PERMISSION_SOURCE)
+                .description("当需要检索制度、文档、手册或 FAQ 等知识内容时，加载此技能并使用知识检索工具")
+                .skillContent("动态技能占位，不直接使用此内容。")
+                .build();
+
+        skillBox.registration()
+                .skill(templateSkill)
+                .tool(knowledgeSearchTool)
+                .apply();
+    }
+
 
     private Agent getAgent(Toolkit toolkit) {
         //内容输出子智能体
@@ -132,10 +156,14 @@ public class BrainServiceImpl implements IBrainService {
                         new ApprovalTipMiddleware(objectMapper),
                         new ForwardedPropsMiddleware(securityUtils, sessionUtils, objectMapper)))
                 .toolkit(toolkit)
-                .skillRepository(new UserMenuSkillRepository(
-                        PERMISSION_SOURCE,
-                        securityUtils::getUsername,
-                        () -> menuService.listUserRoutes(MenuOwner.ADMIN)))
+                .skillRepositories(List.of(
+                        new UserMenuSkillRepository(
+                                PERMISSION_SOURCE,
+                                securityUtils::getUsername,
+                                () -> menuService.listUserRoutes(MenuOwner.ADMIN)),
+                        new KnowledgeSearchSkillRepository(
+                                PERMISSION_SOURCE,
+                                () -> FeignUtils.data(knowledgeClientApi.getSearchMeta()))))
                 .maxIters(100)
                 .toolExecutionConfig(ExecutionConfig.builder()
                         .timeout(Duration.of(10, ChronoUnit.MINUTES))
@@ -148,7 +176,6 @@ public class BrainServiceImpl implements IBrainService {
                 .disableFilesystemTools()
                 .build();
     }
-
 
     private String buildSysPrompt() {
 
@@ -174,9 +201,15 @@ public class BrainServiceImpl implements IBrainService {
                 - 局限性：仅支持查询，不支持修改
                 - 当用户需求为查询或统计时，优先使用此能力
                 
+                ## 知识库检索
+                - 适用场景：制度说明、操作手册、知识文档、FAQ 类问题
+                - 局限性：只能基于知识库已存在内容回答，不能补充知识库外部事实
+                - 当用户需求是查文档、问规则、问说明时，优先使用此能力
+                
                 ## 能力选择原则
                 - 修改数据 → 可视化界面操作
                 - 查询/统计数据 → 数据库搜索（优先）
+                - 文档知识问答 → 知识库检索（优先）
                 - 上述所有能力均基于当前用户权限构建，当用户在系统中没有相关权限时，如实告知无权限
                 
                 # 技能使用

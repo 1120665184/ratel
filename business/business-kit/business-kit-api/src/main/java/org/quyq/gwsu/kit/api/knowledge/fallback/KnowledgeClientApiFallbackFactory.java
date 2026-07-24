@@ -6,6 +6,7 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.kit.api.knowledge.KnowledgeClientApi;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeChunkAdjacentDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeSearchDTO;
+import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchMetaVO;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,11 @@ public class KnowledgeClientApiFallbackFactory implements FallbackFactory<Knowle
     public KnowledgeClientApi create(Throwable cause) {
         log.error(cause.getMessage(), cause);
         return new KnowledgeClientApi() {
+            @Override
+            public R<KnowledgeSearchMetaVO> getSearchMeta() {
+                return R.fail("服务暂时不可用: " + cause.getMessage());
+            }
+
             @Override
             public R<List<KnowledgeSearchResultVO>> search(KnowledgeSearchDTO dto) {
                 return R.fail("服务暂时不可用: " + cause.getMessage());
