@@ -15,13 +15,11 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
 import org.apache.commons.lang3.StringUtils;
 import org.quyq.gwsu.common.ai.AgentException;
-import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.domain.visitor.Visitor;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
-import org.quyq.gwsu.common.core.utils.ServletUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.common.security.domain.Subject;
@@ -34,7 +32,7 @@ import org.quyq.gwsu.security.api.tablemodel.vo.TableModelColumnVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelForeignKeyVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
-import org.quyq.gwsu.security.brain.service.agent.DatabaseSearchAgent;
+import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -65,6 +63,12 @@ public class DatabaseSearchTool {
 
     private final SecurityUtils securityUtils;
 
+    private final ISecurityRoleTableModelService roleTableModelService;
+
+    public Map<String, Map<String, FieldPermission>> getUserTableModelPermission() {
+        return roleTableModelService.getUserTableModelPermission();
+    }
+
 
     /**
      * 获取指定表的详细内容（字段信息），包含当前登录用户对该字段的权限
@@ -77,8 +81,7 @@ public class DatabaseSearchTool {
     public Mono<String> getTableDetail(
             @ToolParam(name = "modelPrefix", description = "所属模块/服务") String modelPrefix,
             @ToolParam(name = "tableName", description = "表名") String tableName,
-            @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds,
-            DatabaseSearchAgent databaseSearchAgent) {
+            @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds) {
         String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
         return Mono.defer(() ->{
             // 获取表信息
@@ -95,7 +98,7 @@ public class DatabaseSearchTool {
             List<TableModelForeignKeyVO> foreignKeys = tableDetail.getForeignKeys();
 
             // 获取当前用户的字段权限
-            Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(databaseSearchAgent,
+            Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(
                     modelPrefix, dataSource, tableName);
 
             // 批量获取字段涉及的字典值
@@ -216,13 +219,13 @@ public class DatabaseSearchTool {
     public Mono<String> executeSql(
             @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
             @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds,
-            @ToolParam(name = "sql", description = "要执行的SELECT SQL语句") String sql,
-            DatabaseSearchAgent databaseSearchAgent) {
+            @ToolParam(name = "sql", description = "要执行的SELECT SQL语句") String sql) {
         String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
 
         return Mono.defer(() ->{
 
-            Map<String, Map<String, FieldPermission>> userTableModelPermission = databaseSearchAgent.getUserTableModelPermission();
+            Map<String, Map<String, FieldPermission>> userTableModelPermission =
+                    roleTableModelService.getUserTableModelPermission();
 
             // 1. 校验SQL是否为SELECT语句
             String trimmedSql = sql.trim();
@@ -840,24 +843,15 @@ public class DatabaseSearchTool {
     /**
      * 获取当前用户对指定表的字段权限
      */
-    private Map<String, FieldPermission> getCurrentUserFieldPermissions(DatabaseSearchAgent databaseSearchAgent, String modulePrefix, String dataSource, String tableName) {
-        Map<String, Map<String, FieldPermission>> mergedPermissions = databaseSearchAgent.getUserTableModelPermission();
+    private Map<String, FieldPermission> getCurrentUserFieldPermissions(
+            String modulePrefix, String dataSource, String tableName) {
+        Map<String, Map<String, FieldPermission>> mergedPermissions =
+                roleTableModelService.getUserTableModelPermission();
 
         String key = modulePrefix + ":" + dataSource + ":" + tableName;
         return mergedPermissions.getOrDefault(key, Map.of());
     }
 
 
-//    private <T> Mono<T> monoHandler(Supplier<Mono<T>> supplier) {
-//        return Mono.deferContextual(cnx -> {
-//            //将当前请求信息放入上下文
-//            ServletUtils.LOCAL_HEADERS.set(cnx.get(AIConstants.Param.SERVLET_HEADERS));
-//            try {
-//                return supplier.get();
-//            }finally {
-//                ServletUtils.LOCAL_HEADERS.remove();
-//            }
-//        });
-//    }
 
 }

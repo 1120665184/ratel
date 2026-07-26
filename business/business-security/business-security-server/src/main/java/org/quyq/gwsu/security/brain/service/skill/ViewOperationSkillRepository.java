@@ -13,9 +13,11 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class UserMenuSkillRepository implements AgentSkillRepository, LazyResourceCapable {
+public class ViewOperationSkillRepository implements AgentSkillRepository, LazyResourceCapable {
 
     public static final String SKILL_NAME = "system_view_operation";
+
+    public static final String SKILL_DESCRIPTION = "当需要操作用户可视化界面时，加载此技能查看当前用户可访问的界面，并按需读取页面按钮说明";
 
     private static final String PAGE_RESOURCE_PREFIX = "references/pages/";
 
@@ -29,7 +31,7 @@ public class UserMenuSkillRepository implements AgentSkillRepository, LazyResour
 
     private final AgentSkillRepositoryInfo repositoryInfo;
 
-    public UserMenuSkillRepository(String source, Supplier<String> usernameSupplier, Supplier<List<MenuVO>> menuSupplier) {
+    public ViewOperationSkillRepository(String source, Supplier<String> usernameSupplier, Supplier<List<MenuVO>> menuSupplier) {
         this.source = StringUtils.hasText(source) ? source : "central-brain";
         this.usernameSupplier = usernameSupplier != null ? usernameSupplier : () -> null;
         this.menuSupplier = Objects.requireNonNull(menuSupplier, "menuSupplier must not be null");
@@ -104,7 +106,7 @@ public class UserMenuSkillRepository implements AgentSkillRepository, LazyResour
         return AgentSkill.builder()
                 .name(SKILL_NAME)
                 .source(source)
-                .description("当需要操作用户可视化界面时，加载此技能查看当前用户可访问的界面，并按需读取页面按钮说明")
+                .description(SKILL_DESCRIPTION)
                 .skillContent(buildSkillContent(username, menus))
                 .build();
     }

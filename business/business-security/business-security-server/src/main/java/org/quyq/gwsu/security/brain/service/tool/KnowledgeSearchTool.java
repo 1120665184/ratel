@@ -3,14 +3,15 @@ package org.quyq.gwsu.security.brain.service.tool;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.kit.api.knowledge.KnowledgeClientApi;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeChunkAdjacentDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeSearchDTO;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
+import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
 /**
  * 知识检索工具。
  */
-@org.springframework.stereotype.Component
+@Component
 @RequiredArgsConstructor
 public class KnowledgeSearchTool {
 

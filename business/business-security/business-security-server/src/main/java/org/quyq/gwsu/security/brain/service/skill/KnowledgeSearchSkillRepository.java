@@ -89,7 +89,7 @@ public class KnowledgeSearchSkillRepository implements AgentSkillRepository {
         return AgentSkill.builder()
                 .name(SKILL_NAME)
                 .source(repositoryInfo.getLocation())
-                .description("针对知识库问答场景的检索技能，指导智能体使用片段检索和相邻上下文补全获取可靠答案")
+                .description("用于检索知识库中已沉淀的制度、规范、流程、操作手册、产品说明、FAQ 和历史文档事实。适用于“规则是什么”“如何操作”“文档如何规定”等问题；不用于获取实时业务数据。若问题同时需要规则依据和当前业务数据，可与 database_search 配合使用。")
                 .skillContent(buildSkillContent(wikiPageLanguage))
                 .build();
     }

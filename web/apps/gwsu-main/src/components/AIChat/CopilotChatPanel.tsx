@@ -402,9 +402,9 @@ export function CopilotChatPanel({
           <CopilotChat
             agentId="brain"
             labels={{
-              welcomeMessageText: '智能助手',
+              welcomeMessageText: '你好，我是你的助手^_^',
               chatInputPlaceholder: '输入消息...',
-              chatDisclaimerText: '我是你的平台助手，有什么问题可以问我哦^_^',
+              chatDisclaimerText: 'AI生成内容，仅供参考',
             }}
             className={styles.copilotChat}
             messageView={CustomMessageView}

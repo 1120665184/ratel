@@ -33,6 +33,11 @@ public interface ISecurityRoleTableModelService extends IService<SecurityRoleTab
      */
     Map<String, Map<String, FieldPermission>> getMergedRoleTableModelPermission(List<String> roleCodes);
 
+    /**
+     * 获取当前登录用户的合并后表模型权限
+     */
+    Map<String, Map<String, FieldPermission>> getUserTableModelPermission();
+
 
     /**
      * 通过角色ID查询出该角色拥有的表模型权限

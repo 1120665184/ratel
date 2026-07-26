@@ -66,6 +66,20 @@ export const catalog = defineCatalog(schema, {
       }),
       description: '文本/提示/说明组件，支持5种变体',
     },
+    ImageGallery: {
+      props: z.object({
+        title: z.string().nullable().describe('图片区块标题'),
+        description: z.string().nullable().describe('图片区块说明'),
+        layout: z.enum(['grid', 'carousel']).nullable().describe('布局模式：grid 网格，carousel 轮播（当前按网格渲染）'),
+        images: z.array(z.object({
+          url: z.string().describe('图片地址'),
+          title: z.string().nullable().describe('图片标题'),
+          description: z.string().nullable().describe('图片说明'),
+          alt: z.string().nullable().describe('图片替代文本'),
+        })).describe('图片列表，单图和多图都通过该数组传递'),
+      }),
+      description: '图片展示组件，支持单图和多图网格展示，并支持点击预览',
+    },
     FlowChart: {
       props: z.object({
         title: z.string().nullable().describe('流程图标题'),

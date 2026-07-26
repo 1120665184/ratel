@@ -34,7 +34,7 @@ type: skill
 ```
 ```
 
-## 支持的组件（7个）
+## 支持的组件（8个）
 
 | 组件 | 用途 | 详细文档 |
 |------|------|---------|
@@ -44,6 +44,7 @@ type: skill
 | Chart | 图表（柱状/折线/饼图/面积） | [Chart.md](reference/Chart.md) |
 | DataTable | 数据列表 | [DataTable.md](reference/DataTable.md) |
 | TextBlock | 文本/提示/说明 | [TextBlock.md](reference/TextBlock.md) |
+| ImageGallery | 图片展示（单图/多图） | [ImageGallery.md](reference/ImageGallery.md) |
 | FlowChart | 流程图（节点+连线） | [FlowChart.md](reference/FlowChart.md) |
 
 **使用任何组件前，必须阅读其详细文档中的格式定义和常见错误，确保输出格式完全正确。**
@@ -57,6 +58,7 @@ Dashboard（根）
     ├── Chart（图表）
     ├── DataTable（数据表格）
     ├── TextBlock（文本提示）
+    ├── ImageGallery（图片展示）
     └── FlowChart（流程图）
 ```
 
@@ -73,6 +75,7 @@ Dashboard（根）
 7. **禁止重复输出** — 每个 patch 操作只输出一次，不要将整个输出重复输出两遍
 8. **FlowChart edges 必须使用 from/to 字段** — 禁止使用 source/target，使用 source/target 会导致连线完全不显示。正确：`{"from":"1","to":"2"}`，错误：`{"source":"1","target":"2"}`
 9. **必须使用 ```jsonl ``` 包裹输出** — 禁止直接输出裸 JSON 行。正确：以 ```jsonl 开头，JSONL 行放在代码块内，以 ``` 结尾。错误：直接输出 `{"op":"add",...}` 而没有代码块包裹
+10. **ImageGallery 必须使用 `images` 数组** — 禁止使用 `src`、`imageUrl`、`items`、`list` 等未定义字段。每个图片项必须使用 `url`，可选 `title`、`description`、`alt`
 
 ## 规则
 
@@ -80,14 +83,14 @@ Dashboard（根）
 2. **每个 patch 操作必须独占一行** — 每个 JSON Patch 输出完成后必须追加一个换行符（\n），确保后端流式解析器能正确识别 JSON 边界。示例：`{"op":"add","path":"/root","value":"d1"}\n`
 3. **先设置 root** — `{"op":"add","path":"/root","value":"<key>"}`
 4. **然后逐个添加元素** — `{"op":"add","path":"/elements/<key>","value":{"type":"组件名","props":{...},"children":[...]}}`
-5. **只能使用上面列出的 7 个组件**，不要使用任何不存在的组件
+5. **只能使用上面列出的 8 个组件**，不要使用任何不存在的组件
 6. **每个元素必须有 type、props、children 三个字段**
-7. **叶子组件**（StatCard、Chart、DataTable、TextBlock、FlowChart）的 `children` 为空数组 `[]`
+7. **叶子组件**（StatCard、Chart、DataTable、TextBlock、ImageGallery、FlowChart）的 `children` 为空数组 `[]`
 8. **容器组件**（Dashboard、Section）的 `children` 包含子元素的 key
 9. **完整性检查** — 引用子元素前必须已添加该子元素。如果元素有 `children: ['a', 'b']`，则元素 `a` 和 `b` 必须存在
 10. **必须以 Dashboard 作为根元素**
 11. **使用 Section 分组** — `layout="row"` 用于并排展示（如多个 StatCard），`layout="column"` 用于垂直排列
 12. **数据硬编码在 props 中** — 不需要 state、$bindState、$state、on、visible、watch、repeat 等交互功能
-13. **统计数据用 StatCard**，趋势用 Chart，明细用 DataTable，提示用 TextBlock，流程用 FlowChart
+13. **统计数据用 StatCard**，趋势用 Chart，明细用 DataTable，提示用 TextBlock，图片用 ImageGallery，流程用 FlowChart
 14. **严格遵循各组件文档中的 Props 格式** — 禁止使用任何简化或替代格式
 15. **DataTable 必须行级输出** — 先输出 DataTable 元素（data 为空数组 []），然后逐行通过 `{"op":"add","path":"/elements/<key>/props/data/-","value":{...}}` 追加数据行。禁止将所有 data 一次性放在 DataTable 元素中

@@ -130,7 +130,7 @@ public class DatabaseSearchSkillRepository implements AgentSkillRepository {
 
     private String skillDescription() {
         return """
-                根据自然语言问题生成SQL并执行查询。优先识别用户是否命中已有业务功能，若命中则优先查阅对应业务文档获取业务规则、表模型和权限信息，结合表模型概览和元数据工具确认字段、权限和外键后生成符合数据库厂商语法的SELECT语句，并可调用ExecuteSql执行查询。严格遵守同一数据源内关联、禁止SELECT *、默认添加10条限制、仅SELECT操作等约束。
+                用于查询系统中实时或持久化的业务数据，包括记录明细、数量统计、聚合分析、状态核验和关联查询；仅允许读取数据，不用于修改数据，也不作为制度、流程或操作说明的事实来源。若问题同时需要业务规则和当前数据，可与 knowledge_search 配合使用。生成 SQL 前必须确认业务规则、表结构、字段权限和数据库厂商，并严格遵守同一数据源内关联、禁止 SELECT *、默认限制 10 条和仅 SELECT 等约束。
                 """;
     }
 

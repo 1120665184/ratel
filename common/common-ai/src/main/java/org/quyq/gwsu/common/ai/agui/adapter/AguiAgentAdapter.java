@@ -222,8 +222,12 @@ public class AguiAgentAdapter {
     }
 
     private List<AguiEvent> convertAgentEvent(AgentEvent event, EventConversionState state) {
+       // logger.info("智能体事件：{}" , gson.toJson(event));
         List<AguiEvent> events = new ArrayList<>();
 
+        if(Objects.nonNull(event.getSource())){
+            return events;
+        }
         if (event instanceof TextBlockStartEvent textStart) {
             events.add(new AguiEvent.TextMessageStart(
                     state.threadId, state.runId, textStart.getReplyId(), "assistant"));

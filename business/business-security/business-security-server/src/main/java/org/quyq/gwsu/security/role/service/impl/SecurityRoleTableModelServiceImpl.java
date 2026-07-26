@@ -10,6 +10,9 @@ import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.annotation.SensitiveStrategy;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
+import org.quyq.gwsu.common.security.domain.Subject;
+import org.quyq.gwsu.common.security.utils.SecurityUtils;
+import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.security.api.apiresource.dto.TableModelQueryDTO;
 import org.quyq.gwsu.security.api.role.dto.RoleTableModelSaveDTO;
 import org.quyq.gwsu.security.api.role.vo.RolePermissionTableModelVO;
@@ -44,6 +47,8 @@ import java.util.stream.Collectors;
 public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleTableModelMapper, SecurityRoleTableModel>
         implements ISecurityRoleTableModelService {
 
+    private static final String TABLE_MODEL_PERMISSION_KEY = "tableModelPermission";
+
     private final SecurityRoleMenuMapper roleMenuMapper;
     private final SecurityRoleMapper roleMapper;
     private final SecurityRoleMenuPermissionMapper roleMenuPermissionMapper;
@@ -51,6 +56,8 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
     private final ISecurityApiResourceService apiResourceService;
     private final ISecurityTableModelTableService modelTableService;
     private final ISecurityTableModelColumnService modelColumnService;
+    private final SecurityUtils securityUtils;
+    private final SessionUtils sessionUtils;
 
     private static final int BATCH_SIZE = 500;
 
@@ -185,6 +192,27 @@ public class SecurityRoleTableModelServiceImpl extends ServiceImpl<SecurityRoleT
         }
 
         return result;
+    }
+
+    @Override
+    public Map<String, Map<String, FieldPermission>> getUserTableModelPermission() {
+        Optional<Map<String, Map<String, FieldPermission>>> value =
+                sessionUtils.getValue(TABLE_MODEL_PERMISSION_KEY);
+        if (value.isPresent()) {
+            return value.get();
+        }
+
+        List<String> roles = securityUtils.getSubject()
+                .map(Subject::getRoles)
+                .orElse(Collections.emptyList());
+
+        Map<String, Map<String, FieldPermission>> mergedPermissions = Map.of();
+        if (!CollectionUtils.isEmpty(roles)) {
+            mergedPermissions = getMergedRoleTableModelPermission(roles);
+        }
+
+        sessionUtils.putValue(TABLE_MODEL_PERMISSION_KEY, mergedPermissions);
+        return mergedPermissions;
     }
 
     @Override
