@@ -1,0 +1,5 @@
+spring:
+  elasticsearch:
+    uris: ${ES_URL:http://127.0.0.1:9200}
+    username: ${ES_USERNAME:elastic}
+    password: ${ES_PASSWORD:elastic}

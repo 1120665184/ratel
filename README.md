@@ -73,19 +73,21 @@ AI 可根据上下文自动生成图表、报表、统计卡片等可视化结�
 - **管理系统智能体脚手架**：不是单纯聊天界面，也不是孤立的 Agent Demo，而是可直接承载企业管理系统开发的工程化底座
 - **传统开发即可增强 AI 能力**：页面、接口、权限、业务模型按常规方式建设，AI 自动获得可理解、可执行、可组合的操作能力
 - **真正支持远程操作**：不仅能在本地页面中交互，还可以接入飞书、钉钉等场景，把业务操作能力延伸到远程入口
+- **内置知识库能力**：支持企业文档导入、角色授权、结构化知识页生成与检索回溯，可直接为智能体提供稳定上下文
 - **全面权限控制**：覆盖接口、按钮、字段、数据行、表模型等多个层面，让 AI 的能力天然受控
 - **危险操作审批**：关键动作可进入 Human-in-the-Loop 审批链路，不把高风险决策直接交给模型
 - **单体与微服务兼容**：同一套业务代码支持单体应用和分布式微服务两种部署方式
 
 ## 核心能力
 
-| 能力 | 说明 | 价值 |
-|------|------|------|
-| 界面操作（WebTool） | AI 可点击、输入、跳转、滚动、读取页面结构等 | 让 AI 能像真实用户一样完成界面层操作 |
-| 数据库查询（DatabaseSearchAgent） | 自然语言转 SQL，并按权限暴露表、字段与数据 | 让 AI 查询结果既可用又安全 |
-| 可视化输出（OutputViewAgent） | 生成 Dashboard、图表、统计卡片、表格、流程图等 | 让 AI 的结果不是一段文本，而是可直接消费的业务输出 |
-| 主动提问（AskUserQuestion） | 信息不足时由 AI 主动向用户确认 | 降低误判和误操作概率 |
-| 人工审批（Human-in-the-Loop） | 敏感动作自动进入审批流程 | 让高风险操作有明确的人类控制点 |
+| 能力     | 说明 | 价值 |
+|--------|------|------|
+| 界面操作   | AI 可点击、输入、跳转、滚动、读取页面结构等 | 让 AI 能像真实用户一样完成界面层操作 |
+| 数据库查询  | 自然语言转 SQL，并按权限暴露表、字段与数据 | 让 AI 查询结果既可用又安全 |
+| 可视化输出  | 生成 Dashboard、图表、统计卡片、表格、流程图等 | 让 AI 的结果不是一段文本，而是可直接消费的业务输出 |
+| 知识库检索  | 支持文档导入、Chunk 检索、结果重排与相邻片段回溯 | 让 AI 能基于企业私有知识做更稳定的回答与执行 |
+| 主动提问   | 信息不足时由 AI 主动向用户确认 | 降低误判和误操作概率 |
+| 人工审批   | 敏感动作自动进入审批流程 | 让高风险操作有明确的人类控制点 |
 | 远程操作接入 | 对接钉钉、飞书等远程渠道 | 支持移动化、消息化的业务执行场景 |
 
 ## 安全与治理
@@ -128,6 +130,7 @@ Ratel 的设计重点，不是“让 AI 尽可能多地做事”，而是“让 
 | 中央智能体 | 统一调度界面操作、数据库查询、可视化输出、用户提问、审批流程 |
 | 界面执行 | 前端 WebTool 执行点击、输入、跳转、读取、滚动等动作 |
 | 数据分析 | 将自然语言转为权限感知查询，并返回可用数据结果 |
+| 知识库协同 | 支持知识源文档导入、角色授权、知识 Page 管理与检索结果回溯 |
 | 输出生成 | 输出图表、表格、统计卡片、流程图等结果视图 |
 | 远程协作 | 通过远程入口接受任务，并在系统内完成业务执行 |
 
@@ -136,7 +139,7 @@ Ratel 的设计重点，不是“让 AI 尽可能多地做事”，而是“让 
 | 模块 | 功能 |
 |------|------|
 | 系统管理 | 用户管理、部门管理、组织架构图、仪表盘、个人中心 |
-| 安全中心 | 菜单管理、角色管理、数据资源管理、表模型管理、业务功能配置 |
+| 安全中心 | 菜单管理、角色管理、数据资源管理、表模型管理、业务功能配置、知识库管理 |
 | 文件管理 | 文件上传/下载，支持本地、MinIO、阿里云 OSS、AWS S3 |
 | 操作日志 | 全局操作日志记录与查询 |
 
@@ -150,7 +153,7 @@ Ratel 是一个 Java 后端 + 微前端的全栈项目，支持单体与分布�
 - 采用多模块 Maven 架构
 - 支持单体应用与微服务自动适配
 - 通过统一 `@ApiClient` 框架屏蔽本地调用与远程调用差异
-- 结合 Spring AI Alibaba、AgentScope、jCasbin、Sa-Token、MyBatis Plus 等构建 AI 与权限底座
+- 结合 Spring AI Alibaba、AgentScope、jCasbin、Sa-Token、MyBatis Plus、Elasticsearch 等构建 AI、知识检索与权限底座
 
 ### 前端
 
@@ -210,6 +213,9 @@ ratel/
 | Spring Cloud Alibaba | 2025.1.0.0 | Nacos 注册与配置 |
 | Spring AI Alibaba | 1.1.2.2    | LLM 集成 |
 | AgentScope | V2         | Agent 框架 |
+| Elasticsearch | - | 知识库 Chunk 索引与混合检索 |
+| Apache Tika | 3.3.1 | 通用文档解析与兜底 |
+| Apache POI / PDFBox | - | Office / PDF 文档解析 |
 | MyBatis Plus | 3.5.16     | ORM 与多数据源 |
 | Redisson | 4.3.0      | Redis 客户端 |
 | jCasbin | 1.99.0     | ABAC 权限控制 |
@@ -239,6 +245,7 @@ ratel/
 | pnpm | 10.32+ | 前端包管理 |
 | PostgreSQL | 14+ | 主数据库（或 MySQL） |
 | Redis | 6.0+ | 缓存、会话、策略同步 |
+| Elasticsearch | - | 知识库索引、向量检索、相邻片段回溯 |
 | Nacos | 2.x | 注册配置中心（仅分布式模式） |
 | Docker | 20+ | 容器化部署（可选） |
 
@@ -260,15 +267,22 @@ sh docker/start-single.sh
 1. 检查 Maven、Node.js、pnpm、Docker 运行环境
 2. 构建后端 JAR
 3. 构建前端主应用与子应用
-4. 通过 Docker Compose 启动 PostgreSQL、Redis 与 Ratel
+4. 通过 Docker Compose 启动 PostgreSQL、Redis、Elasticsearch 与 Ratel
 
 启动后访问 `http://localhost` 即可。
 
-首次登录后，需要进入 **设置 -> 模型配置 -> LLM模型**，完成模型服务配置后方可启用 AI 智能体能力。
+首次登录后，需要进入 **设置 -> 模型配置** 完成模型服务配置后方可启用 AI 智能体能力。
+
+如果要使用知识库能力，建议至少补齐以下配置：
+
+- `LLM 模型`：用于知识 Page 生成、页面归并等生成任务
+- `Embedding 模型`：用于知识 Chunk 向量化
+- `Rerank 模型`：用于知识检索结果重排；未配置时会退化为 ES 原始排序
+- `Elasticsearch`：默认读取 `ES_URL`、`ES_USERNAME`、`ES_PASSWORD`
 
 ### 方式二：本地开发模式
 
-先确保 PostgreSQL 与 Redis 已启动。
+先确保 PostgreSQL、Redis 与 Elasticsearch 已启动。
 
 #### 1. 构建后端
 
@@ -342,13 +356,9 @@ mvn spring-boot:run -pl business/application/distributed/gwsu-log
 - `common-database.yaml`
 - `{application.name}.yaml`
 
-## Native Image
+知识库相关配置默认使用 Elasticsearch，并通过 `ratel.knowledge` 前缀控制索引名、检索数量、Chunk 大小、知识页输出语言等参数；PDF 解析还支持 `ratel.knowledge.pdf.mode` 配置。单体模式下 Elasticsearch 默认配置位于 `business/application/single/gwsu/src/main/resources/elasticsearch.yaml`。
 
-支持 GraalVM 原生镜像编译：
 
-```bash
-mvn -Pnative package -pl business/application/single/gwsu
-```
 
 ## 联系方式
 

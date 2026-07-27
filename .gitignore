@@ -70,5 +70,6 @@ yarn-error.log*
 .worktrees/
 docs/superpowers
 .agentscope/
+docker/single/data/*
 
 **/application-dev.yaml

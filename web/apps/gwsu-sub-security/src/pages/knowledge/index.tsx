@@ -69,7 +69,9 @@ import {
 } from './types';
 import type { RoleInfo } from '../role/types';
 import {
+  PERM_KNOWLEDGE_DISABLED_ENABLE,
   PERM_KNOWLEDGE_PAGE_EDIT,
+  PERM_KNOWLEDGE_REMOVE,
   PERM_KNOWLEDGE_ROLE_EDIT,
   PERM_KNOWLEDGE_TASK_RETRY,
   PERM_KNOWLEDGE_UPLOAD,
@@ -168,7 +170,8 @@ const KnowledgePage: React.FC = () => {
   const canEditPage = useAuth(PERM_KNOWLEDGE_PAGE_EDIT);
   const canEditRole = useAuth(PERM_KNOWLEDGE_ROLE_EDIT);
   const canRetryTask = useAuth(PERM_KNOWLEDGE_TASK_RETRY);
-  const canManageDocument = useAuth(PERM_KNOWLEDGE_UPLOAD);
+  const canToggleDocument = useAuth(PERM_KNOWLEDGE_DISABLED_ENABLE);
+  const canDeleteDocument = useAuth(PERM_KNOWLEDGE_REMOVE);
 
   const [documentLoading, setDocumentLoading] = useState(false);
   const [documentPage, setDocumentPage] = useState<PageResult<KnowledgeDocumentVO>>(defaultPage);
@@ -664,12 +667,14 @@ const KnowledgePage: React.FC = () => {
             icon: <EditOutlined />,
           });
         }
-        if (canManageDocument) {
+        if (canToggleDocument) {
           menuItems.push({
             key: MORE_ACTION_TOGGLE_ENABLED,
             label: record.enabled === false ? '启用' : '禁用',
             icon: record.enabled === false ? <CheckCircleOutlined /> : <StopOutlined />,
           });
+        }
+        if (canDeleteDocument) {
           menuItems.push({
             key: MORE_ACTION_DELETE,
             label: '删除',
@@ -733,7 +738,7 @@ const KnowledgePage: React.FC = () => {
         );
       },
     },
-  ], [canEditRole, canManageDocument, canRetryTask, handleMoreAction, renderRoleTags]);
+  ], [canDeleteDocument, canEditRole, canRetryTask, canToggleDocument, handleMoreAction, renderRoleTags]);
 
   const pageColumns: TableProps<KnowledgePageVO>['columns'] = useMemo(() => [
     {

@@ -60,6 +60,7 @@ public class FileController implements FileClientApi {
 
     @PostMapping("info/{fileId}")
     @Operation(summary = "获取文件信息")
+    @LoginAllowAccess
     @Override
     public R<KitFileInfoVO> getFileInfo(@PathVariable String fileId) {
         return R.ok(fileServiceManager.get().getById(fileId));
