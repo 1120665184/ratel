@@ -52,6 +52,7 @@ public interface AIConstants {
         String KEY_PREFIX = "agentscope:distributed:";
         String NAMESPACE_SEPARATOR = "/";
         String STORE_ITEM_KEY_TEMPLATE = KEY_PREFIX + "store:item:%s:%s";
+        String STORE_ITEM_VERSION_KEY_TEMPLATE = KEY_PREFIX + "store:item:version:%s:%s";
         String STORE_INDEX_KEY_TEMPLATE = KEY_PREFIX + "store:index:%s";
         String SNAPSHOT_KEY_TEMPLATE = KEY_PREFIX + "snapshot:%s";
         String LOCK_KEY_TEMPLATE = KEY_PREFIX + "lock:%s:%s";

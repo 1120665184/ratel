@@ -1,8 +1,10 @@
 package org.quyq.gwsu.security.brain.service.skill;
 
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.repository.AgentSkillRepository;
 import io.agentscope.core.skill.repository.AgentSkillRepositoryInfo;
+import io.agentscope.harness.agent.skill.LazyResourceCapable;
 import io.agentscope.harness.agent.skill.SkillResources;
 import org.quyq.gwsu.common.security.domain.FieldPermission;
 import org.quyq.gwsu.security.api.tablemodel.vo.BusinessFunctionDetailVO;
@@ -16,7 +18,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class DatabaseSearchSkillRepository implements AgentSkillRepository {
+public class DatabaseSearchSkillRepository implements AgentSkillRepository, LazyResourceCapable {
 
     public static final String SKILL_NAME = "database_search";
 
@@ -100,6 +102,17 @@ public class DatabaseSearchSkillRepository implements AgentSkillRepository {
         return false;
     }
 
+    @Override
+    public SkillResources resourcesFor(String skillName, RuntimeContext runtimeContext) {
+        if (!Objects.equals(SKILL_NAME, skillName)) {
+            return SkillResources.empty();
+        }
+        Snapshot snapshot = snapshot();
+        if (snapshot.allTables().isEmpty()) {
+            return SkillResources.empty();
+        }
+        return new DatabaseSearchSkillResources(snapshot);
+    }
 
     private AgentSkill buildSkill() {
         Snapshot snapshot = snapshot();
@@ -117,15 +130,7 @@ public class DatabaseSearchSkillRepository implements AgentSkillRepository {
                 .source(repositoryInfo.getLocation())
                 .description(skillDescription())
                 .skillContent(buildSkillContent(snapshot))
-                .resources(buildSkillResources(snapshot))
                 .build();
-    }
-
-    private Map<String, String> buildSkillResources(Snapshot snapshot) {
-        Map<String, String> resources = new LinkedHashMap<>();
-        resources.put("reference/table_overview.md", buildTableOverviewResource(snapshot));
-        resources.putAll(buildBusinessResources(snapshot));
-        return resources;
     }
 
     private String skillDescription() {

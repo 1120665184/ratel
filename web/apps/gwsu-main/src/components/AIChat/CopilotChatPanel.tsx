@@ -40,6 +40,7 @@ import {
   clearAskUserQuestion,
   onAskUserQuestion,
 } from '@/services/ask-user-question';
+import { clearAgentOutput } from '@/services/agent-output';
 import { useHeadlessStore } from '@gwsu/core';
 import styles from './copilot-override.module.less';
 
@@ -191,6 +192,7 @@ export function CopilotChatPanel({
     agent.setMessages([]);
     clearHumanApproval();
     clearAskUserQuestion();
+    clearAgentOutput();
     // 清除 headlessStore 中的 threadId
     useHeadlessStore.getState().clearThreadId();
     // 生成新的 threadId，让后端创建新的会话
@@ -204,6 +206,7 @@ export function CopilotChatPanel({
       // 先清除旧的弹框状态，避免切换会话后旧弹框残留
       clearHumanApproval();
       clearAskUserQuestion();
+      clearAgentOutput();
       const messages = await getSessionMessages(sessionId);
       const formattedMessages = messages.map((msg: BrainMessage) => ({
         id: msg.id,

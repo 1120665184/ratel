@@ -5,7 +5,9 @@ import io.agentscope.core.ReActAgent;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.ToolkitConfig;
+import io.agentscope.harness.agent.DistributedStore;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.distributed.redis.CacheRedisDistributedStore;
 import org.quyq.gwsu.common.ai.session.DatabaseStateStore;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -46,6 +48,12 @@ public class AgentscopeConfiguration {
     @Bean
     public WebToolUtils webToolUtils(CacheUtils cacheUtils) {
         return new WebToolUtils(cacheUtils);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public DistributedStore distributedStore(AgentStateStore agentStateStore, CacheUtils cacheUtils) {
+        return new CacheRedisDistributedStore(agentStateStore, cacheUtils);
     }
 
 

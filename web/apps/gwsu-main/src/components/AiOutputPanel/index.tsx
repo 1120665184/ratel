@@ -4,7 +4,11 @@ import { Renderer, JSONUIProvider } from '@json-render/react';
 import { createSpecStreamCompiler } from '@json-render/core';
 import type { Spec } from '@json-render/core';
 import { registry } from './registry';
-import { onAgentOutput, onAgentOutputEnd, clearAgentOutput } from '@/services/agent-output';
+import {
+  onAgentOutput,
+  onAgentOutputEnd,
+  onAgentOutputReset,
+} from '@/services/agent-output';
 import { useOperationTabStore } from '@/stores/operationTab';
 import styles from './index.module.less';
 
@@ -35,7 +39,6 @@ const AiOutputPanel: React.FC = () => {
     setSpec(null);
     setHasContent(false);
     setIsStreaming(false);
-    clearAgentOutput();
   }, []);
 
   useEffect(() => {
@@ -71,9 +74,14 @@ const AiOutputPanel: React.FC = () => {
       hasEndedRef.current = true;
     });
 
+    const unsubOutputReset = onAgentOutputReset(() => {
+      handleClear();
+    });
+
     return () => {
       unsubOutput();
       unsubOutputEnd();
+      unsubOutputReset();
     };
   }, [handleClear]);
 

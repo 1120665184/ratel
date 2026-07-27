@@ -88,6 +88,7 @@ export function ToolCallItem(props: ToolCallItemProps) {
 
   // 技能展示名
   const skillId = isSkill ? (args?.skillId as string) ?? '' : '';
+  const skillPath = isSkill ? (args?.path as string) ?? '' : '';
 
   // 安全获取 questions 数组，格式异常时返回空数组以跳过渲染
   const questionsList: Record<string, unknown>[] = useMemo(() => {
@@ -99,6 +100,7 @@ export function ToolCallItem(props: ToolCallItemProps) {
   const questionHeader = isQuestion ? (questionsList[0]?.header as string) ?? '问题' : '';
 
   const displayName = isSkill ? skillId : isQuestion ? questionHeader : name;
+  const skillDisplayContent = skillPath || skillId || name;
 
   // 折叠箭头
   const renderArrow = () => (
@@ -151,8 +153,8 @@ export function ToolCallItem(props: ToolCallItemProps) {
           {/* 技能：仅展示技能名 */}
           {isSkill && (
             <div className={styles.detailSection}>
-              <div className={styles.detailLabel}>技能</div>
-              <div className={styles.detailValue}>{skillId}</div>
+              <div className={styles.detailLabel}>路径</div>
+              <div className={styles.detailValue}>{skillDisplayContent}</div>
             </div>
           )}
 

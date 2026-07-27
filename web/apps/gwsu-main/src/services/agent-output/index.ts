@@ -1,12 +1,25 @@
-import type { AgentOutputPayload, AgentOutputEndPayload } from './types';
+import type {
+  AgentOutputPayload,
+  AgentOutputEndPayload,
+  AgentOutputResetPayload,
+} from './types';
 
-export type { AgentOutputPayload, AgentOutputEndPayload } from './types';
+export type {
+  AgentOutputPayload,
+  AgentOutputEndPayload,
+  AgentOutputResetPayload,
+} from './types';
 
 /** 输出事件监听器列表 */
 const outputListeners = new Set<(payload: AgentOutputPayload) => void>();
 
 /** 输出结束事件监听器列表 */
 const outputEndListeners = new Set<(payload: AgentOutputEndPayload) => void>();
+
+/** 输出重置事件监听器列表 */
+const outputResetListeners = new Set<
+  (payload: AgentOutputResetPayload) => void
+>();
 
 /**
  * 分发 AI 输出事件
@@ -27,7 +40,7 @@ export function dispatchAgentOutputEnd(payload: AgentOutputEndPayload): void {
  * 清除当前输出内容
  */
 export function clearAgentOutput(): void {
-  outputListeners.forEach((listener) => listener({ text: '' }));
+  outputResetListeners.forEach((listener) => listener({ reason: 'session-reset' }));
 }
 
 /**
@@ -49,5 +62,18 @@ export function onAgentOutputEnd(listener: (payload: AgentOutputEndPayload) => v
   outputEndListeners.add(listener);
   return () => {
     outputEndListeners.delete(listener);
+  };
+}
+
+/**
+ * 注册输出重置事件监听器
+ * @returns 取消监听的函数
+ */
+export function onAgentOutputReset(
+  listener: (payload: AgentOutputResetPayload) => void,
+): () => void {
+  outputResetListeners.add(listener);
+  return () => {
+    outputResetListeners.delete(listener);
   };
 }
