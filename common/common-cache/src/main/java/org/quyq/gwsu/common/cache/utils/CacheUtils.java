@@ -17,6 +17,7 @@ import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
@@ -39,6 +40,9 @@ public class CacheUtils {
 
     private static final String LOCK_PREFIX = "lock:";
     private static final String RATE_LIMIT_PREFIX = "rate_limit:";
+    private static final DefaultRedisScript<Long> DELETE_IF_VALUE_EQUALS_SCRIPT = new DefaultRedisScript<>(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) end return 0",
+            Long.class);
 
     private static final ScopedValue<Boolean> USE_PROJECT_PREFIX = ScopedValue.newInstance();
 
@@ -653,6 +657,18 @@ public class CacheUtils {
      */
     public Boolean delete(String key) {
         return redisTemplate.delete(clusterKey(key));
+    }
+
+    /**
+     * 仅当指定 key 的值与期望值一致时删除，比较与删除在 Redis 端原子执行。
+     *
+     * @param key           键
+     * @param expectedValue 期望值
+     * @return 删除成功返回 true，值不一致或 key 不存在返回 false
+     */
+    public boolean deleteIfEquals(String key, Object expectedValue) {
+        Long deletedCount = executeScript(DELETE_IF_VALUE_EQUALS_SCRIPT, List.of(key), expectedValue);
+        return Long.valueOf(1L).equals(deletedCount);
     }
 
     /**

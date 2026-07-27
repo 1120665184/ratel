@@ -1,5 +1,6 @@
 package org.quyq.gwsu.common.ai.constants;
 
+import java.time.Duration;
 
 /**
  * @author Quyq
@@ -41,6 +42,31 @@ public interface AIConstants {
 
         String ASK_USER_QUESTION = "AskUserQuestion";
 
+    }
+
+    /**
+     * AgentScope 分布式存储 Redis 常量。
+     */
+    interface DistributedStoreRedis {
+
+        String KEY_PREFIX = "agentscope:distributed:";
+        String STORE_ITEM_KEY_TEMPLATE = KEY_PREFIX + "store:item:%s:%s";
+        String STORE_INDEX_KEY_TEMPLATE = KEY_PREFIX + "store:index:%s";
+        String SNAPSHOT_KEY_TEMPLATE = KEY_PREFIX + "snapshot:%s";
+        String LOCK_KEY_TEMPLATE = KEY_PREFIX + "lock:%s:%s";
+
+        String FIELD_KEY = "key";
+        String FIELD_VERSION = "version";
+        String FIELD_PAYLOAD = "payload";
+        String FIELD_CREATED_AT = "createdAt";
+        String FIELD_MODIFIED_AT = "modifiedAt";
+        String FIELD_SNAPSHOT_ID = "snapshotId";
+        String FIELD_CONTENT = "content";
+        String FIELD_UPDATED_AT = "updatedAt";
+
+        Duration SNAPSHOT_TTL = Duration.ofHours(24);
+        Duration LOCK_TTL = Duration.ofSeconds(30);
+        Duration LOCK_RETRY_INTERVAL = Duration.ofMillis(200);
     }
 
 }
