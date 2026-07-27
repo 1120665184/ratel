@@ -2,7 +2,6 @@ package org.quyq.gwsu.security.brain.controller;
 
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.agentscope.core.agui.model.AguiMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.AguiController;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.domain.AguiMessage;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;

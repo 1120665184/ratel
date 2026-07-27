@@ -19,16 +19,15 @@ import com.google.gson.Gson;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.agui.adapter.AguiAdapterConfig;
-import io.agentscope.core.agui.converter.AguiMessageConverter;
-import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.model.AguiMessage;
-import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.event.*;
 import io.agentscope.core.message.*;
 import io.agentscope.core.util.JsonException;
 import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.HarnessAgent;
+import org.quyq.gwsu.common.ai.agui.converter.AguiMessageConverter;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.domain.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.domain.RunAgentInput;
 import org.quyq.gwsu.common.ai.loop.AgentApprovalResolver;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalResult;
 import org.slf4j.Logger;
@@ -91,7 +90,7 @@ public class AguiAgentAdapter {
      */
     public Flux<AguiEvent> run(RunAgentInput input, RuntimeContext runtimeContext) {
         String threadId = runtimeContext.getSessionId();
-        String runId = input.getRunId();
+        String runId = input.runId();
 
         // 1. 检查 approval 消息
         ApprovalResult approvalResult = null;
@@ -106,7 +105,7 @@ public class AguiAgentAdapter {
         EventConversionState state = new EventConversionState(threadId, runId);
 
         // Normal flow: convert AG-UI messages to AgentScope messages
-        List<Msg> msgs = messageConverter.toMsgList(input.getMessages());
+        List<Msg> msgs = messageConverter.toMsgList(input.messages());
 
         // 处理审批恢复信息
         buildMsgFromApproval(approvalResult, msgs, runtimeContext);
@@ -154,12 +153,12 @@ public class AguiAgentAdapter {
      * approval 消息的 role 为 "approval"，content 为 JSON 格式的审批结果。
      */
     private AguiMessage extractApprovalMessage(RunAgentInput input) {
-        List<AguiMessage> messages = input.getMessages();
+        List<AguiMessage> messages = input.messages();
         if (messages == null || messages.isEmpty()) {
             return null;
         }
         AguiMessage last = messages.getLast();
-        if ("approval".equalsIgnoreCase(last.getRole())) {
+        if ("approval".equalsIgnoreCase(last.role())) {
             return last;
         }
         return null;
@@ -169,7 +168,7 @@ public class AguiAgentAdapter {
      * 解析 approval 消息的 content，构建 ApprovalResult。
      */
     private ApprovalResult parseApprovalResult(AguiMessage approvalMsg) {
-        String content = approvalMsg.getContent();
+        String content = approvalMsg.content();
         if (content == null || content.isEmpty()) {
             logger.warn("Approval message has empty content, defaulting to REJECTED");
             return new ApprovalResult(ApprovalResult.ApprovalEnum.REJECTED, null);
@@ -183,17 +182,17 @@ public class AguiAgentAdapter {
      * approval 消息不进入上下文历史，处理完后必须移除。
      */
     private RunAgentInput removeApprovalMessage(RunAgentInput input) {
-        List<AguiMessage> messages = input.getMessages();
+        List<AguiMessage> messages = input.messages();
         List<AguiMessage> filtered = messages.stream()
-                .filter(msg -> !"approval".equalsIgnoreCase(msg.getRole()))
+                .filter(msg -> !"approval".equalsIgnoreCase(msg.role()))
                 .toList();
         return RunAgentInput.builder()
-                .threadId(input.getThreadId())
-                .runId(input.getRunId())
+                .threadId(input.threadId())
+                .runId(input.runId())
                 .messages(filtered)
-                .tools(input.getTools())
-                .context(input.getContext())
-                .forwardedProps(input.getForwardedProps())
+                .tools(input.tools())
+                .context(input.context())
+                .forwardedProps(input.forwardedProps())
                 .build();
     }
 

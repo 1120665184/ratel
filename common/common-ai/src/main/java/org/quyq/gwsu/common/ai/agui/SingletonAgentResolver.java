@@ -1,7 +1,7 @@
 package org.quyq.gwsu.common.ai.agui;
 
 import io.agentscope.core.agent.Agent;
-import io.agentscope.core.agui.processor.AgentResolver;
+import org.quyq.gwsu.common.ai.agui.processor.AgentResolver;
 
 import java.util.Objects;
 import java.util.function.Supplier;

@@ -1,8 +1,8 @@
 package org.quyq.gwsu.headless.core.session;
 
 import com.microsoft.playwright.*;
-import io.agentscope.core.agui.event.AguiEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;

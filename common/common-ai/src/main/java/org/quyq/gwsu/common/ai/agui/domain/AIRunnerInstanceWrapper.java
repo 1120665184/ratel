@@ -1,10 +1,9 @@
 package org.quyq.gwsu.common.ai.agui.domain;
 
 
-import io.agentscope.core.agui.encoder.AguiEventEncoder;
-import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.model.RunAgentInput;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.encoder.AguiEventEncoder;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;

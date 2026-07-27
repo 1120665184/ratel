@@ -144,13 +144,6 @@
             <version>2.0.0-M4</version>
         </dependency>
 
-        <!-- AgentScope agui -->
-        <dependency>
-            <groupId>io.agentscope</groupId>
-            <artifactId>agentscope-extensions-agui</artifactId>
-        </dependency>
-
-
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-harness</artifactId>

@@ -3,9 +3,6 @@ package org.quyq.gwsu.common.ai.agui;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.agui.AguiException;
-import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.model.RunAgentInput;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentStateStore;
@@ -16,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.domain.RunAgentInput;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
@@ -229,8 +228,8 @@ public abstract class AguiController implements DisposableBean {
         RunAgentInput body = request.body();
         AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(request.body(), emitter, false, pushers);
         executorService.submit(() -> {
-            wrapper.sendEvent(new AguiEvent.RunStarted(body.getThreadId(), body.getRunId()));
-            wrapper.sendEvent(new AguiEvent.RunFinished(body.getThreadId(), body.getRunId()));
+            wrapper.sendEvent(new AguiEvent.RunStarted(body.threadId(), body.runId()));
+            wrapper.sendEvent(new AguiEvent.RunFinished(body.threadId(), body.runId()));
             emitter.complete();
         });
 
@@ -295,8 +294,8 @@ public abstract class AguiController implements DisposableBean {
     private SseEmitter handleInternal(
             RunAgentInput input, String headerAgentId, String pathAgentId) {
         SseEmitter emitter = new SseEmitter(sseTimeout);
-        String threadId = input.getThreadId();
-        String runId = input.getRunId();
+        String threadId = input.threadId();
+        String runId = input.runId();
         String userId = getCurrUserId();
 
 
@@ -308,7 +307,7 @@ public abstract class AguiController implements DisposableBean {
 
         AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter, isHeadless(), pushers);
         RuntimeContext runtimeContext =
-                buildRuntimeContext(threadId, userId, input.getForwardedProps() ,wrapper);
+                buildRuntimeContext(threadId, userId, input.forwardedProps() ,wrapper);
         executorService.submit(
                 () -> {
                     Disposable subscription;
@@ -413,8 +412,8 @@ public abstract class AguiController implements DisposableBean {
     private void sendErrorAndComplete(
             AIRunnerInstanceWrapper wrapper, String errorMessage) {
         RunAgentInput param = wrapper.input();
-        AguiEvent.Raw errorEvent = new AguiEvent.Raw(param.getThreadId(), param.getRunId(), Map.of("error", errorMessage));
-        AguiEvent.RunFinished finishEvent = new AguiEvent.RunFinished(param.getThreadId(), param.getRunId());
+        AguiEvent.Raw errorEvent = new AguiEvent.Raw(param.threadId(), param.runId(), Map.of("error", errorMessage));
+        AguiEvent.RunFinished finishEvent = new AguiEvent.RunFinished(param.threadId(), param.runId());
 
         wrapper.sendEvent(errorEvent);
         wrapper.sendEvent(finishEvent);

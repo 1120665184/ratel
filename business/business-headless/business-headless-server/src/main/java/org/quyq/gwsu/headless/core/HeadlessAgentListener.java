@@ -1,6 +1,6 @@
 package org.quyq.gwsu.headless.core;
 
-import io.agentscope.core.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.headless.core.session.HeadlessPageWrapper;
 

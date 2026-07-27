@@ -2,7 +2,6 @@ package org.quyq.gwsu.security.brain.service.impl;
 
 
 import io.agentscope.core.agent.Agent;
-import io.agentscope.core.agui.adapter.AguiAdapterConfig;
 import io.agentscope.core.model.ExecutionConfig;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.SkillBox;
@@ -17,6 +16,7 @@ import io.agentscope.harness.agent.subagent.SubagentDeclaration;
 import io.agentscope.harness.agent.subagent.WorkspaceMode;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.SingletonAgentResolver;
+import org.quyq.gwsu.common.ai.agui.adapter.AguiAdapterConfig;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.model.ModelProvider;

@@ -1,7 +1,7 @@
 package org.quyq.gwsu.security.brain.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.agentscope.core.agui.model.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.domain.AguiMessage;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
 
