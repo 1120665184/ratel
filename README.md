@@ -1,4 +1,4 @@
-# Ratel
+# Ratel-Manager
 
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.6-brightgreen.svg)](https://spring.io/projects/spring-boot)
@@ -8,7 +8,7 @@
 
 它的目标不是做一个只能聊天的 AI 助手，而是让 AI 真正进入管理系统，具备可执行、可约束、可审计的业务操作能力。你仍然按照传统管理系统的方式开发页面、接口、权限和业务模块，系统便可以在此基础上持续获得智能体能力，无需额外再造一套 AI 专用后台。
 
-Ratel 重点解决的是企业落地 AI 时最难的矛盾：
+Ratel-Manager 重点解决的是企业落地 AI 时最难的矛盾：
 
 - 既希望 AI 能真正操作业务，而不只是回答问题
 - 又必须保证权限边界清晰，危险操作可审批，可追踪，可追责
@@ -18,7 +18,7 @@ Ratel 重点解决的是企业落地 AI 时最难的矛盾：
 
 ### 1. 传统管理系统开发方式不变
 
-Ratel 不要求你为了接入 AI 重写前端，也不要求把系统改造成一个全新的 Agent 产品。业务页面、表单、按钮、权限、数据库模型仍然按常规企业级管理系统方式建设，AI 能力直接建立在这些现有资产之上。
+Ratel-Manager 不要求你为了接入 AI 重写前端，也不要求把系统改造成一个全新的 Agent 产品。业务页面、表单、按钮、权限、数据库模型仍然按常规企业级管理系统方式建设，AI 能力直接建立在这些现有资产之上。
 
 这意味着：
 
@@ -28,7 +28,7 @@ Ratel 不要求你为了接入 AI 重写前端，也不要求把系统改造成�
 
 ### 2. AI 可以真正执行，而不是停留在问答层
 
-Ratel 的智能体不只是做知识问答，而是可以直接参与业务流程：
+Ratel-Manager 的智能体不只是做知识问答，而是可以直接参与业务流程：
 
 - 操作前端界面
 - 查询数据库并生成结果
@@ -39,7 +39,7 @@ Ratel 的智能体不只是做知识问答，而是可以直接参与业务流�
 
 ### 3. 把 AI 放进真实业务之前，先把安全边界做好
 
-Ratel 默认将安全和治理能力放在与执行能力同等重要的位置。系统内置权限控制、危险操作审批、字段和数据范围限制、操作日志等机制，确保 AI 做得到的事情，也必须是它被允许做的事情。
+Ratel-Manager 默认将安全和治理能力放在与执行能力同等重要的位置。系统内置权限控制、危险操作审批、字段和数据范围限制、操作日志等机制，确保 AI 做得到的事情，也必须是它被允许做的事情。
 
 核心原则很简单：
 
@@ -92,7 +92,7 @@ AI 可根据上下文自动生成图表、报表、统计卡片等可视化结�
 
 ## 安全与治理
 
-Ratel 的设计重点，不是“让 AI 尽可能多地做事”，而是“让 AI 在可控边界内稳定做事”。
+Ratel-Manager 的设计重点，不是“让 AI 尽可能多地做事”，而是“让 AI 在可控边界内稳定做事”。
 
 ### 权限控制体系
 
@@ -145,7 +145,7 @@ Ratel 的设计重点，不是“让 AI 尽可能多地做事”，而是“让 
 
 ## 架构概览
 
-Ratel 是一个 Java 后端 + 微前端的全栈项目，支持单体与分布式两种部署模式。
+Ratel-Manager 是一个 Java 后端 + 微前端的全栈项目，支持单体与分布式两种部署模式。
 
 ### 后端
 
@@ -255,7 +255,7 @@ ratel/
 
 ```bash
 # 克隆项目
-git clone https://github.com/1120665184/ratel.git
+git clone https://github.com/qu-yquan/ratel-manager.git
 cd ratel
 
 # 一键启动
@@ -362,4 +362,4 @@ mvn spring-boot:run -pl business/application/distributed/gwsu-log
 ## 联系方式
 
 - 作者：Quyq
-- GitHub：[https://github.com/1120665184/ratel](https://github.com/1120665184/ratel)
+- GitHub：[https://github.com/qu-yquan/ratel-manager](https://github.com/qu-yquan/ratel-manager)
