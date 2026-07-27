@@ -1,7 +1,6 @@
 package org.quyq.gwsu.common.cache.utils;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -11,7 +10,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +27,8 @@ import static org.mockito.Mockito.when;
 class CacheUtilsTest {
 
     private static final Duration DOCKER_COMMAND_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration REDIS_START_TIMEOUT = Duration.ofMinutes(2);
+    private static final String REDIS_IMAGE = "redis:7.4.2-alpine";
 
     private String redisContainerId;
     private LettuceConnectionFactory connectionFactory;
@@ -31,26 +36,30 @@ class CacheUtilsTest {
 
     @BeforeAll
     void setUpRedis() throws Exception {
-        Assumptions.assumeTrue(isDockerAvailable(), "Docker daemon is required for Redis integration tests");
-        redisContainerId = executeDocker("run", "--rm", "-d", "-p", "127.0.0.1::6379", "redis:latest",
-                "redis-server", "--save", "", "--appendonly", "no").trim();
-        String mappedPort = executeDocker("port", redisContainerId, "6379/tcp").trim();
-        int port = Integer.parseInt(mappedPort.substring(mappedPort.lastIndexOf(':') + 1));
-        waitForRedis();
+        try {
+            verifyDockerAvailable();
+            int port = findAvailablePort();
+            redisContainerId = executeDocker(REDIS_START_TIMEOUT, "run", "--rm", "-d", "-p", "127.0.0.1:%d:6379".formatted(port), REDIS_IMAGE,
+                    "redis-server", "--save", "", "--appendonly", "no").trim();
+            waitForRedis();
 
-        connectionFactory = new LettuceConnectionFactory("127.0.0.1", port);
-        connectionFactory.afterPropertiesSet();
-        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(connectionFactory);
-        redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setValueSerializer(new StringRedisSerializer());
-        redisTemplate.afterPropertiesSet();
+            connectionFactory = new LettuceConnectionFactory("127.0.0.1", port);
+            connectionFactory.afterPropertiesSet();
+            RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
+            redisTemplate.setConnectionFactory(connectionFactory);
+            redisTemplate.setKeySerializer(new StringRedisSerializer());
+            redisTemplate.setValueSerializer(new StringRedisSerializer());
+            redisTemplate.afterPropertiesSet();
 
-        ProjectUtils projectUtils = mock(ProjectUtils.class);
-        when(projectUtils.getProjectIdent()).thenReturn("gwsu");
-        when(projectUtils.getApplicationName()).thenReturn("cache-service");
-        when(projectUtils.getServerPrefix()).thenReturn("gwsu:cache-service");
-        cacheUtils = new CacheUtils(redisTemplate, null, projectUtils);
+            ProjectUtils projectUtils = mock(ProjectUtils.class);
+            when(projectUtils.getProjectIdent()).thenReturn("gwsu");
+            when(projectUtils.getApplicationName()).thenReturn("cache-service");
+            when(projectUtils.getServerPrefix()).thenReturn("gwsu:cache-service");
+            cacheUtils = new CacheUtils(redisTemplate, null, projectUtils);
+        } catch (Exception exception) {
+            cleanUpRedisContainer(exception);
+            throw exception;
+        }
     }
 
     @Test
@@ -70,16 +79,17 @@ class CacheUtilsTest {
         if (connectionFactory != null) {
             connectionFactory.destroy();
         }
-        if (redisContainerId != null) {
-            executeDocker("rm", "-f", redisContainerId);
-        }
+        cleanUpRedisContainer(null);
     }
 
-    private boolean isDockerAvailable() {
+    private void verifyDockerAvailable() {
         try {
-            return executeDocker("info", "--format", "{{.ServerVersion}}").isBlank() == false;
-        } catch (Exception ignored) {
-            return false;
+            if (executeDocker("info", "--format", "{{.ServerVersion}}").isBlank()) {
+                throw new IllegalStateException("Docker daemon returned no version");
+            }
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Docker daemon is required for CacheUtilsTest; start Docker and rerun the test.", exception);
         }
     }
 
@@ -97,19 +107,59 @@ class CacheUtilsTest {
         throw new IllegalStateException("Redis container did not become ready");
     }
 
+    private int findAvailablePort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
+    }
+
+    private void cleanUpRedisContainer(Exception originalException) throws Exception {
+        if (redisContainerId == null) {
+            return;
+        }
+        try {
+            executeDocker("rm", "-f", redisContainerId);
+        } catch (Exception cleanupException) {
+            if (originalException != null) {
+                originalException.addSuppressed(cleanupException);
+                return;
+            }
+            throw cleanupException;
+        }
+    }
+
     private String executeDocker(String... arguments) throws IOException, InterruptedException {
+        return executeDocker(DOCKER_COMMAND_TIMEOUT, arguments);
+    }
+
+    private String executeDocker(Duration timeout, String... arguments) throws IOException, InterruptedException {
         String[] command = new String[arguments.length + 1];
         command[0] = "docker";
         System.arraycopy(arguments, 0, command, 1, arguments.length);
         Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-        if (process.waitFor(DOCKER_COMMAND_TIMEOUT.toSeconds(), TimeUnit.SECONDS) == false) {
-            process.destroyForcibly();
-            throw new IOException("Docker command timed out: " + String.join(" ", command));
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var outputFuture = executor.submit(
+                    () -> new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
+            boolean completed = process.waitFor(timeout.toSeconds(), TimeUnit.SECONDS);
+            if (completed == false) {
+                process.destroyForcibly();
+            }
+            String output = readProcessOutput(outputFuture);
+            if (completed == false) {
+                throw new IOException("Docker command timed out: " + String.join(" ", command) + "; output: " + output);
+            }
+            if (process.exitValue() != 0) {
+                throw new IOException("Docker command failed: " + output);
+            }
+            return output;
         }
-        String output = new String(process.getInputStream().readAllBytes());
-        if (process.exitValue() != 0) {
-            throw new IOException("Docker command failed: " + output);
+    }
+
+    private String readProcessOutput(java.util.concurrent.Future<String> outputFuture) throws IOException, InterruptedException {
+        try {
+            return outputFuture.get();
+        } catch (ExecutionException exception) {
+            throw new IOException("Failed to read Docker command output", exception.getCause());
         }
-        return output;
     }
 }
