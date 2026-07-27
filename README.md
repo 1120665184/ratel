@@ -275,10 +275,9 @@ sh docker/start-single.sh
 
 如果要使用知识库能力，建议至少补齐以下配置：
 
-- `LLM 模型`：用于知识 Page 生成、页面归并等生成任务
-- `Embedding 模型`：用于知识 Chunk 向量化
-- `Rerank 模型`：用于知识检索结果重排；未配置时会退化为 ES 原始排序
-- `Elasticsearch`：默认读取 `ES_URL`、`ES_USERNAME`、`ES_PASSWORD`
+- `LLM 模型`：用于知识 Page 生成、页面归并等生成任务，如有解析文档图片的需求，LLM需支持多模态
+- `Embedding 模型`：非必须，用于知识 Chunk 向量化，不配置默认只通过倒排索引检索
+- `Rerank 模型`：非必须，用于知识检索结果重排；未配置时会退化为 ES 原始排序
 
 ### 方式二：本地开发模式
 
