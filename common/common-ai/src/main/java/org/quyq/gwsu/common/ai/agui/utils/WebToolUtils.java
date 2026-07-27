@@ -5,7 +5,7 @@ import io.agentscope.core.message.ToolResultBlock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.AgentException;
-import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.agui.web.WebToolInfo;
 import org.quyq.gwsu.common.ai.agui.web.WebToolStatus;

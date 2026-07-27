@@ -8,7 +8,7 @@ import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.middleware.ReasoningInput;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.model.ToolSchema;
-import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import reactor.core.publisher.Flux;
 
 import java.util.List;

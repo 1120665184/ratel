@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.ai.agui.domain;
+package org.quyq.gwsu.common.ai.agui.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

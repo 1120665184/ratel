@@ -4,7 +4,7 @@ package org.quyq.gwsu.security.brain.service.middleware;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.middleware.MiddlewareBase;
-import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;

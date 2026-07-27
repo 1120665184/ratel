@@ -1,7 +1,7 @@
 package org.quyq.gwsu.common.ai.agui;
 
 
-import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

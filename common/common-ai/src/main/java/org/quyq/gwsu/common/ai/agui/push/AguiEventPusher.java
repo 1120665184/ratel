@@ -2,7 +2,7 @@ package org.quyq.gwsu.common.ai.agui.push;
 
 
 import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
-import org.quyq.gwsu.common.ai.agui.domain.RunAgentInput;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 
 /**
  * @author Quyq

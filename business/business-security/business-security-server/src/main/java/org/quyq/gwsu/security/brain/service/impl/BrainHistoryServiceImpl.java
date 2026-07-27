@@ -10,7 +10,7 @@ import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.state.AgentState;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.converter.AguiMessageConverter;
-import org.quyq.gwsu.common.ai.agui.domain.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
 import org.quyq.gwsu.security.brain.mapper.BrainHistoryMapper;

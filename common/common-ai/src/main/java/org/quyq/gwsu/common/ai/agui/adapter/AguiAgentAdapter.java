@@ -26,8 +26,8 @@ import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.quyq.gwsu.common.ai.agui.converter.AguiMessageConverter;
 import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
-import org.quyq.gwsu.common.ai.agui.domain.AguiMessage;
-import org.quyq.gwsu.common.ai.agui.domain.RunAgentInput;
+import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 import org.quyq.gwsu.common.ai.loop.AgentApprovalResolver;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalResult;
 import org.slf4j.Logger;
@@ -168,7 +168,7 @@ public class AguiAgentAdapter {
      * 解析 approval 消息的 content，构建 ApprovalResult。
      */
     private ApprovalResult parseApprovalResult(AguiMessage approvalMsg) {
-        String content = approvalMsg.content();
+        String content = approvalMsg.textContent();
         if (content == null || content.isEmpty()) {
             logger.warn("Approval message has empty content, defaulting to REJECTED");
             return new ApprovalResult(ApprovalResult.ApprovalEnum.REJECTED, null);

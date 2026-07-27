@@ -1,6 +1,6 @@
 package org.quyq.gwsu.common.ai.agui.adapter;
 
-import org.quyq.gwsu.common.ai.agui.domain.ToolMergeMode;
+import org.quyq.gwsu.common.ai.agui.model.ToolMergeMode;
 
 import java.time.Duration;
 

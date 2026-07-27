@@ -3,7 +3,7 @@ package org.quyq.gwsu.security.brain.push;
 
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
-import org.quyq.gwsu.common.ai.agui.domain.RunAgentInput;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.util.StringUtils;
