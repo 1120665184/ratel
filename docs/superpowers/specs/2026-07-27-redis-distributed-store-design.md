@@ -33,10 +33,16 @@
 - `CacheRedisSandboxSnapshotSpec`：实现 `SandboxSnapshotSpec`
 - `CacheRedisSandboxSnapshot`：表示单个 `snapshotId` 对应的快照实例
 - `CacheRedisSandboxExecutionGuard`：实现 `SandboxExecutionGuard`
-- `CacheRedisDistributedStoreProperties`：集中定义 key 前缀、TTL、锁等待间隔等参数
-- `CacheRedisDistributedStoreConstants`：定义 Redis key 模板、字段名和脚本常量
 
 如 `CacheUtils` 现有能力不足以支撑 CAS 或脚本执行，本次允许在 `common-cache` 中补充最小必要方法，但不绕开 `CacheUtils` 直接在 `common-ai` 中操作 `RedisTemplate`。
+
+相关常量不单独新增常量类或 properties 类，而是在 [AIConstants.java](/Users/quyq/Documents/work/personal/ratel/common/common-ai/src/main/java/org/quyq/gwsu/common/ai/constants/AIConstants.java:1) 中新增专用子接口统一承载：
+
+- Redis key 前缀
+- key 模板
+- 字段名
+- 默认 TTL
+- 锁重试间隔
 
 ### Bean 装配
 
@@ -133,9 +139,26 @@ value 保存随机 token。
 - 重试间隔：200 毫秒
 - 快照 TTL：24 小时
 
-以上参数通过 `CacheRedisDistributedStoreProperties` 提供默认值，并允许后续外部配置覆盖。
+以上参数先作为 `AIConstants` 子接口中的默认常量使用；本次不单独引入配置类。
 
 ## 组件职责
+
+### AIConstants
+
+在现有 `AIConstants` 中新增与 DistributedStore 相关的子接口，例如 `DistributedStoreRedis`，用于集中定义：
+
+- `agentscope:distributed:*` 前缀常量
+- `store item/index` 的 key 模板
+- `snapshot` 的 key 模板
+- `lock` 的 key 模板
+- 快照 TTL、锁 TTL、锁重试间隔等默认值
+- BaseStore 存储字段名与 Lua 脚本常量
+
+约束：
+
+- 不新增 `CacheRedisDistributedStoreConstants`
+- 不新增 `CacheRedisDistributedStoreProperties`
+- 仅承载当前实现必需的常量，避免扩展成泛化配置中心
 
 ### CacheRedisDistributedStore
 
