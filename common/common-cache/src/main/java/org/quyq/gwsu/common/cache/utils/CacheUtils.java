@@ -667,7 +667,7 @@ public class CacheUtils {
      * @return 删除成功返回 true，值不一致或 key 不存在返回 false
      */
     public boolean deleteIfEquals(String key, Object expectedValue) {
-        Long deletedCount = executeScript(DELETE_IF_VALUE_EQUALS_SCRIPT, List.of(key), expectedValue);
+        Long deletedCount = executeScriptForServerKeys(DELETE_IF_VALUE_EQUALS_SCRIPT, List.of(key), expectedValue);
         return Long.valueOf(1L).equals(deletedCount);
     }
 
@@ -818,6 +818,22 @@ public class CacheUtils {
     public <T> T executeScript(RedisScript<T> script, List<String> keys, Object... args) {
         keys = createScriptKey(keys);
         return redisTemplate.execute(script, keys, args);
+    }
+
+    /**
+     * 执行使用当前服务前缀的 Lua 脚本。
+     *
+     * <p>适用于需要与 {@link #set(String, Object)} 等常规 key 操作访问同一 Redis 键的脚本。</p>
+     *
+     * @param script Lua 脚本
+     * @param keys   键列表
+     * @param args   参数
+     * @param <T>    返回类型
+     * @return 脚本执行结果
+     */
+    public <T> T executeScriptForServerKeys(RedisScript<T> script, List<String> keys, Object... args) {
+        List<String> serverKeys = keys.stream().map(this::clusterKey).toList();
+        return redisTemplate.execute(script, serverKeys, args);
     }
 
 

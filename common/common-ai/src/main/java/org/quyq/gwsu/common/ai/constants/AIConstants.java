@@ -50,6 +50,7 @@ public interface AIConstants {
     interface DistributedStoreRedis {
 
         String KEY_PREFIX = "agentscope:distributed:";
+        String NAMESPACE_SEPARATOR = "/";
         String STORE_ITEM_KEY_TEMPLATE = KEY_PREFIX + "store:item:%s:%s";
         String STORE_INDEX_KEY_TEMPLATE = KEY_PREFIX + "store:index:%s";
         String SNAPSHOT_KEY_TEMPLATE = KEY_PREFIX + "snapshot:%s";
