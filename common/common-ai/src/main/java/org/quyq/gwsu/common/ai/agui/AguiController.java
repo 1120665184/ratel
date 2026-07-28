@@ -212,6 +212,12 @@ public abstract class AguiController implements DisposableBean {
      */
     protected abstract CopilotKitInfo handleInfo();
 
+    /**
+     * 智能体运行完成后的钩子。
+     */
+    protected void afterRunCompleted(RunAgentInput input, String userId, RuntimeContext runtimeContext) {
+    }
+
 
     /**
      * 获取当前登录的用户ID
@@ -362,6 +368,11 @@ public abstract class AguiController implements DisposableBean {
                                                             error.getMessage());
                                                 },
                                                 () -> {
+                                                    try {
+                                                        afterRunCompleted(input, userId, runtimeContext);
+                                                    } catch (Exception exception) {
+                                                        log.warn("Run completed hook execute failed, threadId={}", threadId, exception);
+                                                    }
                                                     try {
                                                         emitter.complete();
                                                     } catch (Exception e) {

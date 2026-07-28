@@ -141,6 +141,10 @@ public class ViewOperationSkillRepository implements AgentSkillRepository, LazyR
                 ### 准则3：操作必确认
                 - 任何修改性操作在执行前，必须获得用户的明确确认
                 
+                ### 准则4: 禁止使用子智能体调用
+                - 禁止基于`agent_spawn`工具来创建子智能体执行视图操作相关的任务
+                - 该技能和涉及到的所有工具只能在主智能体中执行
+                
                 ## 当前用户
                 %s
                 ## 可访问界面总览

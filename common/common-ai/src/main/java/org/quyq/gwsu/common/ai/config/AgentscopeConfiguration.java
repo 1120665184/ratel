@@ -7,8 +7,8 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.ToolkitConfig;
 import io.agentscope.harness.agent.DistributedStore;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.distributed.redis.CacheRedisAgentStateStore;
 import org.quyq.gwsu.common.ai.distributed.redis.CacheRedisDistributedStore;
-import org.quyq.gwsu.common.ai.session.DatabaseStateStore;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -16,8 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
-
-import javax.sql.DataSource;
 
 /**
  * @author Quyq
@@ -31,8 +29,8 @@ public class AgentscopeConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AgentStateStore databaseAgentSession(DataSource dataSource) {
-        return new DatabaseStateStore(dataSource);
+    public AgentStateStore agentStateStore(CacheUtils cacheUtils) {
+        return new CacheRedisAgentStateStore(cacheUtils);
     }
 
     @Bean

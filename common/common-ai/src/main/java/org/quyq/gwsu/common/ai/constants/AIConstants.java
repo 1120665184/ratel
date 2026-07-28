@@ -54,6 +54,16 @@ public interface AIConstants {
         String STORE_ITEM_KEY_TEMPLATE = KEY_PREFIX + "store:item:%s:%s";
         String STORE_ITEM_VERSION_KEY_TEMPLATE = KEY_PREFIX + "store:item:version:%s:%s";
         String STORE_INDEX_KEY_TEMPLATE = KEY_PREFIX + "store:index:%s";
+        String HISTORY_INDEX_KEY_TEMPLATE = KEY_PREFIX + "history:index:user:%s";
+        String HISTORY_DETAIL_KEY_TEMPLATE = KEY_PREFIX + "history:detail:user:%s:session:%s";
+        String STATE_KEY_PREFIX = KEY_PREFIX + "state:";
+        String STATE_KEYS_SUFFIX = ":_keys";
+        String STATE_LIST_SUFFIX = ":list";
+        String STATE_LIST_HASH_SUFFIX = ":hash";
+        String STATE_VALUE_KEY_TEMPLATE = STATE_KEY_PREFIX + "%s:%s";
+        String STATE_LIST_KEY_TEMPLATE = STATE_KEY_PREFIX + "%s:%s" + STATE_LIST_SUFFIX;
+        String STATE_KEYS_KEY_TEMPLATE = STATE_KEY_PREFIX + "%s" + STATE_KEYS_SUFFIX;
+        String STATE_SESSION_SCAN_PATTERN_TEMPLATE = STATE_KEY_PREFIX + "%s:*" + STATE_KEYS_SUFFIX;
         String SNAPSHOT_KEY_TEMPLATE = KEY_PREFIX + "snapshot:%s";
         String LOCK_KEY_TEMPLATE = KEY_PREFIX + "lock:%s:%s";
 

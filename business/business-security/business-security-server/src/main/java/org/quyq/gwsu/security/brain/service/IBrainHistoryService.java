@@ -1,8 +1,8 @@
 package org.quyq.gwsu.security.brain.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
+import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionSliceVo;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public interface IBrainHistoryService {
      * @param userId 用户ID
      * @return 分页结果
      */
-    IPage<BrainHistorySessionVo> pageHistorySessions(BrainHistoryQueryDTO query, String userId);
+    BrainHistorySessionSliceVo pageHistorySessions(BrainHistoryQueryDTO query, String userId);
 
     /**
      * 查询会话的消息列表
