@@ -18,7 +18,8 @@ import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.headless.api.dto.ContentBlock;
-import org.quyq.gwsu.headless.api.dto.UserMsg;
+import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
+import org.quyq.gwsu.headless.api.dto.HeadlessResourceDTO;
 import org.quyq.gwsu.headless.api.dto.block.*;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.api.vo.AssistantMsg;
@@ -72,9 +73,10 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
     @SneakyThrows
     @Override
-    public Flux<HeadlessResponse> stream(UserMsg msg, HeadlessCallConfig config) {
-        String query = msg.getTextContent();
-        AssertUtils.hasText(query, HeadlessErrorCode.E01006);
+    public Flux<HeadlessResponse> stream(HeadlessDTO request, HeadlessCallConfig config) {
+        AssertUtils.notNull(request, HeadlessErrorCode.E01006);
+        validateRequest(request);
+        String query = buildRoutingQuery(request);
         String userId = config.getUserId();
         if (!StringUtils.hasText(userId)) {
             userId = securityUtils.userInfo().map(UserInfo::getUserId).orElse("");
@@ -91,6 +93,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
         return headlessGraph.stream(Map.of(
                         HeadlessConstants.Headless.GRAPH_PARAM_QUERY, query,
+                        HeadlessConstants.Headless.GRAPH_PARAM_REQUEST, request,
                         HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, new SubjectInfo(config.getSign(), userId),
                         HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, Optional.ofNullable(config.getThreadId()).orElse("")
                 ))
@@ -142,6 +145,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
             Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();
 
             keyStrategyMap.put(HeadlessConstants.Headless.GRAPH_PARAM_QUERY, new ReplaceStrategy());
+            keyStrategyMap.put(HeadlessConstants.Headless.GRAPH_PARAM_REQUEST, new ReplaceStrategy());
             keyStrategyMap.put(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, new ReplaceStrategy());
             keyStrategyMap.put(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, new ReplaceStrategy());
             keyStrategyMap.put(HeadlessConstants.Headless.GRAPH_PARAM_ROUTE_INFO, new ReplaceStrategy());
@@ -180,6 +184,42 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         headlessGraph = buildGraph();
+    }
+
+    private void validateRequest(HeadlessDTO request) {
+        if (request.resources() != null) {
+            for (HeadlessResourceDTO resource : request.resources()) {
+                AssertUtils.notNull(resource, HeadlessErrorCode.E01006);
+                AssertUtils.hasText(resource.url(), HeadlessErrorCode.E01006);
+                AssertUtils.hasText(resource.mimeType(), HeadlessErrorCode.E01006);
+            }
+        }
+        AssertUtils.isTrue(request.hasContent(), HeadlessErrorCode.E01006);
+    }
+
+    private String buildRoutingQuery(HeadlessDTO request) {
+        List<String> parts = new ArrayList<>();
+        if (StringUtils.hasText(request.text())) {
+            parts.add(request.text().trim());
+        }
+        if (!CollectionUtils.isEmpty(request.resources())) {
+            String resourceSummary = request.resources().stream()
+                    .filter(Objects::nonNull)
+                    .map(this::describeResource)
+                    .filter(StringUtils::hasText)
+                    .reduce((left, right) -> left + "；" + right)
+                    .orElse("用户附带了资源");
+            parts.add("用户附带了%s个资源：%s".formatted(request.resources().size(), resourceSummary));
+        }
+        return String.join("\n", parts);
+    }
+
+    private String describeResource(HeadlessResourceDTO resource) {
+        if (resource == null || !StringUtils.hasText(resource.url())) {
+            return null;
+        }
+        String mimeType = StringUtils.hasText(resource.mimeType()) ? resource.mimeType() : "unknown";
+        return "资源(mimeType=%s)".formatted(mimeType);
     }
 
     /**

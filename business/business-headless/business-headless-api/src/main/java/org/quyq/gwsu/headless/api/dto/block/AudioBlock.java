@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import org.quyq.gwsu.headless.api.dto.ContentBlock;
 
 /**
- * 音频内容块，支持 URL 或 Base64 两种来源
+ * 音频内容块，仅支持 URL 来源
  *
  * @author Quyq
  * @date 2026/6/25
@@ -23,19 +23,14 @@ public class AudioBlock extends ContentBlock {
     public static final String TYPE = "audio";
 
     /**
-     * 音频 URL，与 base64 二选一
+     * 音频 URL
      */
     private String url;
 
     /**
-     * Base64 媒体类型，如 "audio/mp3"，base64 模式时使用
+     * 媒体类型，如 "audio/mp3"
      */
     private String mediaType;
-
-    /**
-     * Base64 编码数据，base64 模式时使用
-     */
-    private String data;
 
     @Override
     public String getType() {

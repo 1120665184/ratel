@@ -8,29 +8,45 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
-import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.api.IAccountInfoClientApi;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.headless.api.HeadlessClientApi;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
+import org.quyq.gwsu.headless.api.dto.HeadlessResourceDTO;
 import org.quyq.gwsu.headless.api.dto.block.ImageBlock;
-import org.quyq.gwsu.headless.api.dto.UserMsg;
 import org.quyq.gwsu.headless.api.dto.block.VideoBlock;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.api.vo.AssistantMsg;
+import org.quyq.gwsu.kit.api.file.dto.FileProperty;
+import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
+import org.quyq.gwsu.kit.api.utils.FileUtils;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.DingTalkMessage;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.DingTalkUser;
+import org.quyq.gwsu.security.connect.entrance.dingtalk.enums.DingTalkMsgType;
+import org.quyq.gwsu.security.connect.entrance.dingtalk.enums.MsgSourceType;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.service.IDingTalkService;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.utils.DingTalkCardUtils;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.utils.DingTalkMsgUtils;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.vo.UserStaffIdMappingInfo;
-import org.quyq.gwsu.security.connect.enums.DingTalkMsgType;
-import org.quyq.gwsu.security.connect.enums.MsgSourceType;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,6 +62,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class DingTalkServiceImpl implements IDingTalkService {
 
+    private static final Pattern CONTENT_DISPOSITION_FILENAME_STAR_PATTERN = Pattern.compile("filename\\*=([^']*)''([^;]+)");
+
+    private static final Pattern CONTENT_DISPOSITION_FILENAME_PATTERN = Pattern.compile("filename=\"?([^\";]+)\"?");
+
     private final DingTalkMsgUtils dingTalkMsgUtils;
 
     private final DingTalkCardUtils dingTalkCardUtils;
@@ -55,8 +75,6 @@ public class DingTalkServiceImpl implements IDingTalkService {
     private final IAccountInfoClientApi accountInfoClientApi;
 
     private final HeadlessClientApi headlessClientApi;
-
-    private final ObjectMapper objectMapper;
 
     private final static String DING_TALK_USER_MAPPING = "dingtalk:user_mapping:";
 
@@ -87,10 +105,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
 
     protected void agentCall(MsgSourceType sourceType, UserStaffIdMappingInfo mappingInfo, UserContent content) {
-        //TODO 目前只支持文本
-        if (DingTalkMsgType.TEXT != content.type()) {
-            throw new BusinessException("不支持的消息类型");
-        }
+
         String outTrackId = IdUtil.getSnowflakeNextIdStr();
 
         AtomicReference<HeadlessAgentStatus> status = new AtomicReference<>(HeadlessAgentStatus.CONNECTION);
@@ -103,8 +118,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
         dingTalkCardUtils.sendCard(outTrackId, sourceType, mappingInfo.getStaffId(), lastParam.get());
 
         AssistantResponse response = new AssistantResponse();
-        headlessClientApi.stream(mappingInfo.getSubjectId() ,SIGN,new HeadlessDTO(
-                        UserMsg.ofText(content.content.getContent()),null))
+        headlessClientApi.stream(mappingInfo.getSubjectId(), SIGN, buildHeadlessDTO(content))
                 .doOnNext(chunk -> {
                     if (status.get() == HeadlessAgentStatus.ERROR) {
                         return;
@@ -154,9 +168,9 @@ public class DingTalkServiceImpl implements IDingTalkService {
                 .doOnComplete(() -> {
                     HeadlessAgentStatus tmp = status.get();
                     String msg = response.getContent();
-                    if(HeadlessAgentStatus.ERROR == tmp) {
+                    if (HeadlessAgentStatus.ERROR == tmp) {
                         msg = errMsg;
-                    }else if(HeadlessAgentStatus.BUSY == tmp) {
+                    } else if (HeadlessAgentStatus.BUSY == tmp) {
                         msg = errInfo[0];
                     }
                     dingTalkCardUtils.streamAiCard(outTrackId, "content", msg, true);
@@ -169,6 +183,150 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
     }
 
+
+    private HeadlessDTO buildHeadlessDTO(UserContent content) {
+        StringBuilder text = new StringBuilder();
+        List<HeadlessResourceDTO> resources = new ArrayList<>();
+
+        MessageContent mc = content.content;
+        switch (content.type) {
+            case TEXT:
+                text = new StringBuilder(mc.getContent());
+                break;
+            case RICHTEXT:
+                for (MessageContent temp : mc.getRichText()) {
+                    if(StringUtils.hasText(temp.getText())){
+                        text.append(temp.getText());
+                    }else if(StringUtils.hasText(temp.getDownloadCode())){
+                        resources.add(saveToFileServer(dingTalkMsgUtils.getFileDownloadUrl(temp.getDownloadCode()) , temp.getFileName()));
+                    }
+                }
+                break;
+            case AUDIO:
+                text = new StringBuilder(mc.getRecognition());
+                break;
+            case PICTURE,FILE,VIDEO:
+                resources.add(saveToFileServer(dingTalkMsgUtils.getFileDownloadUrl(mc.getDownloadCode()) , mc.getFileName()));
+                break;
+
+        }
+
+        return new HeadlessDTO(text.toString(), resources, null);
+    }
+
+    private HeadlessResourceDTO saveToFileServer(String fileDownloadUrl , String fileName){
+        Path tempFile = null;
+        try {
+            URLConnection connection = new URL(fileDownloadUrl).openConnection();
+            connection.connect();
+
+            String contentDisposition = connection.getHeaderField("Content-Disposition");
+            String resolvedFileName = resolveFileName(contentDisposition, fileName, connection.getContentType());
+            String suffix = getFileSuffix(resolvedFileName, connection.getContentType());
+            tempFile = Files.createTempFile("dingtalk_", suffix);
+
+            try (InputStream inputStream = connection.getInputStream()) {
+                Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            KitFileInfoVO fileInfo = FileUtils.upload(tempFile.toFile(), buildFileProperty());
+            BaseProjectInfoProperties properties = ConfigInfoUtils.getByObject(
+                    BaseProjectInfoProperties.CONFIG_KEY,
+                    BaseProjectInfoProperties.class
+            );
+            String fileUrl = "%s/kit/file/stream/%s".formatted(properties.apiBaseUrl(), fileInfo.getFileId());
+            return new HeadlessResourceDTO(fileUrl, fileInfo.getMediaType());
+        } catch (Exception e) {
+            log.error("钉钉文件下载并上传失败, fileDownloadUrl={}", fileDownloadUrl, e);
+            throw new RuntimeException("钉钉文件保存到文件服务失败", e);
+        } finally {
+            deleteQuietly(tempFile);
+        }
+    }
+
+    private FileProperty buildFileProperty() {
+        return FileProperty.builder()
+                .categorize("dingtalk")
+                .scopePublic()
+                .expiredTime(LocalDateTime.now().plusMonths(1))
+                .build();
+    }
+
+    private String resolveFileName(String contentDisposition, String fileName, String contentType) {
+        String headerFileName = extractFileNameFromContentDisposition(contentDisposition);
+        if (StringUtils.hasText(headerFileName)) {
+            return headerFileName;
+        }
+        if (StringUtils.hasText(fileName)) {
+            return fileName;
+        }
+        return IdUtil.fastSimpleUUID() + getFileSuffix(null, contentType);
+    }
+
+    private String extractFileNameFromContentDisposition(String contentDisposition) {
+        if (!StringUtils.hasText(contentDisposition)) {
+            return null;
+        }
+
+        Matcher filenameStarMatcher = CONTENT_DISPOSITION_FILENAME_STAR_PATTERN.matcher(contentDisposition);
+        if (filenameStarMatcher.find()) {
+            String charset = filenameStarMatcher.group(1);
+            String encodedFileName = filenameStarMatcher.group(2);
+            try {
+                Charset decodeCharset = StringUtils.hasText(charset) ? Charset.forName(charset) : StandardCharsets.UTF_8;
+                return URLDecoder.decode(encodedFileName, decodeCharset);
+            } catch (Exception e) {
+                log.warn("解析 Content-Disposition filename* 失败: {}", contentDisposition, e);
+            }
+        }
+
+        Matcher filenameMatcher = CONTENT_DISPOSITION_FILENAME_PATTERN.matcher(contentDisposition);
+        if (filenameMatcher.find()) {
+            return filenameMatcher.group(1);
+        }
+        return null;
+    }
+
+    private String getFileSuffix(String fileName, String contentType) {
+        if (StringUtils.hasText(fileName)) {
+            int index = fileName.lastIndexOf('.');
+            if (index >= 0 && index < fileName.length() - 1) {
+                return fileName.substring(index);
+            }
+        }
+        if (!StringUtils.hasText(contentType)) {
+            return ".tmp";
+        }
+        return switch (contentType.toLowerCase(Locale.ROOT)) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/gif" -> ".gif";
+            case "image/webp" -> ".webp";
+            case "video/mp4" -> ".mp4";
+            case "audio/mpeg" -> ".mp3";
+            case "audio/wav", "audio/x-wav" -> ".wav";
+            case "application/pdf" -> ".pdf";
+            case "application/msword" -> ".doc";
+            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> ".docx";
+            case "application/vnd.ms-excel" -> ".xls";
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> ".xlsx";
+            case "application/vnd.ms-powerpoint" -> ".ppt";
+            case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> ".pptx";
+            case "text/plain" -> ".txt";
+            default -> ".tmp";
+        };
+    }
+
+    private void deleteQuietly(Path path) {
+        if (path == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            log.warn("清理临时文件失败: {}", path, e);
+        }
+    }
 
     private void setProgress(AtomicInteger progress, HeadlessAgentStatus status) {
         int p = progress.get();
@@ -195,7 +353,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
         param.put("image_url", imageUrl);
         param.put("video_url", videoUrl);
         param.put("progress", progress + "");
-        param.put("newChat" , "true");
+        param.put("newChat", "true");
         return param;
     }
 

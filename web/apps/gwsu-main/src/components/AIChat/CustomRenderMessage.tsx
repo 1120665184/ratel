@@ -1,10 +1,14 @@
 import {
   CopilotChatMessageView,
+  CopilotChatAssistantMessage,
+  type CopilotChatAssistantMessageProps,
   type CopilotChatMessageViewProps,
 } from '@copilotkit/react-core/v2';
-import type { ReasoningMessage, Message } from '@ag-ui/core';
+import type { AssistantMessage, ReasoningMessage, Message } from '@ag-ui/core';
 import { ReasoningMessageItem } from './ReasoningMessageItem';
 import type { ViewConfig } from './types';
+import { RAW_ERROR_MESSAGE_NAME } from '@/providers/CopilotKitProvider';
+import styles from './copilot-override.module.less';
 
 const DEFAULT_VIEW_CONFIG: ViewConfig = {
   showThinking: true,
@@ -14,6 +18,25 @@ const DEFAULT_VIEW_CONFIG: ViewConfig = {
 };
 
 export function createCustomRenderMessage(viewConfig: ViewConfig = DEFAULT_VIEW_CONFIG) {
+  function CustomAssistantMessage(props: CopilotChatAssistantMessageProps) {
+    const { message } = props;
+    const isRawError =
+      (message as AssistantMessage & { name?: string }).name ===
+      RAW_ERROR_MESSAGE_NAME;
+
+    if (!isRawError) {
+      return <CopilotChatAssistantMessage {...props} />;
+    }
+
+    return (
+      <CopilotChatAssistantMessage
+        {...props}
+        className={styles.rawErrorMessage}
+        toolbarVisible={false}
+      />
+    );
+  }
+
   function CustomReasoningMessage({
     message,
     messages,
@@ -43,6 +66,7 @@ export function createCustomRenderMessage(viewConfig: ViewConfig = DEFAULT_VIEW_
     return (
       <CopilotChatMessageView
         {...props}
+        assistantMessage={CustomAssistantMessage}
         reasoningMessage={viewConfig.showThinking ? CustomReasoningMessage : (false as any)}
       />
     );

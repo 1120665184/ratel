@@ -42,6 +42,13 @@ public class AguiMessageContentDeserializer extends ValueDeserializer<AguiMessag
             if (node.has("type")) {
                 return new AguiPartsContent(List.of(parsePart(node, p, ctxt)));
             }
+            if (node.has("parts") && node.get("parts").isArray()) {
+                List<AguiContentPart> parts = new ArrayList<>();
+                for (JsonNode item : node.get("parts")) {
+                    parts.add(parsePart(item, p, ctxt));
+                }
+                return new AguiPartsContent(parts);
+            }
             if (node.has("text")) {
                 return new AguiTextContent(text(node.get("text")));
             }

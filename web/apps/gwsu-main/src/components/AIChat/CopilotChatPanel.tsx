@@ -1,9 +1,12 @@
 import {
   CopilotChat,
   CopilotChatConfigurationProvider,
+  type AttachmentsConfig,
+  useCopilotKit,
 } from '@copilotkit/react-core/v2';
 import { useAgent } from '@copilotkit/react-core/v2';
 import '@copilotkit/react-core/v2/styles.css';
+import type { InputContent } from '@ag-ui/core';
 import { App, Button, Tooltip } from 'antd';
 import {
   RobotOutlined,
@@ -17,6 +20,13 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
 import type { CSSProperties } from 'react';
+import {
+  fetchConfigsBatch,
+  FileScope,
+  useHeadlessStore,
+  useFileUpload,
+  useProjectConfigStore,
+} from '@gwsu/core';
 import type { AIChatPanelMode } from './types';
 import { usePanelContext } from './AIChatContext';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
@@ -41,8 +51,136 @@ import {
   onAskUserQuestion,
 } from '@/services/ask-user-question';
 import { clearAgentOutput } from '@/services/agent-output';
-import { useHeadlessStore } from '@gwsu/core';
+import type { ModelLlmConfig } from '../SettingsPanel/ModelConfigTab/types';
+import { createDefaultModelLlmConfig } from '../SettingsPanel/ModelConfigTab/types';
 import styles from './copilot-override.module.less';
+
+const MODEL_LLM_CONFIG_KEY = 'model_llm_config';
+
+interface HeadlessBridgeResource {
+  url?: string;
+  mimeType?: string;
+}
+
+interface HeadlessBridgePayload {
+  text?: string;
+  resources?: HeadlessBridgeResource[];
+  threadId?: string;
+}
+
+declare global {
+  interface Window {
+    __GWSU_HEADLESS_CHAT__?: {
+      send: (payload: HeadlessBridgePayload) => Promise<void>;
+    };
+  }
+}
+
+function DirectUploadButton(props: any) {
+  const { className, disabled, onAddFile, onClick, ...restProps } = props;
+
+  return (
+    <button
+      type="button"
+      data-testid="copilot-add-menu-button"
+      className={className}
+      disabled={disabled}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!disabled) {
+          onAddFile?.();
+        }
+      }}
+      {...restProps}
+    >
+      <PlusOutlined style={{ fontSize: 16 }} />
+    </button>
+  );
+}
+
+function trimTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, '');
+}
+
+function toAcceptValue(formats?: string[]): string {
+  if (!formats?.length) {
+    return '*/*';
+  }
+  return formats.join(',');
+}
+
+function createOneMonthLaterIsoString(): string {
+  const expiredAt = new Date();
+  expiredAt.setMonth(expiredAt.getMonth() + 1);
+  const year = expiredAt.getFullYear();
+  const month = String(expiredAt.getMonth() + 1).padStart(2, '0');
+  const day = String(expiredAt.getDate()).padStart(2, '0');
+  const hours = String(expiredAt.getHours()).padStart(2, '0');
+  const minutes = String(expiredAt.getMinutes()).padStart(2, '0');
+  const seconds = String(expiredAt.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+function buildHeadlessInputContent(payload: HeadlessBridgePayload): InputContent[] {
+  const content: InputContent[] = [];
+  const text = payload.text?.trim();
+  if (text) {
+    content.push({
+      type: 'text',
+      text,
+    });
+  }
+  for (const resource of payload.resources ?? []) {
+    if (!resource?.url?.trim()) {
+      throw new Error('Headless 资源缺少 url');
+    }
+    const mimeType = resource.mimeType?.trim();
+    if (!mimeType) {
+      throw new Error('Headless 资源缺少 mimeType');
+    }
+    const source = { type: 'url' as const, value: resource.url.trim(), mimeType };
+    if (mimeType?.startsWith('image/')) {
+      content.push({ type: 'image', source });
+    } else if (mimeType?.startsWith('audio/')) {
+      content.push({ type: 'audio', source });
+    } else if (mimeType?.startsWith('video/')) {
+      content.push({ type: 'video', source });
+    } else {
+      content.push({ type: 'document', source });
+    }
+  }
+  return content;
+}
+
+function parseModelLlmConfig(configValue?: string): ModelLlmConfig {
+  const defaults = createDefaultModelLlmConfig();
+  if (!configValue) {
+    return defaults;
+  }
+
+  try {
+    const parsed = JSON.parse(configValue) as Partial<ModelLlmConfig>;
+    return {
+      provider: parsed.provider || defaults.provider,
+      supportMultimodal: parsed.supportMultimodal ?? defaults.supportMultimodal,
+      multimodalOptions: {
+        ...defaults.multimodalOptions,
+        ...parsed.multimodalOptions,
+      },
+      dashscope: { ...defaults.dashscope, ...parsed.dashscope },
+      openai: { ...defaults.openai, ...parsed.openai },
+      gemini: { ...defaults.gemini, ...parsed.gemini },
+      anthropic: { ...defaults.anthropic, ...parsed.anthropic },
+      generateOptions: {
+        ...defaults.generateOptions,
+        ...parsed.generateOptions,
+        additionalBodyParams: parsed.generateOptions?.additionalBodyParams ?? {},
+      },
+    };
+  } catch {
+    return defaults;
+  }
+}
 
 interface CopilotChatPanelProps {
   /** 自定义类名 */
@@ -84,7 +222,13 @@ export function CopilotChatPanel({
     viewConfig,
   } = usePanelContext();
   const { agent } = useAgent({ agentId: 'brain' });
+  const { copilotkit } = useCopilotKit();
   const { message } = App.useApp();
+  const apiBaseUrl = useProjectConfigStore((s) => s.baseUrlConfig.apiBaseUrl);
+  const { upload } = useFileUpload({ scope: FileScope.PUBLIC });
+  const [llmConfig, setLlmConfig] = useState<ModelLlmConfig>(
+    createDefaultModelLlmConfig(),
+  );
 
   // 根据展示配置动态创建消息渲染组件
   const CustomMessageView = useMemo(
@@ -94,6 +238,8 @@ export function CopilotChatPanel({
 
   // CopilotChat 组件容器 ref，用于精确控制其内部输入框
   const copilotChatRef = useRef<HTMLDivElement>(null);
+  const selectedAttachmentCountRef = useRef(0);
+  const pendingAttachmentCountRef = useRef(0);
 
   // 防止 Ant Design 弹框/抽屉的 focus trap 阻止面板内输入框获取焦点
   // Ant Design 的 rc-dialog 在打开时会通过 focusin 全局事件将焦点拉回弹框内部
@@ -138,7 +284,83 @@ export function CopilotChatPanel({
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadModelConfig = async () => {
+      try {
+        const configMap = await fetchConfigsBatch([MODEL_LLM_CONFIG_KEY]);
+        if (cancelled) return;
+        setLlmConfig(
+          parseModelLlmConfig(configMap[MODEL_LLM_CONFIG_KEY]?.configValue),
+        );
+      } catch {
+        if (!cancelled) {
+          setLlmConfig(createDefaultModelLlmConfig());
+        }
+      }
+    };
+
+    void loadModelConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const chatEl = copilotChatRef.current;
+    if (!chatEl) return;
+
+    const syncAttachmentCount = () => {
+      selectedAttachmentCountRef.current = chatEl.querySelectorAll(
+        '.copilotKitAttachmentQueueItem',
+      ).length;
+    };
+
+    syncAttachmentCount();
+
+    const observer = new MutationObserver(syncAttachmentCount);
+    observer.observe(chatEl, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const isInteractionActive = hasApproval || hasAskQuestion;
+
+  const submitHeadlessMessage = useCallback(
+    async (payload: HeadlessBridgePayload) => {
+      const content = buildHeadlessInputContent(payload);
+      if (content.length === 0) {
+        throw new Error('Headless 消息不能为空');
+      }
+      const text = payload.text?.trim() ?? '';
+      const hasResources = (payload.resources ?? []).some((item) => !!item?.url);
+      const normalizedContent =
+        hasResources || !text ? content : text;
+      agent.addMessage({
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: normalizedContent,
+      } as any);
+      await copilotkit.runAgent({ agent });
+    },
+    [agent, copilotkit],
+  );
+
+  useEffect(() => {
+    const bridge = {
+      send: submitHeadlessMessage,
+    };
+    window.__GWSU_HEADLESS_CHAT__ = bridge;
+    return () => {
+      if (window.__GWSU_HEADLESS_CHAT__ === bridge) {
+        delete window.__GWSU_HEADLESS_CHAT__;
+      }
+    };
+  }, [submitHeadlessMessage]);
 
   // 互斥控制：弹框活跃时通过 DOM 直接禁用 CopilotChat 输入框
   // 仅在 copilotChatRef 范围内查找，避免误禁用审批栏/问题栏的输入
@@ -193,6 +415,8 @@ export function CopilotChatPanel({
     clearHumanApproval();
     clearAskUserQuestion();
     clearAgentOutput();
+    selectedAttachmentCountRef.current = 0;
+    pendingAttachmentCountRef.current = 0;
     // 清除 headlessStore 中的 threadId
     useHeadlessStore.getState().clearThreadId();
     // 生成新的 threadId，让后端创建新的会话
@@ -211,12 +435,7 @@ export function CopilotChatPanel({
       const formattedMessages = messages.map((msg: BrainMessage) => ({
         id: msg.id,
         role: msg.role,
-        content:
-          typeof msg.content === 'string'
-            ? msg.content
-            : msg.content
-            ? JSON.stringify(msg.content)
-            : '',
+        content: msg.content ?? '',
         ...(msg.toolCalls && msg.toolCalls.length > 0
           ? { toolCalls: msg.toolCalls }
           : {}),
@@ -323,6 +542,70 @@ export function CopilotChatPanel({
     [setPanelPosition],
   );
 
+  const attachmentsConfig = useMemo<AttachmentsConfig | undefined>(() => {
+    if (!llmConfig.supportMultimodal) {
+      return undefined;
+    }
+
+    const {
+      maxUploadCount,
+      maxUploadSizeMb,
+      allowedUploadFormats,
+    } = llmConfig.multimodalOptions;
+
+    return {
+      enabled: true,
+      accept: toAcceptValue(allowedUploadFormats),
+      maxSize: maxUploadSizeMb * 1024 * 1024,
+      onUpload: async (file) => {
+        const activeCount =
+          selectedAttachmentCountRef.current +
+          pendingAttachmentCountRef.current;
+        if (activeCount >= maxUploadCount) {
+          throw new Error(`最多可上传 ${maxUploadCount} 个资源`);
+        }
+
+        pendingAttachmentCountRef.current += 1;
+        try {
+          const fileInfo = await upload(file, {
+            property: {
+              scope: FileScope.PUBLIC,
+              expiredTime: createOneMonthLaterIsoString(),
+            },
+          });
+          selectedAttachmentCountRef.current += 1;
+          const resourceUrl = `${trimTrailingSlash(apiBaseUrl)}/kit/file/stream/${fileInfo.fileId}`;
+          return {
+            type: 'url' as const,
+            value: resourceUrl,
+            mimeType: file.type || fileInfo.mediaType,
+            metadata: {
+              fileId: fileInfo.fileId,
+              fileName: fileInfo.fileName,
+              scope: FileScope.PUBLIC,
+            },
+          };
+        } finally {
+          pendingAttachmentCountRef.current = Math.max(
+            0,
+            pendingAttachmentCountRef.current - 1,
+          );
+        }
+      },
+      onUploadFailed: (error) => {
+        if (error.reason === 'file-too-large') {
+          message.warning(error.message);
+          return;
+        }
+        if (error.reason === 'invalid-type') {
+          message.warning(error.message);
+          return;
+        }
+        message.error(error.message);
+      },
+    };
+  }, [apiBaseUrl, llmConfig, message, upload]);
+
   // 渲染聊天内容（不含外层容器）
   const renderChatContent = () => (
     <>
@@ -403,6 +686,7 @@ export function CopilotChatPanel({
           hasExplicitThreadId={false}
         >
           <CopilotChat
+            key={currentThreadId ?? 'default-thread'}
             agentId="brain"
             labels={{
               welcomeMessageText: '你好，我是你的助手^_^',
@@ -410,7 +694,15 @@ export function CopilotChatPanel({
               chatDisclaimerText: 'AI生成内容，仅供参考',
             }}
             className={styles.copilotChat}
+            input={
+              llmConfig.supportMultimodal
+                ? {
+                    addMenuButton: DirectUploadButton,
+                  }
+                : undefined
+            }
             messageView={CustomMessageView}
+            attachments={attachmentsConfig}
             onStop={() => {
               agent.abortRun();
             }}

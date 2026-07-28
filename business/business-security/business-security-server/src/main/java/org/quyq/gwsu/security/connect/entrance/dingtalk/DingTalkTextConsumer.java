@@ -9,7 +9,7 @@ import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.DingTalkMessage;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.service.IDingTalkService;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.utils.DingTalkMsgUtils;
-import org.quyq.gwsu.security.connect.enums.MsgSourceType;
+import org.quyq.gwsu.security.connect.entrance.dingtalk.enums.MsgSourceType;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 

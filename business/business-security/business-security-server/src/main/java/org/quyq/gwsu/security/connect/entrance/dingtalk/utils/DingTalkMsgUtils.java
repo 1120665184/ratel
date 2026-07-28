@@ -14,7 +14,7 @@ import org.quyq.gwsu.security.connect.entrance.dingtalk.DingTalkClient;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.DingTalkMessage;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.DingTalkUser;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.domain.PrivateChatResponse;
-import org.quyq.gwsu.security.connect.enums.MsgSourceType;
+import org.quyq.gwsu.security.connect.entrance.dingtalk.enums.MsgSourceType;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;

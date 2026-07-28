@@ -18,6 +18,7 @@ package org.quyq.gwsu.common.ai.config.properties;
 import lombok.Data;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -52,6 +53,11 @@ public class ModelLlmConfigDTO {
     private Boolean supportMultimodal = false;
 
     /**
+     * 多模态扩展配置。
+     */
+    private MultimodalOptionsDTO multimodalOptions = new MultimodalOptionsDTO();
+
+    /**
      * DashScope 提供商配置。
      */
     private DashscopeConfigDTO dashscope = new DashscopeConfigDTO();
@@ -75,6 +81,30 @@ public class ModelLlmConfigDTO {
      * 通用生成参数，所有提供商共享。
      */
     private GenerateOptionsDTO generateOptions = new GenerateOptionsDTO();
+
+    @Data
+    public static class MultimodalOptionsDTO {
+
+        /**
+         * 是否将资源 URL 转换为 Base64 数据后再提交给模型。
+         */
+        private Boolean resourceUrlToBase64 = false;
+
+        /**
+         * 允许上传的资源大小，单位 MB。
+         */
+        private Integer maxUploadSizeMb = 20;
+
+        /**
+         * 允许上传的资源数量。
+         */
+        private Integer maxUploadCount = 3;
+
+        /**
+         * 允许上传的资源格式列表。
+         */
+        private List<String> allowedUploadFormats;
+    }
 
 
     @Data

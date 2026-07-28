@@ -6,6 +6,7 @@ import com.alibaba.cloud.ai.graph.action.NodeAction;
 import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
+import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
@@ -36,14 +37,14 @@ public class SendChatNode implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) {
 
-        String query = state.value(HeadlessConstants.Headless.GRAPH_PARAM_QUERY, "");
+        HeadlessDTO request = state.value(HeadlessConstants.Headless.GRAPH_PARAM_REQUEST, HeadlessDTO.class).orElseThrow();
         SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
 
         HeadlessMessageHandler handler = new HeadlessMessageHandler(userId.userId(), agentStateStore);
 
         executorService.submit(() -> {
             try {
-                headlessBrowserManager.sendMessage(userId, query, handler);
+                headlessBrowserManager.sendMessage(userId, request, handler);
                 handler.complete();
             } catch (Exception e) {
                 handler.error(e);

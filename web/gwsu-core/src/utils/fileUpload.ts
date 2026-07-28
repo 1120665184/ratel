@@ -86,6 +86,7 @@ async function doChunkedUpload(file: File, options: Required<FileUploadOptions>)
     fileName: file.name,
     chunkSize: chunkSizes.join(','),
     disposable: options.property?.disposable,
+    expiredTime: options.property?.expiredTime,
     scope: options.property?.scope,
     visitors: options.property?.visitors,
     categorize: options.property?.categorize,

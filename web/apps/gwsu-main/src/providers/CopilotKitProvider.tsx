@@ -4,6 +4,8 @@ import { useAgent } from '@copilotkit/react-core/v2';
 import { useUserStore } from '@gwsu/core';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useMemo } from 'react';
+import { App } from 'antd';
+import { randomUUID } from '@ag-ui/client';
 import { dispatchWebTool } from '@/services/web-tool';
 import type { WebToolExecutePayload } from '@/services/web-tool';
 import { dispatchHumanApproval } from '@/services/human-approval';
@@ -34,6 +36,8 @@ interface GwsuCopilotKitProviderProps {
   children: ReactNode;
 }
 
+export const RAW_ERROR_MESSAGE_NAME = '__raw_error__';
+
 /**
  * 工具调用渲染注册组件
  * 注册通配符(*)渲染器，使所有工具调用在聊天面板中展示
@@ -58,6 +62,7 @@ function ToolCallRendererRegistration() {
 function WebToolEventListener() {
   const { agent } = useAgent({ agentId: 'brain' });
   const subscriptionRef = useRef<ReturnType<typeof agent.subscribe> | null>(null);
+  const { notification } = App.useApp();
 
   /**
    * 规范化 options 字段
@@ -68,6 +73,14 @@ function WebToolEventListener() {
     if (Array.isArray(options)) return options as QuestionOption[];
     if (options && typeof options === 'object') return [options as QuestionOption];
     return [];
+  };
+
+  const showRawError = (msg: string) => {
+    notification.error({
+      title: '请求错误',
+      description: <div>{msg}</div>,
+      duration: 3,
+    });
   };
 
   useEffect(() => {
@@ -97,6 +110,19 @@ function WebToolEventListener() {
           dispatchAgentOutputEnd(event.value as AgentOutputEndPayload);
         }
       },
+      onRawEvent: ({ event }): void => {
+        const rawEvent = event.rawEvent as Record<string, unknown> | undefined;
+        const errorMessage = rawEvent?.error;
+        if (typeof errorMessage === 'string' && errorMessage.trim()) {
+          showRawError(errorMessage);
+          agent.addMessage({
+            id: randomUUID(),
+            role: 'assistant',
+            name: RAW_ERROR_MESSAGE_NAME,
+            content: errorMessage,
+          });
+        }
+      },
       onToolCallEndEvent: ({ toolCallName, toolCallArgs, event }): void => {
         if (toolCallName === 'AskUserQuestion') {
           const rawQuestions = toolCallArgs?.questions;
@@ -123,7 +149,7 @@ function WebToolEventListener() {
       subscription.unsubscribe();
       subscriptionRef.current = null;
     };
-  }, [agent]);
+  }, [agent, notification]);
 
   return null;
 }

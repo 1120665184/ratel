@@ -7,6 +7,7 @@ import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
+import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.core.HeadlessAgentListener;
 import org.quyq.gwsu.headless.core.parser.HeadlessSseEventParser;
 import tools.jackson.core.type.TypeReference;
@@ -343,7 +344,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
     // ==================== 发送消息 ====================
 
-    public List<AguiEvent> sendMessage(String message, HeadlessAgentListener listener) {
+    public List<AguiEvent> sendMessage(HeadlessDTO message, HeadlessAgentListener listener) {
         sendLock.lock();
         try {
             toolCallNameMap.clear();
@@ -761,17 +762,27 @@ public class HeadlessBrowserSession implements AutoCloseable {
 
     }
 
-    private void triggerAssistant(String message) {
+    private void triggerAssistant(HeadlessDTO message) {
         try {
             // 等待前端聊天就绪（历史消息回显完成）
             page.waitForFunction(
-                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
+                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true' && !!window.__GWSU_HEADLESS_CHAT__ && typeof window.__GWSU_HEADLESS_CHAT__.send === 'function'",
                     null, new Page.WaitForFunctionOptions().setTimeout(30_000));
             log.debug("前端聊天已就绪，开始发送消息");
 
-            page.locator("[data-testid='copilot-chat-textarea']").fill(message);
-            page.locator("[data-testid='copilot-send-button']").click();
-            log.debug("助手消息已发送: message={}", message);
+            page.evaluate("""
+                    payload => {
+                        const bridge = window.__GWSU_HEADLESS_CHAT__;
+                        if (!bridge || typeof bridge.send !== 'function') {
+                            throw new Error('Headless chat bridge is not available');
+                        }
+                        return bridge.send(payload);
+                    }
+                    """, objectMapper.convertValue(message, new TypeReference<Map<String, Object>>() {
+            }));
+            log.debug("助手消息已发送: text={}, resourceCount={}",
+                    message.text(),
+                    message.resources() == null ? 0 : message.resources().size());
         } catch (Exception e) {
             log.error("触发助手失败", e);
             throw new RuntimeException("触发助手失败", e);
