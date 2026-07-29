@@ -1,18 +1,22 @@
 package org.quyq.gwsu.security.brain.service.tool.web;
 
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.ToolResultBlock;
+import io.agentscope.core.permission.PermissionBehavior;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionDecision;
 import io.agentscope.core.tool.ToolBase;
 import io.agentscope.core.tool.ToolCallParam;
 import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
+import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 点击页面元素工具。
@@ -20,9 +24,9 @@ import java.util.Map;
 @Component
 public class ClickElementTool extends ToolBase {
 
-    private static final String TOOL_NAME = "ClickElement";
+    public static final String TOOL_NAME = "ClickElement";
     private static final String DEFAULT_APPROVAL_TIP = "该操作需要人工审批确认，是否继续？";
-    private static final String APPROVAL_TAG = "approval";
+    private static final String PAGE_STATE_REQUIRED_TIP = "点击元素前必须先调用 GetPageState 获取最新页面状态";
 
     private final WebToolUtils webToolUtils;
 
@@ -36,8 +40,7 @@ public class ClickElementTool extends ToolBase {
                         
                         参数：
                         - index：元素索引编号
-                        - operationDescription：本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户
-                        - tags：元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可""")
+                        - operationDescription：本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户""")
                 .inputSchema(Map.of(
                         "type", "object",
                         "properties", Map.of(
@@ -48,10 +51,6 @@ public class ClickElementTool extends ToolBase {
                                 "operationDescription", Map.of(
                                         "type", "string",
                                         "description", "本次点击的简要描述：例如：查看用户列表，保存用户信息，删除用户"
-                                ),
-                                "tags", Map.of(
-                                        "type", "string",
-                                        "description", "元素的标签信息，从GetPageState结果中{}包裹的内容获取，没有tags时传空字符串即可"
                                 )
                         ),
                         "required", List.of("index", "operationDescription")
@@ -60,8 +59,28 @@ public class ClickElementTool extends ToolBase {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Mono<PermissionDecision> checkPermissions(Map<String, Object> input, PermissionContextState contextState) {
-        return Mono.just(needApproval(input) ? PermissionDecision.ask(buildApprovalTip(input)) : PermissionDecision.passthrough(TOOL_NAME));
+        return Mono.deferContextual(contextView -> {
+            RuntimeContext runtimeContext = contextView.getOrDefault(AIConstants.Param.RUNTIME_CONTEXT, null);
+            if (runtimeContext == null) {
+                return Mono.just(PermissionDecision.deny(PAGE_STATE_REQUIRED_TIP));
+            }
+
+            Set<Integer> approvalIndexes = runtimeContext.get(AIConstants.Param.WEB_PAGE_APPROVAL_INDEXES, Set.class);
+            if (approvalIndexes == null) {
+                return Mono.just(PermissionDecision.deny(PAGE_STATE_REQUIRED_TIP));
+            }
+
+            Integer index = resolveIndex(input);
+            if (index != null && approvalIndexes.contains(index)) {
+                return Mono.just(PermissionDecision.builder()
+                        .behavior(PermissionBehavior.ASK)
+                        .message(buildApprovalTip(input))
+                        .build());
+            }
+            return Mono.just(PermissionDecision.allow(TOOL_NAME));
+        });
     }
 
     @Override
@@ -71,22 +90,29 @@ public class ClickElementTool extends ToolBase {
         return Mono.just(webToolUtils.webExecuteTool(wrapper, TOOL_NAME, Map.of("index", index)));
     }
 
-    static boolean needApproval(Map<String, Object> input) {
-        Object tags = input.get("tags");
-        if (tags instanceof String tagsStr) {
-            return StringUtils.hasText(tagsStr) && tagsStr.contains(APPROVAL_TAG);
-        }
-        if (tags instanceof List<?> tagsList) {
-            return tagsList.stream().anyMatch(tag -> APPROVAL_TAG.equals(String.valueOf(tag)));
-        }
-        return false;
-    }
-
-    static String buildApprovalTip(Map<String, Object> input) {
+    public static String buildApprovalTip(Map<String, Object> input) {
         Object operationDescription = input.get("operationDescription");
         if (operationDescription instanceof String desc && StringUtils.hasText(desc)) {
             return "敏感操作审批：" + desc;
         }
         return DEFAULT_APPROVAL_TIP;
+    }
+
+    private static Integer resolveIndex(Map<String, Object> input) {
+        if (input == null) {
+            return null;
+        }
+        Object index = input.get("index");
+        if (index instanceof Number number) {
+            return number.intValue();
+        }
+        if (index instanceof String value && StringUtils.hasText(value)) {
+            try {
+                return Integer.parseInt(value.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 }

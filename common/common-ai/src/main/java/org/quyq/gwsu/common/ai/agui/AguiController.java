@@ -352,8 +352,7 @@ public abstract class AguiController implements DisposableBean {
                                 result.events()
                                         .contextCapture()
                                         .contextWrite(Context.of(
-                                                AIConstants.Param.THREAD_ID, threadId
-                                                , AIConstants.Param.EMITTER_WRAPPER, wrapper
+                                                AIConstants.Param.RUNTIME_CONTEXT, runtimeContext
                                                 , HeadersContextThreadLocalAccessor.REACTOR_CONTEXT, capturedHeaders
                                                 , ObservationThreadLocalAccessor.KEY, observation
                                         ))

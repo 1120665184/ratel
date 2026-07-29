@@ -1172,7 +1172,7 @@ const KnowledgePage: React.FC = () => {
         title={pageDetail?.title ?? "Wiki Page"}
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
-        width="72vw"
+        size="72vw"
         destroyOnHidden
       >
         {detailLoading || !pageDetail ? (

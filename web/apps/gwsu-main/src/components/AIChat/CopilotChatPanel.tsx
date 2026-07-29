@@ -19,7 +19,7 @@ import {
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
-import type { CSSProperties } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties, MouseEventHandler } from 'react';
 import {
   fetchConfigsBatch,
   FileScope,
@@ -76,8 +76,22 @@ declare global {
   }
 }
 
-function DirectUploadButton(props: any) {
-  const { className, disabled, onAddFile, onClick, ...restProps } = props;
+interface DirectUploadButtonProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
+  onAddFile?: () => void;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  toolsMenu?: unknown;
+}
+
+function DirectUploadButton(props: DirectUploadButtonProps) {
+  const {
+    className,
+    disabled,
+    onAddFile,
+    onClick,
+    toolsMenu: _toolsMenu,
+    ...restProps
+  } = props;
 
   return (
     <button

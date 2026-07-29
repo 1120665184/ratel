@@ -3,11 +3,30 @@ import type { WebToolExecutor, WebToolResult } from '../types';
 import {
   selectorMap,
   buildDomTree,
+  type DomNode,
   flatTreeToString,
   getPageInfo,
   resolveScope,
   clearHighlights,
 } from '../dom-engine';
+
+function collectApprovalIndexes(node: DomNode, indexes: number[]): void {
+  if (
+    node.type === 'element'
+    && node.highlightIndex !== undefined
+    && node.tags?.includes('approval')
+  ) {
+    indexes.push(node.highlightIndex);
+  }
+
+  if (!node.children?.length) {
+    return;
+  }
+
+  for (const child of node.children) {
+    collectApprovalIndexes(child, indexes);
+  }
+}
 
 /**
  * 获取界面状态工具
@@ -27,13 +46,16 @@ const getPageStateTool: WebToolExecutor = {
 
     // 3. 构建DOM树（主内容 + 弹框）
     let domText = '';
+    const approval: number[] = [];
     if (scope.mainRoot) {
       const mainTree = buildDomTree(scope.mainRoot, selectorMap);
+      collectApprovalIndexes(mainTree, approval);
       domText += flatTreeToString(mainTree);
     }
 
     for (const modalRoot of scope.modalRoots) {
       const modalTree = buildDomTree(modalRoot, selectorMap);
+      collectApprovalIndexes(modalTree, approval);
       if (domText) domText += '\n';
       domText += '[弹框区域]\n' + flatTreeToString(modalTree);
     }
@@ -51,6 +73,7 @@ const getPageStateTool: WebToolExecutor = {
       },
       可交互元素数量: selectorMap.size,
       dom: domText.trim(),
+      approval,
     });
 
     return { success: true, result };

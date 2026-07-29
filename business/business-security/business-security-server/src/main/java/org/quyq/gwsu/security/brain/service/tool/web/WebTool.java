@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.brain.service.tool.web;
 
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
@@ -12,11 +13,15 @@ import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Web端工具集合
@@ -28,6 +33,7 @@ import java.util.Optional;
 public class WebTool {
 
     private final WebToolUtils webToolUtils;
+    private final ObjectMapper objectMapper;
 
 
     // ==================== 操作模式 ====================
@@ -79,20 +85,28 @@ public class WebTool {
 
     }
 
-
     // ==================== 查看界面 ====================
 
     @Tool(name = "GetPageState", description = """
             获取当前Web界面的状态信息，返回页面中可见的交互元素列表和页面基本信息。
-            返回内容为简化的HTML文本，每个可交互元素带有索引编号和标签信息。
+            返回内容为JSON字符串，其中包含简化的HTML文本和审批索引。
             
             元素格式说明：
             - [index]{tags}元素： []标识的内容为元素索引编号，用该编号定位操作元素,必有 ，{}包裹的为元素标签，用户对元素的额外功能标注，多个,分割，由前端生成，可能不包含
               示例：  普通元素：[0]<button>提交</button>  带标签的元素：[0]{approval}<button>提交</button>
+            - approval：需要人工审批的元素索引数组，例如 [142]，没有则 []
             """)
     public Mono<ToolResultBlock> getPageState(RuntimeContext runtimeContext) {
-        AIRunnerInstanceWrapper wrapper = runtimeContext.get(AIRunnerInstanceWrapper.class);
-        return Mono.just(webToolUtils.webExecuteTool(wrapper, "GetPageState", Map.of()));
+        return Mono.deferContextual(contextView -> {
+            // AgentScope may provide a merged RuntimeContext copy to annotated tools. Persist the
+            // page snapshot on the original per-run context shared with permission checks.
+            RuntimeContext sharedRuntimeContext = contextView.getOrDefault(
+                    AIConstants.Param.RUNTIME_CONTEXT, runtimeContext);
+            AIRunnerInstanceWrapper wrapper = sharedRuntimeContext.get(AIRunnerInstanceWrapper.class);
+            ToolResultBlock result = webToolUtils.webExecuteTool(wrapper, "GetPageState", Map.of());
+            syncPageState(sharedRuntimeContext, result);
+            return Mono.just(result);
+        });
     }
 
     // ==================== 操作界面 ====================
@@ -151,5 +165,41 @@ public class WebTool {
         AIRunnerInstanceWrapper wrapper = runtimeContext.get(AIRunnerInstanceWrapper.class);
         return Mono.just(webToolUtils.webExecuteTool(wrapper, "ScrollPage",
                 Map.of("direction", direction, "amount", amount)));
+    }
+
+    private void syncPageState(RuntimeContext runtimeContext, ToolResultBlock result) {
+        Set<Integer> approvalIndexes = extractApprovalIndexes(result);
+        runtimeContext.put(AIConstants.Param.WEB_PAGE_APPROVAL_INDEXES, approvalIndexes);
+    }
+
+    private Set<Integer> extractApprovalIndexes(ToolResultBlock result) {
+        String payload = result.getOutput().stream()
+                .filter(TextBlock.class::isInstance)
+                .map(TextBlock.class::cast)
+                .map(TextBlock::getText)
+                .findFirst()
+                .orElse("");
+        if (!org.springframework.util.StringUtils.hasText(payload)) {
+            return Collections.emptySet();
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(payload);
+            JsonNode approvalNode = root.path("approval");
+            if (!approvalNode.isArray()) {
+                return Collections.emptySet();
+            }
+
+            Set<Integer> approvalIndexes = new LinkedHashSet<>();
+            approvalNode.forEach(item -> {
+                if (item.canConvertToInt()) {
+                    approvalIndexes.add(item.intValue());
+                }
+            });
+            return Collections.unmodifiableSet(approvalIndexes);
+        } catch (Exception ex) {
+            log.warn("解析 GetPageState 审批索引失败", ex);
+            return Collections.emptySet();
+        }
     }
 }
