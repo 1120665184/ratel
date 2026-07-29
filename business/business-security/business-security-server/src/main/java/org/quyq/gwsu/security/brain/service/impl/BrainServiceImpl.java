@@ -48,9 +48,14 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Quyq
@@ -61,6 +66,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BrainServiceImpl implements IBrainService {
 
+    private static final String GENERAL_PURPOSE_SUBAGENT_NAME = "general-purpose";
 
     private final ObjectProvider<Toolkit> toolkitProvider;
 
@@ -149,7 +155,7 @@ public class BrainServiceImpl implements IBrainService {
                 .apply();
 
 
-        return HarnessAgent.builder()
+        HarnessAgent agent = HarnessAgent.builder()
                 .name(CoreConstants.Agent.BRAIN_AGENT_NAME)
                 .distributedStore(distributedStore)
                 .filesystem(new RemoteFilesystemSpec()
@@ -197,9 +203,144 @@ public class BrainServiceImpl implements IBrainService {
                         .skills(List.of(KnowledgeSearchSkillRepository.SKILL_NAME, DatabaseSearchSkillRepository.SKILL_NAME))
                         .tools(List.of("SearchKnowledge", "FindAdjacentKnowledgeChunk", "GetTableDetail", "GetDatabaseVendor", "ExecuteSql"))
                         .build())
+                .disableDynamicSubagents()
                 .disableShellTool()
                 .disableMemoryTools()
                 .build();
+        removeGeneralPurposeSubagent(agent);
+        return agent;
+    }
+
+    /**
+     * 去除到内置的general-purpose智能体 ，该智能体不需要
+     * @param agent
+     */
+    private void removeGeneralPurposeSubagent(HarnessAgent agent) {
+        try {
+            Object subagentMiddleware = readField(agent, "subagentMiddleware");
+            if (subagentMiddleware == null) {
+                return;
+            }
+
+            List<?> filteredEntries = filterSubagentEntries(subagentMiddleware, "baseEntries");
+            filterSubagentEntries(subagentMiddleware, "entries");
+            filterSubagentEntries(subagentMiddleware, "staticEntries");
+            refreshAgentManager(subagentMiddleware, filteredEntries);
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("移除默认 general-purpose 子智能体失败", ex);
+        }
+    }
+
+    private List<?> filterSubagentEntries(Object target, String fieldName) throws ReflectiveOperationException {
+        Field field = findField(target.getClass(), fieldName);
+        if (field == null) {
+            return List.of();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object> currentEntries = (List<Object>) field.get(target);
+        if (currentEntries == null || currentEntries.isEmpty()) {
+            return List.of();
+        }
+
+        List<Object> filteredEntries = new ArrayList<>();
+        for (Object entry : currentEntries) {
+            if (!GENERAL_PURPOSE_SUBAGENT_NAME.equals(readSubagentEntryName(entry))) {
+                filteredEntries.add(entry);
+            }
+        }
+
+        List<Object> immutableEntries = List.copyOf(filteredEntries);
+        field.set(target, immutableEntries);
+        return immutableEntries;
+    }
+
+    private void refreshAgentManager(Object subagentMiddleware, List<?> filteredEntries) throws ReflectiveOperationException {
+        Method getAgentManager = findMethod(subagentMiddleware.getClass(), "getAgentManager");
+        if (getAgentManager == null) {
+            return;
+        }
+
+        Object agentManager = getAgentManager.invoke(subagentMiddleware);
+        if (agentManager == null) {
+            return;
+        }
+
+        Method replaceAgents = findMethod(agentManager.getClass(), "replaceAgents", List.class);
+        if (replaceAgents != null) {
+            replaceAgents.invoke(agentManager, filteredEntries);
+            return;
+        }
+
+        setMapField(agentManager, "agentFactories", filteredEntries);
+        setMapField(agentManager, "declarations", filteredEntries);
+    }
+
+    private void setMapField(Object agentManager, String fieldName, List<?> filteredEntries) throws ReflectiveOperationException {
+        Field field = findField(agentManager.getClass(), fieldName);
+        if (field == null) {
+            return;
+        }
+
+        Map<String, Object> valueMap = new LinkedHashMap<>();
+        for (Object entry : filteredEntries) {
+            String name = readSubagentEntryName(entry);
+            Object value = "agentFactories".equals(fieldName)
+                    ? invokeNoArgs(entry, "factory")
+                    : invokeNoArgs(entry, "declaration");
+            if (value != null) {
+                valueMap.put(name, value);
+            }
+        }
+        field.set(agentManager, Map.copyOf(valueMap));
+    }
+
+    private Object readField(Object target, String fieldName) throws ReflectiveOperationException {
+        Field field = findField(target.getClass(), fieldName);
+        if (field == null) {
+            return null;
+        }
+        return field.get(target);
+    }
+
+    private Field findField(Class<?> type, String fieldName) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                Field field = current.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private Method findMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                Method method = current.getDeclaredMethod(methodName, parameterTypes);
+                method.setAccessible(true);
+                return method;
+            } catch (NoSuchMethodException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private String readSubagentEntryName(Object entry) throws ReflectiveOperationException {
+        return (String) invokeNoArgs(entry, "name");
+    }
+
+    private Object invokeNoArgs(Object target, String methodName) throws ReflectiveOperationException {
+        Method method = findMethod(target.getClass(), methodName);
+        if (method == null) {
+            return null;
+        }
+        return method.invoke(target);
     }
 
     private String buildSysPrompt() {
