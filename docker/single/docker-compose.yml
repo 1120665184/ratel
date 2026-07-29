@@ -1,9 +1,9 @@
 services:
-  ratel:
+  ratel-manager:
     build:
       context: ../..
       dockerfile: docker/single/Dockerfile
-    container_name: ratel
+    container_name: ratel-manager
     ports:
       - "${NGINX_PORT:-80}:80"
     environment:

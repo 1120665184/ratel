@@ -72,6 +72,7 @@ public class BrainHistoryServiceImpl implements IBrainHistoryService {
             return List.of();
         }
         return sessionIndexService.loadMessages(userId, entry).stream()
+                .filter(message -> !sessionIndexService.isCondensedSummaryPrompt(message))
                 .map(this::toAguiMessage)
                 .toList();
     }

@@ -188,7 +188,7 @@ public class BrainServiceImpl implements IBrainService {
                         .timeout(Duration.of(10, ChronoUnit.MINUTES))
                         .build())
                 .compaction(CompactionConfig.builder()
-                        .triggerMessages(30)
+                        .triggerMessages(50)
                         .keepMessages(10)
                         .build())
                 .toolResultEviction(ToolResultEvictionConfig.defaults())
@@ -381,8 +381,9 @@ public class BrainServiceImpl implements IBrainService {
                 - 仅在完成任务所需信息缺失时使用 `AskUserQuestion`，问题应清晰、具体，并尽可能提供可选答案。
                 
                 # 内容展示
-                - 对表格、列表、统计结果、趋势对比、多维分析或流程示意等结构化信息，优先使用专属 AI 输出面板展示。
-                - 已获得可展示数据时，将数据、展示标题和说明传递给前端展示智能体渲染；简单文字问答、操作指引、权限说明和错误提示直接文字回复。
+                - 组织输出内容时，先判断结果是否更适合通过专属 AI 输出面板进行可视化展示；凡是通过可视化方式能让信息更直观、层次更清晰、阅读体验更友好的内容，都应优先考虑使用 AI 输出面板。
+                - 对表格、列表、统计结果、趋势对比、多维分析、流程示意、图片展示、卡片化摘要等结构化或半结构化信息，默认优先使用专属 AI 输出面板展示，再配合必要的简要文字说明。
+                - 已获得可展示数据时，将数据、展示标题和说明传递给前端展示智能体渲染；简单文字问答、操作指引、权限说明、结论性短答和错误提示可直接文字回复。
                 - 没有可展示数据时，不得虚构内容面板；应先获取数据或向用户补充询问。
                 
                 # 不确定性与主动协助

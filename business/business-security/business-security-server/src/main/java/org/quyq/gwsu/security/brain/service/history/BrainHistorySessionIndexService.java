@@ -22,6 +22,11 @@ import java.util.List;
 public class BrainHistorySessionIndexService {
 
     private static final int TITLE_MAX_LENGTH = 50;
+    private static final String CONDENSED_SUMMARY_PREFIX = "You are in the middle of a conversation that has been summarized.";
+    private static final String CONDENSED_HISTORY_MARKER = "The full conversation history has been saved to ";
+    private static final String CONDENSED_SUMMARY_MARKER = "A condensed summary follows:";
+    private static final String SUMMARY_OPEN_TAG = "<summary>";
+    private static final String SUMMARY_CLOSE_TAG = "</summary>";
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.LOWER_CAMEL_CASE)
             .build();
@@ -123,12 +128,30 @@ public class BrainHistorySessionIndexService {
             if (CharSequenceUtil.isBlank(message.content())) {
                 continue;
             }
+            if (isCondensedSummaryPrompt(message)) {
+                continue;
+            }
             String content = message.content().trim();
             return content.length() > TITLE_MAX_LENGTH
                     ? content.substring(0, TITLE_MAX_LENGTH) + "..."
                     : content;
         }
         return "新对话";
+    }
+
+    public boolean isCondensedSummaryPrompt(StoredMessageEntry message) {
+        if (message == null || !"USER".equalsIgnoreCase(message.role())) {
+            return false;
+        }
+        if (CharSequenceUtil.isBlank(message.content())) {
+            return false;
+        }
+        String content = message.content().trim();
+        return content.startsWith(CONDENSED_SUMMARY_PREFIX)
+                && content.contains(CONDENSED_HISTORY_MARKER)
+                && content.contains(CONDENSED_SUMMARY_MARKER)
+                && content.contains(SUMMARY_OPEN_TAG)
+                && content.contains(SUMMARY_CLOSE_TAG);
     }
 
     public record StoredMessageEntry(

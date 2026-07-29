@@ -14,6 +14,7 @@ import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
 import org.quyq.gwsu.security.tablemodel.domain.SecurityTableModelTable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 表基本信息 服务接口
@@ -39,6 +40,16 @@ public interface ISecurityTableModelTableService extends IService<SecurityTableM
      * @return
      */
     TableModelDetailVO getTableDetail(String modulePrefix , String datasource , String tableName);
+
+    /**
+     * 批量获取指定表的详细内容，包含字段和外键信息
+     *
+     * @param modulePrefix 模块前缀
+     * @param datasource 数据源
+     * @param tableNames 表名列表
+     * @return 表名 -> 表详情
+     */
+    Map<String, TableModelDetailVO> getTableDetails(String modulePrefix, String datasource, List<String> tableNames);
 
     /**
      * 根据表名和数据源查询
