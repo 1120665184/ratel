@@ -10,10 +10,8 @@ import org.quyq.gwsu.common.authentication.login.domain.WebCallInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
-import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,23 +37,18 @@ public abstract class AbstractThreePlatformLoginHandler<T extends UserInfo> exte
         Optional<ThreePlatformConfig> config = Optional.ofNullable(properties.getThreePlatform().get(loginType()));
         if (config.isPresent()) {
             ThreePlatformConfig copy = config.get().copy();
-            BaseProjectInfoProperties baseProjectInfoProperties = ConfigInfoUtils.getByObject(BaseProjectInfoProperties.CONFIG_KEY, BaseProjectInfoProperties.class);
-            if (StringUtils.hasText(copy.getRedirectUrl())) {
-                copy.setRedirectUrl(replaceUrl(baseProjectInfoProperties, copy.getRedirectUrl()));
-            }
+            copy.setClientId(ConfigInfoUtils.replaceConfigPlaceholders(copy.getClientId()));
+            copy.setClientSecret(ConfigInfoUtils.replaceConfigPlaceholders(copy.getClientSecret()));
+            copy.setRedirectUrl(ConfigInfoUtils.replaceConfigPlaceholders(copy.getRedirectUrl()));
             if (!CollectionUtils.isEmpty(copy.getProperties())) {
                 Map<String, String> newV = new HashMap<>(copy.getProperties().size());
-                copy.getProperties().forEach((k, v) -> newV.put(k, replaceUrl(baseProjectInfoProperties, v)));
+                copy.getProperties().forEach((k, v) ->
+                        newV.put(k, ConfigInfoUtils.replaceConfigPlaceholders(v)));
                 copy.setProperties(newV);
             }
             return copy;
         }
         throw new AuthException(CommonErrorCode.E04003, "三方登录方式【%s】缺少必要的配置信息，请联系管理员配置".formatted(loginType()));
-    }
-
-    private String replaceUrl(BaseProjectInfoProperties baseProjectInfoProperties, String old) {
-        return old.replace("<apiBaseUrl>", baseProjectInfoProperties.apiBaseUrl())
-                .replace("<viewBaseUrl>", baseProjectInfoProperties.viewBaseUrl());
     }
 
     /**

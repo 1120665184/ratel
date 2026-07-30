@@ -45,15 +45,15 @@ ratel:
     platform:
       three-platform:
         dingtalk:
-          client-id: ${DINGTALK_CLIENT_ID:}
-          client-secret: ${DINGTALK_CLIENT_SECRET:}
+          client-id: <assistant_remote_control_config:dingTalk.clientId>
+          client-secret: <assistant_remote_control_config:dingTalk.clientSecret>
           # 生成token后以重定向的形式返回数据，重定向地址见redirect-url
           redirect: true
           # 和redirect配合使用
-          redirect-url: <viewBaseUrl>/sub-system/login
+          redirect-url: <basic_url_config:viewBaseUrl>/sub-system/login
           properties:
             # 钉钉服务器回调本系统的回调地址
-            redirect_uri: <apiBaseUrl>/system/auth/callback/manager/dingtalk
+            redirect_uri: <basic_url_config:apiBaseUrl>/system/auth/callback/manager/dingtalk
   api-key:
     pepper: b4r7qJv0m2YwJ3r1rX3j0Qv8nJx9mJfY7W2nV0kP6sUe8dL1
 

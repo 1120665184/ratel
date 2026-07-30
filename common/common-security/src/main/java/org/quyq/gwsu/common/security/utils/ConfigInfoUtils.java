@@ -9,10 +9,14 @@ import org.quyq.gwsu.common.security.api.vo.ConfigVO;
 import org.quyq.gwsu.common.security.exception.SecurityException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.NumberUtils;
+import org.springframework.util.StringUtils;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Quyq
@@ -20,6 +24,8 @@ import java.util.*;
  * @description 配置信息获取工具类
  */
 public class ConfigInfoUtils {
+
+    private static final Pattern CONFIG_PLACEHOLDER_PATTERN = Pattern.compile("<([^<>:]+)(?::([^<>]+))?>");
 
     public ConfigInfoUtils(ObjectMapper objectMapper) {
         ConfigInfoUtils.objectMapper = objectMapper;
@@ -119,6 +125,65 @@ public class ConfigInfoUtils {
                 .orElseThrow(() -> new SecurityException("没有【%s】配置或者配置类型不是对象类型，请检查".formatted(key)));
     }
 
+    /**
+     * 替换文本中的配置占位符。
+     * <p>
+     * {@code <config_key>} 使用配置原始值；
+     * {@code <config_key:field>} 和 {@code <config_key:field.field>} 将配置值解析为 JSON 后读取指定字段。
+     *
+     * @param source 待处理文本
+     * @return 替换配置占位符后的文本
+     */
+    public static String replaceConfigPlaceholders(String source) {
+        if (!StringUtils.hasText(source)) {
+            return source;
+        }
+        Matcher matcher = CONFIG_PLACEHOLDER_PATTERN.matcher(source);
+        Set<String> configKeys = new LinkedHashSet<>();
+        while (matcher.find()) {
+            configKeys.add(matcher.group(1));
+        }
+        if (configKeys.isEmpty()) {
+            return source;
+        }
+
+        Map<String, ConfigVO> configs = keys(new ArrayList<>(configKeys));
+        matcher.reset();
+        StringBuilder result = new StringBuilder(source.length());
+        while (matcher.find()) {
+            String configKey = matcher.group(1);
+            String fieldPath = matcher.group(2);
+            ConfigVO config = Optional.ofNullable(configs.get(configKey))
+                    .orElseThrow(() -> new SecurityException("没有【%s】配置，请检查".formatted(configKey)));
+            String replacement = fieldPath == null
+                    ? config.getConfigValue()
+                    : readJsonField(configKey, config.getConfigValue(), fieldPath);
+            if (replacement == null) {
+                throw new SecurityException("配置【%s】的值为空，请检查".formatted(configKey));
+            }
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(result);
+        return result.toString();
+    }
+
+    private static String readJsonField(String configKey, String configValue, String fieldPath) {
+        JsonNode current;
+        try {
+            current = objectMapper.readTree(configValue);
+        } catch (Exception exception) {
+            throw new SecurityException("配置【%s】不是有效的JSON，无法读取字段【%s】"
+                    .formatted(configKey, fieldPath));
+        }
+        for (String field : fieldPath.split("\\.")) {
+            current = current == null ? null : current.get(field);
+            if (current == null) {
+                throw new SecurityException("配置【%s】中不存在字段【%s】，请检查"
+                        .formatted(configKey, fieldPath));
+            }
+        }
+        return current.isString() ? current.asString() : current.toString();
+    }
 
     private static Map<String, ConfigVO> keys(List<String> keys) {
         if (CollectionUtils.isEmpty(keys)) {

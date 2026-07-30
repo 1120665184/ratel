@@ -18,8 +18,6 @@ services:
       - ES_URL=${ES_URL:-http://elasticsearch:9200}
       - ES_USERNAME=${ES_USERNAME:-elastic}
       - ES_PASSWORD=${ES_PASSWORD:-elastic}
-      - DINGTALK_CLIENT_ID=${DINGTALK_CLIENT_ID:-}
-      - DINGTALK_CLIENT_SECRET=${DINGTALK_CLIENT_SECRET:-}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,elasticsearch}
