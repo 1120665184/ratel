@@ -99,12 +99,14 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
         }
         ensureIndex();
         try {
-            return elasticsearchOperations.search(searchQuery(keyword, visibleSourceDocumentIds, size, queryEmbedding),
-                            KnowledgeChunkDocument.class,
-                            indexCoordinates())
-                    .stream()
-                    .map(this::toSearchResult)
-                    .toList();
+            List<KnowledgeSearchResultVO> lexicalResults = executeSearch(lexicalSearchQuery(
+                    keyword, visibleSourceDocumentIds, size));
+            if (queryEmbedding.isEmpty()) {
+                return lexicalResults;
+            }
+            List<KnowledgeSearchResultVO> vectorResults = executeSearch(vectorSearchQuery(
+                    visibleSourceDocumentIds, size, queryEmbedding.get()));
+            return KnowledgeSearchRrfFusion.fuse(lexicalResults, vectorResults, size);
         } catch (RuntimeException ex) {
             throw new BusinessException(KitErrorCode.E03011, ex);
         }
@@ -146,14 +148,10 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
         return CriteriaQuery.builder(Criteria.where("source_document_id").is(sourceDocumentId)).build();
     }
 
-    private Query searchQuery(
+    private Query lexicalSearchQuery(
             String keyword,
             Collection<String> visibleSourceDocumentIds,
-            int size,
-            Optional<float[]> queryEmbedding) {
-        if (queryEmbedding.isPresent()) {
-            return hybridSearchQuery(keyword, visibleSourceDocumentIds, size, queryEmbedding.get());
-        }
+            int size) {
         Criteria criteria = Criteria.where("content").matches(keyword)
                 .and("source_document_id").in(visibleSourceDocumentIds);
         return CriteriaQuery.builder(criteria)
@@ -161,16 +159,12 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
                 .build();
     }
 
-    private Query hybridSearchQuery(
-            String keyword,
+    private Query vectorSearchQuery(
             Collection<String> visibleSourceDocumentIds,
             int size,
             float[] queryEmbedding) {
         co.elastic.clients.elasticsearch._types.query_dsl.Query sourceFilter = sourceDocumentTermsQuery(visibleSourceDocumentIds);
         return NativeQuery.builder()
-                .withQuery(query -> query.bool(bool -> bool
-                        .must(must -> must.match(match -> match.field("content").query(keyword)))
-                        .filter(sourceFilter)))
                 .withKnnSearches(KnnSearch.of(knn -> knn
                         .field("embedding")
                         .queryVector(toFloatList(queryEmbedding))
@@ -179,6 +173,13 @@ public class ElasticsearchKnowledgeChunkIndexRepository implements KnowledgeChun
                         .filter(sourceFilter)))
                 .withMaxResults(size)
                 .build();
+    }
+
+    private List<KnowledgeSearchResultVO> executeSearch(Query query) {
+        return elasticsearchOperations.search(query, KnowledgeChunkDocument.class, indexCoordinates())
+                .stream()
+                .map(this::toSearchResult)
+                .toList();
     }
 
     private co.elastic.clients.elasticsearch._types.query_dsl.Query sourceDocumentTermsQuery(
