@@ -1,5 +1,6 @@
 package org.quyq.gwsu.security.brain.service.tool.web;
 
+import io.agentscope.core.agent.AgentBase;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.permission.PermissionBehavior;
@@ -7,9 +8,9 @@ import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionDecision;
 import io.agentscope.core.tool.ToolBase;
 import io.agentscope.core.tool.ToolCallParam;
+import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
-import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -21,6 +22,7 @@ import java.util.Set;
 /**
  * 点击页面元素工具。
  */
+@Slf4j
 @Component
 public class ClickElementTool extends ToolBase {
 
@@ -29,8 +31,10 @@ public class ClickElementTool extends ToolBase {
     private static final String PAGE_STATE_REQUIRED_TIP = "点击元素前必须先调用 GetPageState 获取最新页面状态";
 
     private final WebToolUtils webToolUtils;
+    private final WebPageApprovalStateService webPageApprovalStateService;
 
-    public ClickElementTool(WebToolUtils webToolUtils) {
+    public ClickElementTool(WebToolUtils webToolUtils,
+                            WebPageApprovalStateService webPageApprovalStateService) {
         super(ToolBase.builder()
                 .name(TOOL_NAME)
                 .description("""
@@ -56,19 +60,20 @@ public class ClickElementTool extends ToolBase {
                         "required", List.of("index", "operationDescription")
                 )));
         this.webToolUtils = webToolUtils;
+        this.webPageApprovalStateService = webPageApprovalStateService;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Mono<PermissionDecision> checkPermissions(Map<String, Object> input, PermissionContextState contextState) {
         return Mono.deferContextual(contextView -> {
-            RuntimeContext runtimeContext = contextView.getOrDefault(AIConstants.Param.RUNTIME_CONTEXT, null);
+            RuntimeContext runtimeContext = contextView.getOrDefault(AgentBase.RUNTIME_CONTEXT_KEY, null);
             if (runtimeContext == null) {
+                log.info(TOOL_NAME + " context is null");
                 return Mono.just(PermissionDecision.deny(PAGE_STATE_REQUIRED_TIP));
             }
-
-            Set<Integer> approvalIndexes = runtimeContext.get(AIConstants.Param.WEB_PAGE_APPROVAL_INDEXES, Set.class);
+            Set<Integer> approvalIndexes = webPageApprovalStateService.load(runtimeContext);
             if (approvalIndexes == null) {
+                log.info(TOOL_NAME + " approvalIndexes is null");
                 return Mono.just(PermissionDecision.deny(PAGE_STATE_REQUIRED_TIP));
             }
 

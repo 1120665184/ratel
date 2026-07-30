@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.brain.service.middleware;
 
 import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.AgentBase;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventEmitter;
@@ -15,7 +16,6 @@ import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.permission.PermissionBehavior;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionDecision;
-import io.agentscope.core.permission.PermissionEngine;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.tool.AgentTool;
 import io.agentscope.core.tool.ToolBase;
@@ -74,18 +74,21 @@ public class ApprovalTipMiddleware implements MiddlewareBase {
         PermissionContextState permissionContext = agentState != null
                 ? agentState.getPermissionContext()
                 : PermissionContextState.builder().build();
-        PermissionEngine permissionEngine = new PermissionEngine(permissionContext);
 
         return Flux.fromIterable(input.toolCalls())
-                .concatMap(toolCall -> evaluateApprovalTip(toolkit, permissionEngine, toolCall)
-                        .contextWrite(reactorContext -> reactorContext.putAll(contextView)))
+                .concatMap(toolCall -> evaluateApprovalTip(toolkit, permissionContext, toolCall)
+                        // The middleware pre-check runs before AgentBase publishes its runtime context.
+                        // Pass the current context explicitly so tool-level permission checks see the same state.
+                        .contextWrite(reactorContext -> reactorContext
+                                .putAll(contextView)
+                                .put(AgentBase.RUNTIME_CONTEXT_KEY, ctx)))
                 .filter(Objects::nonNull)
                 .collectList();
     }
 
     private Mono<ApprovalTips> evaluateApprovalTip(
             Toolkit toolkit,
-            PermissionEngine permissionEngine,
+            PermissionContextState permissionContext,
             ToolUseBlock toolCall) {
         if (toolkit == null || toolCall == null) {
             return Mono.empty();
@@ -96,21 +99,13 @@ public class ApprovalTipMiddleware implements MiddlewareBase {
             return Mono.empty();
         }
 
-        return resolveApprovalDecision(toolBase, permissionEngine, toolCall)
+        return toolBase.checkPermissions(toolCall.getInput(), permissionContext)
                 .filter(decision -> decision.getBehavior() == PermissionBehavior.ASK)
                 .map(decision -> new ApprovalTips(
                         toolCall.getId(),
                         toolCall.getName(),
                         decision.getMessage(),
                         ApprovalStage.POST_REASONING));
-    }
-
-    private Mono<PermissionDecision> resolveApprovalDecision(
-            ToolBase toolBase,
-            PermissionEngine permissionEngine,
-            ToolUseBlock toolCall) {
-        Map<String, Object> input = toolCall.getInput();
-        return permissionEngine.checkPermission(toolBase, input);
     }
 
     AgentEvent attachApprovalTips(AgentEvent event, RuntimeContext ctx, List<ApprovalTips> approvalTips) {

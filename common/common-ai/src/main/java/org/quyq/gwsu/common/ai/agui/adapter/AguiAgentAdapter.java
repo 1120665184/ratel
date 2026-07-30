@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+
 import java.util.*;
 
 /**
@@ -211,20 +212,22 @@ public class AguiAgentAdapter {
         if (CollectionUtils.isEmpty(confirmResults)) {
             return;
         }
-        msgs.add(UserMessage.builder()
-                        .textContent(approvalResult.result().name() + (
-                                StringUtils.hasText(approvalResult.rejectReason()) ? ",拒绝原因：" + approvalResult.rejectReason() : ""
-                                ))
+        msgs.add(Msg.builder()
+                .name("user")
+                .role(MsgRole.USER)
+                .textContent(approvalResult.result().name() + (
+                        StringUtils.hasText(approvalResult.rejectReason()) ? ",拒绝原因：" + approvalResult.rejectReason() : ""
+                ))
                 .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, confirmResults))
                 .build());
         logger.debug("Resuming agent after permission decision: approved={}", approvalResult.isApproved());
     }
 
     private List<AguiEvent> convertAgentEvent(AgentEvent event, EventConversionState state) {
-       // logger.info("智能体事件：{}" , gson.toJson(event));
+        // logger.info("智能体事件：{}" , gson.toJson(event));
         List<AguiEvent> events = new ArrayList<>();
 
-        if(Objects.nonNull(event.getSource())){
+        if (Objects.nonNull(event.getSource())) {
             return events;
         }
         if (event instanceof TextBlockStartEvent textStart) {

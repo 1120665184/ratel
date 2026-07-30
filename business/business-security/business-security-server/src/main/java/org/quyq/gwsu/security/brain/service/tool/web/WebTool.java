@@ -16,12 +16,7 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.HashMap;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Web端工具集合
@@ -34,6 +29,7 @@ public class WebTool {
 
     private final WebToolUtils webToolUtils;
     private final ObjectMapper objectMapper;
+    private final WebPageApprovalStateService webPageApprovalStateService;
 
 
     // ==================== 操作模式 ====================
@@ -45,7 +41,7 @@ public class WebTool {
     public Mono<ToolResultBlock> exitAiMode(RuntimeContext runtimeContext) {
         AIRunnerInstanceWrapper wrapper = runtimeContext.get(AIRunnerInstanceWrapper.class);
         return Mono.just(webToolUtils.webExecuteTool(wrapper, "ExitAiMode", Map.of()))
-                .doOnSuccess(result -> {
+                .doOnSuccess(_ -> {
                     Map<String, Object> val = Optional.ofNullable(runtimeContext.get(AIConstants.Param.FORWARDED_PROPS_KEY, Map.class))
                             .orElse(Collections.emptyMap());
                     if (!CollectionUtils.isEmpty(val) && val.containsKey(AIConstants.Param.FORWARDED_PROPS_OPERATION_MODE_KEY)) {
@@ -98,13 +94,9 @@ public class WebTool {
             """)
     public Mono<ToolResultBlock> getPageState(RuntimeContext runtimeContext) {
         return Mono.deferContextual(contextView -> {
-            // AgentScope may provide a merged RuntimeContext copy to annotated tools. Persist the
-            // page snapshot on the original per-run context shared with permission checks.
-            RuntimeContext sharedRuntimeContext = contextView.getOrDefault(
-                    AIConstants.Param.RUNTIME_CONTEXT, runtimeContext);
-            AIRunnerInstanceWrapper wrapper = sharedRuntimeContext.get(AIRunnerInstanceWrapper.class);
+            AIRunnerInstanceWrapper wrapper = runtimeContext.get(AIRunnerInstanceWrapper.class);
             ToolResultBlock result = webToolUtils.webExecuteTool(wrapper, "GetPageState", Map.of());
-            syncPageState(sharedRuntimeContext, result);
+            syncPageState(runtimeContext, result);
             return Mono.just(result);
         });
     }
@@ -169,7 +161,7 @@ public class WebTool {
 
     private void syncPageState(RuntimeContext runtimeContext, ToolResultBlock result) {
         Set<Integer> approvalIndexes = extractApprovalIndexes(result);
-        runtimeContext.put(AIConstants.Param.WEB_PAGE_APPROVAL_INDEXES, approvalIndexes);
+        webPageApprovalStateService.save(runtimeContext, approvalIndexes);
     }
 
     private Set<Integer> extractApprovalIndexes(ToolResultBlock result) {
