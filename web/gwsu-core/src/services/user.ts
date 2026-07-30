@@ -45,7 +45,7 @@ export async function fetchCurrentUserInfo(): Promise<UserInfo> {
     const primaryDept = depts.find((d) => d.isPrimary) ?? depts[0];
 
     return {
-        userId: Number(raw.userId),
+        userId: raw.userId,
         username: raw.userName,
         nickname: raw.nickname,
         avatar: raw.avatar,

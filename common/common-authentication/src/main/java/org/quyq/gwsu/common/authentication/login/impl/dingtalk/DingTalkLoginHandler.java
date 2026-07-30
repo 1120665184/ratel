@@ -11,6 +11,8 @@ import org.quyq.gwsu.common.authentication.login.domain.WebCallInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -53,6 +55,13 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
 
     private static final String DING_TALK_USER_INFO = "https://api.dingtalk.com/v1.0/contact/users/me";
 
+    public static final String PARAM_CREATE_METHOD_KEY = "createMethod";
+
+    public static final String PARAM_TEMPORARY_VOUCHER_KEY = "temporaryVoucher";
+    public static final String PARAM_BINDING_TOKEN_KEY = "bindingToken";
+    public static final String PARAM_USERNAME_KEY = "username";
+    public static final String PARAM_PASSWORD_KEY = "password";
+
     private final RestClient restClient = RestClient.builder().build();
 
     @Override
@@ -79,10 +88,29 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
 
     @Override
     protected T callback(ThreePlatformLoginDTO loginVO, ThreePlatformConfig config) {
-        String code = Optional.ofNullable(loginVO.getExtraParam().get("authCode"))
+        MultiValueMap<String, String> extraParam = loginVO.getExtraParam();
+
+        //三方平台已经调用，处理创建新账号，还是绑定用户
+        if (!CollectionUtils.isEmpty(extraParam) && extraParam.containsKey(PARAM_CREATE_METHOD_KEY)) {
+            String temporaryVoucher = requiredParam(extraParam, PARAM_TEMPORARY_VOUCHER_KEY);
+            //不是重定向
+            config.setRedirect(false);
+
+            String createMethod = requiredParam(extraParam, PARAM_CREATE_METHOD_KEY);
+            if ("create".equals(createMethod)) {
+                return createNewAccount(temporaryVoucher, extraParam);
+            } else if ("binding".equals(createMethod)) {
+                return bindingUser(temporaryVoucher, extraParam);
+            }
+            throw new AuthException(CommonErrorCode.E03006, "未知的创建方式：" + createMethod);
+        }
+
+        String code = Optional.ofNullable(extraParam)
+                .map(params -> params.get("authCode"))
                 .map(List::getFirst).orElse(null);
         if (!StringUtils.hasText(code)) {
-            String error = Optional.ofNullable(loginVO.getExtraParam().get("error"))
+            String error = Optional.ofNullable(extraParam)
+                    .map(params -> params.get("error"))
                     .map(List::getFirst).orElse(null);
             if (!StringUtils.hasText(error)) {
                 error = "未获取到code";
@@ -131,12 +159,34 @@ public abstract class DingTalkLoginHandler<T extends UserInfo> extends AbstractT
     }
 
     /**
-     * 通过钉钉用户信息获取本信息的信息
+     * 通过钉钉用户信息获取本系统的账号信息
      *
      * @param info
      * @return
      */
     protected abstract T getUserByDingTalkInfo(DingTalkInfo info);
+
+    /**
+     * 创建新账号
+     * @param temporaryVoucher
+     * @return
+     */
+    protected abstract T createNewAccount(String temporaryVoucher, MultiValueMap<String, String> extraParam);
+
+    /**
+     * 绑定已有账号
+     * @param temporaryVoucher
+     * @return
+     */
+    protected abstract T bindingUser(String temporaryVoucher, MultiValueMap<String, String> extraParam);
+
+    protected String requiredParam(MultiValueMap<String, String> extraParam, String key) {
+        List<String> values = extraParam.get(key);
+        if (CollectionUtils.isEmpty(values) || values.size() != 1 || !StringUtils.hasText(values.getFirst())) {
+            throw new AuthException(CommonErrorCode.E03006, "未携带有效参数：" + key);
+        }
+        return values.getFirst();
+    }
 
     @Override
     public String loginType() {

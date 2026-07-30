@@ -24,7 +24,7 @@ export interface TokenInfo {
     /** 登录 token */
     token: string;
     /** 用户 ID */
-    userId: number;
+    userId: string;
     /** 有效期（秒） */
     expires: number;
     /** 过期时间戳（毫秒） */
@@ -46,7 +46,7 @@ export interface UserDept {
 /** 用户信息 */
 export interface UserInfo {
     /** 用户 ID */
-    userId: number;
+    userId: string;
     /** 用户名 */
     username: string;
     /** 昵称 */

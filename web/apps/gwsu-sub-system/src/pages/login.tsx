@@ -1,9 +1,8 @@
 import React, {useCallback, useEffect, useState} from 'react';
-// @ts-ignore
-import {history} from 'umi';
 import {App} from 'antd';
 import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo, encryptPassword} from '@gwsu/core';
-import {login, TerminalType, getDingTalkAuthUrl, getLoginConfigInfo} from '../services/login';
+import {login, LoginToken, TerminalType, getDingTalkAuthUrl, getLoginConfigInfo} from '../services/login';
+import DingTalkFirstLoginModal from './components/DingTalkFirstLoginModal';
 import styles from './login.module.less';
 
 export default function Login() {
@@ -12,6 +11,7 @@ export default function Login() {
     const [password, setPassword] = useState('admin123');
     const [loading, setLoading] = useState(false);
     const [projectName, setProjectName] = useState('Ratel');
+    const [temporaryVoucher, setTemporaryVoucher] = useState<string | null>(null);
 
     /** 登录页加载时获取项目配置信息 */
     useEffect(() => {
@@ -24,53 +24,71 @@ export default function Login() {
         });
     }, []);
 
-    const handleLoginSuccess = useCallback(async (loginToken: { token: string; userId: string; expires: number; alterMsg?: string }) => {
+    const handleLoginSuccess = useCallback(async (loginToken: LoginToken) => {
         const expireTime = Date.now() + loginToken.expires * 1000;
+        const userStore = useUserStore.getState();
 
-        useUserStore.getState().setTokenInfo({
+        userStore.setTokenInfo({
             token: loginToken.token,
             userId: loginToken.userId,
             expires: loginToken.expires,
             expireTime,
         });
 
-        const userInfo = await fetchCurrentUserInfo();
-        useUserStore.getState().setUserInfo(userInfo);
+        try {
+            const userInfo = await fetchCurrentUserInfo();
+            userStore.setUserInfo(userInfo);
 
-        if (loginToken.alterMsg) {
-            message.warning(loginToken.alterMsg);
+            if (loginToken.alterMsg) {
+                message.warning(loginToken.alterMsg);
+            }
+
+            await useMenuStore.getState().loadMenus();
+
+            emitEvent(EventType.LOGIN_SUCCESS);
+
+            message.success('登录成功');
+        } catch (error) {
+            userStore.clearUserData();
+            throw error;
         }
-
-        await useMenuStore.getState().loadMenus();
-
-        emitEvent(EventType.LOGIN_SUCCESS);
-
-        message.success('登录成功');
     }, [message]);
 
-    /** 检查 URL 中是否携带了钉钉回调返回的 token 参数 */
+    /** 处理钉钉回调：已有账号直接登录，首次登录进入账号关联流程。 */
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
-        if (!token) return;
-
+        const voucher = params.get('temporaryVoucher');
+        const errorMessage = params.get('errMsg');
         const userId = params.get('userId');
         const expires = params.get('expires');
         const alterMsg = params.get('alterMsg');
 
-        if (!userId || !expires) return;
+        if (!token && !voucher && !errorMessage) return;
 
-        // 清除 URL 中的 token 参数，避免刷新重复登录
+        // 立即清除敏感参数，避免刷新重复处理或凭证残留在地址栏。
         window.history.replaceState({}, '', window.location.pathname);
 
-        handleLoginSuccess({
-            token,
-            userId,
-            expires: Number(expires),
-            alterMsg: alterMsg || undefined,
-        }).catch(() => {
-            message.error('钉钉登录失败，请重试');
-        });
+        if (token && userId && expires) {
+            handleLoginSuccess({
+                token,
+                userId,
+                expires: Number(expires),
+                alterMsg: alterMsg || undefined,
+            }).catch(() => {
+                message.error('钉钉登录失败，请重试');
+            });
+            return;
+        }
+
+        if (voucher) {
+            setTemporaryVoucher(voucher);
+            return;
+        }
+
+        if (errorMessage) {
+            message.error(errorMessage);
+        }
     }, [handleLoginSuccess, message]);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -217,6 +235,19 @@ export default function Login() {
                     <span>钉钉快捷登录</span>
                 </button>
             </div>
+            <DingTalkFirstLoginModal
+                open={Boolean(temporaryVoucher)}
+                temporaryVoucher={temporaryVoucher}
+                onCancel={() => setTemporaryVoucher(null)}
+                onSuccess={async (token) => {
+                    setTemporaryVoucher(null);
+                    try {
+                        await handleLoginSuccess(token);
+                    } catch {
+                        message.warning('账号关联已完成，但登录初始化失败，请重新登录');
+                    }
+                }}
+            />
         </div>
     );
 }

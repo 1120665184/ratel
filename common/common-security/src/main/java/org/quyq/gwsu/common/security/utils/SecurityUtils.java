@@ -25,6 +25,7 @@ import org.springframework.util.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -148,29 +149,25 @@ public class SecurityUtils {
      * @return
      */
     public <U extends Visitor> Optional<Subject<U>> getSubject(String token) {
-        String normalizedToken = normalizeToken(token);
-        if (!StringUtils.hasText(normalizedToken) ||
-                !JWTUtil.verify(normalizedToken, SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))) {
-            return Optional.empty();
-        }
+        return parsePayloads(token)
+                .flatMap(payloads -> readAccountSession(payloads, normalizeToken(token)))
+                .map(session -> session.getAsJsonObject(SecurityConstants.Session.SESSION_ROOT_MAP_NAME_KEY))
+                .filter(Objects::nonNull)
+                .map(data -> data.get(SecurityConstants.Session.SESSION_SUBJECT_INFO_KEY))
+                .filter(Objects::nonNull)
+                .map(user -> gson.fromJson(user, new TypeToken<Subject<Visitor>>() {
+                }.getType()));
 
-        JSONObject payloads = JWTUtil.parseToken(normalizedToken).getPayloads();
-        return cacheUtils.withRebel(() ->
-                Optional.ofNullable(payloads)
-                        .map(payload -> payload.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY))
-                        //先校验TOKEN是否已过期
-                        .map(loginType -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_VALUE.apply(loginType) + normalizedToken))
-                        .map(Object::toString)
-                        .map(loginId -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_SESSION.apply(payloads.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY)) + loginId))
-                        .map(Object::toString)
-                        .map(session -> JsonParser.parseString(session).getAsJsonObject())
-                        .map(session -> session.getAsJsonObject(SecurityConstants.Session.SESSION_ROOT_MAP_NAME_KEY))
-                        .map(data -> data.get(SecurityConstants.Session.SESSION_SUBJECT_INFO_KEY))
-                        .map(user -> gson.fromJson(user, new TypeToken<Subject<Visitor>>() {
-                        }.getType()))
+    }
 
-        );
-
+    public Optional<String> loginType(String token) {
+        return parsePayloads(token)
+                .flatMap(payloads -> readTokenSession(payloads, normalizeToken(token)))
+                .map(session -> session.getAsJsonObject(SecurityConstants.Session.SESSION_ROOT_MAP_NAME_KEY))
+                .filter(Objects::nonNull)
+                .map(data -> data.get(SecurityConstants.Session.SESSION_USER_LOGIN_TYPE))
+                .filter(Objects::nonNull)
+                .map(loginType -> gson.fromJson(loginType, String.class));
     }
 
     /**
@@ -187,6 +184,37 @@ public class SecurityUtils {
             return token.substring(SecurityConstants.Authentication.API_KEY_PREFIX.length());
         }
         return token;
+    }
+
+    private Optional<JSONObject> parsePayloads(String token) {
+        String normalizedToken = normalizeToken(token);
+        if (!StringUtils.hasText(normalizedToken) ||
+                !JWTUtil.verify(normalizedToken, SecurityConstants.JWT.AUTH_JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8))) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(JWTUtil.parseToken(normalizedToken).getPayloads());
+    }
+
+    private Optional<com.google.gson.JsonObject> readAccountSession(JSONObject payloads, String normalizedToken) {
+        return cacheUtils.withRebel(() ->
+                Optional.ofNullable(payloads)
+                        .map(payload -> payload.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY))
+                        .map(loginType -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_VALUE.apply(loginType) + normalizedToken))
+                        .map(Object::toString)
+                        .map(loginId -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_SESSION.apply(payloads.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY)) + loginId))
+                        .map(Object::toString)
+                        .map(JsonParser::parseString)
+                        .map(element -> element.getAsJsonObject()));
+    }
+
+    private Optional<com.google.gson.JsonObject> readTokenSession(JSONObject payloads, String normalizedToken) {
+        return cacheUtils.withRebel(() ->
+                Optional.ofNullable(payloads)
+                        .map(payload -> payload.getStr(SecurityConstants.JWT.LOGIN_TYPE_KEY))
+                        .map(loginType -> cacheUtils.get(SecurityConstants.Authentication.TOKEN_SPLICING_KEY_TOKEN_SESSION.apply(loginType) + normalizedToken))
+                        .map(Object::toString)
+                        .map(JsonParser::parseString)
+                        .map(element -> element.getAsJsonObject()));
     }
 
 

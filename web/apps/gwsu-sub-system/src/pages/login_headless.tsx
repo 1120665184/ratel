@@ -33,13 +33,13 @@ export default function LoginHeadless() {
 
         (async () => {
             try {
-                let loginToken: { token: string; userId: number; expires: number; alterMsg?: string };
+                let loginToken: { token: string; userId: string; expires: number; alterMsg?: string };
 
                 if (tokenParam) {
                     // URL 中已有 token，跳过登录接口调用，直接使用
                     loginToken = {
                         token: tokenParam,
-                        userId: 0,
+                        userId: '',
                         expires: 86400,
                     };
                 } else {

@@ -26,6 +26,7 @@ import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.DataScope;
 import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -139,7 +140,7 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
 
         // 加载角色、作用域信息
         List<IRoleInfoClientApi> roleClientApi = SpringUtils.getBeansOfType(IRoleInfoClientApi.class);
-        if (!CollectionUtils.isEmpty(roleClientApi)) {
+        if (!CollectionUtils.isEmpty(roleClientApi) && StringUtils.hasText(user.getUserId())) {
             UserRoleInfo roleInfo = FeignUtils.data(roleClientApi.getFirst().getRoleListBySubject(user.getUserId()));
             if (Objects.nonNull(roleInfo)) {
                 if (!CollectionUtils.isEmpty(roleInfo.roles())) {

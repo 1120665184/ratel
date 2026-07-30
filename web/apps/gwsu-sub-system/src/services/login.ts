@@ -9,7 +9,7 @@ import {get, post} from '@gwsu/core';
  */
 export interface LoginToken {
     /** 用户ID */
-    userId: number;
+    userId: string;
     /** 登录token */
     token: string;
     /** 有效期（秒） */
@@ -45,6 +45,20 @@ export interface LoginParams {
     password: string;
 }
 
+export type DingTalkCompleteMethod = 'binding' | 'create';
+
+export interface DingTalkCompleteFields {
+    bindingToken?: string;
+    username?: string;
+    password?: string;
+}
+
+export interface DingTalkCompleteParams {
+    type: 'dingtalk';
+    terminal: TerminalType.WEB;
+    extraParam: Record<string, string[]>;
+}
+
 /**
  * 无头浏览器快速登录请求参数
  */
@@ -66,6 +80,40 @@ export async function login(params: LoginParams): Promise<LoginToken> {
         `/system/auth/login/manager`,
         params
     );
+    return response.data;
+}
+
+export function buildDingTalkCompleteParams(
+    method: DingTalkCompleteMethod,
+    temporaryVoucher: string,
+    fields: DingTalkCompleteFields,
+): DingTalkCompleteParams {
+    const extraParam: Record<string, string[]> = {
+        createMethod: [method],
+        temporaryVoucher: [temporaryVoucher],
+    };
+
+    if (method === 'binding' && fields.bindingToken) {
+        extraParam.bindingToken = [fields.bindingToken];
+    }
+    if (method === 'create') {
+        if (fields.username) {
+            extraParam.username = [fields.username];
+        }
+        if (fields.password) {
+            extraParam.password = [fields.password];
+        }
+    }
+
+    return {
+        type: 'dingtalk',
+        terminal: TerminalType.WEB,
+        extraParam,
+    };
+}
+
+export async function completeDingTalkLogin(params: DingTalkCompleteParams): Promise<LoginToken> {
+    const response = await post<LoginToken>('/system/auth/login/manager', params);
     return response.data;
 }
 

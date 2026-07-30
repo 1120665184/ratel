@@ -3,7 +3,9 @@ package org.quyq.gwsu.common.authentication.domain;
 
 import lombok.Data;
 import org.quyq.gwsu.common.core.enums.TerminalType;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 /**
  * @author Quyq
@@ -29,6 +31,7 @@ public abstract class AbstractLoginDTO {
     /**
      * 额外扩展参数
      */
+    @JsonDeserialize(as = LinkedMultiValueMap.class)
     private MultiValueMap<String, String> extraParam;
 
 }
