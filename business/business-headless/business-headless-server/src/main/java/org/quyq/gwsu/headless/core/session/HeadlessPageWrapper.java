@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 无头浏览器页面操作包装器
@@ -43,6 +44,7 @@ public class HeadlessPageWrapper {
 
     private final BrowserContext context;
     private final Page page;
+    private final ReentrantLock pageOperationLock;
 
     /** 录制帧率（每秒帧数） */
     private static final int RECORDING_FPS = 2;
@@ -62,9 +64,10 @@ public class HeadlessPageWrapper {
     /** 定时截图调度器 */
     private ScheduledExecutorService scheduler;
 
-    HeadlessPageWrapper(BrowserContext context, Page page) {
+    HeadlessPageWrapper(BrowserContext context, Page page, ReentrantLock pageOperationLock) {
         this.context = context;
         this.page = page;
+        this.pageOperationLock = pageOperationLock;
     }
 
     /**
@@ -82,15 +85,20 @@ public class HeadlessPageWrapper {
      * 检查底层 Playwright 资源是否仍然可用
      */
     private boolean isTargetAlive() {
-        if (closed) return false;
+        pageOperationLock.lock();
         try {
-            if (page != null && page.isClosed()) return false;
-        } catch (com.microsoft.playwright.impl.TargetClosedError e) {
-            return false;
-        } catch (Exception e) {
-            return false;
+            if (closed) return false;
+            try {
+                if (page != null && page.isClosed()) return false;
+            } catch (com.microsoft.playwright.impl.TargetClosedError e) {
+                return false;
+            } catch (Exception e) {
+                return false;
+            }
+            return true;
+        } finally {
+            pageOperationLock.unlock();
         }
-        return true;
     }
 
     // ==================== 屏幕录制 ====================
@@ -127,6 +135,7 @@ public class HeadlessPageWrapper {
             if (!isTargetAlive() || !recording.get()) {
                 return;
             }
+            pageOperationLock.lock();
             try {
                 byte[] screenshotBytes = page.screenshot();
                 frameBuffer.add(screenshotBytes);
@@ -134,6 +143,8 @@ public class HeadlessPageWrapper {
                 log.warn("录制截图时浏览器已关闭: {}", e.getMessage());
             } catch (Exception e) {
                 log.debug("录制截图失败: {}", e.getMessage());
+            } finally {
+                pageOperationLock.unlock();
             }
         }, 0, RECORDING_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
@@ -250,11 +261,12 @@ public class HeadlessPageWrapper {
      * @return PNG 格式的截图文件
      */
     public File screenshot(String selector) {
-        if (!isTargetAlive()) {
-            log.warn("浏览器已关闭，无法获取截图");
-            return null;
-        }
+        pageOperationLock.lock();
         try {
+            if (!isTargetAlive()) {
+                log.warn("浏览器已关闭，无法获取截图");
+                return null;
+            }
             byte[] bytes;
             if (selector != null && !selector.isEmpty()) {
                 Locator locator = page.locator(selector);
@@ -279,6 +291,8 @@ public class HeadlessPageWrapper {
         } catch (Exception e) {
             log.error("获取截图失败: selector={}", selector, e);
             throw new RuntimeException("获取截图失败", e);
+        } finally {
+            pageOperationLock.unlock();
         }
     }
 

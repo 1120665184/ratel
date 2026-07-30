@@ -71,7 +71,7 @@ interface HeadlessBridgePayload {
 declare global {
   interface Window {
     __GWSU_HEADLESS_CHAT__?: {
-      send: (payload: HeadlessBridgePayload) => Promise<void>;
+      send: (payload: HeadlessBridgePayload) => void;
     };
   }
 }
@@ -345,7 +345,7 @@ export function CopilotChatPanel({
   const isInteractionActive = hasApproval || hasAskQuestion;
 
   const submitHeadlessMessage = useCallback(
-    async (payload: HeadlessBridgePayload) => {
+    (payload: HeadlessBridgePayload) => {
       const content = buildHeadlessInputContent(payload);
       if (content.length === 0) {
         throw new Error('Headless 消息不能为空');
@@ -359,7 +359,9 @@ export function CopilotChatPanel({
         role: 'user',
         content: normalizedContent,
       } as any);
-      await copilotkit.runAgent({ agent });
+      void copilotkit.runAgent({ agent }).catch((error) => {
+        console.error('[Headless] 发起 Agent 运行失败:', error);
+      });
     },
     [agent, copilotkit],
   );

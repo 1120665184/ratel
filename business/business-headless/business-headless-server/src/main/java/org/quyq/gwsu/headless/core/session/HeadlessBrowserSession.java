@@ -45,6 +45,7 @@ import java.util.function.Consumer;
 public class HeadlessBrowserSession implements AutoCloseable {
 
     private static final String SSE_URL_PATTERN = "/brain/run/copilotKit";
+    private static final long HEADLESS_REQUEST_TIMEOUT_MS = 30_000;
 
     private final BrowserContext context;
     private final Page page;
@@ -63,6 +64,13 @@ public class HeadlessBrowserSession implements AutoCloseable {
      * sendMessage 互斥锁，保证同一 Session 不会并发调用
      */
     private final ReentrantLock sendLock = new ReentrantLock();
+
+    /**
+     * 串行化同一会话的 Playwright Page 调用。
+     * <p>
+     * Redis 事件消费者会触发录屏和截图；Playwright Java 不支持这些操作与消息发送并发执行。
+     */
+    private final ReentrantLock pageOperationLock = new ReentrantLock();
 
     /**
      * 当前活跃的事件收集器（每次 sendMessage 重建）
@@ -119,7 +127,7 @@ public class HeadlessBrowserSession implements AutoCloseable {
         this.page = context.newPage();
 
         // 2. 创建页面操作包装器
-        this.pageWrapper = new HeadlessPageWrapper(context, page);
+        this.pageWrapper = new HeadlessPageWrapper(context, page, pageOperationLock);
 
         // 2. page.route() 拦截 SSE 请求，提取 threadId 并订阅 Redis
         page.route("**" + SSE_URL_PATTERN + "**", route -> {
@@ -763,22 +771,15 @@ public class HeadlessBrowserSession implements AutoCloseable {
     }
 
     private void triggerAssistant(HeadlessDTO message) {
+        pageOperationLock.lock();
         try {
             // 等待前端聊天就绪（历史消息回显完成）
             page.waitForFunction(
                     "() => document.body.getAttribute('data-headless-chat-ready') === 'true' && !!window.__GWSU_HEADLESS_CHAT__ && typeof window.__GWSU_HEADLESS_CHAT__.send === 'function'",
-                    null, new Page.WaitForFunctionOptions().setTimeout(30_000));
+                    null, new Page.WaitForFunctionOptions().setTimeout(HEADLESS_REQUEST_TIMEOUT_MS));
             log.debug("前端聊天已就绪，开始发送消息");
 
-            page.evaluate("""
-                    payload => {
-                        const bridge = window.__GWSU_HEADLESS_CHAT__;
-                        if (!bridge || typeof bridge.send !== 'function') {
-                            throw new Error('Headless chat bridge is not available');
-                        }
-                        return bridge.send(payload);
-                    }
-                    """, objectMapper.convertValue(message, new TypeReference<Map<String, Object>>() {
+            dispatchHeadlessMessage(page, objectMapper.convertValue(message, new TypeReference<Map<String, Object>>() {
             }));
             log.debug("助手消息已发送: text={}, resourceCount={}",
                     message.text(),
@@ -786,7 +787,36 @@ public class HeadlessBrowserSession implements AutoCloseable {
         } catch (Exception e) {
             log.error("触发助手失败", e);
             throw new RuntimeException("触发助手失败", e);
+        } finally {
+            pageOperationLock.unlock();
         }
+    }
+
+    /**
+     * 发起前端 Agent 调用，并等待 agent/run 请求已建立。
+     * <p>
+     * bridge.send 不返回 runAgent 的 Promise，因此此方法只等待请求发出，不会占用
+     * Playwright 消息循环直至整段 SSE 流结束。
+     */
+    static void dispatchHeadlessMessage(Page page, Object payload) {
+        page.waitForRequest(HeadlessBrowserSession::isAgentRunRequest,
+                new Page.WaitForRequestOptions().setTimeout(HEADLESS_REQUEST_TIMEOUT_MS),
+                () -> page.evaluate("""
+                        payload => {
+                            const bridge = window.__GWSU_HEADLESS_CHAT__;
+                            if (!bridge || typeof bridge.send !== 'function') {
+                                throw new Error('Headless chat bridge is not available');
+                            }
+                            bridge.send(payload);
+                        }
+                        """, payload));
+    }
+
+    private static boolean isAgentRunRequest(Request request) {
+        String postData = request.postData();
+        return request.url().contains(SSE_URL_PATTERN)
+                && postData != null
+                && postData.contains("agent/run");
     }
 
     // ==================== 事件收集器 ====================
