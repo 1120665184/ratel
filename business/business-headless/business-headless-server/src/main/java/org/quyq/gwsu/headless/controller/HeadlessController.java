@@ -42,7 +42,7 @@ public class HeadlessController implements HeadlessClientApi {
     public Flux<HeadlessResponse> stream(@RequestParam String userId ,
                                          @RequestParam(required = false) String sign, @RequestBody HeadlessDTO form) {
 
-        return headlessService.stream(form.message(), HeadlessCallConfig.builder()
+        return headlessService.stream(form, HeadlessCallConfig.builder()
                  .sign(sign)
                 .userId(userId)
                 .threadId(form.threadId())

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { App, Button, Card, Form, Spin, Switch } from 'antd';
+import { App, Button, Card, Form, InputNumber, Select, Spin, Switch, Tooltip } from 'antd';
 import {
   ApiOutlined,
   BranchesOutlined,
   DeploymentUnitOutlined,
+  QuestionCircleOutlined,
   ReloadOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
@@ -25,6 +26,7 @@ import type {
   ModelTabKey,
 } from './types';
 import {
+  DEFAULT_MULTIMODAL_OPTIONS,
   createDefaultModelEmbeddingConfig,
   createDefaultModelLlmConfig,
   createDefaultModelRerankConfig,
@@ -66,6 +68,10 @@ const ModelConfigTab: React.FC = () => {
           setLlmConfig({
             provider: parsed.provider || defaults.provider,
             supportMultimodal: parsed.supportMultimodal ?? defaults.supportMultimodal,
+            multimodalOptions: {
+              ...defaults.multimodalOptions,
+              ...parsed.multimodalOptions,
+            },
             dashscope: { ...defaults.dashscope, ...parsed.dashscope },
             openai: { ...defaults.openai, ...parsed.openai },
             gemini: { ...defaults.gemini, ...parsed.gemini },
@@ -156,6 +162,17 @@ const ModelConfigTab: React.FC = () => {
       if (llmConfig.provider === 'gemini' && !currentConfig.apiKey && !(currentConfig as GeminiConfig).project) {
         message.warning('Gemini 至少需要填写 API Key 或 GCP Project');
         return;
+      }
+      if (llmConfig.supportMultimodal) {
+        const { maxUploadSizeMb, maxUploadCount } = llmConfig.multimodalOptions;
+        if (maxUploadSizeMb <= 0) {
+          message.warning('允许上传的资源大小必须大于 0');
+          return;
+        }
+        if (maxUploadCount < 1 || maxUploadCount > 5) {
+          message.warning('允许上传的资源数量必须在 1 到 5 之间');
+          return;
+        }
       }
       const additionalBodyParams = llmConfig.generateOptions?.additionalBodyParams;
       if (additionalBodyParams !== undefined && additionalBodyParams !== null) {
@@ -254,6 +271,15 @@ const ModelConfigTab: React.FC = () => {
     { key: 'rerank', label: '重排模型', icon: <BranchesOutlined /> },
   ];
 
+  const resourceUrlToBase64Label = (
+    <span>
+      资源Url转Base64{' '}
+      <Tooltip title="当模型无法直接访问资源链接时，可开启此项。系统会先读取资源内容，再随请求一起发送给模型。">
+        <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }} />
+      </Tooltip>
+    </span>
+  );
+
   return (
     <div className={styles.assistantConfig}>
       <div className={styles.layout}>
@@ -281,9 +307,94 @@ const ModelConfigTab: React.FC = () => {
                   <Form.Item label="支持多模态">
                     <Switch
                       checked={llmConfig.supportMultimodal}
-                      onChange={(supportMultimodal) => setLlmConfig((prev) => ({ ...prev, supportMultimodal }))}
+                      onChange={(supportMultimodal) =>
+                        setLlmConfig((prev) => ({
+                          ...prev,
+                          supportMultimodal,
+                          multimodalOptions: supportMultimodal
+                            ? {
+                                ...DEFAULT_MULTIMODAL_OPTIONS,
+                                ...prev.multimodalOptions,
+                              }
+                            : prev.multimodalOptions,
+                        }))
+                      }
                     />
                   </Form.Item>
+                  {llmConfig.supportMultimodal && (
+                    <>
+                      <Form.Item label={resourceUrlToBase64Label}>
+                        <Switch
+                          checked={llmConfig.multimodalOptions.resourceUrlToBase64}
+                          onChange={(resourceUrlToBase64) =>
+                            setLlmConfig((prev) => ({
+                              ...prev,
+                              multimodalOptions: {
+                                ...prev.multimodalOptions,
+                                resourceUrlToBase64,
+                              },
+                            }))
+                          }
+                        />
+                      </Form.Item>
+                      <Form.Item label="允许上传的资源大小">
+                        <InputNumber
+                          min={1}
+                          precision={0}
+                          addonAfter="M"
+                          className={styles.fullWidthControl}
+                          value={llmConfig.multimodalOptions.maxUploadSizeMb}
+                          onChange={(value) =>
+                            setLlmConfig((prev) => ({
+                              ...prev,
+                              multimodalOptions: {
+                                ...prev.multimodalOptions,
+                                maxUploadSizeMb: value ?? DEFAULT_MULTIMODAL_OPTIONS.maxUploadSizeMb,
+                              },
+                            }))
+                          }
+                        />
+                      </Form.Item>
+                      <Form.Item label="允许上传的资源数量">
+                        <InputNumber
+                          min={1}
+                          max={5}
+                          precision={0}
+                          className={styles.fullWidthControl}
+                          value={llmConfig.multimodalOptions.maxUploadCount}
+                          onChange={(value) =>
+                            setLlmConfig((prev) => ({
+                              ...prev,
+                              multimodalOptions: {
+                                ...prev.multimodalOptions,
+                                maxUploadCount: value ?? DEFAULT_MULTIMODAL_OPTIONS.maxUploadCount,
+                              },
+                            }))
+                          }
+                        />
+                      </Form.Item>
+                      <Form.Item label="允许上传的资源格式">
+                        <Select
+                          mode="tags"
+                          allowClear
+                          className={styles.fullWidthControl}
+                          placeholder="不配置则允许所有格式，例如：jpg、png、pdf"
+                          tokenSeparators={[',', ' ']}
+                          value={llmConfig.multimodalOptions.allowedUploadFormats}
+                          onChange={(allowedUploadFormats) =>
+                            setLlmConfig((prev) => ({
+                              ...prev,
+                              multimodalOptions: {
+                                ...prev.multimodalOptions,
+                                allowedUploadFormats:
+                                  allowedUploadFormats.length > 0 ? allowedUploadFormats : undefined,
+                              },
+                            }))
+                          }
+                        />
+                      </Form.Item>
+                    </>
+                  )}
                 </Form>
               </Card>
 

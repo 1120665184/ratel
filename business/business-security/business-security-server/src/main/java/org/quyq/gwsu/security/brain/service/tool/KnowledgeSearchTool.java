@@ -9,6 +9,7 @@ import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeChunkAdjacentDTO;
 import org.quyq.gwsu.kit.api.knowledge.dto.KnowledgeSearchDTO;
 import org.quyq.gwsu.kit.api.knowledge.enums.KnowledgeChunkDirection;
 import org.quyq.gwsu.kit.api.knowledge.vo.KnowledgeSearchResultVO;
+import org.quyq.gwsu.security.brain.service.skill.KnowledgeSearchSkillRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -29,8 +30,9 @@ public class KnowledgeSearchTool {
 
     private final KnowledgeClientApi knowledgeClientApi;
 
-    @Tool(name = "SearchKnowledge", description = """
-            在 knowledge_search 技能加载后使用。根据检索词召回匹配度最高的知识片段。
+    @Tool(name = "SearchKnowledge", description = KnowledgeSearchSkillRepository.SKILL_NAME + "技能的伴随工具，必须加载该技能才能使用。" +
+            """
+            根据检索词召回匹配度最高的知识片段。
             入参 query 必填，topK 选填，默认返回 8 条。
             注意：返回结果只是相关片段，不是完整答案，后续必须结合 FindAdjacentKnowledgeChunk 补全上下文再判断是否可回答用户问题。
             """)
@@ -52,8 +54,9 @@ public class KnowledgeSearchTool {
         }).onErrorResume(ex -> Mono.just("知识库检索服务暂时不可用，请稍后重试。原因：" + ex.getMessage()));
     }
 
-    @Tool(name = "FindAdjacentKnowledgeChunk", description = """
-            在 knowledge_search 技能加载后使用。根据 pageBlockId 和方向获取连续相邻的 5 个知识 block。
+    @Tool(name = "FindAdjacentKnowledgeChunk", description = KnowledgeSearchSkillRepository.SKILL_NAME + "技能的伴随工具，必须加载该技能才能使用。" +
+            """
+            根据 pageBlockId 和方向获取连续相邻的 5 个知识 block。
             direction 只能传 PREVIOUS 或 NEXT。
             该工具可多次调用；继续向外扩展时，必须传入当前已获取结果中最新边缘 block 的 pageBlockId。
             """)

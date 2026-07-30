@@ -28,6 +28,7 @@ export async function completeMultipartUpload(data: {
   fileName: string;
   chunkSize: string;
   disposable?: boolean;
+  expiredTime?: string;
   scope?: string;
   visitors?: string;
   categorize?: string;

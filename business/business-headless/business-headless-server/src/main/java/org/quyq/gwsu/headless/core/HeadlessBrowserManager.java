@@ -5,6 +5,7 @@ import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
+import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.config.HeadlessBrowserConfiguration;
 import org.quyq.gwsu.headless.core.pool.BrowserContextPool;
 import org.quyq.gwsu.headless.core.pool.SessionWrapper;
@@ -63,7 +64,7 @@ public class HeadlessBrowserManager implements AutoCloseable {
      * @param listener 事件监听器
      * @return SSE 事件列表
      */
-    public void sendMessage(SubjectInfo userId, String message, HeadlessAgentListener listener) {
+    public void sendMessage(SubjectInfo userId, HeadlessDTO message, HeadlessAgentListener listener) {
         executeWithSession(userId, "发送消息", session -> session.sendMessage(message, listener));
     }
 

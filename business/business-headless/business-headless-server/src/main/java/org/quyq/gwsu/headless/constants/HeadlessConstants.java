@@ -12,6 +12,8 @@ public interface HeadlessConstants {
 
         String GRAPH_PARAM_QUERY = "query";
 
+        String GRAPH_PARAM_REQUEST = "request";
+
         String GRAPH_PARAM_THREAD_ID = "threadId";
 
         String GRAPH_PARAM_USER_ID = "userId";

@@ -2,7 +2,6 @@ package org.quyq.gwsu.security.brain.service.impl;
 
 
 import io.agentscope.core.agent.Agent;
-import io.agentscope.core.agui.adapter.AguiAdapterConfig;
 import io.agentscope.core.model.ExecutionConfig;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.SkillBox;
@@ -17,6 +16,7 @@ import io.agentscope.harness.agent.subagent.SubagentDeclaration;
 import io.agentscope.harness.agent.subagent.WorkspaceMode;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.ai.agui.SingletonAgentResolver;
+import org.quyq.gwsu.common.ai.agui.adapter.AguiAdapterConfig;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.model.ModelProvider;
@@ -48,9 +48,14 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Quyq
@@ -61,6 +66,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BrainServiceImpl implements IBrainService {
 
+    private static final String GENERAL_PURPOSE_SUBAGENT_NAME = "general-purpose";
 
     private final ObjectProvider<Toolkit> toolkitProvider;
 
@@ -149,7 +155,7 @@ public class BrainServiceImpl implements IBrainService {
                 .apply();
 
 
-        return HarnessAgent.builder()
+        HarnessAgent agent = HarnessAgent.builder()
                 .name(CoreConstants.Agent.BRAIN_AGENT_NAME)
                 .distributedStore(distributedStore)
                 .filesystem(new RemoteFilesystemSpec()
@@ -182,7 +188,7 @@ public class BrainServiceImpl implements IBrainService {
                         .timeout(Duration.of(10, ChronoUnit.MINUTES))
                         .build())
                 .compaction(CompactionConfig.builder()
-                        .triggerMessages(30)
+                        .triggerMessages(50)
                         .keepMessages(10)
                         .build())
                 .toolResultEviction(ToolResultEvictionConfig.defaults())
@@ -197,9 +203,144 @@ public class BrainServiceImpl implements IBrainService {
                         .skills(List.of(KnowledgeSearchSkillRepository.SKILL_NAME, DatabaseSearchSkillRepository.SKILL_NAME))
                         .tools(List.of("SearchKnowledge", "FindAdjacentKnowledgeChunk", "GetTableDetail", "GetDatabaseVendor", "ExecuteSql"))
                         .build())
+                .disableDynamicSubagents()
                 .disableShellTool()
                 .disableMemoryTools()
                 .build();
+        removeGeneralPurposeSubagent(agent);
+        return agent;
+    }
+
+    /**
+     * 去除到内置的general-purpose智能体 ，该智能体不需要
+     * @param agent
+     */
+    private void removeGeneralPurposeSubagent(HarnessAgent agent) {
+        try {
+            Object subagentMiddleware = readField(agent, "subagentMiddleware");
+            if (subagentMiddleware == null) {
+                return;
+            }
+
+            List<?> filteredEntries = filterSubagentEntries(subagentMiddleware, "baseEntries");
+            filterSubagentEntries(subagentMiddleware, "entries");
+            filterSubagentEntries(subagentMiddleware, "staticEntries");
+            refreshAgentManager(subagentMiddleware, filteredEntries);
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("移除默认 general-purpose 子智能体失败", ex);
+        }
+    }
+
+    private List<?> filterSubagentEntries(Object target, String fieldName) throws ReflectiveOperationException {
+        Field field = findField(target.getClass(), fieldName);
+        if (field == null) {
+            return List.of();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object> currentEntries = (List<Object>) field.get(target);
+        if (currentEntries == null || currentEntries.isEmpty()) {
+            return List.of();
+        }
+
+        List<Object> filteredEntries = new ArrayList<>();
+        for (Object entry : currentEntries) {
+            if (!GENERAL_PURPOSE_SUBAGENT_NAME.equals(readSubagentEntryName(entry))) {
+                filteredEntries.add(entry);
+            }
+        }
+
+        List<Object> immutableEntries = List.copyOf(filteredEntries);
+        field.set(target, immutableEntries);
+        return immutableEntries;
+    }
+
+    private void refreshAgentManager(Object subagentMiddleware, List<?> filteredEntries) throws ReflectiveOperationException {
+        Method getAgentManager = findMethod(subagentMiddleware.getClass(), "getAgentManager");
+        if (getAgentManager == null) {
+            return;
+        }
+
+        Object agentManager = getAgentManager.invoke(subagentMiddleware);
+        if (agentManager == null) {
+            return;
+        }
+
+        Method replaceAgents = findMethod(agentManager.getClass(), "replaceAgents", List.class);
+        if (replaceAgents != null) {
+            replaceAgents.invoke(agentManager, filteredEntries);
+            return;
+        }
+
+        setMapField(agentManager, "agentFactories", filteredEntries);
+        setMapField(agentManager, "declarations", filteredEntries);
+    }
+
+    private void setMapField(Object agentManager, String fieldName, List<?> filteredEntries) throws ReflectiveOperationException {
+        Field field = findField(agentManager.getClass(), fieldName);
+        if (field == null) {
+            return;
+        }
+
+        Map<String, Object> valueMap = new LinkedHashMap<>();
+        for (Object entry : filteredEntries) {
+            String name = readSubagentEntryName(entry);
+            Object value = "agentFactories".equals(fieldName)
+                    ? invokeNoArgs(entry, "factory")
+                    : invokeNoArgs(entry, "declaration");
+            if (value != null) {
+                valueMap.put(name, value);
+            }
+        }
+        field.set(agentManager, Map.copyOf(valueMap));
+    }
+
+    private Object readField(Object target, String fieldName) throws ReflectiveOperationException {
+        Field field = findField(target.getClass(), fieldName);
+        if (field == null) {
+            return null;
+        }
+        return field.get(target);
+    }
+
+    private Field findField(Class<?> type, String fieldName) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                Field field = current.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private Method findMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                Method method = current.getDeclaredMethod(methodName, parameterTypes);
+                method.setAccessible(true);
+                return method;
+            } catch (NoSuchMethodException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private String readSubagentEntryName(Object entry) throws ReflectiveOperationException {
+        return (String) invokeNoArgs(entry, "name");
+    }
+
+    private Object invokeNoArgs(Object target, String methodName) throws ReflectiveOperationException {
+        Method method = findMethod(target.getClass(), methodName);
+        if (method == null) {
+            return null;
+        }
+        return method.invoke(target);
     }
 
     private String buildSysPrompt() {
@@ -240,8 +381,9 @@ public class BrainServiceImpl implements IBrainService {
                 - 仅在完成任务所需信息缺失时使用 `AskUserQuestion`，问题应清晰、具体，并尽可能提供可选答案。
                 
                 # 内容展示
-                - 对表格、列表、统计结果、趋势对比、多维分析或流程示意等结构化信息，优先使用专属 AI 输出面板展示。
-                - 已获得可展示数据时，将数据、展示标题和说明传递给前端展示智能体渲染；简单文字问答、操作指引、权限说明和错误提示直接文字回复。
+                - 组织输出内容时，先判断结果是否更适合通过专属 AI 输出面板进行可视化展示；凡是通过可视化方式能让信息更直观、层次更清晰、阅读体验更友好的内容，都应优先考虑使用 AI 输出面板。
+                - 对表格、列表、统计结果、趋势对比、多维分析、流程示意、图片展示、卡片化摘要等结构化或半结构化信息，默认优先使用专属 AI 输出面板展示，再配合必要的简要文字说明。
+                - 已获得可展示数据时，将数据、展示标题和说明传递给前端展示智能体渲染；简单文字问答、操作指引、权限说明、结论性短答和错误提示可直接文字回复。
                 - 没有可展示数据时，不得虚构内容面板；应先获取数据或向用户补充询问。
                 
                 # 不确定性与主动协助

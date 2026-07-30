@@ -3,13 +3,13 @@ package org.quyq.gwsu.headless.graph;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ThinkingBlock;
 import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;

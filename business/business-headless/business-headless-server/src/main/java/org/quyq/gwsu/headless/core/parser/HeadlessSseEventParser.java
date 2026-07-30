@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.microsoft.playwright.Response;
-import io.agentscope.core.agui.event.AguiEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 
 import java.util.Map;
 

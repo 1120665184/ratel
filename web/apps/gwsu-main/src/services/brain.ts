@@ -41,15 +41,10 @@ export interface BrainMessage {
   encryptedValue?: string;
 }
 
-/**
- * 分页结果
- */
-export interface PageResult<T> {
-  records: T[];
-  total: number;
-  size: number;
-  current: number;
-  pages: number;
+export interface BrainHistorySessionSlice {
+  records: BrainHistorySession[];
+  hasMore: boolean;
+  nextPageNum?: number | null;
 }
 
 /**
@@ -58,8 +53,8 @@ export interface PageResult<T> {
 export async function getHistorySessions(
   pageNum: number = 1,
   pageSize: number = 20,
-): Promise<PageResult<BrainHistorySession>> {
-  const response = await post<PageResult<BrainHistorySession>>('/security/brain/history/sessions', {
+): Promise<BrainHistorySessionSlice> {
+  const response = await post<BrainHistorySessionSlice>('/security/brain/history/sessions', {
     pageNum,
     pageSize,
   });

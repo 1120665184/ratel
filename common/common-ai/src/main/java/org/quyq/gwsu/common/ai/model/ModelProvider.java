@@ -49,6 +49,13 @@ public class ModelProvider {
         return config != null && Boolean.TRUE.equals(config.getSupportMultimodal());
     }
 
+    /**
+     * 获取当前生效的 LLM 模型配置。
+     */
+    public static ModelLlmConfigDTO currentConfig() {
+        return ConfigInfoUtils.getByObject(MODEL_LLM_CONFIG, ModelLlmConfigDTO.class);
+    }
+
 
     private static void createModel(ModelLlmConfigDTO config) {
         synchronized (ModelProvider.class) {

@@ -489,34 +489,6 @@ CREATE INDEX idx_security_data_resource_condition_data_resource_id ON security_d
 -- 外键
 ALTER TABLE security_data_resource_condition add CONSTRAINT data_resource_condition_fk FOREIGN key (data_resource_id) REFERENCES security_data_resource(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- =============================================
--- 表名：security_brain_sessions
--- 说明：存储智能大脑会话（Session）状态数据
--- =============================================
-
-CREATE TABLE security_brain_sessions
-(
-    session_id VARCHAR(255) NOT NULL,
-    state_key  VARCHAR(255) NOT NULL,
-    item_index INT          NOT NULL DEFAULT 0,
-    state_data TEXT         NOT NULL,
-    user_id    VARCHAR(24)           DEFAULT NULL,
-    created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (session_id, state_key, item_index)
-);
-
--- 添加表注释
-COMMENT ON TABLE security_brain_sessions IS '存储智能大脑会话（Session）状态数据，支持单值状态和列表状态';
-
--- 添加列注释
-COMMENT ON COLUMN security_brain_sessions.session_id IS '会话标识符，与 state_key、item_index 共同组成主键，最大长度 255';
-COMMENT ON COLUMN security_brain_sessions.state_key IS '状态键名，普通状态直接存储，列表状态会附加 ":_hash" 后缀用于存储哈希值';
-COMMENT ON COLUMN security_brain_sessions.item_index IS '列表项索引，普通状态固定为 0，列表状态从 0 开始递增';
-COMMENT ON COLUMN security_brain_sessions.state_data IS '序列化后的状态数据，格式为 JSON，使用 LONGTEXT/TEXT 存储';
-COMMENT ON COLUMN security_brain_sessions.user_id IS '关联的用户ID';
-COMMENT ON COLUMN security_brain_sessions.created_at IS '记录创建时间，默认为当前时间戳';
-COMMENT ON COLUMN security_brain_sessions.updated_at IS '记录最后更新时间，默认与创建时间相同，建议通过触发器或应用层自动更新';
 
 -- =============================================
 -- 表名：security_role_menu_permission

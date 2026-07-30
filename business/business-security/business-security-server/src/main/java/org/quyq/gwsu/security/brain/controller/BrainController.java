@@ -1,15 +1,15 @@
 package org.quyq.gwsu.security.brain.controller;
 
-
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.agentscope.core.agui.model.AguiMessage;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.state.AgentStateStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.ai.agui.AguiController;
-import org.quyq.gwsu.common.ai.agui.domain.CopilotKitInfo;
+import org.quyq.gwsu.common.ai.agui.model.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
+import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.agui.web.WebToolCallbackRequest;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
@@ -21,12 +21,13 @@ import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
-import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
+import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionSliceVo;
 import org.quyq.gwsu.security.api.config.dto.ConfigSaveDTO;
 import org.quyq.gwsu.security.api.config.enums.ConfigValueType;
 import org.quyq.gwsu.security.brain.push.AguiEventRedisPusher;
 import org.quyq.gwsu.security.brain.service.IBrainHistoryService;
 import org.quyq.gwsu.security.brain.service.IBrainService;
+import org.quyq.gwsu.security.brain.service.history.BrainHistorySessionIndexService;
 import org.quyq.gwsu.security.dict.service.ISecurityConfigService;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.http.MediaType;
@@ -61,7 +62,8 @@ public class BrainController implements DisposableBean {
     public BrainController(IBrainService brainService , CacheUtils cacheUtils , ObjectMapper mapper, AgentStateStore agentStateStore, SecurityUtils securityUtils,
                            SessionUtils sessionUtils,
                            IBrainHistoryService brainHistoryService, WebToolUtils webToolUtils,
-                           ISecurityConfigService configService) {
+                           ISecurityConfigService configService,
+                           BrainHistorySessionIndexService brainHistorySessionIndexService) {
         this.brainService = brainService;
         this.brainHistoryService = brainHistoryService;
         this.securityUtils = securityUtils;
@@ -71,6 +73,12 @@ public class BrainController implements DisposableBean {
             protected CopilotKitInfo handleInfo() {
                 return new CopilotKitInfo()
                         .addAgent(new CopilotKitInfo.Agents(IBrainService.AGENT_ID, "平台中央大脑"));
+            }
+
+            @Override
+            protected void afterRunCompleted(RunAgentInput input, String userId,
+                                             RuntimeContext runtimeContext) {
+                brainHistorySessionIndexService.refreshSessionIndex(input.threadId(), userId);
             }
         };
 
@@ -118,7 +126,7 @@ public class BrainController implements DisposableBean {
 
     @Operation(summary = "分页查询历史会话列表")
     @PostMapping("history/sessions")
-    public R<IPage<BrainHistorySessionVo>> pageHistorySessions(@RequestBody BrainHistoryQueryDTO query) {
+    public R<BrainHistorySessionSliceVo> pageHistorySessions(@RequestBody BrainHistoryQueryDTO query) {
         String userId = securityUtils.userInfo().map(UserInfo::getUserId).orElse(null);
         if (userId == null) {
             return R.fail("用户未登录");

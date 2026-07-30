@@ -45,8 +45,8 @@ export function ChatHistoryPanel({ onBackToChat, onLoadSession }: ChatHistoryPan
         setSessions(result.records);
       }
 
-      setHasMore(page < result.pages);
-      setPageNum(page);
+      setHasMore(Boolean(result.hasMore));
+      setPageNum(result.nextPageNum ?? page + 1);
     } catch (error) {
       console.error('加载历史会话失败:', error);
     } finally {
@@ -65,7 +65,7 @@ export function ChatHistoryPanel({ onBackToChat, onLoadSession }: ChatHistoryPan
 
     const { scrollTop, scrollHeight, clientHeight } = listRef.current;
     if (scrollHeight - scrollTop - clientHeight < 100) {
-      loadSessions(pageNum + 1, true);
+      loadSessions(pageNum, true);
     }
   }, [loading, hasMore, pageNum, loadSessions]);
 

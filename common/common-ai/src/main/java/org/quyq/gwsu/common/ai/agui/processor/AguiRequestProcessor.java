@@ -17,12 +17,11 @@ package org.quyq.gwsu.common.ai.agui.processor;
 
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.agui.adapter.AguiAdapterConfig;
-import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.model.AguiMessage;
-import io.agentscope.core.agui.model.RunAgentInput;
-import io.agentscope.core.agui.processor.AgentResolver;
 import org.quyq.gwsu.common.ai.agui.adapter.AguiAgentAdapter;
+import org.quyq.gwsu.common.ai.agui.adapter.AguiAdapterConfig;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -93,7 +92,7 @@ public class AguiRequestProcessor {
             String headerAgentId,
             String pathAgentId,
             RuntimeContext runtimeContext) {
-        String threadId = input.getThreadId();
+        String threadId = input.threadId();
 
         // Resolve agent ID
         String agentId = resolveAgentId(input, headerAgentId, pathAgentId);
@@ -185,7 +184,7 @@ public class AguiRequestProcessor {
      * @return A new input with only the latest user message
      */
     public RunAgentInput extractLatestUserMessage(RunAgentInput input) {
-        List<AguiMessage> messages = input.getMessages();
+        List<AguiMessage> messages = input.messages();
         if (messages == null || messages.isEmpty()) {
             return input;
         }
@@ -194,9 +193,9 @@ public class AguiRequestProcessor {
         AguiMessage lastUserMessage = null;
         for (int i = messages.size() - 1; i >= 0; i--) {
             AguiMessage msg = messages.get(i);
-            if ("user".equalsIgnoreCase(msg.getRole()) ||
-                    "approval".equalsIgnoreCase(msg.getRole()) ||
-                    "tool".equalsIgnoreCase(msg.getRole())) {
+            if ("user".equalsIgnoreCase(msg.role()) ||
+                    "approval".equalsIgnoreCase(msg.role()) ||
+                    "tool".equalsIgnoreCase(msg.role())) {
                 lastUserMessage = msg;
                 break;
             }
@@ -208,12 +207,12 @@ public class AguiRequestProcessor {
 
         // Create new input with only the last user message
         return RunAgentInput.builder()
-                .threadId(input.getThreadId())
-                .runId(input.getRunId())
+                .threadId(input.threadId())
+                .runId(input.runId())
                 .messages(List.of(lastUserMessage))
-                .tools(input.getTools())
-                .context(input.getContext())
-                .forwardedProps(input.getForwardedProps())
+                .tools(input.tools())
+                .context(input.context())
+                .forwardedProps(input.forwardedProps())
                 .build();
     }
 

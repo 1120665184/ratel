@@ -55,10 +55,19 @@ export interface GenerateOptionsConfig {
   additionalBodyParams?: Record<string, unknown>;
 }
 
+/** 多模态配置 */
+export interface MultimodalOptionsConfig {
+  resourceUrlToBase64: boolean;
+  maxUploadSizeMb: number;
+  maxUploadCount: number;
+  allowedUploadFormats?: string[];
+}
+
 /** LLM 模型配置结构（与后端 model_llm_config JSON 结构一一对应） */
 export interface ModelLlmConfig {
   provider: ModelProvider;
   supportMultimodal: boolean;
+  multimodalOptions: MultimodalOptionsConfig;
   dashscope: DashscopeConfig;
   openai: OpenaiConfig;
   gemini: GeminiConfig;
@@ -154,6 +163,13 @@ export const DEFAULT_GENERATE_OPTIONS: GenerateOptionsConfig = {
   additionalBodyParams: {},
 };
 
+export const DEFAULT_MULTIMODAL_OPTIONS: MultimodalOptionsConfig = {
+  resourceUrlToBase64: false,
+  maxUploadSizeMb: 20,
+  maxUploadCount: 3,
+  allowedUploadFormats: undefined,
+};
+
 export const PROVIDER_LIST: ProviderInfo<ModelProvider>[] = [
   { key: 'dashscope', label: 'DashScope', description: '阿里云通义千问' },
   { key: 'openai', label: 'OpenAI', description: 'GPT 系列模型' },
@@ -176,6 +192,7 @@ export function createDefaultModelLlmConfig(): ModelLlmConfig {
   return {
     provider: 'openai',
     supportMultimodal: false,
+    multimodalOptions: { ...DEFAULT_MULTIMODAL_OPTIONS },
     dashscope: { ...DEFAULT_DASHSCOPE_CONFIG },
     openai: { ...DEFAULT_OPENAI_CONFIG },
     gemini: { ...DEFAULT_GEMINI_CONFIG },

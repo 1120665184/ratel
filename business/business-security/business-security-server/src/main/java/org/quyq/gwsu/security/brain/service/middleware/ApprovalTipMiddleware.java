@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.brain.service.middleware;
 
 import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.AgentBase;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventEmitter;
@@ -15,7 +16,6 @@ import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.permission.PermissionBehavior;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionDecision;
-import io.agentscope.core.permission.PermissionEngine;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.tool.AgentTool;
 import io.agentscope.core.tool.ToolBase;
@@ -27,6 +27,8 @@ import org.quyq.gwsu.common.ai.loop.ApprovalStage;
 import org.quyq.gwsu.common.ai.loop.domain.ApprovalTips;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 import org.springframework.util.CollectionUtils;
 import tools.jackson.databind.ObjectMapper;
 
@@ -47,21 +49,24 @@ public class ApprovalTipMiddleware implements MiddlewareBase {
             RuntimeContext ctx,
             ActingInput input,
             Function<ActingInput, Flux<AgentEvent>> next) {
-        List<ApprovalTips> approvalTips = collectApprovalTips(agent, ctx, input);
-        if (approvalTips.isEmpty()) {
-            return next.apply(input);
-        }
-
         return Flux.deferContextual(contextView -> {
-            AgentEventEmitter emitter = AgentEventEmitter.fromContext(contextView).orElse(null);
-            return next.apply(input)
-                    .map(event -> attachApprovalTips(event, ctx, approvalTips, emitter));
+            return collectApprovalTips(agent, ctx, input, contextView)
+                    .flatMapMany(approvalTips -> {
+                        if (approvalTips.isEmpty()) {
+                            return next.apply(input);
+                        }
+
+                        AgentEventEmitter emitter = AgentEventEmitter.fromContext(contextView).orElse(null);
+                        return next.apply(input)
+                                .map(event -> attachApprovalTips(event, ctx, approvalTips, emitter));
+                    });
         });
     }
 
-    private List<ApprovalTips> collectApprovalTips(Agent agent, RuntimeContext ctx, ActingInput input) {
+    private Mono<List<ApprovalTips>> collectApprovalTips(
+            Agent agent, RuntimeContext ctx, ActingInput input, ContextView contextView) {
         if (agent == null || input == null || input.toolCalls() == null || input.toolCalls().isEmpty()) {
-            return List.of();
+            return Mono.just(List.of());
         }
 
         Toolkit toolkit = agent.getToolkit();
@@ -69,56 +74,38 @@ public class ApprovalTipMiddleware implements MiddlewareBase {
         PermissionContextState permissionContext = agentState != null
                 ? agentState.getPermissionContext()
                 : PermissionContextState.builder().build();
-        PermissionEngine permissionEngine = new PermissionEngine(permissionContext);
 
-        List<ApprovalTips> tips = new ArrayList<>();
-        for (ToolUseBlock toolCall : input.toolCalls()) {
-            ApprovalTips tip = evaluateApprovalTip(toolkit, permissionEngine, toolCall);
-            if (tip != null) {
-                tips.add(tip);
-            }
-        }
-        return tips;
+        return Flux.fromIterable(input.toolCalls())
+                .concatMap(toolCall -> evaluateApprovalTip(toolkit, permissionContext, toolCall)
+                        // The middleware pre-check runs before AgentBase publishes its runtime context.
+                        // Pass the current context explicitly so tool-level permission checks see the same state.
+                        .contextWrite(reactorContext -> reactorContext
+                                .putAll(contextView)
+                                .put(AgentBase.RUNTIME_CONTEXT_KEY, ctx)))
+                .filter(Objects::nonNull)
+                .collectList();
     }
 
-    private ApprovalTips evaluateApprovalTip(
+    private Mono<ApprovalTips> evaluateApprovalTip(
             Toolkit toolkit,
-            PermissionEngine permissionEngine,
+            PermissionContextState permissionContext,
             ToolUseBlock toolCall) {
         if (toolkit == null || toolCall == null) {
-            return null;
+            return Mono.empty();
         }
 
         AgentTool agentTool = toolkit.getTool(toolCall.getName());
         if (!(agentTool instanceof ToolBase toolBase)) {
-            return null;
+            return Mono.empty();
         }
 
-        PermissionDecision decision = resolveApprovalDecision(toolBase, permissionEngine, toolCall);
-        if (decision == null || decision.getBehavior() != PermissionBehavior.ASK) {
-            return null;
-        }
-
-        return new ApprovalTips(
-                toolCall.getId(),
-                toolCall.getName(),
-                decision.getMessage(),
-                ApprovalStage.POST_REASONING);
-    }
-
-    private PermissionDecision resolveApprovalDecision(
-            ToolBase toolBase,
-            PermissionEngine permissionEngine,
-            ToolUseBlock toolCall) {
-        Map<String, Object> input = toolCall.getInput();
-        PermissionContextState context = permissionEngine.getContext();
-
-        PermissionDecision toolDecision = toolBase.checkPermissions(input, context).block();
-        if (toolDecision != null && toolDecision.getBehavior() == PermissionBehavior.ASK) {
-            return toolDecision;
-        }
-
-        return permissionEngine.checkPermission(toolBase, input).block();
+        return toolBase.checkPermissions(toolCall.getInput(), permissionContext)
+                .filter(decision -> decision.getBehavior() == PermissionBehavior.ASK)
+                .map(decision -> new ApprovalTips(
+                        toolCall.getId(),
+                        toolCall.getName(),
+                        decision.getMessage(),
+                        ApprovalStage.POST_REASONING));
     }
 
     AgentEvent attachApprovalTips(AgentEvent event, RuntimeContext ctx, List<ApprovalTips> approvalTips) {

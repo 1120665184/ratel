@@ -1,7 +1,8 @@
-package org.quyq.gwsu.security.connect.enums;
+package org.quyq.gwsu.security.connect.entrance.dingtalk.enums;
 
 
 import lombok.Getter;
+import org.quyq.gwsu.common.core.exception.BusinessException;
 
 import java.util.stream.Stream;
 
@@ -27,7 +28,7 @@ public enum DingTalkMsgType {
     }
 
     public static DingTalkMsgType getByCode(String code) {
-        return Stream.of(DingTalkMsgType.values()).filter(e -> e.code.equals(code)).findFirst().orElseThrow(() -> new RuntimeException("未知的消息类型"));
+        return Stream.of(DingTalkMsgType.values()).filter(e -> e.code.equals(code)).findFirst().orElseThrow(() -> new BusinessException("未知的消息类型"));
     }
 
 }

@@ -1,4 +1,4 @@
-package org.quyq.gwsu.security.connect.enums;
+package org.quyq.gwsu.security.connect.entrance.dingtalk.enums;
 
 
 import org.quyq.gwsu.common.core.exception.BusinessException;

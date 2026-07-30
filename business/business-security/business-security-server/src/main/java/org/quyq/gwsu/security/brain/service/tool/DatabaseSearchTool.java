@@ -32,6 +32,7 @@ import org.quyq.gwsu.security.api.tablemodel.vo.TableModelColumnVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelDetailVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelForeignKeyVO;
 import org.quyq.gwsu.security.api.tablemodel.vo.TableModelTableVO;
+import org.quyq.gwsu.security.brain.service.skill.DatabaseSearchSkillRepository;
 import org.quyq.gwsu.security.role.service.ISecurityRoleTableModelService;
 import org.quyq.gwsu.security.tablemodel.service.ISecurityTableModelTableService;
 import org.springframework.core.ParameterizedTypeReference;
@@ -73,113 +74,150 @@ public class DatabaseSearchTool {
     /**
      * 获取指定表的详细内容（字段信息），包含当前登录用户对该字段的权限
      *
-     * @param tableName  表名
+     * @param tableNames  表名列表
      * @param ds 数据源
      * @return 表详细信息（含字段权限）
      */
-    @Tool(name = "GetTableDetail", description = "获取指定表的详细结构信息，包括字段名、类型、注释及当前用户是否拥有该字段的查询权限。在生成SQL之前必须先调用此工具了解表结构。")
+    @Tool(name = "GetTableDetail", description = DatabaseSearchSkillRepository.SKILL_NAME + "技能的伴随工具，必须加载该技能才能使用。" +
+            """
+            获取一个或多个数据表的详细结构信息，包括表注释、字段名、字段类型、长度、是否可空、是否主键、字典枚举值、外键关系，以及当前用户对字段的查询权限。
+            在生成 SQL 之前，应先调用此工具确认表结构和可访问字段。
+            如果一次查询多个表，所有表必须属于同一个服务(modelPrefix)和同一个数据源(dataSource)；不支持跨服务或跨数据源混合查询。
+            """)
     public Mono<String> getTableDetail(
             @ToolParam(name = "modelPrefix", description = "所属模块/服务") String modelPrefix,
-            @ToolParam(name = "tableName", description = "表名") String tableName,
+            @ToolParam(name = "tableName", description = "表名列表；多个表时必须属于同一服务和同一数据源") List<String> tableNames,
             @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds) {
         String dataSource = StringUtils.isBlank(ds) ? "master" : ds;
         return Mono.defer(() ->{
-            // 获取表信息
-            TableModelDetailVO tableDetail = tableModelTableService.getTableDetail(modelPrefix, dataSource, tableName);
-            if (tableDetail == null) {
-                return Mono.just("未找到表 [" + tableName + "]（所属服务：" + modelPrefix + " ,数据源: " + dataSource + "），请检查表名和数据源是否正确。");
-            }
-
-            TableModelTableVO tableVO = tableDetail.getTable();
-            // 获取字段列表
-            List<TableModelColumnVO> columns = tableDetail.getColumns();
-
-            // 获取外键列表
-            List<TableModelForeignKeyVO> foreignKeys = tableDetail.getForeignKeys();
-
-            // 获取当前用户的字段权限
-            Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(
-                    modelPrefix, dataSource, tableName);
-
-            // 批量获取字段涉及的字典值
-            List<String> dictKeys = columns.stream()
-                    .map(TableModelColumnVO::getDictKey)
+            List<String> normalizedTableNames = Optional.ofNullable(tableNames)
+                    .orElseGet(List::of)
+                    .stream()
                     .filter(StringUtils::isNotBlank)
                     .distinct()
                     .toList();
-            Map<String, Map<String, String>> dictValueMap = DictInfoUtils.get(dictKeys);
-
-            // 构建结果
-            StringBuilder sb = new StringBuilder();
-            sb.append("## 表: ").append(tableName).append("（数据源: ").append(dataSource).append("）\n");
-            sb.append("表注释: ").append(tableVO.getTableComment() != null ? tableVO.getTableComment() : "无").append("\n");
-            sb.append("所属服务: ").append(tableVO.getModulePrefix()).append("\n\n");
-
-            sb.append("### 字段列表\n");
-            sb.append("| 字段名 | 类型 | 长度 | 可空 | 主键 | 注释 | 枚举值 | 用户是否有权限 |\n");
-            sb.append("|--------|------|------|------|------|------|--------|------------|\n");
-
-            for (TableModelColumnVO column : columns) {
-                FieldPermission perm = fieldPermissions.get(column.getColumnName());
-                boolean hasPermission = perm == null || perm.show();
-
-                String enumDisplay = "-";
-                if (StringUtils.isNotBlank(column.getDictKey())) {
-                    Map<String, String> values = dictValueMap.get(column.getDictKey());
-                    if (!CollectionUtils.isEmpty(values)) {
-                        enumDisplay = values.entrySet().stream()
-                                .map(e -> e.getValue() + "(" + e.getKey() + ")")
-                                .reduce((a, b) -> a + ", " + b)
-                                .orElse("-");
-                    }
-                }
-
-                sb.append("| ").append(column.getColumnName())
-                        .append(" | ").append(column.getColumnType() != null ? column.getColumnType() : "-")
-                        .append(" | ").append(column.getColumnLength() != null ? column.getColumnLength() : "-")
-                        .append(" | ").append(column.getIsNullable() != null && column.getIsNullable() ? "是" : "否")
-                        .append(" | ").append(column.getIsPrimaryKey() != null && column.getIsPrimaryKey() ? "是" : "否")
-                        .append(" | ").append(column.getColumnComment() != null ? column.getColumnComment() : "-")
-                        .append(" | ").append(enumDisplay)
-                        .append(" | ").append(hasPermission ? "是" : "否")
-                        .append(" |\n");
+            if (CollectionUtils.isEmpty(normalizedTableNames)) {
+                return Mono.just("未提供有效的表名。请传入至少一个表名；如果一次查询多个表，这些表必须属于同一服务和同一数据源。");
             }
 
-            // 外键信息
-            if (!CollectionUtils.isEmpty(foreignKeys)) {
-                sb.append("\n### 外键约束\n");
-                for (TableModelForeignKeyVO fk : foreignKeys) {
-                    sb.append("- 约束名: ").append(fk.getConstraintName() != null ? fk.getConstraintName() : "-")
-                            .append(", 字段: ").append(fk.getColumnName() != null ? fk.getColumnName() : "-")
-                            .append(" -> ").append(fk.getReferencedTableName() != null ? fk.getReferencedTableName() : "-")
-                            .append(".").append(fk.getReferencedColumnName() != null ? fk.getReferencedColumnName() : "-");
-                    if (StringUtils.isNotBlank(fk.getRemark())) {
-                        sb.append("  注释：").append(fk.getRemark());
-                    }
-                    sb.append("\n");
-                }
-            }
+            Map<String, TableModelDetailVO> tableDetailMap =
+                    tableModelTableService.getTableDetails(modelPrefix, dataSource, normalizedTableNames);
 
-            // 权限提示
-            List<String> deniedFields = columns.stream()
-                    .map(TableModelColumnVO::getColumnName)
-                    .filter(fieldName -> {
-                        FieldPermission perm = fieldPermissions.get(fieldName);
-                        return perm != null && !perm.show();
-                    })
+            List<String> missingTableNames = normalizedTableNames.stream()
+                    .filter(tableName -> !tableDetailMap.containsKey(tableName))
                     .toList();
-
-            if (!deniedFields.isEmpty()) {
-                sb.append("\n> **权限提示**: 以下字段当前用户无查询权限: ").append(String.join(", ", deniedFields))
-                        .append("。生成SQL时请勿包含这些字段。\n");
+            if (tableDetailMap.isEmpty()) {
+                return Mono.just("未找到表 " + normalizedTableNames + "（所属服务：" + modelPrefix + "，数据源：" + dataSource + "），请检查表名、所属服务和数据源是否正确。");
             }
 
-            return Mono.just(sb.toString());
+            StringBuilder sb = new StringBuilder();
+            sb.append("已按同一服务/同一数据源查询表结构。\n");
+            sb.append("所属服务: ").append(modelPrefix).append("\n");
+            sb.append("数据源: ").append(dataSource).append("\n");
+            sb.append("查询表数: ").append(normalizedTableNames.size()).append("\n\n");
+
+            for (String tableName : normalizedTableNames) {
+                TableModelDetailVO tableDetail = tableDetailMap.get(tableName);
+                if (tableDetail == null) {
+                    continue;
+                }
+                appendTableDetail(sb, modelPrefix, dataSource, tableName, tableDetail);
+                sb.append("\n");
+            }
+
+            if (!missingTableNames.isEmpty()) {
+                sb.append("### 未找到的表\n");
+                sb.append("以下表未匹配到表结构信息，请检查表名、所属服务和数据源是否正确: ")
+                        .append(String.join(", ", missingTableNames))
+                        .append("\n");
+            }
+
+            return Mono.just(sb.toString().trim());
         });
     }
 
+    private void appendTableDetail(StringBuilder sb,
+                                   String modelPrefix,
+                                   String dataSource,
+                                   String tableName,
+                                   TableModelDetailVO tableDetail) {
+        TableModelTableVO tableVO = tableDetail.getTable();
+        List<TableModelColumnVO> columns = tableDetail.getColumns();
+        List<TableModelForeignKeyVO> foreignKeys = tableDetail.getForeignKeys();
+        Map<String, FieldPermission> fieldPermissions = getCurrentUserFieldPermissions(modelPrefix, dataSource, tableName);
 
-    @Tool(name = "GetDatabaseVendor", description = """
+        List<String> dictKeys = columns.stream()
+                .map(TableModelColumnVO::getDictKey)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .toList();
+        Map<String, Map<String, String>> dictValueMap = DictInfoUtils.get(dictKeys);
+
+        sb.append("## 表: ").append(tableName).append("（数据源: ").append(dataSource).append("）\n");
+        sb.append("表注释: ").append(tableVO.getTableComment() != null ? tableVO.getTableComment() : "无").append("\n");
+        sb.append("所属服务: ").append(tableVO.getModulePrefix()).append("\n\n");
+
+        sb.append("### 字段列表\n");
+        sb.append("| 字段名 | 类型 | 长度 | 可空 | 主键 | 注释 | 枚举值 | 用户是否有权限 |\n");
+        sb.append("|--------|------|------|------|------|------|--------|------------|\n");
+
+        for (TableModelColumnVO column : columns) {
+            FieldPermission perm = fieldPermissions.get(column.getColumnName());
+            boolean hasPermission = perm == null || perm.show();
+
+            String enumDisplay = "-";
+            if (StringUtils.isNotBlank(column.getDictKey())) {
+                Map<String, String> values = dictValueMap.get(column.getDictKey());
+                if (!CollectionUtils.isEmpty(values)) {
+                    enumDisplay = values.entrySet().stream()
+                            .map(e -> e.getValue() + "(" + e.getKey() + ")")
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse("-");
+                }
+            }
+
+            sb.append("| ").append(column.getColumnName())
+                    .append(" | ").append(column.getColumnType() != null ? column.getColumnType() : "-")
+                    .append(" | ").append(column.getColumnLength() != null ? column.getColumnLength() : "-")
+                    .append(" | ").append(column.getIsNullable() != null && column.getIsNullable() ? "是" : "否")
+                    .append(" | ").append(column.getIsPrimaryKey() != null && column.getIsPrimaryKey() ? "是" : "否")
+                    .append(" | ").append(column.getColumnComment() != null ? column.getColumnComment() : "-")
+                    .append(" | ").append(enumDisplay)
+                    .append(" | ").append(hasPermission ? "是" : "否")
+                    .append(" |\n");
+        }
+
+        if (!CollectionUtils.isEmpty(foreignKeys)) {
+            sb.append("\n### 外键约束\n");
+            for (TableModelForeignKeyVO fk : foreignKeys) {
+                sb.append("- 约束名: ").append(fk.getConstraintName() != null ? fk.getConstraintName() : "-")
+                        .append(", 字段: ").append(fk.getColumnName() != null ? fk.getColumnName() : "-")
+                        .append(" -> ").append(fk.getReferencedTableName() != null ? fk.getReferencedTableName() : "-")
+                        .append(".").append(fk.getReferencedColumnName() != null ? fk.getReferencedColumnName() : "-");
+                if (StringUtils.isNotBlank(fk.getRemark())) {
+                    sb.append("  注释：").append(fk.getRemark());
+                }
+                sb.append("\n");
+            }
+        }
+
+        List<String> deniedFields = columns.stream()
+                .map(TableModelColumnVO::getColumnName)
+                .filter(fieldName -> {
+                    FieldPermission perm = fieldPermissions.get(fieldName);
+                    return perm != null && !perm.show();
+                })
+                .toList();
+
+        if (!deniedFields.isEmpty()) {
+            sb.append("\n> **权限提示**: 以下字段当前用户无查询权限: ").append(String.join(", ", deniedFields))
+                    .append("。生成SQL时请勿包含这些字段。\n");
+        }
+    }
+
+
+    @Tool(name = "GetDatabaseVendor", description = DatabaseSearchSkillRepository.SKILL_NAME + "技能的伴随工具，必须加载该技能才能使用。" +
+            """
             返回当前数据源的数据库厂商名称，如 'MySQL', 'Oracle'
             使用场景：生成SQL之前需要先调用该方法，获取对应的数据库厂商名，根据数据库生成适配的SQL
             """)
@@ -215,7 +253,10 @@ public class DatabaseSearchTool {
      * @param ds   数据源名称
      * @param sql          SQL语句（仅限SELECT）
      */
-    @Tool(name = "ExecuteSql", description = "执行只读SQL查询（仅限SELECT语句）。会自动校验当前用户对SQL中涉及的表和字段的权限，并自动追加数据权限过滤条件。不同服务/数据源的表无法在同一条SQL中关联查询，请确保SQL中所有表属于同一服务同一数据源。")
+    @Tool(name = "ExecuteSql", description = DatabaseSearchSkillRepository.SKILL_NAME + "技能的伴随工具，必须加载该技能才能使用。" +
+            """
+            执行只读SQL查询（仅限SELECT语句）。会自动校验当前用户对SQL中涉及的表和字段的权限，并自动追加数据权限过滤条件。不同服务/数据源的表无法在同一条SQL中关联查询，请确保SQL中所有表属于同一服务同一数据源。
+            """)
     public Mono<String> executeSql(
             @ToolParam(name = "modulePrefix", description = "所属服务（模块前缀），如security") String modulePrefix,
             @ToolParam(name = "dataSource", description = "数据源名称，默认为master") String ds,

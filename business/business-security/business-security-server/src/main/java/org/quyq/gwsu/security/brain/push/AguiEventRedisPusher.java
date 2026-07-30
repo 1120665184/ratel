@@ -1,9 +1,9 @@
 package org.quyq.gwsu.security.brain.push;
 
 
-import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.model.RunAgentInput;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.springframework.util.StringUtils;
@@ -31,7 +31,7 @@ public class AguiEventRedisPusher implements AguiEventPusher {
     @Override
     public void push(RunAgentInput param, AguiEvent event) {
 
-        String threadId = param.getThreadId();
+        String threadId = param.threadId();
         if (StringUtils.hasText(threadId)) {
             String key = BRAIN_SSE_EVENT_LIST_PREFIX + threadId;
             cacheUtils.withRebel(() -> {

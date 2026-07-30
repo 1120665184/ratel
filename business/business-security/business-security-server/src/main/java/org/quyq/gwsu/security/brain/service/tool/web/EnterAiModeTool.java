@@ -6,7 +6,7 @@ import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionDecision;
 import io.agentscope.core.tool.ToolBase;
 import io.agentscope.core.tool.ToolCallParam;
-import org.quyq.gwsu.common.ai.agui.domain.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.springframework.stereotype.Component;

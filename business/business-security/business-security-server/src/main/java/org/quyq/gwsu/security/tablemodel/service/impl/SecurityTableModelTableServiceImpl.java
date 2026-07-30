@@ -74,37 +74,73 @@ public class SecurityTableModelTableServiceImpl extends ServiceImpl<SecurityTabl
 
     @Override
     public TableModelDetailVO getTableDetail(String modulePrefix, String datasource, String tableName) {
-        // 查询所有匹配的表
-        SecurityTableModelTable table = getOne(
+        return getTableDetails(modulePrefix, datasource, List.of(tableName)).get(tableName);
+    }
+
+    @Override
+    public Map<String, TableModelDetailVO> getTableDetails(String modulePrefix, String datasource, List<String> tableNames) {
+        if (CollectionUtils.isEmpty(tableNames)) {
+            return Map.of();
+        }
+
+        List<String> normalizedTableNames = tableNames.stream()
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .toList();
+        if (CollectionUtils.isEmpty(normalizedTableNames)) {
+            return Map.of();
+        }
+
+        List<SecurityTableModelTable> tables = list(
                 new LambdaQueryWrapper<SecurityTableModelTable>()
                         .eq(SecurityTableModelTable::getModulePrefix, modulePrefix)
                         .eq(SecurityTableModelTable::getDataSource, datasource)
-                        .eq(SecurityTableModelTable::getTableName, tableName)
+                        .in(SecurityTableModelTable::getTableName, normalizedTableNames)
                         .eq(SecurityTableModelTable::getDeleted, false));
 
-        if (Objects.isNull(table)) {
-            return null;
+        if (CollectionUtils.isEmpty(tables)) {
+            return Map.of();
         }
 
-        // 批量查询字段
-        List<SecurityTableModelColumn> columns = securityTableModelColumnService.list(
-                new LambdaQueryWrapper<SecurityTableModelColumn>()
-                        .eq(SecurityTableModelColumn::getTableId, table.getId())
-                        .eq(SecurityTableModelColumn::getDeleted, false)
-                        .orderByAsc(SecurityTableModelColumn::getOrdinalPosition));
+        List<String> tableIds = tables.stream()
+                .map(SecurityTableModelTable::getId)
+                .toList();
 
-        // 批量查询外键
-        List<SecurityTableModelForeignKey> foreignKeys = securityTableModelForeignKeyService.list(
-                new LambdaQueryWrapper<SecurityTableModelForeignKey>()
-                        .eq(SecurityTableModelForeignKey::getTableId, table.getId())
-                        .eq(SecurityTableModelForeignKey::getDeleted, false));
+        Map<String, List<SecurityTableModelColumn>> columnsByTableId = securityTableModelColumnService.list(
+                        new LambdaQueryWrapper<SecurityTableModelColumn>()
+                                .in(SecurityTableModelColumn::getTableId, tableIds)
+                                .eq(SecurityTableModelColumn::getDeleted, false)
+                                .orderByAsc(SecurityTableModelColumn::getOrdinalPosition))
+                .stream()
+                .collect(Collectors.groupingBy(SecurityTableModelColumn::getTableId, LinkedHashMap::new, Collectors.toList()));
 
-        TableModelDetailVO detail = new TableModelDetailVO();
-        detail.setTable(table.toVo());
-        detail.setColumns(columns.stream().map(SecurityTableModelColumn::toVo).toList());
-        detail.setForeignKeys(foreignKeys.stream().map(SecurityTableModelForeignKey::toVo).toList());
+        Map<String, List<SecurityTableModelForeignKey>> foreignKeysByTableId = securityTableModelForeignKeyService.list(
+                        new LambdaQueryWrapper<SecurityTableModelForeignKey>()
+                                .in(SecurityTableModelForeignKey::getTableId, tableIds)
+                                .eq(SecurityTableModelForeignKey::getDeleted, false))
+                .stream()
+                .collect(Collectors.groupingBy(SecurityTableModelForeignKey::getTableId, LinkedHashMap::new, Collectors.toList()));
 
-        return detail;
+        Map<String, TableModelDetailVO> result = new LinkedHashMap<>();
+        for (String tableName : normalizedTableNames) {
+            tables.stream()
+                    .filter(table -> StringUtils.equals(table.getTableName(), tableName))
+                    .findFirst()
+                    .ifPresent(table -> {
+                        TableModelDetailVO detail = new TableModelDetailVO();
+                        detail.setTable(table.toVo());
+                        detail.setColumns(columnsByTableId.getOrDefault(table.getId(), List.of())
+                                .stream()
+                                .map(SecurityTableModelColumn::toVo)
+                                .toList());
+                        detail.setForeignKeys(foreignKeysByTableId.getOrDefault(table.getId(), List.of())
+                                .stream()
+                                .map(SecurityTableModelForeignKey::toVo)
+                                .toList());
+                        result.put(tableName, detail);
+                    });
+        }
+        return result;
     }
 
     @Override

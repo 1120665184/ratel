@@ -1,4 +1,4 @@
-package org.quyq.gwsu.common.ai.agui.domain;
+package org.quyq.gwsu.common.ai.agui.model;
 
 
 import lombok.AllArgsConstructor;

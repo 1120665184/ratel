@@ -1,148 +1,326 @@
 package org.quyq.gwsu.security.brain.service.impl;
 
-import cn.hutool.core.text.CharSequenceUtil;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.agentscope.core.agui.converter.AguiMessageConverter;
-import io.agentscope.core.agui.model.AguiMessage;
-import io.agentscope.core.message.ContentBlock;
-import io.agentscope.core.message.Msg;
-import io.agentscope.core.message.MsgRole;
-import io.agentscope.core.message.TextBlock;
-import io.agentscope.core.state.AgentState;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.ai.agui.model.AguiFunctionCall;
+import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
+import org.quyq.gwsu.common.ai.agui.model.AguiToolCall;
+import org.quyq.gwsu.common.ai.agui.model.content.AguiTextContent;
+import org.quyq.gwsu.common.core.config.GsonConfiguration;
 import org.quyq.gwsu.security.api.brain.dto.BrainHistoryQueryDTO;
+import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionSliceVo;
 import org.quyq.gwsu.security.api.brain.vo.BrainHistorySessionVo;
-import org.quyq.gwsu.security.brain.mapper.BrainHistoryMapper;
 import org.quyq.gwsu.security.brain.service.IBrainHistoryService;
+import org.quyq.gwsu.security.brain.service.history.BrainHistoryBaseStoreRepository;
+import org.quyq.gwsu.security.brain.service.history.BrainHistorySessionIndexEntry;
+import org.quyq.gwsu.security.brain.service.history.BrainHistorySessionIndexRepository;
+import org.quyq.gwsu.security.brain.service.history.BrainHistorySessionIndexService;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
+import io.agentscope.core.state.AgentStateStore;
+
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * 大脑历史会话服务实现
- *
- * @author Quyq
+ * 大脑历史会话服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class BrainHistoryServiceImpl implements IBrainHistoryService {
 
-    private final BrainHistoryMapper brainHistoryMapper;
+    private static final int DEFAULT_PAGE_NUM = 1;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final String TOOL_CALL_PREFIX = "[tool_call:";
+    private static final String TOOL_RESULT_PREFIX = "[tool_result";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final ObjectMapper objectMapper;
-
-    private final AguiMessageConverter messageConverter = new AguiMessageConverter();
+    private final BrainHistorySessionIndexRepository sessionIndexRepository;
+    private final BrainHistorySessionIndexService sessionIndexService;
+    private final BrainHistoryBaseStoreRepository baseStoreRepository;
+    private final AgentStateStore agentStateStore;
 
     @Override
-    public IPage<BrainHistorySessionVo> pageHistorySessions(BrainHistoryQueryDTO query, String userId) {
-        int pageNum = query.getPageNum() != null ? query.getPageNum() : 1;
-        int pageSize = query.getPageSize() != null ? query.getPageSize() : 10;
-        int offset = (pageNum - 1) * pageSize;
+    public BrainHistorySessionSliceVo pageHistorySessions(BrainHistoryQueryDTO query, String userId) {
+        int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : DEFAULT_PAGE_NUM;
+        int pageSize = query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : DEFAULT_PAGE_SIZE;
+        long offset = (long) (pageNum - 1) * pageSize;
 
-        // 查询列表
-        List<BrainHistorySessionVo> records = brainHistoryMapper.selectHistorySessions(userId, offset, pageSize);
+        List<BrainHistorySessionIndexEntry> pageEntries = sessionIndexRepository.page(userId, offset, pageSize + 1);
+        boolean hasMore = pageEntries.size() > pageSize;
+        List<BrainHistorySessionVo> records = pageEntries.stream()
+                .limit(pageSize)
+                .map(this::toSessionVo)
+                .toList();
 
-        // 查询总数
-        Long total = brainHistoryMapper.countHistorySessions(userId);
-
-        // 处理标题和时间显示
-        for (BrainHistorySessionVo vo : records) {
-            AgentState agentState = parseAgentState(vo.getTitle()).orElse(null);
-            List<Msg> context = agentState != null ? agentState.getContext() : Collections.emptyList();
-            vo.setTitle(extractTitle(context));
-            vo.setMessageCount(context.size());
-            // 计算时间显示
-            vo.setTimeDisplay(formatTimeDisplay(vo.getUpdatedAt()));
-        }
-
-        // 构建分页结果
-        Page<BrainHistorySessionVo> page = new Page<>(pageNum, pageSize, total);
-        page.setRecords(records);
-        return page;
+        BrainHistorySessionSliceVo result = new BrainHistorySessionSliceVo();
+        result.setRecords(records);
+        result.setHasMore(hasMore);
+        result.setNextPageNum(hasMore ? pageNum + 1 : null);
+        return result;
     }
 
     @Override
     public List<AguiMessage> getSessionMessages(String sessionId, String userId) {
-        List<String> messages = brainHistoryMapper.selectSessionMessages(sessionId, userId);
-        if (CollectionUtils.isEmpty(messages)) {
-            return Collections.emptyList();
+        BrainHistorySessionIndexEntry entry = sessionIndexRepository.get(userId, sessionId);
+        if (entry == null) {
+            return List.of();
         }
-
-        return parseAgentState(messages.getFirst())
-                .map(AgentState::getContext)
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(messageConverter::toAguiMessage)
+        return sessionIndexService.loadMessages(userId, entry).stream()
+                .filter(message -> !sessionIndexService.isCondensedSummaryPrompt(message))
+                .map(this::toAguiMessage)
                 .toList();
-
     }
 
     @Override
     public Boolean deleteSession(String sessionId, String userId) {
-        return brainHistoryMapper.deleteSession(sessionId, userId) > 0;
+        BrainHistorySessionIndexEntry entry = sessionIndexRepository.get(userId, sessionId);
+        boolean sessionDeleted = baseStoreRepository.deleteSessionFiles(
+                userId,
+                sessionId,
+                entry != null ? entry.getLogPath() : null);
+        sessionIndexService.deleteSessionIndex(sessionId, userId);
+        agentStateStore.delete(userId, sessionId);
+        return sessionDeleted || entry != null;
+    }
+
+    private BrainHistorySessionVo toSessionVo(BrainHistorySessionIndexEntry entry) {
+        BrainHistorySessionVo vo = new BrainHistorySessionVo();
+        vo.setSessionId(entry.getSessionId());
+        vo.setTitle(entry.getTitle());
+        vo.setMessageCount(entry.getMessageCount());
+        LocalDateTime updatedAt = parseTime(entry.getUpdatedAt());
+        vo.setUpdatedAt(updatedAt);
+        vo.setTimeDisplay(formatTimeDisplay(updatedAt));
+        return vo;
+    }
+
+    private AguiMessage toAguiMessage(BrainHistorySessionIndexService.StoredMessageEntry entry) {
+        String role = normalizeRole(entry.role());
+        if ("assistant".equals(role)) {
+            return toAssistantMessage(entry);
+        }
+        if ("tool".equals(role)) {
+            return toToolMessage(entry);
+        }
+        return new AguiMessage(
+                StringUtils.hasText(entry.id()) ? entry.id() : Instant.now().toString(),
+                role,
+                new AguiTextContent(entry.content()),
+                null,
+                entry.toolCallId());
+    }
+
+    private AguiMessage toAssistantMessage(BrainHistorySessionIndexService.StoredMessageEntry entry) {
+        RestoredAssistantMessage restored = restoreAssistantMessage(entry);
+        return new AguiMessage(
+                StringUtils.hasText(entry.id()) ? entry.id() : Instant.now().toString(),
+                "assistant",
+                StringUtils.hasText(restored.content()) ? new AguiTextContent(restored.content()) : null,
+                restored.toolCalls().isEmpty() ? null : restored.toolCalls(),
+                null);
+    }
+
+    private AguiMessage toToolMessage(BrainHistorySessionIndexService.StoredMessageEntry entry) {
+        return new AguiMessage(
+                StringUtils.hasText(entry.id()) ? entry.id() : Instant.now().toString(),
+                "tool",
+                new AguiTextContent(stripToolResultPrefix(entry.content())),
+                null,
+                entry.toolCallId());
     }
 
     /**
-     * 从 AgentState 上下文中提取首条用户文本作为标题。
+     * AgentScope 会话日志是可读文本，这里把其中的 [tool_call: Name(args)] 恢复成 AG-UI toolCalls。
      */
-    private String extractTitle(List<Msg> context) {
-        if (CollectionUtils.isEmpty(context)) {
-            return "新对话";
+    private RestoredAssistantMessage restoreAssistantMessage(BrainHistorySessionIndexService.StoredMessageEntry entry) {
+        String content = entry.content();
+        if (!StringUtils.hasText(content) || !content.contains(TOOL_CALL_PREFIX)) {
+            return new RestoredAssistantMessage(content, List.of());
         }
 
-        for (Msg msg : context) {
-            if (msg == null || msg.getRole() != MsgRole.USER) {
-                continue;
+        List<AguiToolCall> toolCalls = new ArrayList<>();
+        StringBuilder text = new StringBuilder();
+        int cursor = 0;
+        int toolIndex = 0;
+        while (cursor < content.length()) {
+            int markerStart = content.indexOf(TOOL_CALL_PREFIX, cursor);
+            if (markerStart < 0) {
+                text.append(content.substring(cursor));
+                break;
             }
-            String text = extractText(msg);
-            if (CharSequenceUtil.isNotBlank(text)) {
-                return truncateTitle(text);
+            text.append(content, cursor, markerStart);
+
+            ToolCallMarker marker = parseToolCallMarker(content, markerStart, entry, toolIndex);
+            if (marker == null) {
+                text.append(content.substring(markerStart));
+                break;
             }
+            toolCalls.add(marker.toolCall());
+            cursor = marker.endExclusive();
+            toolIndex++;
         }
-        return "新对话";
+
+        return new RestoredAssistantMessage(trimTrailingBlankLines(text.toString()), toolCalls);
     }
 
-    private Optional<AgentState> parseAgentState(String stateData) {
-        if (CharSequenceUtil.isBlank(stateData)) {
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(objectMapper.readValue(stateData, AgentState.class));
-        } catch (Exception ignored) {
-            return Optional.empty();
-        }
-    }
-
-    private String extractText(Msg msg) {
-        if (msg == null || CollectionUtils.isEmpty(msg.getContent())) {
+    private ToolCallMarker parseToolCallMarker(
+            String content,
+            int markerStart,
+            BrainHistorySessionIndexService.StoredMessageEntry entry,
+            int toolIndex) {
+        int nameStart = markerStart + TOOL_CALL_PREFIX.length();
+        int nameEnd = findToolNameEnd(content, nameStart);
+        if (nameEnd <= nameStart) {
             return null;
         }
-        StringBuilder builder = new StringBuilder();
-        for (ContentBlock contentBlock : msg.getContent()) {
-            if (contentBlock instanceof TextBlock textBlock && CharSequenceUtil.isNotBlank(textBlock.getText())) {
-                if (!builder.isEmpty()) {
-                    builder.append('\n');
+
+        String toolName = content.substring(nameStart, nameEnd).trim();
+        String arguments = "{}";
+        int cursor = nameEnd;
+        while (cursor < content.length() && Character.isWhitespace(content.charAt(cursor))) {
+            cursor++;
+        }
+
+        if (cursor < content.length() && content.charAt(cursor) == '(') {
+            JsonArgument argument = parseJsonArgument(content, cursor + 1);
+            if (argument == null) {
+                return null;
+            }
+            arguments = normalizeJson(argument.json());
+            cursor = argument.endExclusive();
+            if (cursor >= content.length() || content.charAt(cursor) != ')') {
+                return null;
+            }
+            cursor++;
+        }
+
+        while (cursor < content.length() && Character.isWhitespace(content.charAt(cursor))) {
+            cursor++;
+        }
+        if (cursor >= content.length() || content.charAt(cursor) != ']') {
+            return null;
+        }
+
+        String toolCallId = toolIndex == 0 && StringUtils.hasText(entry.toolCallId())
+                ? entry.toolCallId()
+                : "%s-tool-%d".formatted(StringUtils.hasText(entry.id()) ? entry.id() : "history", toolIndex);
+        AguiToolCall toolCall = new AguiToolCall(toolCallId, new AguiFunctionCall(toolName, arguments));
+        return new ToolCallMarker(toolCall, cursor + 1);
+    }
+
+    private int findToolNameEnd(String content, int nameStart) {
+        int cursor = nameStart;
+        while (cursor < content.length()) {
+            char c = content.charAt(cursor);
+            if (c == '(' || c == ']') {
+                return cursor;
+            }
+            cursor++;
+        }
+        return -1;
+    }
+
+    private JsonArgument parseJsonArgument(String content, int jsonStart) {
+        int cursor = jsonStart;
+        while (cursor < content.length() && Character.isWhitespace(content.charAt(cursor))) {
+            cursor++;
+        }
+        if (cursor >= content.length() || content.charAt(cursor) != '{') {
+            return null;
+        }
+
+        boolean inString = false;
+        boolean escaping = false;
+        int depth = 0;
+        for (int i = cursor; i < content.length(); i++) {
+            char c = content.charAt(i);
+            if (escaping) {
+                escaping = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaping = true;
+                continue;
+            }
+            if (c == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (c == '{') {
+                depth++;
+                continue;
+            }
+            if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return new JsonArgument(content.substring(cursor, i + 1), i + 1);
                 }
-                builder.append(textBlock.getText());
             }
         }
-        return builder.isEmpty() ? null : builder.toString();
+        return null;
     }
 
-    private String truncateTitle(String text) {
-        return text.length() > 50 ? text.substring(0, 50) + "..." : text;
+    private String normalizeJson(String json) {
+        if (!StringUtils.hasText(json)) {
+            return "{}";
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(OBJECT_MAPPER.readTree(json));
+        } catch (Exception ignored) {
+            return "{}";
+        }
     }
 
-    /**
-     * 格式化时间显示
-     */
+    private String stripToolResultPrefix(String content) {
+        if (!StringUtils.hasText(content) || !content.startsWith(TOOL_RESULT_PREFIX)) {
+            return content;
+        }
+        int closeIndex = content.indexOf(']');
+        if (closeIndex < 0 || closeIndex + 1 >= content.length()) {
+            return "";
+        }
+        return content.substring(closeIndex + 1).stripLeading();
+    }
+
+    private String trimTrailingBlankLines(String content) {
+        if (content == null) {
+            return null;
+        }
+        return content.replaceFirst("\\s+$", "");
+    }
+
+    private String normalizeRole(String role) {
+        if (!StringUtils.hasText(role)) {
+            return "assistant";
+        }
+        return switch (role.trim().toUpperCase()) {
+            case "USER" -> "user";
+            case "SYSTEM" -> "system";
+            case "TOOL" -> "tool";
+            default -> "assistant";
+        };
+    }
+
+    private LocalDateTime parseTime(String updatedAt) {
+        if (!StringUtils.hasText(updatedAt)) {
+            return null;
+        }
+        try {
+            return LocalDateTime.ofInstant(Instant.parse(updatedAt), ZoneId.systemDefault());
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private String formatTimeDisplay(LocalDateTime updatedAt) {
         if (updatedAt == null) {
             return "";
@@ -155,15 +333,29 @@ public class BrainHistoryServiceImpl implements IBrainHistoryService {
 
         if (minutes < 1) {
             return "刚刚";
-        } else if (minutes < 60) {
+        }
+        if (minutes < 60) {
             return minutes + "分钟前";
-        } else if (hours < 24) {
+        }
+        if (hours < 24) {
             return hours + "小时前";
-        } else if (days < 30) {
+        }
+        if (days < 30) {
             return days + "天前";
-        } else {
-            long months = days / 30;
+        }
+        long months = days / 30;
+        if (months < 12) {
             return months + "个月前";
         }
+        return updatedAt.format(GsonConfiguration.dateTimeFormatter);
+    }
+
+    private record RestoredAssistantMessage(String content, List<AguiToolCall> toolCalls) {
+    }
+
+    private record ToolCallMarker(AguiToolCall toolCall, int endExclusive) {
+    }
+
+    private record JsonArgument(String json, int endExclusive) {
     }
 }

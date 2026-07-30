@@ -15,7 +15,7 @@ import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.security.errcode.SecurityErrorCode;
 import org.quyq.gwsu.security.connect.domain.EntranceConfig;
 import org.quyq.gwsu.security.connect.entrance.dingtalk.DingTalkClient;
-import org.quyq.gwsu.security.connect.enums.MsgSourceType;
+import org.quyq.gwsu.security.connect.entrance.dingtalk.enums.MsgSourceType;
 import org.springframework.stereotype.Component;
 
 import java.util.*;

@@ -742,6 +742,19 @@
   color: #425466;
 }
 
+.rawErrorMessage {
+  :global(> div:first-child) {
+    color: #cf1322;
+  }
+
+  :global(> div:first-child p),
+  :global(> div:first-child span),
+  :global(> div:first-child li),
+  :global(> div:first-child code) {
+    color: #cf1322;
+  }
+}
+
 .copilotChat :global([data-testid="copilot-assistant-toolbar"]) {
   width: 100%;
   display: flex !important;

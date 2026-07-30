@@ -1,8 +1,8 @@
 package org.quyq.gwsu.common.ai.agui.push;
 
 
-import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.agui.model.RunAgentInput;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 
 /**
  * @author Quyq
