@@ -15,8 +15,6 @@ import io.agentscope.harness.agent.memory.compaction.ToolResultEvictionConfig;
 import io.agentscope.harness.agent.subagent.SubagentDeclaration;
 import io.agentscope.harness.agent.subagent.WorkspaceMode;
 import lombok.RequiredArgsConstructor;
-import org.quyq.gwsu.common.ai.agui.SingletonAgentResolver;
-import org.quyq.gwsu.common.ai.agui.adapter.AguiAdapterConfig;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.tool.AskUserQuestionTool;
 import org.quyq.gwsu.common.ai.model.ModelProvider;
@@ -213,6 +211,7 @@ public class BrainServiceImpl implements IBrainService {
 
     /**
      * 去除到内置的general-purpose智能体 ，该智能体不需要
+     *
      * @param agent
      */
     private void removeGeneralPurposeSubagent(HarnessAgent agent) {
@@ -398,25 +397,7 @@ public class BrainServiceImpl implements IBrainService {
     }
 
 
-    @Override
-    public AguiRequestProcessor buildAguiProcessor() {
-        if (aguiRequestProcessor != null) {
-            return aguiRequestProcessor;
-        }
-        synchronized (processorInitMonitor) {
-            if (aguiRequestProcessor == null) {
-                aguiRequestProcessor = AguiRequestProcessor.builder()
-                        .agentResolver(SingletonAgentResolver.lazy(this::getOrCreateSingletonAgent))
-                        .config(AguiAdapterConfig.builder()
-                                .enableReasoning(true)
-                                .build())
-                        .build();
-            }
-            return aguiRequestProcessor;
-        }
-    }
-
-    private Agent getOrCreateSingletonAgent() {
+    public Agent getOrCreateSingletonAgent() {
         if (singletonAgent != null) {
             return singletonAgent;
         }

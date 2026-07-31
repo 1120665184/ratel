@@ -1,6 +1,7 @@
 package org.quyq.gwsu.security.brain.service;
 
 
+import io.agentscope.core.agent.Agent;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 
 /**
@@ -13,8 +14,8 @@ public interface IBrainService {
     String AGENT_ID = "brain";
 
 
-    AguiRequestProcessor buildAguiProcessor();
-
     void refreshSingletonAgent();
+
+    Agent getOrCreateSingletonAgent();
 
 }

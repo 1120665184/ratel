@@ -22,6 +22,7 @@ import org.quyq.gwsu.common.ai.agui.adapter.AguiAdapterConfig;
 import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
 import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
+import org.quyq.gwsu.common.ai.agui.resolver.AgentResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -98,7 +99,7 @@ public class AguiRequestProcessor {
         String agentId = resolveAgentId(input, headerAgentId, pathAgentId);
 
         // Resolve agent
-        Agent agent = agentResolver.resolveAgent(agentId, threadId);
+        Agent agent = agentResolver.resolveAgent(agentId, runtimeContext);
 
         // Determine effective input based on server-side memory
         RunAgentInput effectiveInput = extractLatestUserMessage(input);
@@ -110,19 +111,9 @@ public class AguiRequestProcessor {
         return new ProcessResult(agent, events);
     }
 
-    /**
-     * 中断消息
-     *
-     * @param agentId
-     * @param threadId
-     */
-    public void interrupt(String agentId, String threadId) {
-        Agent agent = agentResolver.resolveAgent(agentId, threadId);
-        agent.interrupt();
-    }
 
-    public Agent resolveAgent(String agentId, String threadId) {
-        return agentResolver.resolveAgent(agentId, threadId);
+    public Agent resolveAgent(String agentId, RuntimeContext runtimeContext) {
+        return agentResolver.resolveAgent(agentId, runtimeContext);
     }
 
     /**

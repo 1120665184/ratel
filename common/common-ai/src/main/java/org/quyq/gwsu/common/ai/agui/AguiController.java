@@ -2,6 +2,7 @@ package org.quyq.gwsu.common.ai.agui;
 
 
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.ToolUseBlock;
@@ -10,10 +11,10 @@ import io.micrometer.observation.Observation;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
-import org.quyq.gwsu.common.ai.agui.model.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.dto.ChatDTO;
 import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.CopilotKitInfo;
 import org.quyq.gwsu.common.ai.agui.model.RunAgentInput;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.push.AguiEventPusher;
@@ -270,24 +271,31 @@ public abstract class AguiController implements DisposableBean {
         // 从 params 中获取 agentId 和 threadId
         String agentId = Optional.ofNullable(p.get("agentId")).map(String::valueOf).orElse(headerAgentId);
         String threadId = Optional.ofNullable(p.get("threadId")).map(String::valueOf).orElse(null);
+        String userId = getCurrUserId();
 
         log.info("Agent stop requested: agentId={}, threadId={}", agentId, threadId);
         if (StringUtils.hasText(threadId) && Objects.isNull(getCurrEmitter(threadId))) {
             SpringUtils.getBean(CacheUtils.class)
-                    .convertAndSend(getStopEventTopic(), new StopEventInfo(agentId, threadId));
+                    .convertAndSend(getStopEventTopic(), new StopEventInfo(agentId, threadId, userId));
         } else {
-            stopAgent(agentId, threadId);
+            stopAgent(agentId, threadId, userId);
         }
 
 
         return Map.of("success", true);
     }
 
-    private void stopAgent(String agentId, String threadId) {
+    private void stopAgent(String agentId, String threadId, String userId) {
         if (StringUtils.hasText(threadId)) {
             AIRunnerInstanceWrapper currEmitter = getCurrEmitter(threadId);
             if (Objects.nonNull(currEmitter)) {
-                processor.interrupt(agentId, threadId);
+                //TODO 目前框架不支持中断指定threadId的内容 ，等待框架更新
+//                Agent agent = processor.resolveAgent(agentId, RuntimeContext.builder()
+//                        .sessionId(threadId)
+//                        .userId(userId)
+//                        .build());
+//                agent.interrupt();
+
                 currEmitter.emitter().complete();
             }
 
@@ -313,7 +321,7 @@ public abstract class AguiController implements DisposableBean {
 
         AIRunnerInstanceWrapper wrapper = new AIRunnerInstanceWrapper(input, emitter, isHeadless(), pushers);
         RuntimeContext runtimeContext =
-                buildRuntimeContext(threadId, userId, input.forwardedProps() ,wrapper);
+                buildRuntimeContext(threadId, userId, input.forwardedProps(), wrapper);
         executorService.submit(
                 () -> {
                     Disposable subscription;
@@ -352,7 +360,7 @@ public abstract class AguiController implements DisposableBean {
                                 result.events()
                                         .contextCapture()
                                         .contextWrite(Context.of(
-                                                 HeadersContextThreadLocalAccessor.REACTOR_CONTEXT, capturedHeaders
+                                                HeadersContextThreadLocalAccessor.REACTOR_CONTEXT, capturedHeaders
                                                 , ObservationThreadLocalAccessor.KEY, observation
                                         ))
                                         .subscribe(
@@ -393,14 +401,14 @@ public abstract class AguiController implements DisposableBean {
     }
 
     static RuntimeContext buildRuntimeContext(
-            String threadId, String userId, Map<String, Object> forwardedProps , AIRunnerInstanceWrapper wrapper) {
+            String threadId, String userId, Map<String, Object> forwardedProps, AIRunnerInstanceWrapper wrapper) {
         RuntimeContext.Builder builder = RuntimeContext.builder()
                 .sessionId(threadId)
                 .userId(userId);
         if (!CollectionUtils.isEmpty(forwardedProps)) {
             builder.put(AIConstants.Param.FORWARDED_PROPS_KEY, forwardedProps);
         }
-        builder.put(AIRunnerInstanceWrapper.class , wrapper);
+        builder.put(AIRunnerInstanceWrapper.class, wrapper);
         return builder.build();
     }
 
@@ -445,7 +453,7 @@ public abstract class AguiController implements DisposableBean {
                         (message, pattern) -> {
                             Object msg = cacheUtils.getSerializer().deserialize(message.getBody());
                             if (msg instanceof StopEventInfo event) {
-                                stopAgent(event.agentId, event.threadId);
+                                stopAgent(event.agentId, event.threadId, event.userId);
                             }
 
                         });
@@ -463,6 +471,7 @@ public abstract class AguiController implements DisposableBean {
     public static class StopEventInfo {
         private String agentId;
         private String threadId;
+        private String userId;
 
     }
 
