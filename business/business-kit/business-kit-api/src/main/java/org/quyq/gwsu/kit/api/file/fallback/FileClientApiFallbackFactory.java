@@ -7,6 +7,7 @@ import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.file.FileClientApi;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
+import org.quyq.gwsu.kit.api.file.dto.FileCopyDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
 import org.springframework.stereotype.Component;
@@ -59,6 +60,11 @@ public class FileClientApiFallbackFactory implements FallbackFactory<FileClientA
 
             @Override
             public R<KitFileInfoVO> getFileInfo(String fileId) {
+                return R.fail("服务暂时不可用: " + cause.getMessage());
+            }
+
+            @Override
+            public R<KitFileInfoVO> copyFile(FileCopyDTO form) {
                 return R.fail("服务暂时不可用: " + cause.getMessage());
             }
         };

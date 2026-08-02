@@ -7,6 +7,7 @@ import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
 import org.quyq.gwsu.kit.api.file.FileClientApi;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
+import org.quyq.gwsu.kit.api.file.dto.FileCopyDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileProperty;
 import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.enums.FileScope;
@@ -161,6 +162,18 @@ public class FileUtils {
     public static KitFileInfoVO getFileInfo(String fileId) {
         Assert.hasText(fileId, "文件ID不能为空");
         return FeignUtils.data(getFileClientApi().getFileInfo(fileId));
+    }
+
+    public static KitFileInfoVO copyFile(String sourceFileId, FileProperty property) {
+        Assert.hasText(sourceFileId, "源文件ID不能为空");
+        Assert.notNull(property, "文件属性不能为空");
+        FileCopyDTO dto = new FileCopyDTO();
+        dto.setSourceFileId(sourceFileId);
+        dto.setDisposable(property.getDisposable());
+        dto.setScope(property.getScope());
+        dto.setVisitors(property.getVisitors());
+        dto.setExpiredTime(property.getExpiredTime());
+        return FeignUtils.data(getFileClientApi().copyFile(dto));
     }
 
 

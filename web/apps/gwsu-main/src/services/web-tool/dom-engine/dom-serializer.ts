@@ -69,14 +69,11 @@ function processNode(node: DomNode, depth: number, result: string[]): void {
     nextDepth = depth + 1;
 
     const indexStr = `[${node.highlightIndex}]`;
-    // 标签信息，如 {approval}
-    const tagsStr = node.tags && node.tags.length > 0
-      ? `{${node.tags.join(',')}}`
-      : '';
     const attrsStr = buildAttrsString(node.attributes);
-    const text = node.textContent?.trim() || '';
+    const uploadId = node.attributes?.['data-ai-upload-id'];
+    const text = node.textContent?.trim() || (uploadId ? '上传控件' : '');
 
-    let line = `${indent}${indexStr}${tagsStr}<${node.tagName}`;
+    let line = `${indent}${indexStr}<${node.tagName}`;
     if (attrsStr) line += ` ${attrsStr}`;
 
     if (text) {
@@ -124,9 +121,13 @@ function buildAttrsString(attrs?: Record<string, string>): string {
   // 去重：属性值超过5字符的重复值只保留一个
   const filtered = { ...attrs };
   const keys = Object.keys(filtered);
+  const preservedKeys = new Set(['data-ai-upload-id']);
   if (keys.length > 1) {
     const seenValues: Record<string, string> = {};
     for (const key of keys) {
+      if (preservedKeys.has(key)) {
+        continue;
+      }
       const value = filtered[key];
       if (value.length > 5) {
         if (value in seenValues) {
@@ -145,6 +146,11 @@ function buildAttrsString(attrs?: Record<string, string>): string {
   // (简化处理，不在此处判断文本)
 
   return Object.entries(filtered)
+    .sort(([leftKey], [rightKey]) => {
+      if (leftKey === 'data-ai-upload-id') return -1;
+      if (rightKey === 'data-ai-upload-id') return 1;
+      return 0;
+    })
     .map(([key, value]) => `${key}=${value}`)
     .join(' ');
 }

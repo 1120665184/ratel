@@ -17,6 +17,7 @@ import org.quyq.gwsu.common.core.utils.ProjectUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
+import org.quyq.gwsu.kit.api.file.dto.FileCopyDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.dto.KitFileInfoDTO;
 import org.quyq.gwsu.kit.api.file.enums.FileScope;
@@ -32,6 +33,7 @@ import org.quyq.gwsu.kit.file.mapper.KitFileChunkInfoMapper;
 import org.quyq.gwsu.kit.file.mapper.KitFileInfoMapper;
 import org.quyq.gwsu.kit.file.mapper.KitFileMetaInfoMapper;
 import org.quyq.gwsu.kit.file.service.IFileService;
+import org.quyq.gwsu.kit.file.support.FileInfoCopySupport;
 import org.quyq.gwsu.kit.utils.FileInfoIntegrationUtil;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
@@ -125,6 +127,25 @@ public abstract class AbstractFileService implements IFileService {
 
         toUpload(metaInfo, form.getFile());
         return fileInfo;
+    }
+
+    @Override
+    @Transactional
+    public KitFileInfoVO copyFile(FileCopyDTO form) {
+        if (form == null || !StringUtils.hasText(form.getSourceFileId())) {
+            throw new BusinessException(KitErrorCode.E01003, "源文件不存在");
+        }
+
+        KitFileInfoVO source = SpringUtils.getAopProxy(this).getById(form.getSourceFileId());
+        permissionAssert(source);
+        if (Objects.isNull(source)) {
+            throw new BusinessException(KitErrorCode.E01003, "源文件不存在");
+        }
+
+        KitFileInfo fileInfo = FileInfoCopySupport.buildCopiedFileInfo(source, form);
+        fileInfoMapper.insert(fileInfo);
+        KitFileMetaInfo metaInfo = metaInfoMapper.selectById(fileInfo.getFileMetaId());
+        return KitFileInfo.buildVO(fileInfo, metaInfo);
     }
 
     /**

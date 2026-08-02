@@ -40,6 +40,17 @@ export async function getFileInfo(fileId: string): Promise<ApiResponse<KitFileIn
   return post<KitFileInfoVO>(`${FILE_PREFIX}/info/${fileId}`);
 }
 
+export async function copyFile(data: {
+  sourceFileId: string;
+  fileName?: string;
+  disposable?: boolean;
+  expiredTime?: string;
+  scope?: string;
+  visitors?: string;
+}): Promise<ApiResponse<KitFileInfoVO>> {
+  return post<KitFileInfoVO>(`${FILE_PREFIX}/copy`, data);
+}
+
 export async function removeFile(fileId: string): Promise<ApiResponse<void>> {
   return post<void>(`${FILE_PREFIX}/remove/${fileId}`);
 }

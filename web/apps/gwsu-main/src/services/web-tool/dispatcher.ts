@@ -10,6 +10,7 @@ const AI_MODE_REQUIRED_TOOLS = [
   'InputText',
   'SelectOption',
   'ScrollPage',
+  'AttachUploadedFile',
 ];
 
 /** 确认事件监听器列表 */

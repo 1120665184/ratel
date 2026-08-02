@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Upload, Progress, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import type { UploadProps, RcFile } from 'antd/es/upload';
 import { uploadFile } from '../../utils/fileUpload';
-import type { FileProperty, FileUploadOptions, ChunkUploadProgress } from '../../types';
+import type { FileProperty, FileUploadOptions, ChunkUploadProgress, KitFileInfoVO } from '../../types';
+import { registerAiUploadTarget } from './aiUploadRegistry';
 
 const { Dragger } = Upload;
 
@@ -29,6 +30,12 @@ interface FileItem {
   fileId?: string;
 }
 
+function createUploadId(): string {
+  const timePart = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).slice(2, 4);
+  return `u${timePart}${randomPart}`;
+}
+
 export const FileUpload: React.FC<FileUploadProps> = ({
   property,
   multiple = false,
@@ -44,6 +51,27 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 }) => {
   const [fileList, setFileList] = React.useState<FileItem[]>([]);
   const [progressMap, setProgressMap] = React.useState<Record<string, ChunkUploadProgress>>({});
+  const uploadIdRef = useRef<string>(createUploadId());
+
+  const getMaxAllowed = useCallback(() => {
+    if (!multiple) {
+      return 1;
+    }
+    return maxCount ?? Number.POSITIVE_INFINITY;
+  }, [maxCount, multiple]);
+
+  const normalizeFileList = useCallback(
+    (items: FileItem[]) => {
+      const maxAllowed = getMaxAllowed();
+      if (!Number.isFinite(maxAllowed) || items.length <= maxAllowed) {
+        return items;
+      }
+      return items.slice(items.length - maxAllowed);
+    },
+    [getMaxAllowed],
+  );
+
+  const collectFileIds = useCallback((items: FileItem[]) => items.filter((item) => item.fileId).map((item) => item.fileId!), []);
 
   const triggerChange = useCallback(
     (ids: string[]) => {
@@ -51,6 +79,31 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     },
     [onChange],
   );
+
+  const attachFileInfo = useCallback(
+    (fileInfo: KitFileInfoVO) => {
+      setFileList((prev) => {
+        const nextItem: FileItem = {
+          uid: fileInfo.fileId,
+          name: fileInfo.fileName,
+          status: 'done',
+          percent: 100,
+          fileId: fileInfo.fileId,
+        };
+        const withoutSameFile = prev.filter((item) => item.fileId !== fileInfo.fileId);
+        const next = normalizeFileList([...withoutSameFile, nextItem]);
+        triggerChange(collectFileIds(next));
+        return next;
+      });
+    },
+    [collectFileIds, normalizeFileList, triggerChange],
+  );
+
+  useEffect(() => registerAiUploadTarget({
+    uploadId: uploadIdRef.current,
+    property,
+    attachFile: attachFileInfo,
+  }), [attachFileInfo, property]);
 
   const customUpload = useCallback(
     async (options: any) => {
@@ -68,16 +121,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         });
 
         setFileList((prev) =>
-          prev.map((f) => (f.uid === uid ? { ...f, status: 'done' as const, percent: 100, fileId: result.fileId } : f)),
+          {
+            const next = normalizeFileList(
+              prev.map((f) => (f.uid === uid ? { ...f, status: 'done' as const, percent: 100, fileId: result.fileId } : f)),
+            );
+            triggerChange(collectFileIds(next));
+            return next;
+          },
         );
 
         onSuccess?.(result, new XMLHttpRequest());
-
-        const currentIds = fileList.filter((f) => f.fileId).map((f) => f.fileId!);
-        if (result.fileId) {
-          currentIds.push(result.fileId);
-        }
-        triggerChange(currentIds);
       } catch (error) {
         setFileList((prev) =>
           prev.map((f) => (f.uid === uid ? { ...f, status: 'error' as const } : f)),
@@ -86,7 +139,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         message.error(`文件 ${file.name} 上传失败: ${(error as Error).message}`);
       }
     },
-    [property, uploadOptions, fileList, triggerChange],
+    [collectFileIds, normalizeFileList, property, triggerChange, uploadOptions],
   );
 
   const handleBeforeUpload = useCallback(
@@ -95,22 +148,24 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         message.error(`文件 ${file.name} 超过大小限制 ${Math.round(maxSize / 1024 / 1024)}MB`);
         return false;
       }
-      setFileList((prev) => [
+      setFileList((prev) => normalizeFileList([
         ...prev,
         { uid: file.uid, name: file.name, status: 'uploading', percent: 0 },
-      ]);
+      ]));
       return true;
     },
-    [maxSize],
+    [maxSize, normalizeFileList],
   );
 
   const handleRemove = useCallback(
     (file: any) => {
-      setFileList((prev) => prev.filter((f) => f.uid !== file.uid));
-      const remainingIds = fileList.filter((f) => f.uid !== file.uid && f.fileId).map((f) => f.fileId!);
-      triggerChange(remainingIds);
+      setFileList((prev) => {
+        const next = prev.filter((f) => f.uid !== file.uid);
+        triggerChange(collectFileIds(next));
+        return next;
+      });
     },
-    [fileList, triggerChange],
+    [collectFileIds, triggerChange],
   );
 
   const uploadProps: UploadProps = {
@@ -148,17 +203,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   if (draggable) {
     return (
-      <Dragger {...uploadProps}>
-        <p className="ant-upload-drag-icon">
-          <InboxOutlined />
-        </p>
-        <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
-        {maxSize && (
-          <p className="ant-upload-hint">单个文件不超过 {Math.round(maxSize / 1024 / 1024)}MB</p>
-        )}
-      </Dragger>
+      <div data-ai-upload-id={uploadIdRef.current}>
+        <Dragger {...uploadProps}>
+          <p className="ant-upload-drag-icon">
+            <InboxOutlined />
+          </p>
+          <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+          {maxSize && (
+            <p className="ant-upload-hint">单个文件不超过 {Math.round(maxSize / 1024 / 1024)}MB</p>
+          )}
+        </Dragger>
+      </div>
     );
   }
 
-  return <Upload {...uploadProps}>{fileList.length >= (maxCount ?? Infinity) ? null : <a>上传文件</a>}</Upload>;
+  return (
+    <div data-ai-upload-id={uploadIdRef.current}>
+      <Upload {...uploadProps}>{fileList.length >= (maxCount ?? Infinity) ? null : <a>上传文件</a>}</Upload>
+    </div>
+  );
 };

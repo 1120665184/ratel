@@ -3,9 +3,12 @@ package org.quyq.gwsu.security.brain.service.middleware;
 
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.message.Msg;
+import io.agentscope.core.state.AgentState;
 import io.agentscope.core.middleware.MiddlewareBase;
-import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.ai.agui.model.AIRunnerInstanceWrapper;
+import org.quyq.gwsu.common.ai.agui.model.AguiMessage;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.core.domain.visitor.ClientInfo;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
@@ -14,6 +17,7 @@ import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.VisitorType;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
+import org.quyq.gwsu.security.brain.service.prompt.UploadedFilePromptBuilder;
 import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -23,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -50,6 +55,7 @@ public class ForwardedPropsMiddleware implements MiddlewareBase {
                         .orElse(Collections.emptyMap())
         );
         forwardedProps.put("headlessContent" , buildHeadlessContent(runtimeContext, (String) forwardedProps.get(AIConstants.Param.FORWARDED_PROPS_OPERATION_MODE_KEY)));
+        forwardedProps.put("fileInfos", buildUploadedFilePrompt(agent, runtimeContext));
         String renderedPrompt = systemPrompt;
         if (StringUtils.hasText(systemPrompt) && !forwardedProps.isEmpty()) {
             renderedPrompt = templateRenderer.apply(systemPrompt, forwardedProps);
@@ -70,6 +76,18 @@ public class ForwardedPropsMiddleware implements MiddlewareBase {
             headlessContent = "**特别注意**：您当前已经处于“AI操作模式” ，可以直接调用操作界面相关工具 ，禁止调用`EnterAiMode`和`ExitAiMode`工具";
         }
         return headlessContent;
+    }
+
+    private String buildUploadedFilePrompt(Agent agent, RuntimeContext runtimeContext) {
+        AIRunnerInstanceWrapper wrapper = runtimeContext != null ? runtimeContext.get(AIRunnerInstanceWrapper.class) : null;
+        List<AguiMessage> currentMessages = wrapper != null && wrapper.input() != null
+                ? wrapper.input().messages()
+                : List.of();
+        AgentState agentState = RuntimeContext.resolveAgentState(runtimeContext, agent);
+        List<Msg> historyMessages = agentState != null
+                ? agentState.contextMutable()
+                : List.of();
+        return UploadedFilePromptBuilder.build(currentMessages, historyMessages);
     }
 
     /**

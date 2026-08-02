@@ -59,6 +59,7 @@ const KEEP_ATTRS = new Set([
   'alt',
   'target',
   'data-ai-approval',
+  'data-ai-upload-id',
 ]);
 
 /** HTML 布尔属性集合（值为空字符串时也需保留） */
@@ -196,6 +197,9 @@ function detectElementTags(element: Element): string[] {
   if (element.hasAttribute('data-ai-approval')) {
     tags.push('approval');
   }
+  if (element.hasAttribute('data-ai-upload-id')) {
+    tags.push('upload');
+  }
 
   return tags;
 }
@@ -215,6 +219,10 @@ export function isInteractiveElement(element: Element): boolean {
   if (!(element instanceof HTMLElement)) return false;
 
   const tagName = element.tagName.toLowerCase();
+
+  if (element.hasAttribute('data-ai-upload-id')) {
+    return true;
+  }
 
   // 1. 标签名判断
   if (INTERACTIVE_TAGS.has(tagName)) {

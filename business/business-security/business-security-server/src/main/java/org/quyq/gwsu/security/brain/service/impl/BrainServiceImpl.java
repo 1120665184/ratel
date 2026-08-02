@@ -393,6 +393,9 @@ public class BrainServiceImpl implements IBrainService {
                 # 当前界面信息
                 - 界面路由地址：{currentPath}
                 - {headlessContent}
+                
+                # 当前可用上传文件
+                {fileInfos}
                 """;
     }
 

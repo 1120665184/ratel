@@ -3,6 +3,7 @@ package org.quyq.gwsu.kit.file.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.quyq.gwsu.common.core.exception.BusinessException;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
+import org.quyq.gwsu.kit.api.file.dto.FileCopyDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileStreamWrapper;
 import org.quyq.gwsu.kit.api.file.dto.KitFileInfoDTO;
@@ -21,6 +22,8 @@ public interface IFileService {
     KitFileInfoVO getById(String id);
 
     KitFileInfoVO upload(FileUploadDTO form);
+
+    KitFileInfoVO copyFile(FileCopyDTO form);
 
     FileStreamWrapper download(String fileId, String range);
 

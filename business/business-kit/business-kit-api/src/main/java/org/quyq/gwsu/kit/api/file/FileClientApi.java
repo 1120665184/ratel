@@ -5,6 +5,7 @@ import org.quyq.gwsu.common.api.annotation.ApiClient;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
+import org.quyq.gwsu.kit.api.file.dto.FileCopyDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.fallback.FileClientApiFallbackFactory;
 import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
@@ -109,5 +110,14 @@ public interface FileClientApi {
      */
     @PostExchange("info/{fileId}")
     R<KitFileInfoVO> getFileInfo(@PathVariable String fileId);
+
+    /**
+     * 复制文件引用
+     *
+     * @param form
+     * @return
+     */
+    @PostExchange("copy")
+    R<KitFileInfoVO> copyFile(@RequestBody FileCopyDTO form);
 
 }

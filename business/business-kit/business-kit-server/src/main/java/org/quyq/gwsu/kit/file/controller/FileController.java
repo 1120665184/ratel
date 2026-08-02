@@ -12,6 +12,7 @@ import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.kit.api.file.FileClientApi;
 import org.quyq.gwsu.kit.api.file.dto.ChunkMultipartDTO;
+import org.quyq.gwsu.kit.api.file.dto.FileCopyDTO;
 import org.quyq.gwsu.kit.api.file.dto.FileStreamWrapper;
 import org.quyq.gwsu.kit.api.file.dto.FileUploadDTO;
 import org.quyq.gwsu.kit.api.file.dto.KitFileInfoDTO;
@@ -64,6 +65,14 @@ public class FileController implements FileClientApi {
     @Override
     public R<KitFileInfoVO> getFileInfo(@PathVariable String fileId) {
         return R.ok(fileServiceManager.get().getById(fileId));
+    }
+
+    @PostMapping("copy")
+    @Operation(summary = "复制文件引用")
+    @LoginAllowAccess
+    @Override
+    public R<KitFileInfoVO> copyFile(@RequestBody FileCopyDTO form) {
+        return R.ok(fileServiceManager.get().copyFile(form));
     }
 
     @Override

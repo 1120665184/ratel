@@ -12,6 +12,7 @@ import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -159,6 +160,28 @@ public class WebTool {
                 Map.of("direction", direction, "amount", amount)));
     }
 
+    @Tool(name = "AttachUploadedFile", description = """
+            将当前会话中用户已上传的文件挂载到页面上的文件上传控件。
+            使用步骤：
+            1. 先调用GetPageState，找到带有 data-ai-upload-id 属性的上传控件元素；
+            2. 从系统提示词中的<fileInfos>里选择要上传的 fileId；
+            3. 调用本工具，将 fileId 挂载到对应 uploadId 的上传控件。
+            
+            注意：
+            - uploadId 必须来自当前页面 GetPageState 返回结果里的 data-ai-upload-id 属性；
+            - fileId 必须来自当前系统提示词提供的 <fileInfos> 列表；
+            - 工具会根据 uploadId 找到页面上传控件，并按该控件配置复制文件后回填；
+            - 工具使用前提：界面操作模式必须是`AI操作模式`。
+            """)
+    public Mono<ToolResultBlock> attachUploadedFile(
+            @ToolParam(name = "uploadId", description = "上传控件标识，必须来自GetPageState结果中的data-ai-upload-id属性") String uploadId,
+            @ToolParam(name = "fileId", description = "要挂载的文件ID，必须来自系统提示词<fileInfos>中的fileId") String fileId,
+            RuntimeContext runtimeContext) {
+        AIRunnerInstanceWrapper wrapper = runtimeContext.get(AIRunnerInstanceWrapper.class);
+        return Mono.just(webToolUtils.webExecuteTool(wrapper, "AttachUploadedFile",
+                Map.of("uploadId", uploadId, "fileId", fileId)));
+    }
+
     private void syncPageState(RuntimeContext runtimeContext, ToolResultBlock result) {
         Set<Integer> approvalIndexes = extractApprovalIndexes(result);
         webPageApprovalStateService.save(runtimeContext, approvalIndexes);
@@ -171,7 +194,7 @@ public class WebTool {
                 .map(TextBlock::getText)
                 .findFirst()
                 .orElse("");
-        if (!org.springframework.util.StringUtils.hasText(payload)) {
+        if (!StringUtils.hasText(payload)) {
             return Collections.emptySet();
         }
 
