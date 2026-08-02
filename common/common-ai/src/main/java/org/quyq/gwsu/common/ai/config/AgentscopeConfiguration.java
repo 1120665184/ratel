@@ -10,7 +10,6 @@ import org.quyq.gwsu.common.ai.agui.adapter.AguiAdapterConfig;
 import org.quyq.gwsu.common.ai.agui.processor.AguiRequestProcessor;
 import org.quyq.gwsu.common.ai.agui.resolver.AguiAgentRegistry;
 import org.quyq.gwsu.common.ai.agui.resolver.MultiAgentResolver;
-import org.quyq.gwsu.common.ai.agui.resolver.SingletonAgentResolver;
 import org.quyq.gwsu.common.ai.agui.utils.WebToolUtils;
 import org.quyq.gwsu.common.ai.distributed.redis.CacheRedisAgentStateStore;
 import org.quyq.gwsu.common.ai.distributed.redis.CacheRedisDistributedStore;
@@ -47,8 +46,8 @@ public class AgentscopeConfiguration {
     public AguiRequestProcessor aguiRequestProcessor(ObjectProvider<List<AguiAgentRegistry>> agentRegistries) {
         AguiAgentRegistry registry = new AguiAgentRegistry();
         List<AguiAgentRegistry> ifAvailable = agentRegistries.getIfAvailable();
-        if(!CollectionUtils.isEmpty(ifAvailable)) {
-            ifAvailable.forEach(v ->v.getAllAgentFactories().forEach(registry::registerFactory));
+        if (!CollectionUtils.isEmpty(ifAvailable)) {
+            ifAvailable.forEach(v -> v.getAllAgentFactories().forEach(registry::registerFactory));
         }
 
         return AguiRequestProcessor.builder()
