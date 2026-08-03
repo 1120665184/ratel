@@ -37,7 +37,7 @@ import java.util.Optional;
  * @description
  */
 @RequiredArgsConstructor
-public class ForwardedPropsMiddleware implements MiddlewareBase {
+public class SystemPromptMiddleware implements MiddlewareBase {
     private final StTemplateRenderer templateRenderer = StTemplateRenderer.builder().build();
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
     private final SecurityUtils securityUtils;

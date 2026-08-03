@@ -29,7 +29,7 @@ import org.quyq.gwsu.security.brain.service.IBrainService;
 import org.quyq.gwsu.security.brain.service.agent.OutputViewAgent;
 import org.quyq.gwsu.security.brain.service.middleware.ApprovalTipMiddleware;
 import org.quyq.gwsu.security.brain.service.middleware.DynamicViewToolFilterMiddleware;
-import org.quyq.gwsu.security.brain.service.middleware.ForwardedPropsMiddleware;
+import org.quyq.gwsu.security.brain.service.middleware.SystemPromptMiddleware;
 import org.quyq.gwsu.security.brain.service.middleware.StatisticsMiddleware;
 import org.quyq.gwsu.security.brain.service.skill.DatabaseSearchSkillRepository;
 import org.quyq.gwsu.security.brain.service.skill.KnowledgeSearchSkillRepository;
@@ -164,7 +164,7 @@ public class BrainServiceImpl implements IBrainService {
                         new StatisticsMiddleware(),
                         new DynamicViewToolFilterMiddleware(),
                         new ApprovalTipMiddleware(objectMapper),
-                        new ForwardedPropsMiddleware(securityUtils, sessionUtils, objectMapper)))
+                        new SystemPromptMiddleware(securityUtils, sessionUtils, objectMapper)))
                 .toolkit(toolkit)
                 .skillRepositories(List.of(
                         new ViewOperationSkillRepository(
@@ -201,10 +201,12 @@ public class BrainServiceImpl implements IBrainService {
                         .skills(List.of(KnowledgeSearchSkillRepository.SKILL_NAME, DatabaseSearchSkillRepository.SKILL_NAME))
                         .tools(List.of("SearchKnowledge", "FindAdjacentKnowledgeChunk", "GetTableDetail", "GetDatabaseVendor", "ExecuteSql"))
                         .build())
+                .disableFilesystemTools()
                 .disableDynamicSubagents()
                 .disableShellTool()
                 .disableMemoryTools()
                 .build();
+        //TODO 下个版本(v2.0.1)agentscope会支持配置不启用默认子智能体功能，升级后需要去除，改用框架提供的能力
         removeGeneralPurposeSubagent(agent);
         return agent;
     }
@@ -394,7 +396,7 @@ public class BrainServiceImpl implements IBrainService {
                 - 界面路由地址：{currentPath}
                 - {headlessContent}
                 
-                # 当前可用上传文件
+                # 用户已提供的文件信息
                 {fileInfos}
                 """;
     }
