@@ -813,14 +813,15 @@ public class HeadlessBrowserSession implements AutoCloseable {
     }
 
     /**
-     * 发起前端 Agent 调用，并等待 agent/run 请求已建立。
+     * 发起前端 Agent 调用，并等待 agent/run 收到响应。
      * <p>
-     * bridge.send 不返回 runAgent 的 Promise，因此此方法只等待请求发出，不会占用
-     * Playwright 消息循环直至整段 SSE 流结束。
+     * 必须等待到响应阶段，确保 Playwright 已执行 page.route() 回调并启动 Redis 消费者。
+     * 仅等待请求创建会让路由回调滞留在 Playwright 事件队列，随后 awaitCompletion 会一直
+     * 等到 SSE 超时才再次驱动事件队列。
      */
     static void dispatchHeadlessMessage(Page page, Object payload) {
-        page.waitForRequest(HeadlessBrowserSession::isAgentRunRequest,
-                new Page.WaitForRequestOptions().setTimeout(HEADLESS_REQUEST_TIMEOUT_MS),
+        page.waitForResponse(response -> isAgentRunRequest(response.request()),
+                new Page.WaitForResponseOptions().setTimeout(HEADLESS_REQUEST_TIMEOUT_MS),
                 () -> page.evaluate("""
                         payload => {
                             const bridge = window.__GWSU_HEADLESS_CHAT__;

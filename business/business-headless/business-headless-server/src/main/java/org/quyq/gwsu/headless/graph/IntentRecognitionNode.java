@@ -58,10 +58,14 @@ public class IntentRecognitionNode implements NodeAction {
         String query = state.value(HeadlessConstants.Headless.GRAPH_PARAM_QUERY, "");
         SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
 
+        HeadlessAccessSession accessSession = headlessBrowserManager.getAccessSession(userId);
         if (StringUtils.hasText(threadId)) {
-            headlessBrowserManager.newSession(userId, threadId);
+            String currentThreadId = accessSession != null ? accessSession.threadId() : "";
+            if (!Objects.equals(threadId, currentThreadId)) {
+                headlessBrowserManager.newSession(userId, threadId);
+            }
         } else {
-            threadId = Optional.ofNullable(headlessBrowserManager.getAccessSession(userId))
+            threadId = Optional.ofNullable(accessSession)
                     .map(HeadlessAccessSession::threadId)
                     .orElse("");
         }
