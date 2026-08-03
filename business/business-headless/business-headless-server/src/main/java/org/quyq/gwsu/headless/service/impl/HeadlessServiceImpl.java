@@ -17,6 +17,8 @@ import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
+import org.quyq.gwsu.common.security.config.properties.universal.BaseProjectInfoProperties;
+import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.api.dto.HeadlessResourceDTO;
@@ -35,6 +37,8 @@ import org.quyq.gwsu.headless.graph.SendAnswerNode;
 import org.quyq.gwsu.headless.graph.SendApprovalNode;
 import org.quyq.gwsu.headless.graph.SendChatNode;
 import org.quyq.gwsu.headless.service.IHeadlessService;
+import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
+import org.quyq.gwsu.kit.api.utils.FileUtils;
 import org.redisson.api.RLock;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -75,9 +79,10 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
     @SneakyThrows
     @Override
     public Flux<AguiEvent> stream(HeadlessDTO request, HeadlessCallConfig config) {
-        AssertUtils.notNull(request, HeadlessErrorCode.E01006);
+        AssertUtils.notNull(request, HeadlessErrorCode.E01007);
         validateRequest(request);
-        String query = buildRoutingQuery(request);
+        HeadlessDTO normalizedRequest = normalizeRequest(request);
+        String query = buildRoutingQuery(normalizedRequest);
         String userId = config.getUserId();
         if (!StringUtils.hasText(userId)) {
             userId = securityUtils.userInfo().map(UserInfo::getUserId).orElse("");
@@ -104,7 +109,7 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
 
         return headlessGraph.stream(Map.of(
                         HeadlessConstants.Headless.GRAPH_PARAM_QUERY, query,
-                        HeadlessConstants.Headless.GRAPH_PARAM_REQUEST, request,
+                        HeadlessConstants.Headless.GRAPH_PARAM_REQUEST, normalizedRequest,
                         HeadlessConstants.Headless.GRAPH_PARAM_USER_ID,subjectInfo ,
                         HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId
                 ))
@@ -208,12 +213,28 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
     private void validateRequest(HeadlessDTO request) {
         if (request.resources() != null) {
             for (HeadlessResourceDTO resource : request.resources()) {
-                AssertUtils.notNull(resource, HeadlessErrorCode.E01006);
-                AssertUtils.hasText(resource.url(), HeadlessErrorCode.E01006);
-                AssertUtils.hasText(resource.mimeType(), HeadlessErrorCode.E01006);
+                AssertUtils.notNull(resource, HeadlessErrorCode.E01008);
+                AssertUtils.hasText(resource.fileId(), HeadlessErrorCode.E01009);
             }
         }
-        AssertUtils.isTrue(request.hasContent(), HeadlessErrorCode.E01006);
+        AssertUtils.isTrue(request.hasContent(), HeadlessErrorCode.E01007);
+    }
+
+    private HeadlessDTO normalizeRequest(HeadlessDTO request) {
+        if (CollectionUtils.isEmpty(request.resources())) {
+            return request;
+        }
+        List<HeadlessResourceDTO> normalizedResources = request.resources().stream()
+                .filter(Objects::nonNull)
+                .map(this::normalizeResource)
+                .toList();
+        return new HeadlessDTO(
+                request.text(),
+                normalizedResources,
+                request.threadId(),
+                request.outputPanelScreenshot(),
+                request.approvalRecording()
+        );
     }
 
     private String buildRoutingQuery(HeadlessDTO request) {
@@ -221,23 +242,47 @@ public class HeadlessServiceImpl implements IHeadlessService, InitializingBean {
         if (StringUtils.hasText(request.text())) {
             parts.add(request.text().trim());
         }
-        if (!CollectionUtils.isEmpty(request.resources())) {
-            String resourceSummary = request.resources().stream()
-                    .filter(Objects::nonNull)
-                    .map(this::describeResource)
-                    .filter(StringUtils::hasText)
-                    .reduce((left, right) -> left + "；" + right)
-                    .orElse("用户附带了资源");
-            parts.add("用户附带了%s个资源：%s".formatted(request.resources().size(), resourceSummary));
-        }
+//        if (!CollectionUtils.isEmpty(request.resources())) {
+//            String resourceSummary = request.resources().stream()
+//                    .filter(Objects::nonNull)
+//                    .map(this::describeResource)
+//                    .filter(StringUtils::hasText)
+//                    .reduce((left, right) -> left + "；" + right)
+//                    .orElse("用户附带了资源");
+//            parts.add("用户附带了%s个资源：%s".formatted(request.resources().size(), resourceSummary));
+//        }
         return String.join("\n", parts);
     }
 
     private String describeResource(HeadlessResourceDTO resource) {
-        if (resource == null || !StringUtils.hasText(resource.url())) {
+        if (resource == null || !StringUtils.hasText(resource.fileId())) {
             return null;
         }
         String mimeType = StringUtils.hasText(resource.mimeType()) ? resource.mimeType() : "unknown";
-        return "资源(mimeType=%s)".formatted(mimeType);
+        String fileName = StringUtils.hasText(resource.fileName()) ? resource.fileName() : resource.fileId();
+        return "资源(fileName=%s,mimeType=%s)".formatted(fileName, mimeType);
+    }
+
+    private HeadlessResourceDTO normalizeResource(HeadlessResourceDTO resource) {
+        KitFileInfoVO fileInfo = FileUtils.getFileInfo(resource.fileId());
+        AssertUtils.notNull(fileInfo, HeadlessErrorCode.E01010);
+        AssertUtils.hasText(fileInfo.getFileId(), HeadlessErrorCode.E01010);
+
+        String mimeType = StringUtils.hasText(fileInfo.getMediaType()) ? fileInfo.getMediaType() : resource.mimeType();
+        AssertUtils.hasText(mimeType, HeadlessErrorCode.E01011);
+
+        String fileName = StringUtils.hasText(fileInfo.getFileName()) ? fileInfo.getFileName() : resource.fileName();
+        String url = buildAbsoluteFileUrl(fileInfo.getFileId());
+        return new HeadlessResourceDTO(fileInfo.getFileId(), url, mimeType, fileName);
+    }
+
+    private String buildAbsoluteFileUrl(String fileId) {
+        BaseProjectInfoProperties properties = ConfigInfoUtils.getByObject(
+                BaseProjectInfoProperties.CONFIG_KEY,
+                BaseProjectInfoProperties.class
+        );
+        AssertUtils.notNull(properties, HeadlessErrorCode.E01010);
+        AssertUtils.hasText(properties.apiBaseUrl(), HeadlessErrorCode.E01010);
+        return "%s/kit/file/stream/%s".formatted(properties.apiBaseUrl(), fileId);
     }
 }

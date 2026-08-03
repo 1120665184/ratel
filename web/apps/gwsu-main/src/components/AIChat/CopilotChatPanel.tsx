@@ -58,6 +58,8 @@ import styles from './copilot-override.module.less';
 const MODEL_LLM_CONFIG_KEY = 'model_llm_config';
 
 interface HeadlessBridgeResource {
+  fileId?: string;
+  fileName?: string;
   url?: string;
   mimeType?: string;
 }
@@ -153,14 +155,20 @@ function buildHeadlessInputContent(payload: HeadlessBridgePayload): InputContent
       throw new Error('Headless 资源缺少 mimeType');
     }
     const source = { type: 'url' as const, value: resource.url.trim(), mimeType };
+    const metadata = {
+      ...(resource.fileId?.trim() ? { fileId: resource.fileId.trim(), id: resource.fileId.trim() } : {}),
+      ...(resource.fileName?.trim()
+        ? { fileName: resource.fileName.trim(), filename: resource.fileName.trim() }
+        : {}),
+    };
     if (mimeType?.startsWith('image/')) {
-      content.push({ type: 'image', source });
+      content.push({ type: 'image', source, metadata });
     } else if (mimeType?.startsWith('audio/')) {
-      content.push({ type: 'audio', source });
+      content.push({ type: 'audio', source, metadata });
     } else if (mimeType?.startsWith('video/')) {
-      content.push({ type: 'video', source });
+      content.push({ type: 'video', source, metadata });
     } else {
-      content.push({ type: 'document', source });
+      content.push({ type: 'document', source, metadata });
     }
   }
   return content;

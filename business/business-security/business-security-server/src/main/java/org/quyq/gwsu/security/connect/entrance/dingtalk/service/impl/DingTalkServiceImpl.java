@@ -200,6 +200,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
                 text = new StringBuilder(mc.getRecognition());
                 break;
             case PICTURE,FILE,VIDEO:
+                text.append("<systemInfo>用户上传了一个资源文件，请等待用户进一步指示<systemInfo>");
                 resources.add(saveToFileServer(dingTalkMsgUtils.getFileDownloadUrl(mc.getDownloadCode()) , mc.getFileName()));
                 break;
 
@@ -270,12 +271,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
             }
 
             KitFileInfoVO fileInfo = FileUtils.upload(tempFile.toFile(), buildFileProperty());
-            BaseProjectInfoProperties properties = ConfigInfoUtils.getByObject(
-                    BaseProjectInfoProperties.CONFIG_KEY,
-                    BaseProjectInfoProperties.class
-            );
-            String fileUrl = "%s/kit/file/stream/%s".formatted(properties.apiBaseUrl(), fileInfo.getFileId());
-            return new HeadlessResourceDTO(fileUrl, fileInfo.getMediaType());
+            return new HeadlessResourceDTO(fileInfo.getFileId());
         } catch (Exception e) {
             log.error("钉钉文件下载并上传失败, fileDownloadUrl={}", fileDownloadUrl, e);
             throw new RuntimeException("钉钉文件保存到文件服务失败", e);
