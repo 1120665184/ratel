@@ -92,7 +92,7 @@ public class ClickElementTool extends ToolBase {
     public Mono<ToolResultBlock> callAsync(ToolCallParam param) {
         AIRunnerInstanceWrapper wrapper = param.getRuntimeContext().get(AIRunnerInstanceWrapper.class);
         Object index = param.getInput().get("index");
-        return Mono.just(webToolUtils.webExecuteTool(wrapper, TOOL_NAME, Map.of("index", index)));
+        return Mono.fromCallable(() -> webToolUtils.webExecuteTool(wrapper, TOOL_NAME, Map.of("index", index)));
     }
 
     public static String buildApprovalTip(Map<String, Object> input) {

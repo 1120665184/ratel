@@ -56,7 +56,7 @@ public class EnterAiModeTool extends ToolBase {
     public Mono<ToolResultBlock> callAsync(ToolCallParam param) {
         RuntimeContext runtimeContext = param.getRuntimeContext();
         AIRunnerInstanceWrapper wrapper = runtimeContext.get(AIRunnerInstanceWrapper.class);
-        return Mono.just(webToolUtils.webExecuteTool(wrapper, TOOL_NAME, Map.of()))
+        return Mono.fromCallable(() -> webToolUtils.webExecuteTool(wrapper, TOOL_NAME, Map.of()))
                 .doOnSuccess(result -> {
                     Map<String, Object> val = Optional.ofNullable(runtimeContext.get(AIConstants.Param.FORWARDED_PROPS_KEY, Map.class))
                             .orElse(Collections.emptyMap());

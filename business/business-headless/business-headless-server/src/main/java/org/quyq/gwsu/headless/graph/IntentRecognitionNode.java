@@ -12,6 +12,7 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.ai.constants.AIConstants;
 import org.quyq.gwsu.common.ai.loop.AgentApprovalResolver;
 import org.quyq.gwsu.common.ai.loop.domain.HumanApprovalInfo;
@@ -19,16 +20,13 @@ import org.quyq.gwsu.common.ai.model.ModelProvider;
 import org.quyq.gwsu.common.ai.utils.AgentScopeMessageUtils;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.exception.BusinessException;
-import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.core.session.HeadlessAccessSession;
 import org.quyq.gwsu.headless.domain.RouterInfo;
 import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.enums.GraphRouteType;
-import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -179,7 +177,7 @@ public class IntentRecognitionNode implements NodeAction {
             nodeHistory.add(assistantMsg);
             agentStateStore.save(userId.userId(), threadId, HEADLESS_RECOGNITION_NODE_KEY, nodeHistory);
 
-            Flux<ChatResponse> output = Flux.just(getContent(assistantMsg));
+            Flux<ChatResponse> output = Flux.just(getContent(threadId, assistantMsg));
 
             //返回AI回复
             return Map.of(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, threadId,
@@ -253,11 +251,13 @@ public class IntentRecognitionNode implements NodeAction {
     }
 
 
-    private ChatResponse getContent(Msg msg) {
-
-        AssistantMessage message = AgentScopeMessageUtils.toAssistantMessage(msg);
-        message.getMetadata().put("status", HeadlessAgentStatus.COMPLETE);
-        return new ChatResponse(List.of(new Generation(message)));
+    private ChatResponse getContent(String threadId, Msg msg) {
+        return HeadlessAguiEventBridge.toChatResponse(new AguiEvent.TextMessageContent(
+                threadId,
+                "",
+                UUID.randomUUID().toString(),
+                AgentScopeMessageUtils.toAssistantMessage(msg).getText()
+        ));
     }
 
 
