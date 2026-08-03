@@ -3,13 +3,13 @@ package org.quyq.gwsu.headless.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import org.quyq.gwsu.common.api.annotation.ApiClient;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.core.constants.CoreConstants;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.api.dto.NewChatDTO;
 import org.quyq.gwsu.headless.api.factory.HeadlessClientApiFactory;
 import org.quyq.gwsu.headless.api.loadbalancer.UserIdStickyLoadBalancer;
-import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,8 +34,8 @@ public interface HeadlessClientApi {
      * @return
      */
     @PostExchange(value = "stream", accept = MediaType.TEXT_EVENT_STREAM_VALUE)
-    Flux<HeadlessResponse> stream(@RequestParam("userId") String userId,
-                                  @RequestParam(required = false , value = "sign") String sign, @RequestBody HeadlessDTO form);
+    Flux<AguiEvent> stream(@RequestParam("userId") String userId,
+                           @RequestParam(required = false , value = "sign") String sign, @RequestBody HeadlessDTO form);
 
     /**
      * 主动建立新会话

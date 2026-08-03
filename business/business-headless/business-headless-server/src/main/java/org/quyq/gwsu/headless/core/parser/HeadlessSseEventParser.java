@@ -48,11 +48,11 @@ public class HeadlessSseEventParser {
                 );
             } catch (Exception ex) {
                 log.warn("SSE 未知事件兜底解析失败: {}", ex.getMessage());
-                return null;
+                return new AguiEvent.Raw("", "", eventJson);
             }
         } catch (Exception e) {
             log.warn("SSE 事件 JSON 解析失败: {}", e.getMessage());
-            return null;
+            return new AguiEvent.Raw("", "", eventJson);
         }
     }
 

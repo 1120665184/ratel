@@ -7,18 +7,14 @@ import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.core.utils.ThreadPoolUtil;
-import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
+import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.constants.HeadlessConstants;
 import org.quyq.gwsu.headless.core.HeadlessBrowserManager;
 import org.quyq.gwsu.headless.domain.RouterInfo;
 import org.quyq.gwsu.headless.domain.SubjectInfo;
 import org.quyq.gwsu.headless.errcode.HeadlessErrorCode;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -47,8 +43,16 @@ public class SendAnswerNode implements NodeAction {
         AssertUtils.hasText(toolCallId, HeadlessErrorCode.E01004);
 
         SubjectInfo userId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_USER_ID, SubjectInfo.class).orElseThrow();
+        HeadlessDTO request = state.value(HeadlessConstants.Headless.GRAPH_PARAM_REQUEST, HeadlessDTO.class).orElseThrow();
+        String threadId = state.value(HeadlessConstants.Headless.GRAPH_PARAM_THREAD_ID, String.class).orElse("");
 
-        HeadlessMessageHandler handler = new HeadlessMessageHandler(userId.userId(), agentStateStore);
+        HeadlessMessageHandler handler = new HeadlessMessageHandler(
+                userId.userId(),
+                agentStateStore,
+                threadId,
+                request.enableOutputPanelScreenshot(),
+                request.enableApprovalRecording()
+        );
         //发送用户回复
         executorService.submit(() -> {
             try {
@@ -67,13 +71,8 @@ public class SendAnswerNode implements NodeAction {
         });
 
         return Map.of(HeadlessConstants.Headless.GRAPH_PARAM_OUTPUT, handler.asFlux()
-                .startWith(Flux.just(
-                        new ChatResponse(List.of(new Generation(
-                                AssistantMessage.builder()
-                                        .properties(Map.of("status", HeadlessAgentStatus.INITING))
-                                        .content("")
-                                        .build()
-                        )))
-                )));
+                .startWith(Flux.just(HeadlessAguiEventBridge.toChatResponse(
+                        HeadlessAguiEventBridge.statusEvent(threadId, "", org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus.INITING)
+                ))));
     }
 }

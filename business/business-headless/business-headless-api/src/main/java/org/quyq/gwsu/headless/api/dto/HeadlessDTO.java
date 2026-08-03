@@ -10,11 +10,21 @@ import java.util.List;
 public record HeadlessDTO(
         String text,
         List<HeadlessResourceDTO> resources,
-        String threadId
+        String threadId,
+        Boolean outputPanelScreenshot,
+        Boolean approvalRecording
 ) {
 
     public boolean hasContent() {
         return text != null && !text.isBlank()
                 || resources != null && !resources.isEmpty();
+    }
+
+    public boolean enableOutputPanelScreenshot() {
+        return !Boolean.FALSE.equals(outputPanelScreenshot);
+    }
+
+    public boolean enableApprovalRecording() {
+        return !Boolean.FALSE.equals(approvalRecording);
     }
 }

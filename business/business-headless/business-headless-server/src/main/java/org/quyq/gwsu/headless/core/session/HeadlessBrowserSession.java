@@ -405,27 +405,31 @@ public class HeadlessBrowserSession implements AutoCloseable {
             currentEventCollector.set(collector);
             currentListener.set(listener);
 
-            // 等待前端聊天就绪
-            page.waitForFunction(
-                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
-                    null, new Page.WaitForFunctionOptions().setTimeout(30_000));
-            log.debug("前端聊天已就绪，开始提交审批");
-
             String result = approved ? "APPROVED" : "REJECTED";
             String reason = rejectReason != null ? rejectReason : "";
 
-            // 1. 显示 HeadlessSubmitBar 组件 + 填充表单值
-            page.evaluate("args => {" +
-                    "  document.body.setAttribute('data-headless-forms-visible', 'true');" +
-                    "  var r = document.querySelector('[data-testid=\"headless-approval-result\"]');" +
-                    "  var re = document.querySelector('[data-testid=\"headless-approval-reject-reason\"]');" +
-                    "  if (r) r.value = args[0];" +
-                    "  if (re) re.value = args[1];" +
-                    "}", new Object[]{result, reason});
+            pageOperationLock.lock();
+            try {
+                // 等待前端聊天就绪
+                page.waitForFunction(
+                        "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
+                        null, new Page.WaitForFunctionOptions().setTimeout(30_000));
+                log.debug("前端聊天已就绪，开始提交审批");
 
-            // 2. 使用 Playwright 原生 locator.click() 点击可见按钮
-            //    click() 内部会协调事件循环，确保 page.route() 回调在返回前执行完毕
-            page.locator("[data-testid='headless-approval-submit']").click();
+                // 1. 显示 HeadlessSubmitBar 组件 + 填充表单值
+                page.evaluate("args => {" +
+                        "  document.body.setAttribute('data-headless-forms-visible', 'true');" +
+                        "  var r = document.querySelector('[data-testid=\"headless-approval-result\"]');" +
+                        "  var re = document.querySelector('[data-testid=\"headless-approval-reject-reason\"]');" +
+                        "  if (r) r.value = args[0];" +
+                        "  if (re) re.value = args[1];" +
+                        "}", new Object[]{result, reason});
+
+                // click 返回前不能让截图或录屏线程并发操作同一个 Playwright Page。
+                page.locator("[data-testid='headless-approval-submit']").click();
+            } finally {
+                pageOperationLock.unlock();
+            }
 
             log.info("审批结果已提交: result={}, hasRejectReason={}", result, !reason.isEmpty());
 
@@ -436,10 +440,16 @@ public class HeadlessBrowserSession implements AutoCloseable {
             throw new RuntimeException("提交审批失败", e);
         } finally {
             // 确保隐藏表单（无论成功失败）
+            pageOperationLock.lock();
             try {
-                page.evaluate("() => document.body.removeAttribute('data-headless-forms-visible')");
-            } catch (Exception ignored) {}
-            sendLock.unlock();
+                try {
+                    page.evaluate("() => document.body.removeAttribute('data-headless-forms-visible')");
+                } catch (Exception ignored) {
+                }
+            } finally {
+                pageOperationLock.unlock();
+                sendLock.unlock();
+            }
         }
     }
 
@@ -465,26 +475,30 @@ public class HeadlessBrowserSession implements AutoCloseable {
             currentEventCollector.set(collector);
             currentListener.set(listener);
 
-            // 等待前端聊天就绪
-            page.waitForFunction(
-                    "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
-                    null, new Page.WaitForFunctionOptions().setTimeout(30_000));
-            log.debug("前端聊天已就绪，开始提交用户回答");
-
             String answersJson = objectMapper.writeValueAsString(answers);
 
-            // 1. 显示 HeadlessSubmitBar 组件 + 填充表单值
-            page.evaluate("args => {" +
-                    "  document.body.setAttribute('data-headless-forms-visible', 'true');" +
-                    "  var a = document.querySelector('[data-testid=\"headless-question-answers\"]');" +
-                    "  var t = document.querySelector('[data-testid=\"headless-question-tool-call-id\"]');" +
-                    "  if (a) a.value = args[0];" +
-                    "  if (t) t.value = args[1];" +
-                    "}", new Object[]{answersJson, toolCallId});
+            pageOperationLock.lock();
+            try {
+                // 等待前端聊天就绪
+                page.waitForFunction(
+                        "() => document.body.getAttribute('data-headless-chat-ready') === 'true'",
+                        null, new Page.WaitForFunctionOptions().setTimeout(30_000));
+                log.debug("前端聊天已就绪，开始提交用户回答");
 
-            // 2. 使用 Playwright 原生 locator.click() 点击可见按钮
-            //    click() 内部会协调事件循环，确保 page.route() 回调在返回前执行完毕
-            page.locator("[data-testid='headless-question-submit']").click();
+                // 1. 显示 HeadlessSubmitBar 组件 + 填充表单值
+                page.evaluate("args => {" +
+                        "  document.body.setAttribute('data-headless-forms-visible', 'true');" +
+                        "  var a = document.querySelector('[data-testid=\"headless-question-answers\"]');" +
+                        "  var t = document.querySelector('[data-testid=\"headless-question-tool-call-id\"]');" +
+                        "  if (a) a.value = args[0];" +
+                        "  if (t) t.value = args[1];" +
+                        "}", new Object[]{answersJson, toolCallId});
+
+                // click 返回前不能让截图或录屏线程并发操作同一个 Playwright Page。
+                page.locator("[data-testid='headless-question-submit']").click();
+            } finally {
+                pageOperationLock.unlock();
+            }
 
             log.info("用户回答已提交: toolCallId={}", toolCallId);
 
@@ -495,10 +509,16 @@ public class HeadlessBrowserSession implements AutoCloseable {
             throw new RuntimeException("提交用户回答失败", e);
         } finally {
             // 确保隐藏表单（无论成功失败）
+            pageOperationLock.lock();
             try {
-                page.evaluate("() => document.body.removeAttribute('data-headless-forms-visible')");
-            } catch (Exception ignored) {}
-            sendLock.unlock();
+                try {
+                    page.evaluate("() => document.body.removeAttribute('data-headless-forms-visible')");
+                } catch (Exception ignored) {
+                }
+            } finally {
+                pageOperationLock.unlock();
+                sendLock.unlock();
+            }
         }
     }
 

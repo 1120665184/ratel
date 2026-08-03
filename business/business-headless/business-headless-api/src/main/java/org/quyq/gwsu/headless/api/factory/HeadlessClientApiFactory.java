@@ -3,11 +3,11 @@ package org.quyq.gwsu.headless.api.factory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.api.fallback.FallbackFactory;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.headless.api.HeadlessClientApi;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.api.dto.NewChatDTO;
-import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import reactor.core.publisher.Flux;
 
 /**
@@ -22,7 +22,7 @@ public class HeadlessClientApiFactory implements FallbackFactory<HeadlessClientA
         log.error("", cause);
         return new HeadlessClientApi() {
             @Override
-            public Flux<HeadlessResponse> stream(String userId , String sign, HeadlessDTO form) {
+            public Flux<AguiEvent> stream(String userId , String sign, HeadlessDTO form) {
                 return Flux.error(cause);
             }
 

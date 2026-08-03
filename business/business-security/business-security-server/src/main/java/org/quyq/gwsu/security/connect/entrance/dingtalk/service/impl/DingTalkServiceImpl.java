@@ -7,6 +7,7 @@ import com.dingtalk.open.app.api.models.bot.MessageContent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.api.utils.FeignUtils;
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.security.api.IAccountInfoClientApi;
@@ -15,10 +16,7 @@ import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
 import org.quyq.gwsu.headless.api.HeadlessClientApi;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
 import org.quyq.gwsu.headless.api.dto.HeadlessResourceDTO;
-import org.quyq.gwsu.headless.api.dto.block.ImageBlock;
-import org.quyq.gwsu.headless.api.dto.block.VideoBlock;
 import org.quyq.gwsu.headless.api.enums.HeadlessAgentStatus;
-import org.quyq.gwsu.headless.api.vo.AssistantMsg;
 import org.quyq.gwsu.kit.api.file.dto.FileProperty;
 import org.quyq.gwsu.kit.api.file.vo.KitFileInfoVO;
 import org.quyq.gwsu.kit.api.utils.FileUtils;
@@ -89,7 +87,7 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
             if (!StringUtils.hasText(mappingInfo.getSubjectId())) {
                 dingTalkMsgUtils.toMessages(Collections.singletonList(staffId), DingTalkMessage.sampleText()
-                        .content("⚠️该账号暂时未和Ratel系统绑定 ，请到管理系统系统绑定或联系管理员😊")
+                        .content("⚠️该账号暂时未和系统用户绑定 ，请到管理系统系统绑定或联系管理员😊")
                         .build());
                 return;
             }
@@ -110,6 +108,8 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
         AtomicReference<HeadlessAgentStatus> status = new AtomicReference<>(HeadlessAgentStatus.CONNECTION);
         String[] errInfo = new String[1];
+        AtomicReference<String> imageUrlRef = new AtomicReference<>();
+        AtomicReference<String> videoUrlRef = new AtomicReference<>();
 
         AtomicInteger progress = new AtomicInteger(0);
         AtomicReference<Map<String, String>> lastParam = new AtomicReference<>(buildParam(HeadlessAgentStatus.CONNECTION, 0, null, null));
@@ -119,50 +119,44 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
         AssistantResponse response = new AssistantResponse();
         headlessClientApi.stream(mappingInfo.getSubjectId(), SIGN, buildHeadlessDTO(content))
-                .doOnNext(chunk -> {
+                .doOnNext(event -> {
                     if (status.get() == HeadlessAgentStatus.ERROR) {
                         return;
                     }
-                    status.set(chunk.status());
-                    AssistantMsg message = chunk.message();
 
-                    // 服务端错误已包装为 ERROR 状态事件，直接处理
-                    if (HeadlessAgentStatus.ERROR == status.get() || HeadlessAgentStatus.BUSY == status.get()) {
-                        errInfo[0] = chunk.errorMessage();
-                        log.error("智能体返回错误: {}", chunk.errorMessage());
-                        return;
-                    }
-
-                    setProgress(progress, status.get());
-                    if (HeadlessAgentStatus.CONNECTION == status.get()) {
-                        dingTalkCardUtils.streamAiCard(outTrackId, "content", "loading", false);
-                    }
-                    String imageUrl = null;
-                    String videoUrl = null;
-                    List<ImageBlock> images = message.getImageBlocks();
-                    List<VideoBlock> videos = message.getVideoBlocks();
-                    if (!images.isEmpty()) {
-                        imageUrl = images.getFirst().getUrl();
-                    }
-                    if (!videos.isEmpty()) {
-                        videoUrl = videos.getFirst().getUrl();
-                    }
-
-                    //更新状态
-                    Map<String, String> params = buildParam(status.get(), progress.get(), imageUrl, videoUrl);
-                    if (!lastParam.get().equals(params)) {
-                        lastParam.set(params);
-                        dingTalkCardUtils.updateCard(outTrackId, params);
-                    }
-
-                    String text = message.getTextContent();
-                    if (StringUtils.hasText(text)) {
-                        String tmp = response.cacheContent(text);
+                    if (event instanceof AguiEvent.Custom custom) {
+                        if ("status".equals(custom.name())) {
+                            HeadlessAgentStatus currentStatus = parseStatus(custom);
+                            if (currentStatus != null) {
+                                status.set(currentStatus);
+                                setProgress(progress, status.get());
+                                if (HeadlessAgentStatus.CONNECTION == status.get()) {
+                                    dingTalkCardUtils.streamAiCard(outTrackId, "content", "loading", false);
+                                }
+                                refreshCard(outTrackId, lastParam, status.get(), progress.get(), imageUrlRef.get(), videoUrlRef.get());
+                            }
+                        } else if ("output_image".equals(custom.name())) {
+                            imageUrlRef.set(extractMediaUrl(custom.value()));
+                            refreshCard(outTrackId, lastParam, status.get(), progress.get(), imageUrlRef.get(), videoUrlRef.get());
+                        } else if ("output_video".equals(custom.name())) {
+                            videoUrlRef.set(extractMediaUrl(custom.value()));
+                            refreshCard(outTrackId, lastParam, status.get(), progress.get(), imageUrlRef.get(), videoUrlRef.get());
+                        }
+                    } else if (event instanceof AguiEvent.TextMessageContent textEvent) {
+                        String tmp = response.cacheContent(textEvent.delta());
                         if (StringUtils.hasText(tmp)) {
                             dingTalkCardUtils.streamAiCard(outTrackId, "content", tmp, false);
                         }
+                    } else if (event instanceof AguiEvent.Raw rawEvent) {
+                        if (HeadlessAgentStatus.ERROR == status.get() || HeadlessAgentStatus.BUSY == status.get()) {
+                            errInfo[0] = extractRawMessage(rawEvent.rawEvent());
+                            log.error("智能体返回错误: {}", errInfo[0]);
+                        }
                     }
 
+                    if (HeadlessAgentStatus.ERROR == status.get() || HeadlessAgentStatus.BUSY == status.get()) {
+                        return;
+                    }
 
                 })
                 .doOnComplete(() -> {
@@ -211,7 +205,53 @@ public class DingTalkServiceImpl implements IDingTalkService {
 
         }
 
-        return new HeadlessDTO(text.toString(), resources, null);
+        return new HeadlessDTO(text.toString(), resources, null, null, null);
+    }
+
+    private HeadlessAgentStatus parseStatus(AguiEvent.Custom custom) {
+        if (!(custom.value() instanceof Map<?, ?> valueMap)) {
+            return null;
+        }
+        Object statusValue = valueMap.get("status");
+        if (statusValue == null) {
+            return null;
+        }
+        try {
+            return HeadlessAgentStatus.valueOf(String.valueOf(statusValue));
+        } catch (IllegalArgumentException e) {
+            log.warn("未知的 headless status: {}", statusValue);
+            return null;
+        }
+    }
+
+    private String extractMediaUrl(Object value) {
+        if (!(value instanceof Map<?, ?> valueMap)) {
+            return null;
+        }
+        Object url = valueMap.get("url");
+        if (url == null) {
+            return null;
+        }
+        String urlStr = String.valueOf(url);
+        if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) {
+            return urlStr;
+        }
+        if (urlStr.startsWith("/")) {
+            BaseProjectInfoProperties properties = ConfigInfoUtils.getByObject(
+                    BaseProjectInfoProperties.CONFIG_KEY, BaseProjectInfoProperties.class);
+            return properties.apiBaseUrl() + urlStr;
+        }
+        return urlStr;
+    }
+
+    private String extractRawMessage(Object rawValue) {
+        if (rawValue instanceof Map<?, ?> rawMap) {
+            Object message = rawMap.get("message");
+            if (message != null) {
+                return String.valueOf(message);
+            }
+        }
+        return rawValue != null ? String.valueOf(rawValue) : errMsg;
     }
 
     private HeadlessResourceDTO saveToFileServer(String fileDownloadUrl , String fileName){
@@ -355,6 +395,15 @@ public class DingTalkServiceImpl implements IDingTalkService {
         param.put("progress", progress + "");
         param.put("newChat", "true");
         return param;
+    }
+
+    private void refreshCard(String outTrackId, AtomicReference<Map<String, String>> lastParam,
+                             HeadlessAgentStatus status, int progress, String imageUrl, String videoUrl) {
+        Map<String, String> params = buildParam(status, progress, imageUrl, videoUrl);
+        if (!lastParam.get().equals(params)) {
+            lastParam.set(params);
+            dingTalkCardUtils.updateCard(outTrackId, params);
+        }
     }
 
 

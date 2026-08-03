@@ -1,7 +1,7 @@
 package org.quyq.gwsu.headless.service;
 
+import org.quyq.gwsu.common.ai.agui.event.AguiEvent;
 import org.quyq.gwsu.headless.api.dto.HeadlessDTO;
-import org.quyq.gwsu.headless.api.vo.HeadlessResponse;
 import org.quyq.gwsu.headless.domain.HeadlessCallConfig;
 import reactor.core.publisher.Flux;
 
@@ -12,7 +12,6 @@ import reactor.core.publisher.Flux;
  */
 public interface IHeadlessService {
 
-
-    Flux<HeadlessResponse> stream(HeadlessDTO request, HeadlessCallConfig config);
+    Flux<AguiEvent> stream(HeadlessDTO request, HeadlessCallConfig config);
 
 }
