@@ -5,7 +5,6 @@ import TableListPanel from './TableListPanel';
 import FieldConfigTable from './FieldConfigTable';
 import AddTableModelModal from './AddTableModelModal';
 import { useTableModelPermission } from './hooks/useTableModelPermission';
-import type { RolePermissionTableModelVO } from '../../types';
 
 interface TableModelPermissionModalProps {
   visible: boolean;
@@ -34,7 +33,6 @@ const TableModelPermissionModal: React.FC<TableModelPermissionModalProps> = ({
     handleReset,
     handleDeleteTable,
     toggleEnabled,
-    addTablesToList,
     removeTableFromList,
     setRoleId,
   } = useTableModelPermission();
@@ -66,10 +64,12 @@ const TableModelPermissionModal: React.FC<TableModelPermissionModalProps> = ({
   );
 
   const onAddSuccess = useCallback(
-    (newTables: RolePermissionTableModelVO[]) => {
-      addTablesToList(newTables);
+    () => {
+      if (roleId) {
+        void loadData(roleId);
+      }
     },
-    [addTablesToList],
+    [loadData, roleId],
   );
 
   const existingTableIds = new Set(tables.map((t) => t.tableModelId));

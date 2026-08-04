@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Modal, Input, Table, App } from 'antd';
+import { App, Input, Modal, Segmented, Spin, Table } from 'antd';
 import type { TableProps } from 'antd';
-import {
-  getTableModelDetail,
-  getTableModelPage,
-} from '../../../tablemodel/services/tableModel';
-import type { TableModelInfo } from '../../../tablemodel/types';
-import type { RolePermissionTableModelVO } from '../../types';
+import { getBusinessFunctionPage, getBusinessFunctionDetail } from '../../../tablemodel/services/businessFunction';
+import { getTableModelPage } from '../../../tablemodel/services/tableModel';
+import type { BusinessFunctionInfo, TableModelInfo } from '../../../tablemodel/types';
 import { saveOrUpdateRoleTableModel } from '../../services/role';
+import BusinessFunctionAddPanel from './BusinessFunctionAddPanel';
+import styles from './addTableModelModal.module.less';
+
+type AddMode = 'table' | 'businessFunction';
 
 interface AddTableModelModalProps {
   visible: boolean;
   roleId: string | null;
   existingTableIds: Set<string>;
   onClose: () => void;
-  onSuccess: (newTables: RolePermissionTableModelVO[]) => void;
+  onSuccess: () => void;
 }
+
+const tableColumns: TableProps<TableModelInfo>['columns'] = [
+  { title: '表名', dataIndex: 'tableName', width: 160 },
+  { title: '表注释', dataIndex: 'tableComment', ellipsis: true },
+  { title: '模块', dataIndex: 'modulePrefix', width: 100 },
+  { title: '数据源', dataIndex: 'dataSource', width: 100 },
+];
 
 const AddTableModelModal: React.FC<AddTableModelModalProps> = ({
   visible,
@@ -25,105 +33,182 @@ const AddTableModelModal: React.FC<AddTableModelModalProps> = ({
   onSuccess,
 }) => {
   const { message } = App.useApp();
-  const [searchText, setSearchText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [addMode, setAddMode] = useState<AddMode>('table');
+  const [tableSearchText, setTableSearchText] = useState('');
+  const [businessSearchText, setBusinessSearchText] = useState('');
+  const [tableLoading, setTableLoading] = useState(false);
+  const [businessLoading, setBusinessLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const [dataSource, setDataSource] = useState<TableModelInfo[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [businessFunctions, setBusinessFunctions] = useState<BusinessFunctionInfo[]>([]);
+  const [businessPageNum, setBusinessPageNum] = useState(1);
+  const [businessPageSize] = useState(10);
+  const [businessTotal, setBusinessTotal] = useState(0);
+  const [selectedBusinessFunctionId, setSelectedBusinessFunctionId] = useState<string | null>(null);
+  const [selectedBusinessFunctionName, setSelectedBusinessFunctionName] = useState('');
+  const [previewTables, setPreviewTables] = useState<TableModelInfo[]>([]);
+  const [totalTableCount, setTotalTableCount] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0);
 
-  const doSearch = useCallback(async (keyword?: string) => {
-    setLoading(true);
-    try {
-      const result = await getTableModelPage({
-        tableName: keyword ?? (searchText || undefined),
-        pageNum: 1,
-        pageSize: 100,
-      });
-      setDataSource(
-        (result?.records ?? []).filter((t) => !existingTableIds.has(t.id)),
-      );
-    } catch {
-      // request 层已自动提示
-    } finally {
-      setLoading(false);
-    }
-  }, [searchText, existingTableIds]);
+  const loadAvailableTables = useCallback(
+    async (keyword = '') => {
+      setTableLoading(true);
+      try {
+        const result = await getTableModelPage({
+          tableName: keyword || undefined,
+          pageNum: 1,
+          pageSize: 100,
+        });
+        setDataSource((result?.records ?? []).filter((item) => !existingTableIds.has(item.id)));
+      } catch {
+        // request 层已自动提示
+      } finally {
+        setTableLoading(false);
+      }
+    },
+    [existingTableIds],
+  );
 
-  /** 弹窗打开时加载初始数据（不依赖 doSearch，避免搜索时触发重置） */
+  const loadBusinessFunctions = useCallback(
+    async (page = 1, name = '') => {
+      setBusinessLoading(true);
+      try {
+        const result = await getBusinessFunctionPage({
+          pageNum: page,
+          pageSize: businessPageSize,
+          name: name || undefined,
+        });
+        setBusinessFunctions(result.records ?? []);
+        setBusinessTotal(result.total ?? 0);
+        setBusinessPageNum(page);
+      } catch {
+        setBusinessFunctions([]);
+        setBusinessTotal(0);
+      } finally {
+        setBusinessLoading(false);
+      }
+    },
+    [businessPageSize],
+  );
+
+  const handleSelectBusinessFunction = useCallback(
+    async (businessFunctionId: string) => {
+      setSelectedBusinessFunctionId(businessFunctionId);
+      setBusinessLoading(true);
+      try {
+        const detail = await getBusinessFunctionDetail(businessFunctionId);
+        const allTables = detail.tables ?? [];
+        const nextPreviewTables = allTables.filter((table) => !existingTableIds.has(table.id));
+        setSelectedBusinessFunctionName(detail.name);
+        setPreviewTables(nextPreviewTables);
+        setTotalTableCount(allTables.length);
+        setSkippedCount(allTables.length - nextPreviewTables.length);
+      } catch {
+        setSelectedBusinessFunctionName('');
+        setPreviewTables([]);
+        setTotalTableCount(0);
+        setSkippedCount(0);
+      } finally {
+        setBusinessLoading(false);
+      }
+    },
+    [existingTableIds],
+  );
+
   useEffect(() => {
-    if (visible) {
-      setSearchText('');
-      setSelectedRowKeys([]);
-      // 直接调用接口加载初始数据，不走 doSearch
-      (async () => {
-        setLoading(true);
-        try {
-          const result = await getTableModelPage({ pageNum: 1, pageSize: 100 });
-          setDataSource(
-            (result?.records ?? []).filter((t) => !existingTableIds.has(t.id)),
-          );
-        } catch {
-          // request 层已自动提示
-        } finally {
-          setLoading(false);
-        }
-      })();
+    if (!visible) {
+      return;
     }
-  }, [visible, existingTableIds]);
+
+    setAddMode('table');
+    setTableSearchText('');
+    setBusinessSearchText('');
+    setBusinessPageNum(1);
+    setSelectedRowKeys([]);
+    setSelectedBusinessFunctionId(null);
+    setSelectedBusinessFunctionName('');
+    setPreviewTables([]);
+    setTotalTableCount(0);
+    setSkippedCount(0);
+
+    void loadAvailableTables('');
+    void loadBusinessFunctions(1, '');
+  }, [visible, loadAvailableTables, loadBusinessFunctions]);
+
+  const canSubmit = addMode === 'table'
+    ? selectedRowKeys.length > 0
+    : !!selectedBusinessFunctionId && previewTables.length > 0;
+
+  const handleBusinessSearch = useCallback(() => {
+    setSelectedBusinessFunctionId(null);
+    setSelectedBusinessFunctionName('');
+    setPreviewTables([]);
+    setTotalTableCount(0);
+    setSkippedCount(0);
+    void loadBusinessFunctions(1, businessSearchText);
+  }, [businessSearchText, loadBusinessFunctions]);
+
+  const handleBusinessPageChange = useCallback(
+    (page: number) => {
+      setSelectedBusinessFunctionId(null);
+      setSelectedBusinessFunctionName('');
+      setPreviewTables([]);
+      setTotalTableCount(0);
+      setSkippedCount(0);
+      void loadBusinessFunctions(page, businessSearchText);
+    },
+    [businessSearchText, loadBusinessFunctions],
+  );
 
   const handleConfirm = useCallback(async () => {
-    if (!roleId || selectedRowKeys.length === 0) return;
+    if (!roleId || !canSubmit) {
+      return;
+    }
+
+    const tablesToAdd = addMode === 'table'
+      ? dataSource.filter((item) => selectedRowKeys.includes(item.id))
+      : previewTables;
 
     setConfirmLoading(true);
     try {
-      const newTables: RolePermissionTableModelVO[] = [];
-      for (const key of selectedRowKeys) {
-        const record = dataSource.find((d) => d.id === key);
-        if (!record) continue;
-
+      for (const table of tablesToAdd) {
         await saveOrUpdateRoleTableModel({
           roleId,
-          modulePrefix: record.modulePrefix,
-          tableName: record.tableName,
-          datasource: record.dataSource,
+          modulePrefix: table.modulePrefix,
+          tableName: table.tableName,
+          datasource: table.dataSource,
           fields: [],
         });
-
-        const detail = await getTableModelDetail(
-          record.modulePrefix,
-          record.dataSource,
-          record.tableName,
-        );
-
-        newTables.push({
-          type: 1,
-          tableModelId: record.id,
-          modulePrefix: record.modulePrefix,
-          datasource: record.dataSource,
-          tableName: record.tableName,
-          tableComment: record.tableComment,
-          columns: detail.columns.map((column) => ({
-            columnName: column.columnName,
-            columnComment: column.columnComment ?? '',
-          })),
-        });
       }
-      message.success(`成功添加 ${newTables.length} 个表模型权限`);
-      onSuccess(newTables);
+
+      if (addMode === 'table') {
+        message.success(`成功添加 ${tablesToAdd.length} 个表模型权限`);
+      } else {
+        message.success(
+          `已通过业务功能“${selectedBusinessFunctionName}”新增 ${tablesToAdd.length} 张表模型权限，跳过 ${skippedCount} 张已存在表`,
+        );
+      }
       onClose();
+      onSuccess();
     } catch {
       // request 层已自动提示
     } finally {
       setConfirmLoading(false);
     }
-  }, [roleId, selectedRowKeys, dataSource, onSuccess, onClose, message]);
-
-  const columns: TableProps<TableModelInfo>['columns'] = [
-    { title: '表名', dataIndex: 'tableName', width: 160 },
-    { title: '表注释', dataIndex: 'tableComment', ellipsis: true },
-    { title: '模块', dataIndex: 'modulePrefix', width: 100 },
-    { title: '数据源', dataIndex: 'dataSource', width: 100 },
-  ];
+  }, [
+    roleId,
+    canSubmit,
+    addMode,
+    dataSource,
+    selectedRowKeys,
+    previewTables,
+    message,
+    selectedBusinessFunctionName,
+    skippedCount,
+    onClose,
+    onSuccess,
+  ]);
 
   return (
     <Modal
@@ -133,29 +218,65 @@ const AddTableModelModal: React.FC<AddTableModelModalProps> = ({
       onOk={handleConfirm}
       okText="确认添加"
       cancelText="取消"
-      okButtonProps={{ disabled: selectedRowKeys.length === 0, 'data-ai-approval': 'true' }}
+      okButtonProps={{ disabled: !canSubmit, 'data-ai-approval': 'true' }}
       confirmLoading={confirmLoading}
-      width={640}
+      width={960}
       destroyOnHidden
     >
-      <Input.Search
-        placeholder="输入表名搜索"
-        allowClear
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
-        onSearch={doSearch}
-        style={{ marginBottom: 12 }}
+      <Segmented<AddMode>
+        className={styles.modeSwitch}
+        value={addMode}
+        onChange={setAddMode}
+        options={[
+          { label: '按表模型添加', value: 'table' },
+          { label: '按业务功能添加', value: 'businessFunction' },
+        ]}
       />
-      <Table<TableModelInfo>
-        rowKey="id"
-        columns={columns}
-        dataSource={dataSource}
-        loading={loading}
-        size="small"
-        scroll={{ y: 360 }}
-        rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-        pagination={false}
-      />
+
+      {addMode === 'table' ? (
+        <>
+          <Input.Search
+            className={styles.tableSearch}
+            placeholder="请输入表名搜索"
+            allowClear
+            value={tableSearchText}
+            onChange={(e) => setTableSearchText(e.target.value)}
+            onSearch={(value) => {
+              void loadAvailableTables(value);
+            }}
+            aria-label="搜索表模型"
+          />
+          <Table<TableModelInfo>
+            rowKey="id"
+            columns={tableColumns}
+            dataSource={dataSource}
+            loading={tableLoading}
+            size="small"
+            scroll={{ y: 392 }}
+            rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+            pagination={false}
+          />
+        </>
+      ) : (
+        <Spin spinning={businessLoading}>
+          <BusinessFunctionAddPanel
+            searchText={businessSearchText}
+            businessFunctions={businessFunctions}
+            selectedBusinessFunctionId={selectedBusinessFunctionId}
+            selectedBusinessFunctionName={selectedBusinessFunctionName}
+            previewTables={previewTables}
+            totalTableCount={totalTableCount}
+            skippedCount={skippedCount}
+            currentPage={businessPageNum}
+            pageSize={businessPageSize}
+            total={businessTotal}
+            onSearchChange={setBusinessSearchText}
+            onSearch={handleBusinessSearch}
+            onPageChange={handleBusinessPageChange}
+            onSelectBusinessFunction={handleSelectBusinessFunction}
+          />
+        </Spin>
+      )}
     </Modal>
   );
 };

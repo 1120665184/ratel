@@ -162,7 +162,7 @@ INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path
     周期性的时间格式：HH:mm
 **注意**：权限树中选择父级节点时，子节点不会被选中，必须所有权限都点击，包括菜单和按钮
 ');
-INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('90851569', '5', 'AI表模型', 3, 0, NULL, NULL, 1, 1, 'GET:security:/roleTableModel/getTableModelPermission/{roleId};(main)POST:security:/roleTableModel', NULL, 'admin', '2026-05-12 18:34:06.440815', 'admin', '2026-05-19 21:05:51.298316', 0, NULL, NULL, 1, 1, '5_table_model_permission', '# 功能介绍：
+INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('90851569', '5', 'AI表模型', 3, 0, NULL, NULL, 1, 1, 'GET:security:/roleTableModel/getTableModelPermission/{roleId};(main)POST:security:/roleTableModel;POST:security:/tablemodel/page;POST:security:/business-function/page;GET:security:/business-function/{id}', NULL, 'admin', '2026-05-12 18:34:06.440815', 'admin', '2026-08-04 18:40:23.389559', 0, NULL, NULL, 1, 1, '5_table_model_permission', '# 功能介绍：
 给角色配置AI表模型权限 , 拥有该角色的用户会自动拥有对应的表模型权限 ，有对应的表模型权限，智能助手才能查询该表的数据。
 功能列表：
 - 配置有哪些表的权限。
@@ -173,6 +173,10 @@ INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path
 - 左侧为已拥有权限的表名列表 ， 以及新增表模型权限按钮。
 - 右侧为对应表的字段权限列表，支持给指定字段配置是否允许展示、是否需要脱敏展示以及脱敏规则能力。
 点击左侧表名，右侧展示该表的字段权限信息，修改后点击下面的保存按钮，进行保存。
+# 新增
+弹框中有新增按钮，会展示二级弹框来用于展示可新增的表模型，支持“按表模型添加”和“按业务功能添加”。
+- 按表模型添加：添加指定表模型
+- 按业务功能添加：通过‘AI表模型管理’中已经配置好的业务功能批量添加表模型
 ');
 INSERT INTO security_menu (id, parent_id, menu_name, menu_type, sort, icon, path, visible, status, permission, tenant_id, create_op, create_time, modify_op, modify_time, deleted, delete_op, delete_time, position, owner, button_key, description) VALUES ('95765193', '94991641', '采集', 3, 0, NULL, NULL, 1, 1, 'POST:security:/tablemodel/uncollectedCount;POST:security:/tablemodel/listUncollected;(main)POST:security:/tablemodel/collect', NULL, 'admin', '2026-05-19 21:10:49.613139', 'admin', '2026-05-19 21:14:50.149945', 0, NULL, NULL, 1, 1, '94991641_collected', '# 功能介绍
 从已有的接口资源权限来采集对应关联的表模型数据
