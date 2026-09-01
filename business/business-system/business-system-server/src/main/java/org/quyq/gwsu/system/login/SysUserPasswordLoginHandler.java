@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.quyq.gwsu.common.authentication.exception.AuthException;
 import org.quyq.gwsu.common.authentication.login.impl.password.PasswordLoginDTO;
 import org.quyq.gwsu.common.authentication.login.impl.password.PasswordLoginHandler;
+import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
+import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.system.api.manager.vo.SysUserDetailVO;
 import org.quyq.gwsu.system.errcode.SystemErrorCode;
 import org.quyq.gwsu.system.manager.domain.SysAccount;
@@ -26,6 +28,8 @@ public class SysUserPasswordLoginHandler extends PasswordLoginHandler<SysUserDet
 
     @Override
     protected SysUserDetailVO toAuth(PasswordLoginDTO loginVO, CoreProperties properties) {
+        AssertUtils.hasText(loginVO.getCaptchaId(), CommonErrorCode.E04008);
+
         // 1. 查询账号
         SysAccount account = accountService.getByIdentifier(
                 PasswordLoginDTO.LOGIN_TYPE,

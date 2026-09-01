@@ -3,10 +3,14 @@ package org.quyq.gwsu.common.security.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.cache.utils.CacheUtils;
+import org.quyq.gwsu.common.security.captcha.service.CaptchaProvider;
+import org.quyq.gwsu.common.security.captcha.service.CaptchaServiceFacade;
+import org.quyq.gwsu.common.security.captcha.service.impl.DefaultCaptchaServiceFacade;
 import org.quyq.gwsu.common.security.config.properties.SecurityProperties;
 import org.quyq.gwsu.common.security.utils.SecurityUtils;
 import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportRuntimeHints;
@@ -18,6 +22,8 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
 import tools.jackson.databind.module.SimpleModule;
+
+import java.util.List;
 
 /**
  * @author Quyq
@@ -33,6 +39,12 @@ public class SecurityConfiguration {
     @Bean
     public SecurityUtils securityUtils(CacheUtils cacheUtils) {
         return new SecurityUtils(cacheUtils);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CaptchaServiceFacade captchaServiceFacade(List<CaptchaProvider> providers) {
+        return new DefaultCaptchaServiceFacade(providers);
     }
 
     @Bean

@@ -26,11 +26,13 @@
     "@antv/g6": "^5.1.0",
     "@gwsu/core": "workspace:*",
     "antd": "^6.3.4",
+    "crypto-js": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "umi": "^4.0.0"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@umijs/plugins": "^4.0.0",

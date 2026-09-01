@@ -144,7 +144,7 @@ importers:
         version: 19.2.6(react@19.2.6)
       umi:
         specifier: ^4.0.0
-        version: 4.6.53(@babel/core@7.29.0)(@types/node@25.7.0)(@types/react@19.2.14)(eslint@8.57.1)(lightningcss@1.22.1)(prettier@2.8.8)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(rollup@3.30.0)(sass@1.54.0)(styled-jsx@5.1.7(@babel/core@7.29.0)(react@19.2.6))(stylelint@14.16.1)(terser@5.47.1)(type-fest@1.4.0)(typescript@4.9.5)(webpack@5.106.2(lightningcss@1.22.1)(postcss@8.5.14))
+        version: 4.6.53(@babel/core@7.29.0)(@types/node@25.7.0)(@types/react@19.2.14)(eslint@8.57.1)(lightningcss@1.22.1)(prettier@2.8.8)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(rollup@3.30.0)(sass@1.54.0)(styled-jsx@5.1.7(@babel/core@7.29.0)(react@19.2.6))(stylelint@14.16.1)(terser@5.47.1)(type-fest@1.4.0)(typescript@4.9.5)(webpack@5.106.2(lightningcss@1.22.1))
     devDependencies:
       '@types/react':
         specifier: ^19.2.0
@@ -179,6 +179,9 @@ importers:
       antd:
         specifier: ^6.3.4
         version: 6.3.7(date-fns@4.1.0)(moment@2.30.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      crypto-js:
+        specifier: ^4.2.0
+        version: 4.2.0
       react:
         specifier: ^19.2.0
         version: 19.2.6
@@ -187,8 +190,11 @@ importers:
         version: 19.2.6(react@19.2.6)
       umi:
         specifier: ^4.0.0
-        version: 4.6.53(@babel/core@7.29.0)(@types/node@25.7.0)(@types/react@19.2.14)(eslint@8.57.1)(lightningcss@1.22.1)(prettier@2.8.8)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(rollup@3.30.0)(sass@1.54.0)(styled-jsx@5.1.7(@babel/core@7.29.0)(react@19.2.6))(stylelint@14.16.1)(terser@5.47.1)(type-fest@1.4.0)(typescript@4.9.5)(webpack@5.106.2(lightningcss@1.22.1))
+        version: 4.6.53(@babel/core@7.29.0)(@types/node@25.7.0)(@types/react@19.2.14)(eslint@8.57.1)(lightningcss@1.22.1)(prettier@2.8.8)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(rollup@3.30.0)(sass@1.54.0)(styled-jsx@5.1.7(@babel/core@7.29.0)(react@19.2.6))(stylelint@14.16.1)(terser@5.47.1)(type-fest@1.4.0)(typescript@4.9.5)(webpack@5.106.2(lightningcss@1.22.1)(postcss@8.5.14))
     devDependencies:
+      '@types/crypto-js':
+        specifier: ^4.2.2
+        version: 4.2.2
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.14
@@ -2391,6 +2397,9 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
+  '@types/crypto-js@4.2.2':
+    resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
+
   '@types/d3-array@3.2.2':
     resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
 
@@ -3702,6 +3711,10 @@ packages:
   crypto-browserify@3.12.1:
     resolution: {integrity: sha512-r4ESw/IlusD17lgQi1O20Fa3qNnsckR126TdUuBgAu7GBYSIPvdNyONd3Zrxh0xCwA4+6w/TDArBPsMvhur+KQ==}
     engines: {node: '>= 0.10'}
+
+  crypto-js@4.2.0:
+    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   css-blank-pseudo@3.0.3:
     resolution: {integrity: sha512-VS90XWtsHGqoM0t4KpH053c4ehxZ2E6HtGI7x68YFV0pTo/QmkV/YFA+NnlvK8guxZVNWGQhVNJGC39Q8XF4OQ==}
@@ -11078,6 +11091,8 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.0
 
+  '@types/crypto-js@4.2.2': {}
+
   '@types/d3-array@3.2.2': {}
 
   '@types/d3-axis@3.0.6':
@@ -13168,6 +13183,8 @@ snapshots:
       public-encrypt: 4.0.3
       randombytes: 2.1.0
       randomfill: 1.0.4
+
+  crypto-js@4.2.0: {}
 
   css-blank-pseudo@3.0.3(postcss@8.5.14):
     dependencies:

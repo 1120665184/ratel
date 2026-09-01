@@ -43,6 +43,46 @@ export interface LoginParams {
     username: string;
     /** 密码 */
     password: string;
+    /** 验证码ID */
+    captchaId?: string;
+    /** 验证码Code */
+    captchaCode?: string;
+}
+
+/**
+ * 验证码类型
+ */
+export enum CaptchaType {
+    BLOCK_PUZZLE = 'BLOCK_PUZZLE',
+    CLICK_WORD = 'CLICK_WORD',
+}
+
+export interface CaptchaData {
+    captchaId: string;
+    captchaType: string;
+    originalImageBase64?: string;
+    jigsawImageBase64?: string;
+    secretKey?: string;
+    token?: string;
+    wordList?: string[];
+}
+
+export interface CaptchaGetResponse {
+    type: CaptchaType;
+    captchaId: string;
+    data: CaptchaData;
+}
+
+export interface CaptchaCheckResponse {
+    captchaId: string;
+    captchaCode: string;
+    extraData?: Record<string, unknown>;
+}
+
+export interface CaptchaCheckParams {
+    captchaId: string;
+    captchaCode: string;
+    pointJson: string;
 }
 
 export type DingTalkCompleteMethod = 'binding' | 'create';
@@ -80,6 +120,25 @@ export async function login(params: LoginParams): Promise<LoginToken> {
         `/system/auth/login/manager`,
         params
     );
+    return response.data;
+}
+
+/**
+ * 获取登录验证码
+ */
+export async function getCaptcha(type?: CaptchaType): Promise<CaptchaGetResponse> {
+    const response = await get<CaptchaGetResponse>(
+        '/system/auth/captcha/get',
+        type ? {type} : undefined
+    );
+    return response.data;
+}
+
+/**
+ * 一次校验验证码，成功后返回登录验证码Code
+ */
+export async function checkCaptcha(params: CaptchaCheckParams): Promise<CaptchaCheckResponse> {
+    const response = await post<CaptchaCheckResponse>('/system/auth/captcha/check', params);
     return response.data;
 }
 

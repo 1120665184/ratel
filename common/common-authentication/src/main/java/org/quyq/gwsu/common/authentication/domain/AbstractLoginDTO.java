@@ -27,6 +27,15 @@ public abstract class AbstractLoginDTO {
      */
     private TerminalType terminal;
 
+    /**
+     * 验证码ID
+     */
+    private String captchaId;
+
+    /**
+     * 验证码Code
+     */
+    private String captchaCode;
 
     /**
      * 额外扩展参数

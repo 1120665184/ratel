@@ -9,6 +9,7 @@ import {
     LoginToken,
     TerminalType,
 } from '../../services/login';
+import CaptchaVerify, {CaptchaPass} from './CaptchaVerify';
 import styles from './DingTalkFirstLoginModal.module.less';
 
 type AccountMethod = 'binding' | 'create';
@@ -36,16 +37,19 @@ const DingTalkFirstLoginModal: React.FC<DingTalkFirstLoginModalProps> = ({
     const [form] = Form.useForm<AccountFormValues>();
     const [method, setMethod] = useState<AccountMethod>('binding');
     const [submitting, setSubmitting] = useState(false);
+    const [captchaPass, setCaptchaPass] = useState<CaptchaPass | null>(null);
 
     useEffect(() => {
         if (open) {
             setMethod('binding');
+            setCaptchaPass(null);
             form.resetFields();
         }
     }, [form, open]);
 
     const handleMethodChange = (activeKey: string) => {
         setMethod(activeKey as AccountMethod);
+        setCaptchaPass(null);
         form.resetFields();
     };
 
@@ -60,12 +64,18 @@ const DingTalkFirstLoginModal: React.FC<DingTalkFirstLoginModalProps> = ({
             setSubmitting(true);
             let finalToken: LoginToken;
             if (method === 'binding') {
+                if (!captchaPass) {
+                    message.warning('请先完成安全验证');
+                    return;
+                }
                 // 仅用于证明已有账号身份，不写入前端登录状态。
                 const passwordToken = await login({
                     type: 'password',
                     terminal: TerminalType.WEB,
                     username: values.username.trim(),
                     password: encryptPassword(values.password),
+                    captchaId: captchaPass.captchaId,
+                    captchaCode: captchaPass.captchaCode,
                 });
                 finalToken = await completeDingTalkLogin(
                     buildDingTalkCompleteParams('binding', temporaryVoucher, {
@@ -83,6 +93,7 @@ const DingTalkFirstLoginModal: React.FC<DingTalkFirstLoginModalProps> = ({
             await onSuccess(finalToken);
         } catch {
             // 请求层统一展示后端业务错误；保留弹框和表单以便用户修正后重试。
+            setCaptchaPass(null);
         } finally {
             setSubmitting(false);
         }
@@ -119,6 +130,11 @@ const DingTalkFirstLoginModal: React.FC<DingTalkFirstLoginModalProps> = ({
                     placeholder="请输入密码"
                 />
             </Form.Item>
+            {method === 'binding' && (
+                <Form.Item label="安全验证" required>
+                    <CaptchaVerify value={captchaPass} onChange={setCaptchaPass}/>
+                </Form.Item>
+            )}
             {method === 'create' && (
                 <Form.Item
                     label="确认密码"

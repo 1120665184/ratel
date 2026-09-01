@@ -1,7 +1,14 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {App} from 'antd';
 import {EventType, emitEvent, useMenuStore, useUserStore, fetchCurrentUserInfo, encryptPassword} from '@gwsu/core';
-import {login, LoginToken, TerminalType, getDingTalkAuthUrl, getLoginConfigInfo} from '../services/login';
+import {
+    getDingTalkAuthUrl,
+    getLoginConfigInfo,
+    login,
+    LoginToken,
+    TerminalType,
+} from '../services/login';
+import CaptchaVerify, {CaptchaPass} from './components/CaptchaVerify';
 import DingTalkFirstLoginModal from './components/DingTalkFirstLoginModal';
 import styles from './login.module.less';
 
@@ -12,6 +19,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [projectName, setProjectName] = useState('Ratel');
     const [temporaryVoucher, setTemporaryVoucher] = useState<string | null>(null);
+    const [captchaPass, setCaptchaPass] = useState<CaptchaPass | null>(null);
 
     /** 登录页加载时获取项目配置信息 */
     useEffect(() => {
@@ -99,6 +107,11 @@ export default function Login() {
             return;
         }
 
+        if (!captchaPass) {
+            message.warning('请先完成安全验证');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -107,11 +120,14 @@ export default function Login() {
                 terminal: TerminalType.WEB,
                 username: username.trim(),
                 password: encryptPassword(password),
+                captchaId: captchaPass.captchaId,
+                captchaCode: captchaPass.captchaCode,
             });
 
             await handleLoginSuccess(loginToken);
         } catch (error) {
             // 错误提示已在 request.ts 中统一处理
+            setCaptchaPass(null);
         } finally {
             setLoading(false);
         }
@@ -198,6 +214,8 @@ export default function Login() {
                             required
                         />
                     </div>
+
+                    <CaptchaVerify value={captchaPass} onChange={setCaptchaPass}/>
 
                     <button
                         type="submit"

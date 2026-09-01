@@ -21,6 +21,10 @@ import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.core.exception.handler.GlobalExceptionFunctionHandler;
 import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.core.utils.DeployUtils;
+import org.quyq.gwsu.common.security.captcha.domain.CaptchaCheckRequest;
+import org.quyq.gwsu.common.security.captcha.domain.CaptchaGetRequest;
+import org.quyq.gwsu.common.security.captcha.enums.CaptchaType;
+import org.quyq.gwsu.common.security.captcha.service.CaptchaServiceFacade;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.AccountType;
@@ -30,6 +34,7 @@ import org.quyq.gwsu.common.security.utils.SessionUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.function.*;
 import tools.jackson.databind.JsonNode;
 
@@ -67,6 +72,9 @@ public class LoginWebConfiguration {
     @Resource
     private Gson gson;
 
+    @Resource
+    private CaptchaServiceFacade captchaServiceFacade;
+
 
     @Bean
     public RouterFunction<ServerResponse> loginRouters() {
@@ -97,6 +105,16 @@ public class LoginWebConfiguration {
                 .andRoute(RequestPredicates.GET(buildPath("/auth/url/{accountType}/{loginType}")), this::authUrl)
 
                 /**
+                 * 获取验证码
+                 */
+                .andRoute(RequestPredicates.GET(buildPath("/auth/captcha/get")), this::getCaptcha)
+
+                /**
+                 * 一次校验验证码
+                 */
+                .andRoute(RequestPredicates.POST(buildPath("/auth/captcha/check")), this::checkCaptcha)
+
+                /**
                  * 获取工作区列表和当前所属工作区
                  */
                 .andRoute(RequestPredicates.POST(buildPath("/workspace/list")), this::workspaceList)
@@ -106,6 +124,35 @@ public class LoginWebConfiguration {
                  */
                 .andRoute(RequestPredicates.POST(buildPath("/workspace/switch/{workspaceId}")), this::switchWorkspace)
                 .filter(new GlobalExceptionFunctionHandler());
+    }
+
+    /**
+     * 获取验证码
+     *
+     * @param request
+     * @return
+     */
+    private ServerResponse getCaptcha(ServerRequest request) {
+        CaptchaType type = request.param("type")
+                .filter(StringUtils::hasText)
+                .map(CaptchaType::from)
+                .orElse(null);
+        String scene = request.param("scene").orElse("login");
+        String clientUid = request.param("clientUid").orElse(null);
+        return ServerResponse.ok()
+                .body(R.ok(captchaServiceFacade.get(new CaptchaGetRequest(type, scene, clientUid))));
+    }
+
+    /**
+     * 一次校验验证码
+     *
+     * @param request
+     * @return
+     */
+    private ServerResponse checkCaptcha(ServerRequest request) throws ServletException, IOException {
+        CaptchaCheckRequest form = request.body(CaptchaCheckRequest.class);
+        return ServerResponse.ok()
+                .body(R.ok(captchaServiceFacade.check(form)));
     }
 
     /**

@@ -18,9 +18,13 @@ import org.quyq.gwsu.common.authentication.login.interceptor.LoginInterceptorCon
 import org.quyq.gwsu.common.authentication.login.interceptor.LoginInterceptorUtils;
 import org.quyq.gwsu.common.core.domain.visitor.UserInfo;
 import org.quyq.gwsu.common.core.exception.ExceptionMsgHandler;
+import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
+import org.quyq.gwsu.common.core.utils.AssertUtils;
 import org.quyq.gwsu.common.core.utils.SpringUtils;
 import org.quyq.gwsu.common.security.api.IRoleInfoClientApi;
 import org.quyq.gwsu.common.security.api.vo.UserRoleInfo;
+import org.quyq.gwsu.common.security.captcha.domain.CaptchaVerifyRequest;
+import org.quyq.gwsu.common.security.captcha.service.CaptchaServiceFacade;
 import org.quyq.gwsu.common.security.constants.SecurityConstants;
 import org.quyq.gwsu.common.security.domain.Subject;
 import org.quyq.gwsu.common.security.enums.DataScope;
@@ -60,6 +64,7 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
                     LoginInterceptorContext<U> context = new LoginInterceptorContext<>(loginDTO, loginVO);
 
                     try {
+                        verifyCaptchaIfNecessary(loginDTO);
                         U auth = toAuth(loginDTO, properties);
 
                         Subject<U> subject = buildSubject(auth);
@@ -112,6 +117,21 @@ public abstract class AbstractLoginHandler<T extends AbstractLoginDTO, U extends
                 });
 
 
+    }
+
+
+    private void verifyCaptchaIfNecessary(T loginDTO) {
+        if (!StringUtils.hasText(loginDTO.getCaptchaId())) {
+            return;
+        }
+        AssertUtils.hasText(loginDTO.getCaptchaCode(), CommonErrorCode.E04009);
+        CaptchaServiceFacade facade = SpringUtils.getBean(CaptchaServiceFacade.class);
+        facade.verifyForLogin(new CaptchaVerifyRequest(
+                loginDTO.getCaptchaId(),
+                loginDTO.getCaptchaCode(),
+                loginDTO.getType(),
+                "login"
+        ));
     }
 
 
