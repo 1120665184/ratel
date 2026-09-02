@@ -12,6 +12,8 @@ import java.util.Map;
 public record CaptchaGetResponse(
         CaptchaType type,
         String captchaId,
+        long expireSeconds,
+        long verificationExpireSeconds,
         Map<String, Object> data
 ) {
 }

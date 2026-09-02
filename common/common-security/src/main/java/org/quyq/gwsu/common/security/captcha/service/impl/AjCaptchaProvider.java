@@ -65,7 +65,13 @@ public class AjCaptchaProvider implements CaptchaProvider {
         Map<String, Object> responseData = new HashMap<>(data);
         responseData.put("captchaId", captchaId);
         responseData.put("captchaType", type.getCode());
-        return new CaptchaGetResponse(type, captchaId, responseData);
+        return new CaptchaGetResponse(
+                type,
+                captchaId,
+                properties.effectiveExpireSeconds(),
+                properties.effectiveVerificationExpireSeconds(),
+                responseData
+        );
     }
 
     @Override

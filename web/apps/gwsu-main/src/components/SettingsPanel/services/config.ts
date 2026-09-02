@@ -1,6 +1,7 @@
-import {  post, del} from '@gwsu/core';
+import { get, post, del } from '@gwsu/core';
 import type { ConfigVO} from '@gwsu/core';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
+import type { CaptchaTypeOption } from '../GeneralConfigTab/types';
 import type { RemoteControlConfig } from '../AssistantConfigTab/types';
 
 const BASE = '/security/config';
@@ -54,6 +55,12 @@ export async function deleteConfigs(ids: string[]) {
 export async function saveRemoteControlConfig(config: RemoteControlConfig) {
   const res = await post<boolean>('/security/connect/config/remote-control', config);
   return res.data;
+}
+
+/** 获取图形验证码类型 */
+export async function getCaptchaTypeOptions() {
+  const res = await get<CaptchaTypeOption[]>(`${BASE}/captchaType`);
+  return res.data ?? [];
 }
 
 /** 下载钉钉 AI 输出卡片模板导入文件接口路径 */

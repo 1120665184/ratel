@@ -4,14 +4,23 @@ import {
   SaveOutlined,
   ReloadOutlined,
   GlobalOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { fetchConfigsBatch, useProjectConfigStore } from '@gwsu/core';
-import { saveOrUpdateConfig } from '../services/config';
+import { getCaptchaTypeOptions, saveOrUpdateConfig } from '../services/config';
 import type { ConfigInfo } from '../services/config';
 import { ConfigValueType, ConfigType } from '@gwsu/core';
-import type { BaseUrlConfig, GeneralTabKey } from './types';
-import { createDefaultBaseUrlConfig, DEFAULT_BASE_URL_CONFIG, BASE_URL_CONFIG_KEY } from './types';
+import type { BaseUrlConfig, CaptchaConfig, CaptchaTypeOption, GeneralTabKey } from './types';
+import {
+  BASE_URL_CONFIG_KEY,
+  CAPTCHA_CONFIG_KEY,
+  createDefaultBaseUrlConfig,
+  createDefaultCaptchaConfig,
+  DEFAULT_BASE_URL_CONFIG,
+  normalizeCaptchaConfig,
+} from './types';
 import ProjectUrlForm from './ProjectUrlForm';
+import CaptchaConfigForm from './CaptchaConfigForm';
 import styles from './index.module.less';
 
 const GeneralConfigTab: React.FC = () => {
@@ -23,11 +32,15 @@ const GeneralConfigTab: React.FC = () => {
   // 基础地址配置
   const [baseUrlConfig, setBaseUrlConfig] = useState<BaseUrlConfig>(createDefaultBaseUrlConfig());
   const [baseUrlConfigId, setBaseUrlConfigId] = useState<string | undefined>();
+  const [captchaConfig, setCaptchaConfig] = useState<CaptchaConfig>(createDefaultCaptchaConfig());
+  const [captchaConfigId, setCaptchaConfigId] = useState<string | undefined>();
+  const [captchaTypeOptions, setCaptchaTypeOptions] = useState<CaptchaTypeOption[]>([]);
+  const [captchaTypeLoading, setCaptchaTypeLoading] = useState(false);
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const configMap = await fetchConfigsBatch([BASE_URL_CONFIG_KEY]);
+      const configMap = await fetchConfigsBatch([BASE_URL_CONFIG_KEY, CAPTCHA_CONFIG_KEY]);
 
       // 解析基础地址配置
       const urlInfo = configMap[BASE_URL_CONFIG_KEY] as ConfigInfo | undefined;
@@ -45,6 +58,23 @@ const GeneralConfigTab: React.FC = () => {
         setBaseUrlConfig(createDefaultBaseUrlConfig());
         setBaseUrlConfigId(undefined);
       }
+
+      // 解析图形验证码配置
+      const captchaInfo = configMap[CAPTCHA_CONFIG_KEY] as ConfigInfo | undefined;
+      if (captchaInfo?.configValue) {
+        try {
+          const parsed = JSON.parse(captchaInfo.configValue) as Partial<CaptchaConfig>;
+          setCaptchaConfig(normalizeCaptchaConfig(parsed));
+          setCaptchaConfigId(captchaInfo.id);
+        } catch {
+          message.warning('图形验证码配置解析失败，已恢复默认值');
+          setCaptchaConfig(createDefaultCaptchaConfig());
+          setCaptchaConfigId(captchaInfo.id);
+        }
+      } else {
+        setCaptchaConfig(createDefaultCaptchaConfig());
+        setCaptchaConfigId(undefined);
+      }
     } catch {
       // error handled by request util
     } finally {
@@ -52,12 +82,34 @@ const GeneralConfigTab: React.FC = () => {
     }
   }, []);
 
+  const fetchCaptchaTypes = useCallback(async () => {
+    setCaptchaTypeLoading(true);
+    try {
+      const options = await getCaptchaTypeOptions();
+      setCaptchaTypeOptions(options);
+    } catch {
+      // error handled by request util
+    } finally {
+      setCaptchaTypeLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchConfig();
-  }, [fetchConfig]);
+    fetchCaptchaTypes();
+  }, [fetchConfig, fetchCaptchaTypes]);
 
   const handleBaseUrlConfigChange = (updated: BaseUrlConfig) => {
     setBaseUrlConfig(updated);
+  };
+
+  const handleCaptchaConfigChange = (updated: CaptchaConfig) => {
+    setCaptchaConfig(updated);
+  };
+
+  const handleReload = () => {
+    fetchConfig();
+    fetchCaptchaTypes();
   };
 
   const handleSave = async () => {
@@ -73,6 +125,24 @@ const GeneralConfigTab: React.FC = () => {
       }
       if (!baseUrlConfig.apiBaseUrl) {
         message.warning('请填写后端 API 地址');
+        return;
+      }
+    }
+    if (activeTab === 'captcha') {
+      if (!captchaConfig.type) {
+        message.warning('请选择验证码类型');
+        return;
+      }
+      if (!captchaConfig.waterMark) {
+        message.warning('请填写水印文字');
+        return;
+      }
+      if (!captchaConfig.expireSeconds || captchaConfig.expireSeconds <= 0) {
+        message.warning('请填写有效的验证码有效时间');
+        return;
+      }
+      if (!captchaConfig.verificationExpireSeconds || captchaConfig.verificationExpireSeconds <= 0) {
+        message.warning('请填写有效的二次校验凭证有效时间');
         return;
       }
     }
@@ -96,6 +166,21 @@ const GeneralConfigTab: React.FC = () => {
           fetchConfig();
         }
       }
+      if (activeTab === 'captcha') {
+        const success = await saveOrUpdateConfig({
+          id: captchaConfigId,
+          configKey: CAPTCHA_CONFIG_KEY,
+          configName: '验证码配置',
+          configValue: JSON.stringify(normalizeCaptchaConfig(captchaConfig)),
+          valueType: ConfigValueType.JSON,
+          configType: ConfigType.SYSTEM,
+          description: '登录验证码默认配置',
+        });
+        if (success) {
+          message.success('图形验证码配置保存成功');
+          fetchConfig();
+        }
+      }
     } catch {
       // error handled by request util
     } finally {
@@ -113,6 +198,7 @@ const GeneralConfigTab: React.FC = () => {
 
   const tabs: { key: GeneralTabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'projectUrl', label: '项目信息', icon: <GlobalOutlined /> },
+    { key: 'captcha', label: '图形验证码', icon: <SafetyCertificateOutlined /> },
   ];
 
   return (
@@ -137,10 +223,18 @@ const GeneralConfigTab: React.FC = () => {
           {activeTab === 'projectUrl' && (
             <ProjectUrlForm value={baseUrlConfig} onChange={handleBaseUrlConfigChange} />
           )}
+          {activeTab === 'captcha' && (
+            <CaptchaConfigForm
+              value={captchaConfig}
+              typeOptions={captchaTypeOptions}
+              typeLoading={captchaTypeLoading}
+              onChange={handleCaptchaConfigChange}
+            />
+          )}
 
           {/* 操作栏 */}
           <div className={styles.actionBar}>
-            <Button icon={<ReloadOutlined />} onClick={fetchConfig}>
+            <Button icon={<ReloadOutlined />} onClick={handleReload}>
               重置
             </Button>
             <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave} data-ai-approval>

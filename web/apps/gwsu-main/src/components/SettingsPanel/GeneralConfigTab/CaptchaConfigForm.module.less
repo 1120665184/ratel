@@ -1,0 +1,55 @@
+.captchaConfigForm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.configItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: oklch(0.97 0.01 260);
+  }
+}
+
+.configIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: oklch(0.95 0.02 260);
+  color: oklch(0.55 0.15 260);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.configContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.configLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.configDesc {
+  display: block;
+  color: oklch(0.55 0.02 260);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.configInput {
+  width: 100%;
+}

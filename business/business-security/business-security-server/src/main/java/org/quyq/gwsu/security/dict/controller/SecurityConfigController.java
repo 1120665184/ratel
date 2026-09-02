@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.quyq.gwsu.common.core.domain.KeyValue;
 import org.quyq.gwsu.common.core.domain.R;
 import org.quyq.gwsu.common.security.annotation.LoginAllowAccess;
 import org.quyq.gwsu.common.security.annotation.TableModelPermission;
 import org.quyq.gwsu.common.security.api.IConfigInfoClientApi;
 import org.quyq.gwsu.common.security.api.vo.ConfigVO;
+import org.quyq.gwsu.common.security.captcha.enums.CaptchaType;
 import org.quyq.gwsu.security.api.config.dto.ConfigQueryDTO;
 import org.quyq.gwsu.security.api.config.dto.ConfigSaveDTO;
 import org.quyq.gwsu.security.dict.domain.SecurityConfig;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * 配置管理控制器
@@ -65,4 +68,13 @@ public class SecurityConfigController implements IConfigInfoClientApi {
     public R<Boolean> remove(@RequestBody List<String> ids) {
         return R.ok(configService.removeByIds(ids));
     }
+
+
+    @Operation(summary = "获取图形验证码类型")
+    @LoginAllowAccess
+    @GetMapping("captchaType")
+    public R<List<KeyValue<String , String>>> getCaptchaType(){
+        return R.ok(Stream.of(CaptchaType.values()).map(v -> new KeyValue<>(v.name() ,v.getName())).toList());
+    }
+
 }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quyq.gwsu.common.core.exception.errcode.CommonErrorCode;
 import org.quyq.gwsu.common.security.captcha.enums.CaptchaType;
+import org.quyq.gwsu.common.security.captcha.properties.AjCaptchaProperties;
 import org.quyq.gwsu.common.security.captcha.properties.CaptchaProperties;
 import org.quyq.gwsu.common.security.exception.SecurityException;
 import org.quyq.gwsu.common.security.utils.ConfigInfoUtils;
@@ -75,7 +76,8 @@ public class CaptchaServiceManager {
     }
 
     private ManagedCaptchaService registerBean(CaptchaProperties config, CaptchaType type, String md5) {
-        Properties properties = config.toCaptchaServiceProperties(type);
+        AjCaptchaProperties ajConfig = new AjCaptchaProperties();
+        Properties properties = ajConfig.toCaptchaServiceProperties(config, type);
         CaptchaService target = CaptchaServiceFactory.getInstance(properties);
         String beanName = beanName(type, md5);
 
@@ -105,7 +107,8 @@ public class CaptchaServiceManager {
         try {
             String json = objectMapper.writeValueAsString(Map.of(
                     "type", type,
-                    "config", config
+                    "common", config,
+                    "aj", new AjCaptchaProperties()
             ));
             return MD5.create().digestHex(json);
         } catch (Exception e) {

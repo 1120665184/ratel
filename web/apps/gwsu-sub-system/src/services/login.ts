@@ -70,6 +70,8 @@ export interface CaptchaData {
 export interface CaptchaGetResponse {
     type: CaptchaType;
     captchaId: string;
+    expireSeconds: number;
+    verificationExpireSeconds: number;
     data: CaptchaData;
 }
 
